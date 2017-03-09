@@ -1,0 +1,240 @@
+package release
+
+import java.io.{IOException, PrintStream}
+import java.nio.charset.StandardCharsets
+import java.nio.file.attribute.BasicFileAttributes
+import java.nio.file.{FileVisitResult, FileVisitor, Files, Path}
+import java.text.{DecimalFormat, DecimalFormatSymbols}
+import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
+
+import com.google.common.collect.{ImmutableList, ImmutableSet}
+import com.google.common.hash.Hashing
+import org.apache.maven.repository.internal.MavenRepositorySystemUtils
+import org.eclipse.aether.artifact.DefaultArtifact
+import org.eclipse.aether.connector.basic.BasicRepositoryConnectorFactory
+import org.eclipse.aether.impl.DefaultServiceLocator
+import org.eclipse.aether.repository.{LocalRepository, RemoteRepository}
+import org.eclipse.aether.resolution.{VersionRangeRequest, VersionRangeResolutionException}
+import org.eclipse.aether.spi.connector.RepositoryConnectorFactory
+import org.eclipse.aether.spi.connector.transport.TransporterFactory
+import org.eclipse.aether.transfer._
+import org.eclipse.aether.transport.file.FileTransporterFactory
+import org.eclipse.aether.transport.http.HttpTransporterFactory
+import org.eclipse.aether.version.Version
+import org.eclipse.aether.{DefaultRepositorySystemSession, RepositorySystem}
+
+import scala.collection.JavaConverters
+import scala.util.Random
+
+object Aether {
+
+  def existsGav(groupID: String, artifactId: String, version: String): Boolean = {
+    val versions = getVersionsOf(Seq(groupID, artifactId, "[" + version + "," + version + "]").mkString(":"))
+    versions.nonEmpty
+  }
+
+  def newerVersionsOf(groupID: String, artifactId: String, version: String): Seq[String] = {
+    val request = Seq(groupID, artifactId, "(" + version + "," + ")").mkString(":")
+    val result = getVersionsOf(request).map(_.toString)
+    result
+  }
+
+  private def getVersionsOf(req: String) = getVersions(Booter.newRepositoriesNovomindIshop)(req)
+
+  @throws[VersionRangeResolutionException]
+  private def getVersions(repository: RemoteRepository)(request: String): Seq[Version] = {
+    val system = Booter.newRepositorySystem
+    val session = Booter.newRepositorySystemSession(system)
+    val artifact = new DefaultArtifact(request)
+    val rangeRequest = new VersionRangeRequest
+    rangeRequest.setArtifact(artifact)
+    rangeRequest.setRepositories(ImmutableList.of(repository))
+    val rangeResult = system.resolveVersionRange(session, rangeRequest)
+    JavaConverters.asScalaBuffer(rangeResult.getVersions)
+  }
+
+  private class ManualRepositorySystemFactory {
+
+  }
+
+  private object ManualRepositorySystemFactory {
+    def newRepositorySystem: RepositorySystem = {
+      val locator = MavenRepositorySystemUtils.newServiceLocator
+      locator.addService(classOf[RepositoryConnectorFactory], classOf[BasicRepositoryConnectorFactory])
+      locator.addService(classOf[TransporterFactory], classOf[FileTransporterFactory])
+      locator.addService(classOf[TransporterFactory], classOf[HttpTransporterFactory])
+      locator.setErrorHandler(new DefaultServiceLocator.ErrorHandler() {
+        override def serviceCreationFailed(`type`: Class[_], impl: Class[_], exception: Throwable) {
+          if (exception.isInstanceOf[ArtifactNotFoundException]) System.err.println(classOf[ManualRepositorySystemFactory].getCanonicalName + " -> " + exception.getMessage)
+          else exception.printStackTrace()
+        }
+      })
+      locator.getService(classOf[RepositorySystem])
+    }
+  }
+
+  private class Booter {}
+
+  private object Booter {
+    def newRepositorySystem: RepositorySystem = ManualRepositorySystemFactory.newRepositorySystem
+
+    def newRepositorySystemSession(system: RepositorySystem): DefaultRepositorySystemSession =
+      newRepositorySystemSession(system, silent = true)
+
+    private def delete(path: Path) {
+      try
+        Files.walkFileTree(path, new FileVisitor[Path]() {
+          @throws[IOException]
+          def postVisitDirectory(dir: Path, exc: IOException): FileVisitResult = {
+            Files.delete(dir)
+            FileVisitResult.CONTINUE
+          }
+
+          @throws[IOException]
+          def preVisitDirectory(dir: Path, attrs: BasicFileAttributes) = FileVisitResult.CONTINUE
+
+          @throws[IOException]
+          def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
+            Files.delete(file)
+            FileVisitResult.CONTINUE
+          }
+
+          @throws[IOException]
+          def visitFileFailed(file: Path, exc: IOException): FileVisitResult = {
+            if (!exc.toString.contains("local-repo")) {
+              System.out.println(classOf[Booter].getCanonicalName + " -> " + exc.toString)
+            }
+            FileVisitResult.CONTINUE
+          }
+        })
+
+      catch {
+        case e: IOException ⇒ {
+          e.printStackTrace()
+        }
+      }
+    }
+
+    private def newRepositorySystemSession(system: RepositorySystem, silent: Boolean): DefaultRepositorySystemSession = {
+      val session = MavenRepositorySystemUtils.newSession
+      val now = Hashing.md5().hashString(Random.nextLong() + "", StandardCharsets.UTF_8).toString
+
+      val localRepo = new LocalRepository("target/local-repo/" + now)
+      localRepo.getBasedir.getAbsoluteFile.getParentFile.mkdir()
+      localRepo.getBasedir.getAbsoluteFile.mkdir()
+      delete(localRepo.getBasedir.getAbsoluteFile.toPath)
+      session.setLocalRepositoryManager(system.newLocalRepositoryManager(session, localRepo))
+      if (!silent) session.setTransferListener(new ConsoleTransferListener)
+      //   session.setRepositoryListener(new ConsoleRepositoryListener());
+      // uncomment to generate dirty trees
+      // session.setDependencyGraphTransformer( null );
+      session
+    }
+
+    private def newDefaultRepository(url: String) = new RemoteRepository.Builder("central", "default", url).build
+
+    lazy val newRepositoriesCentral: RemoteRepository = newDefaultRepository("http://central.maven.org/maven2/")
+
+    lazy val newRepositoriesNovomindPartner: RemoteRepository = newDefaultRepository("https://partner-nexus-ishop.novomind.com/content/groups/public/")
+
+    lazy val newRepositoriesNovomindIshop: RemoteRepository = newDefaultRepository("http://nexus-ishop.novomind.com:8881/nexus/content/repositories/public")
+
+    lazy val allRepos: Seq[RemoteRepository] = Seq(newRepositoriesNovomindIshop, newRepositoriesNovomindPartner)
+  }
+
+  private class ConsoleTransferListener(_out: PrintStream = null) extends AbstractTransferListener {
+    private var out: PrintStream = null
+    this.out = if (_out != null) _out
+    else System.out
+    private val downloads = new ConcurrentHashMap[TransferResource, Long]
+    private var lastLength = 0
+
+    override def transferInitiated(event: TransferEvent) {
+      val message = if (event.getRequestType eq TransferEvent.RequestType.PUT) "Uploading"
+      else "Downloading"
+      out.println(message + ": " + event.getResource.getRepositoryUrl + event.getResource.getResourceName)
+    }
+
+    override def transferProgressed(event: TransferEvent) {
+      val resource = event.getResource
+      downloads.put(resource, event.getTransferredBytes.toLong)
+      val buffer = new StringBuilder(64)
+      import scala.collection.JavaConversions._
+      for (entry <- downloads.entrySet) {
+        val total = entry.getKey.getContentLength
+        val complete = entry.getValue.longValue
+        buffer.append(getStatus(complete, total)).append("  ")
+      }
+      val padV = lastLength - buffer.length
+      lastLength = buffer.length
+      pad(buffer, padV)
+      buffer.append('\r')
+      out.print(buffer)
+    }
+
+    override def transferCorrupted(event: TransferEvent) {
+      event.getException.printStackTrace(out)
+    }
+
+    override def transferSucceeded(event: TransferEvent) {
+      transferCompleted(event)
+      val resource = event.getResource
+      val contentLength = event.getTransferredBytes
+      if (contentLength >= 0) {
+        val `type` = if ((event.getRequestType eq TransferEvent.RequestType.PUT)) "Uploaded"
+        else "Downloaded"
+        val len = if (contentLength >= 1024) toKB(contentLength) + " KB"
+        else contentLength + " B"
+        var throughput = ""
+        val duration = System.currentTimeMillis - resource.getTransferStartTime
+        if (duration > 0) {
+          val bytes = contentLength - resource.getResumeOffset
+          val format = new DecimalFormat("0.0", new DecimalFormatSymbols(Locale.ENGLISH))
+          val kbPerSec = (bytes / 1024.0) / (duration / 1000.0)
+          throughput = " at " + format.format(kbPerSec) + " KB/sec"
+        }
+        out.println(`type` + ": " + resource.getRepositoryUrl + resource.getResourceName + " (" + len + throughput + ")")
+      }
+    }
+
+    override def transferFailed(event: TransferEvent) {
+      transferCompleted(event)
+      if (logStacktrace(event)) event.getException.printStackTrace(out)
+    }
+
+    private def logStacktrace(event: TransferEvent) = {
+      val of = ImmutableSet.of(classOf[MetadataNotFoundException], classOf[ArtifactNotFoundException])
+      if (of.contains(event.getException.getClass)) false
+      else true
+    }
+
+    private def getStatus(complete: Long, total: Long) = if (total >= 1024) toKB(complete) + "/" + toKB(total) + " KB "
+    else if (total >= 0) complete + "/" + total + " B "
+    else if (complete >= 1024) toKB(complete) + " KB "
+    else complete + " B "
+
+    private def pad(buffer: StringBuilder, _spaces: Int) {
+      var spaces = _spaces
+      val block = "                                        "
+      while (spaces > 0) {
+        val n: Int = Math.min(spaces, block.length)
+        buffer.append(block, 0, n)
+        spaces = spaces - n
+      }
+    }
+
+    private def transferCompleted(event: TransferEvent) {
+      downloads.remove(event.getResource)
+      val buffer: StringBuilder = new StringBuilder(64)
+      pad(buffer, lastLength)
+      buffer.append('\r')
+      out.print(buffer)
+    }
+
+    protected def toKB(bytes: Long): Long = {
+      return (bytes + 1023) / 1024
+    }
+  }
+
+}

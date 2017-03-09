@@ -1,0 +1,67 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.novomind.ishop.shops.novosales</groupId>
+    <artifactId>novosales-projects</artifactId>
+    <version>RC-2017.01-SNAPSHOT</version>
+    <relativePath>..</relativePath>
+  </parent>
+
+  <artifactId>novosales-erp</artifactId>
+  <name>novosales-erp</name>
+
+
+  <build>
+    <plugins>
+
+    </plugins>
+  </build>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>com.novomind.ishop.core</groupId>
+        <artifactId>ishop-core-projects</artifactId>
+        <version>${ishop-core.version}</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.novomind.ishop.shops.novosales</groupId>
+      <artifactId>novosales-commons</artifactId>
+      <version>27.0.0-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>com.novomind.ishop.shops.novosales</groupId>
+      <artifactId>novosales-commons</artifactId>
+      <version>27.0.0-SNAPSHOT</version>
+      <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>com.novomind.ishop.core</groupId>
+      <artifactId>ishop-core-all</artifactId>
+      <type>pom</type>
+    </dependency>
+    <dependency>
+      <groupId>com.novomind.ishop.core</groupId>
+      <artifactId>ishop-core-all-tests</artifactId>
+      <type>pom</type>
+      <scope>test</scope>
+    </dependency>
+
+  </dependencies>
+
+
+  <properties>
+    <subproject.property>true</subproject.property>
+  </properties>
+
+</project>
