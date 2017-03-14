@@ -1,0 +1,33 @@
+#!/bin/bash
+# Released sowohl Shop- als auch sonstige Artefakte mit Hilfe des CI Servers
+
+set -eu
+
+argLine="${*:-}"
+
+if [[ -n $(echo "${argLine}" | egrep "replace") ]]; then
+  pushd .  > /dev/null
+  cd $(dirname $0)
+  release_jar=$(dirname $0)/target/scala-2.12/release.jar
+  cp -v ${release_jar} $(dirname $0)/release.jar
+  popd > /dev/null
+else
+  release_jar=$(dirname $0)/release.jar
+fi
+if command -v tput >/dev/null; then
+  terminal_cols=$(tput cols)
+else
+  terminal_cols="80"
+fi
+
+if $(uname | egrep -iq "cygwin"); then
+  os="Cygwin"
+else
+  os="$(uname)"
+fi
+if [[ "${os}" = "Cygwin" ]]; then
+  java -jar $(cygpath -aw ${release_jar}) "$(cygpath -aw $(dirname $0))" "$(cygpath -aw $(pwd))" "${os}" "${TERM}" "${terminal_cols}" ${argLine}
+else
+  java -jar ${release_jar} "$(dirname $0)" "$(pwd)" "${os}" "${TERM}" "${terminal_cols}" ${argLine}
+fi
+

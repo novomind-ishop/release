@@ -158,8 +158,7 @@ object Starter extends App with LazyLogging {
     if (headVersion != remoteMasterVersion) {
       println("Production Version: " + remoteMasterVersion)
       println("Your Version:       " + headVersion)
-      println("Please update your ishop tools: (cd " + releaseToolPath + " && git rebase && cd -)")
-      println("_diff: " + headlg.map(_.substring(0, 7)))
+      println("Please update your release tool: (cd " + releaseToolPath + " && git rebase && cd -)")
       System.exit(1)
     }
 
@@ -226,21 +225,23 @@ object Starter extends App with LazyLogging {
 
     val releaseBrachName = "release/" + releaseWitoutSnapshot
     sgit.createBranch(releaseBrachName)
-
     if (newMod.selfVersion != nextSnapshot) {
       newMod.writeTo(workDirFile)
     }
     val toolSh1 = releaseToolGit.headStatusValue()
     val headCommitId = sgit.commitIdHead()
+
     if (sgit.hasNoLocalChanges) {
       println("skipped release commit on " + branch)
     } else {
+      print("Commit pom changes ..")
       sgit.doCommitPomXmls(
         """[ishop-release] prepare for next iteration - %s
           |
           |Signed-off-by: Ishop-Dev-Infra <ishop-dev-infra@novomind.com>
           |Releasetool-sha1: %s""".stripMargin.format(nextReleaseWithoutSnapshot, toolSh1))
 
+      println(". done")
     }
     print("checkout " + releaseBrachName + " ..")
     sgit.checkout(releaseBrachName)
@@ -254,12 +255,13 @@ object Starter extends App with LazyLogging {
     if (sgit.hasNoLocalChanges) {
       println("skipped release commit on " + releaseBrachName)
     } else {
+      print("Commit pom changes ..")
       sgit.doCommitPomXmls(
         """[ishop-release] perform to - %s
           |
           |Signed-off-by: Ishop-Dev-Infra <ishop-dev-infra@novomind.com>
           |Releasetool-sha1: %s""".stripMargin.format(release, toolSh1))
-
+      println(". done")
     }
     if (releaseMod.hasNoShopPom) {
       sgit.doTag(release)
