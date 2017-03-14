@@ -65,7 +65,7 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
       val newCommitId = commitIdHead()
       gitNative(Seq("reset", oldComitId.get))
       gitNative(Seq("add", "-A"))
-      gitNative(Seq("commit", "--no-verify", "-m", "\"" + ms.map(_.replaceFirst("^Change-Id:", "Change-Id: I" + newCommitId)).mkString("\n").trim + "\""))
+      gitNative(Seq("commit", "--no-verify", "-m", ms.map(_.replaceFirst("^Change-Id:", "Change-Id: I" + newCommitId)).mkString("\n").trim))
     }
     config("core.safecrlf", "warn")
   }

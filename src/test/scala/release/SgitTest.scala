@@ -21,6 +21,9 @@ class SgitTest extends AssertionsForJUnit {
       case "Linux" ⇒ {
         Assert.assertEquals(Seq("git"), git)
       }
+      case "Mac OS X" ⇒ {
+        Assert.assertEquals(Seq("git"), git)
+      }
       case other ⇒ Assert.fail("unknown os: " + other + " => " + git)
     }
   }
