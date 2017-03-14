@@ -56,7 +56,7 @@ class PomModTest extends AssertionsForJUnit {
     //val srcPoms = TestHelper.testResources("C:\\Users\\tstock\\git\\ishop-core-projects")
 
     // WHEN
-    val mod = PomMod(srcPoms).showDependecyUpdates(72, Starter.TermOs("any", "any"))
+    val mod = PomMod(srcPoms).showDependecyUpdates(72, Starter.TermOs("any", "any", simpleChars = false))
   }
 
   @Test

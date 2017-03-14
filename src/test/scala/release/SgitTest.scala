@@ -125,10 +125,33 @@ class SgitTest extends AssertionsForJUnit {
 
   }
 
+  @Test
+  def testOutLogger(): Unit = {
+    var s: Seq[String] = Seq.empty[String]
+    val testee = Sgit.outLogger(syserrErrors = true, Seq("fetch"), _ ⇒ false, in ⇒ s = s :+ in)
 
-  private def unw(in:String) = {
+    // WHEN
+    testee.err("any")
+
+    // THEN
+    Assert.assertEquals(Seq("fetch", "err: any"), s)
+  }
+
+  @Test
+  def testOutLoggerEmpty(): Unit = {
+    var s: Seq[String] = Seq.empty[String]
+    val testee = Sgit.outLogger(syserrErrors = true, Seq("fetch"), in ⇒ in == "fetch", in ⇒ s = s :+ in)
+
+    // WHEN
+    testee.err("Total 31 (delta 0), reused 0 (delta 0)")
+
+    // THEN
+    Assert.assertEquals(Nil, s)
+  }
+
+  private def unw(in: String) = {
     in.trim match {
-      case in:String if in.startsWith("\"") && in.endsWith("\"") ⇒ in.replaceFirst("^[\"]+", "").replaceFirst("[\"]+$", "")
+      case in: String if in.startsWith("\"") && in.endsWith("\"") ⇒ in.replaceFirst("^[\"]+", "").replaceFirst("[\"]+$", "")
       case in ⇒ in
     }
   }
@@ -239,7 +262,6 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertFalse(gitB.hasLocalChanges)
 
   }
-
 
 }
 

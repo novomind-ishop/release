@@ -11,6 +11,7 @@ import org.eclipse.jgit.lib.Ref
 
 import scala.collection.JavaConverters
 import scala.io.Source
+import scala.sys.process.ProcessLogger
 import scala.util.{Failure, Success, Try}
 
 case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends LazyLogging {
@@ -34,6 +35,12 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
   private[release] def addByString(f: String): Unit = {
     config("core.safecrlf", "false")
     gitNative(Seq("add", f))
+    config("core.safecrlf", "warn")
+  }
+
+  private[release] def addAll(f: Seq[String]): Unit = {
+    config("core.safecrlf", "false")
+    gitNative(Seq("add") ++ f)
     config("core.safecrlf", "warn")
   }
 
@@ -117,7 +124,7 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
   def currentBranch: String = gitNative(Seq("rev-parse", "--abbrev-ref", "HEAD"))
 
   def fetchAll(): Unit = {
-    gitNative(Seq("fetch", "-q", "--all", "--tags"))
+    gitNative(Seq("fetch", "-q", "--all", "--tags"), showErrors = true, useWorkdir = true, in ⇒ in == "fetch")
   }
 
   def diff(): Seq[String] = {
@@ -135,9 +142,7 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
     if (modDistinct != Seq("pom.xml")) {
       throw new IllegalStateException("only pom changes are allowed = " + modPom.mkString(", "))
     }
-
-    modPom.foreach(addByString)
-
+    addAll(modPom)
     val statusAfterAdd = status()
     if (statusAfterAdd.nonEmpty) {
       throw new IllegalStateException("uncommited changes: " + statusAfterAdd.mkString(", "))
@@ -279,7 +284,8 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
     }
   }
 
-  private[release] def gitNative(args: Seq[String], showErrors: Boolean = true, useWorkdir: Boolean = true): String = {
+  private[release] def gitNative(args: Seq[String], showErrors: Boolean = true, useWorkdir: Boolean = true,
+                                 cmdFilter: String ⇒ Boolean = _ ⇒ false): String = {
     if (!gitRoot.isDirectory) {
       throw new IllegalStateException("invalid git dir: " + gitRoot.getAbsolutePath)
     }
@@ -292,34 +298,37 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
     if (showGitCmd) {
       println(gitCmdCall)
     }
-    Sgit.native(gitCmdCall, syserrErrors = showErrors)
+    Sgit.native(gitCmdCall, syserrErrors = showErrors, cmdFilter)
   }
 }
 
 object Sgit {
 
-  private[release] def native(cmd: Seq[String], syserrErrors: Boolean): String = {
-    import sys.process._
-    val out: ProcessLogger = new ProcessLogger {
+  private[release] def outLogger(syserrErrors: Boolean, cmd: Seq[String], cmdFilter: String ⇒ Boolean, errOut: String ⇒ Unit): ProcessLogger = {
+    new ProcessLogger {
       override def out(s: ⇒ String): Unit = {}
 
       override def err(s: ⇒ String): Unit = {
-        if (syserrErrors) {
-          System.err.println(cmd.mkString("!"))
-          System.err.println("err:" + s)
+        if (syserrErrors && s.nonEmpty && !cmd.exists(cmdFilter)) {
+          errOut.apply(cmd.mkString("!"))
+          errOut.apply("err: " + s)
         }
       }
 
       override def buffer[T](f: ⇒ T): T = f
     }
+  }
 
-    val result: String = cmd !! out
+  private[release] def native(cmd: Seq[String], syserrErrors: Boolean,
+                              cmdFilter: String ⇒ Boolean): String = {
+    import sys.process._
+    val result: String = cmd !! outLogger(syserrErrors, cmd, cmdFilter, in ⇒ System.err.println(in))
     result.trim
   }
 
   private[release] def selectedGitCmd(): Seq[String] = {
     val gitCygCmd: Try[Seq[String]] = try {
-      Success(Seq(native(Seq("cygpath", "-daw", "/usr/bin/git"), syserrErrors = false)))
+      Success(Seq(native(Seq("cygpath", "-daw", "/usr/bin/git"), syserrErrors = false, _ ⇒ false)))
     } catch {
       case e: Exception ⇒ Failure(e)
     }

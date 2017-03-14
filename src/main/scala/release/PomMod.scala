@@ -48,7 +48,6 @@ case class PomMod(file: File) {
     opt.get
   }
 
-
   lazy val listDependecies: Seq[Dep] = {
     // has side effect
     replacedVersionProperties(allPoms.flatMap(f ⇒ deps(f))).distinct
@@ -142,8 +141,12 @@ case class PomMod(file: File) {
       val ref: PomRef = element._1
       val mods: Seq[(PomMod.Dep, Seq[String])] = element._2
 
-      def ch(pretty: String, simple: String) = if (termOs.isCygwin || !termOs.isMinGw) {
-        pretty
+      def ch(pretty: String, simple: String) = if (!termOs.isCygwin || termOs.isMinGw) {
+        if (termOs.simpleChars) {
+          simple
+        } else {
+          pretty
+        }
       } else {
         simple
       }
@@ -287,7 +290,7 @@ case class PomMod(file: File) {
     parentDep(self, document) +: xmlNodes.filter(_.nonEmpty).map(depFrom(self.pomRef.id))
   }
 
-  private def parentDep(dep:Dep, document: Document): Dep = {
+  private def parentDep(dep: Dep, document: Document): Dep = {
     val groupid = Xpath.onlyString(document, "//project/parent/groupId")
     val artifactId = Xpath.onlyString(document, "//project/parent/artifactId")
     val packaging = Xpath.onlyString(document, "//project/parent/packaging")

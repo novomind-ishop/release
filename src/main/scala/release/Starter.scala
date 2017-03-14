@@ -16,9 +16,9 @@ object Starter extends App with LazyLogging {
   val releaseToolDir = new File(releaseToolPath).getAbsoluteFile
   val workDir = argSeq(1)
   val workDirFile = new File(workDir).getAbsoluteFile
-  val termOs: TermOs = TermOs.select(argSeq(3), argSeq(2))
   val shellWidth = argSeq(4).toInt
   val restArgs = argSeq.drop(5).filter(_ != null).map(_.trim)
+  val termOs: TermOs = TermOs.select(argSeq(3), argSeq(2), restArgs.contains("simpleChars"))
   val dependencyUpdates = restArgs.contains("depUp")
   val showHelp = restArgs.contains("help")
   val showGit = restArgs.contains("showGit")
@@ -158,7 +158,12 @@ object Starter extends App with LazyLogging {
     if (headVersion != remoteMasterVersion) {
       println("Production Version: " + remoteMasterVersion)
       println("Your Version:       " + headVersion)
-      println("Please update your release tool: (cd " + releaseToolPath + " && git rebase && cd -)")
+      val updatePath = if (termOs.isCygwin && !termOs.isMinGw) {
+        "$(cygpath -u \"" + releaseToolPath + "\")"
+      } else {
+        releaseToolPath
+      }
+      println("Please update your release tool: (cd " + updatePath + " && git rebase && cd -)")
       System.exit(1)
     }
 
@@ -340,11 +345,12 @@ object Starter extends App with LazyLogging {
 
   if (showHelp) {
     println("Possible args:")
-    println("help     => shows this and exits")
-    println("depUp    => shows dependency updates from nexus option")
-    println("showGit  => shows all git commands for debug")
-    println("replace  => replaces release jar / only required for development")
-    println("noVerify => use this toggle for non gerrit projects")
+    println("help        => shows this and exits")
+    println("depUp       => shows dependency updates from nexus option")
+    println("simpleChars => use no drawing chars")
+    println("showGit     => shows all git commands for debug")
+    println("replace     => replaces release jar / only required for development")
+    println("noVerify    => use this toggle for non gerrit projects")
     System.exit(0)
   }
   try {
@@ -360,17 +366,17 @@ object Starter extends App with LazyLogging {
 
   object TermOs {
 
-    def select(term: String, os: String) = term match {
-      case "xterm" ⇒ TermOs("xterm", os)
-      case "xterm-256color" ⇒ TermOs("xterm-256color", os)
-      case "screen-256color" ⇒ TermOs("screen-256color", os)
-      case "cygwin" ⇒ TermOs("cygwin", os)
+    def select(term: String, os: String, simpleChars: Boolean) = term match {
+      case "xterm" ⇒ TermOs("xterm", os, simpleChars)
+      case "xterm-256color" ⇒ TermOs("xterm-256color", os, simpleChars)
+      case "screen-256color" ⇒ TermOs("screen-256color", os, simpleChars)
+      case "cygwin" ⇒ TermOs("cygwin", os, simpleChars)
       case t ⇒ throw new IllegalStateException(t)
     }
   }
 
-  case class TermOs(term: String, os: String) {
-    val isCygwin: Boolean = term.equals("cygwin")
+  case class TermOs(term: String, os: String, simpleChars: Boolean) {
+    val isCygwin: Boolean = os == "Cygwin" || term == "cygwin"
     val isMinGw: Boolean = os.contains("MINGW")
   }
 
