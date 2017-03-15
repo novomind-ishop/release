@@ -5,7 +5,7 @@ import java.time.{LocalDate, Month}
 import org.junit.{Assert, Ignore, Test}
 import org.scalatest.junit.AssertionsForJUnit
 import org.w3c.dom.Node
-import release.PomMod.{Dep, PomRef}
+import release.PomMod.{Dep, PluginDep, PomRef}
 
 class PomModTest extends AssertionsForJUnit {
 
@@ -46,6 +46,32 @@ class PomModTest extends AssertionsForJUnit {
 
     // THEN
     Assert.assertEquals(4, nodes.size)
+  }
+
+  @Test
+  @Ignore
+  def depTreeFile(): Unit = {
+    // GIVEN
+    val srcPoms = TestHelper.testResources("novosales1")
+    val pomMod = PomMod(srcPoms)
+    // WHEN
+    val treeFile: Option[String] = pomMod.depTreeFile()
+
+    // THEN
+    Assert.assertEquals(Some("asdf"), treeFile)
+  }
+
+  @Test
+  def pluginDeps(): Unit = {
+    // GIVEN
+    val srcPoms = TestHelper.testResources("novosales1")
+    val pomMod = PomMod(srcPoms)
+
+    // WHEN
+    val deps: Seq[PluginDep] = pomMod.listPluginDependecies
+
+    // THEN
+    assertPluginDeps(Novosales1Deps.plugins(), deps)
   }
 
   @Test
@@ -497,13 +523,25 @@ class PomModTest extends AssertionsForJUnit {
         |</root>""".stripMargin, result)
   }
 
+  private def assertPluginDeps(expected: Seq[PluginDep], actual: Seq[PluginDep]): Unit = {
+    def defstr(dep: PluginDep): String = {
+      "PluginDep(PomRef(\"" + dep.pomRef.id + "\"), \"" + dep.groupId + "\", \"" +
+        dep.artifactId + "\", \"" + dep.version + "\", Nil)"
+    }
+    assertBy(expected, actual, defstr)
+  }
+
   private def assertDeps(expected: Seq[Dep], actual: Seq[Dep]) = {
     def defstr(dep: Dep): String = {
       "Dep(PomRef(\"" + dep.pomRef.id + "\"), \"" + dep.groupId + "\", \"" +
         dep.artifactId + "\", \"" + dep.version + "\", \"" + dep.typeN + "\", \"" + dep.scope + "\", \"" + dep.packaging + "\")"
     }
+    assertBy(expected, actual, defstr)
+  }
 
-    Assert.assertEquals(expected.map(defstr).mkString(",\n"), actual.map(defstr).mkString(",\n"))
+  private def assertBy[L](expected: Seq[L], actual: Seq[L], fn: L ⇒ String) = {
+    Assert.assertEquals(expected.map(fn).mkString(",\n"), actual.map(fn).mkString(",\n"))
+    Assert.assertEquals(expected, actual)
   }
 
 }

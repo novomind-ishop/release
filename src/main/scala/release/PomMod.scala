@@ -13,7 +13,7 @@ import javax.xml.transform.{OutputKeys, TransformerFactory}
 
 import org.w3c.dom.{Document, Node}
 import org.xml.sax.SAXParseException
-import release.PomMod.{Dep, PomRef}
+import release.PomMod.{Dep, PluginDep, PomRef}
 import release.Starter.TermOs
 
 case class PomMod(file: File) {
@@ -53,6 +53,28 @@ case class PomMod(file: File) {
     replacedVersionProperties(allPoms.flatMap(f ⇒ deps(f))).distinct
   }
 
+  private[release] val listPluginDependecies: Seq[PluginDep] = {
+    val allP: Seq[PluginDep] = allPoms.map(in ⇒ {
+      val gav = selfDep(in).gav
+      val nodes = Xpath.toSeqTuples(in, "//plugins/plugin")
+      (nodes, gav)
+    }).flatMap(gavNode ⇒ {
+      val oo: Seq[Seq[(String, String, Node)]] = gavNode._1
+      val x = gavNode._2
+      oo.map(pluginDepFrom(x))
+    })
+    allP.toList
+  }
+
+  private def pluginDepFrom(id: String)(depSeq: Seq[(String, String, Node)]): PluginDep = {
+    val deps = toMapOf(depSeq)
+    val groupId = deps.getOrElse("groupId", "")
+    val artifactId = deps.getOrElse("artifactId", "")
+    val version = deps.getOrElse("version", "")
+
+    PluginDep(PomRef(id), groupId, artifactId, version, Nil)
+  }
+
   def changeVersion(version: String): Unit = {
     Seq(rootPomDoc).foreach(d ⇒ {
       PomMod.applyValueOfXpathTo(d, xPathToProjectVersion, version)
@@ -63,6 +85,10 @@ case class PomMod(file: File) {
       PomMod.applyVersionTo(d, listSelf, version)
     })
 
+  }
+
+  def depTreeFile(): Option[String] = {
+    None
   }
 
   def findNodes(groupId: String, artifactId: String, version: String): Seq[Node] = {
@@ -270,16 +296,24 @@ case class PomMod(file: File) {
 
   def listDependeciesReplaces(): Seq[Dep] = replacedVersionProperties(listDependecies)
 
-  private def depFrom(id: String)(markers: Seq[(String, String, Node)]): Dep = {
-    val markersMap: Map[String, String] = markers.map(t ⇒ (t._1, t._2)).foldLeft(Map.empty[String, String])(_ + _)
+  private def toMapOf(markers: Seq[(String, String, Node)]): Map[String, String] = {
+    val markersMap: Map[String, String] = markers
+      .map(in ⇒ (in._1, in._2))
+      .map(t ⇒ (t._1, t._2))
+      .foldLeft(Map.empty[String, String])(_ + _)
+    markersMap
+  }
+
+  private def depFrom(id: String)(depSeq: Seq[(String, String, Node)]): Dep = {
+    val deps = toMapOf(depSeq)
     val dep = Dep(pomRef = PomRef(id),
-      groupId = markersMap.getOrElse("groupId", ""),
-      artifactId = markersMap.getOrElse("artifactId", ""),
-      version = markersMap.getOrElse("version", ""),
-      typeN = markersMap.getOrElse("type", ""),
-      scope = markersMap.getOrElse("scope", ""),
-      packaging = markersMap.getOrElse("packaging", ""))
-    val ma = markers.map(_._3).distinct
+      groupId = deps.getOrElse("groupId", ""),
+      artifactId = deps.getOrElse("artifactId", ""),
+      version = deps.getOrElse("version", ""),
+      typeN = deps.getOrElse("type", ""),
+      scope = deps.getOrElse("scope", ""),
+      packaging = deps.getOrElse("packaging", ""))
+    val ma = depSeq.map(_._3).distinct
     depMap = depMap ++ Map(dep → Util.only(ma, "invalid dep creation"))
     dep
   }
@@ -295,7 +329,6 @@ case class PomMod(file: File) {
     val artifactId = Xpath.onlyString(document, "//project/parent/artifactId")
     val packaging = Xpath.onlyString(document, "//project/parent/packaging")
     val parentVersion = Xpath.onlyString(document, xPathToProjectParentVersion)
-    val version = Xpath.onlyString(document, xPathToProjectVersion)
     val id = Seq(dep.groupId, dep.artifactId, dep.version).mkString(":")
     depFrom(id)(Map(
       "groupId" → groupid.getOrElse(""),
@@ -505,6 +538,13 @@ object PomMod {
   case class Dep(pomRef: PomRef, groupId: String, artifactId: String, version: String, typeN: String,
                  scope: String, packaging: String) {
     val gav: String = Seq(groupId, artifactId, version, typeN, scope, packaging)
+      .mkString(":").replaceAll("[:]{2,}", ":").replaceFirst(":$", "")
+  }
+
+  case class PluginExec(id: String, goals: Seq[String], phase: String, config: Map[String, String])
+
+  case class PluginDep(pomRef: PomRef, groupId: String, artifactId: String, version: String, execs:Seq[PluginExec]) {
+    val gav: String = Seq(groupId, artifactId, version)
       .mkString(":").replaceAll("[:]{2,}", ":").replaceFirst(":$", "")
   }
 
