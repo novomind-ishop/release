@@ -72,7 +72,7 @@ case class PomMod(file: File) {
     val artifactId = deps.getOrElse("artifactId", "")
     val version = deps.getOrElse("version", "")
 
-    PluginDep(PomRef(id), groupId, artifactId, version, Nil)
+    replacedVersionProperty(PluginDep(PomRef(id), groupId, artifactId, version, Nil))
   }
 
   def changeVersion(version: String): Unit = {
@@ -279,6 +279,8 @@ case class PomMod(file: File) {
   private def replacedPropertyOf(string: String) = replaceProperty(listProperties())(string)
 
   private def replacedVersionProperties(deps: Seq[Dep]) = deps.map(dep ⇒ dep.copy(version = replacedPropertyOf(dep.version)))
+
+  private def replacedVersionProperty(dep:PluginDep) = dep.copy(version = replacedPropertyOf(dep.version))
 
   def listSnapshotsDistinct: Seq[Dep] = {
     Util.distinctOn[Dep, Dep](listSnapshots, _.copy(pomRef = PomRef.undef))

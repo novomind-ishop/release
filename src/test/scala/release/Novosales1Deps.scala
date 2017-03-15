@@ -9,7 +9,7 @@ object Novosales1Deps {
     PluginDep(PomRef("com.novomind.ishop.shops.novosales:novosales-projects:27.0.0-SNAPSHOT:pom"), "org.apache.maven.plugins", "maven-dependency-plugin", "2.8", Nil),
     PluginDep(PomRef("com.novomind.ishop.shops.novosales:novosales-projects:27.0.0-SNAPSHOT:pom"), "com.novomind.maven", "zkm-maven-plugin", "", Nil),
     PluginDep(PomRef("com.novomind.ishop.shops.novosales:novosales-projects:27.0.0-SNAPSHOT:pom"), "org.apache.maven.plugins", "maven-checkstyle-plugin", "2.17", Nil),
-    PluginDep(PomRef("com.novomind.ishop.shops.novosales:novosales-projects:27.0.0-SNAPSHOT:pom"), "org.codehaus.mojo", "aspectj-maven-plugin", "${aspectj-maven-plugin.version}", Nil),
+    PluginDep(PomRef("com.novomind.ishop.shops.novosales:novosales-projects:27.0.0-SNAPSHOT:pom"), "org.codehaus.mojo", "aspectj-maven-plugin", "1.8", Nil),
     PluginDep(PomRef("com.novomind.ishop.shops.novosales:novosales-projects:27.0.0-SNAPSHOT:pom"), "", "maven-surefire-plugin", "", Nil),
     PluginDep(PomRef("com.novomind.ishop.shops.novosales:novosales-projects:27.0.0-SNAPSHOT:pom"), "", "maven-failsafe-plugin", "2.19.1", Nil),
     PluginDep(PomRef("com.novomind.ishop.shops:novosales:27.0.0-SNAPSHOT:war"), "com.novomind.ishop.maven", "ishop-maven-plugin", "", Nil),
