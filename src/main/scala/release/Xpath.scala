@@ -36,8 +36,12 @@ object Xpath {
     tupleOpts.flatten
   }
 
+  private def mapToSeqTuples(nodes: Seq[Node]): Seq[Seq[(String, String, Node)]] = {
+    nodes.map(in ⇒ convertToTuples(in, in.getChildNodes))
+  }
+
   def toSeqTuples(document: Document, xpath: String): Seq[Seq[(String, String, Node)]] = {
-    toSeq(document, xpath).map(in ⇒ convertToTuples(in, in.getChildNodes))
+    mapToSeqTuples(toSeq(document, xpath))
   }
 
   def toSeqNodes(nodeList: NodeList): Seq[Node] = {
@@ -48,9 +52,39 @@ object Xpath {
     toSeqNodes(toNodeList(document, xpath))
   }
 
-  private def toNodeList(doc: Document, value: String): NodeList = {
-    val xpath = XPathFactory.newInstance().newXPath()
-    xpath.compile(value).evaluate(doc, XPathConstants.NODESET).asInstanceOf[NodeList]
+  def nodeElementValue(node: Node, xpath: String): Option[String] = {
+    nodeElements(node, xpath)
+      .headOption
+      .map(_.getFirstChild)
+      .filter(_ != null)
+      .map(_.getTextContent)
+  }
+
+  def nodeElementMap(node: Node, xpath: String): Map[String, String] = {
+    val elements = nodeElements(node, xpath)
+    val tuplets = mapToSeqTuples(elements)
+    val o = tuplets.map(toMapOf)
+    o.foldLeft(Map.empty[String, String])((a, b) ⇒ a ++ b)
+  }
+
+  def toMapOf(nodeSeq: Seq[(String, String, Node)]): Map[String, String] = {
+    val markersMap: Map[String, String] = nodeSeq
+      .map(in ⇒ (in._1, in._2))
+      .map(t ⇒ (t._1, t._2.trim))
+      .foldLeft(Map.empty[String, String])(_ + _)
+    markersMap
+  }
+
+  def nodeElements(node: Node, xpath: String): Seq[Node] = {
+    if (xpath.startsWith("/")) {
+      throw new IllegalStateException("only relative xpathes are allowed for nodes")
+    }
+    toSeqNodes(toNodeList(node, xpath: String))
+  }
+
+  private def toNodeList(doc: AnyRef, xpath: String): NodeList = {
+    val xpathInstance = XPathFactory.newInstance().newXPath()
+    xpathInstance.compile(xpath).evaluate(doc, XPathConstants.NODESET).asInstanceOf[NodeList]
   }
 
 }

@@ -5,7 +5,7 @@ import java.time.{LocalDate, Month}
 import org.junit.{Assert, Ignore, Test}
 import org.scalatest.junit.AssertionsForJUnit
 import org.w3c.dom.Node
-import release.PomMod.{Dep, PluginDep, PomRef}
+import release.PomMod.{Dep, PluginDep, PluginExec, PomRef}
 
 class PomModTest extends AssertionsForJUnit {
 
@@ -525,9 +525,18 @@ class PomModTest extends AssertionsForJUnit {
 
   private def assertPluginDeps(expected: Seq[PluginDep], actual: Seq[PluginDep]): Unit = {
     def defstr(dep: PluginDep): String = {
+      def formatExec(pluginExec: Seq[PluginExec]): String = {
+        "Seq(" + pluginExec.map(in ⇒ {
+          val goals = in.goals.map(in ⇒ "\"" + in + "\"").mkString(",")
+          val conf = in.config.map(in ⇒ "\"" + in._1 + "\" -> \"" + in._2 + "\"").mkString(",")
+          "PluginExec(\"" + in.id + "\", Seq(" + goals + "), \"" + in.phase + "\", Map(" + conf + "))"
+        }).mkString(", ") + ")"
+      }
+
       "PluginDep(PomRef(\"" + dep.pomRef.id + "\"), \"" + dep.groupId + "\", \"" +
-        dep.artifactId + "\", \"" + dep.version + "\", Nil)"
+        dep.artifactId + "\", \"" + dep.version + "\", " + formatExec(dep.execs) + ")"
     }
+
     assertBy(expected, actual, defstr)
   }
 
@@ -536,6 +545,7 @@ class PomModTest extends AssertionsForJUnit {
       "Dep(PomRef(\"" + dep.pomRef.id + "\"), \"" + dep.groupId + "\", \"" +
         dep.artifactId + "\", \"" + dep.version + "\", \"" + dep.typeN + "\", \"" + dep.scope + "\", \"" + dep.packaging + "\")"
     }
+
     assertBy(expected, actual, defstr)
   }
 

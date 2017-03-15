@@ -13,7 +13,7 @@ import javax.xml.transform.{OutputKeys, TransformerFactory}
 
 import org.w3c.dom.{Document, Node}
 import org.xml.sax.SAXParseException
-import release.PomMod.{Dep, PluginDep, PomRef}
+import release.PomMod.{Dep, PluginDep, PluginExec, PomRef}
 import release.Starter.TermOs
 
 case class PomMod(file: File) {
@@ -67,12 +67,24 @@ case class PomMod(file: File) {
   }
 
   private def pluginDepFrom(id: String)(depSeq: Seq[(String, String, Node)]): PluginDep = {
-    val deps = toMapOf(depSeq)
+    val deps = Xpath.toMapOf(depSeq)
+    val node = Util.only(depSeq.map(_._3).distinct, "only a single instance is possible")
+
     val groupId = deps.getOrElse("groupId", "")
     val artifactId = deps.getOrElse("artifactId", "")
     val version = deps.getOrElse("version", "")
 
-    replacedVersionProperty(PluginDep(PomRef(id), groupId, artifactId, version, Nil))
+    val execNodes = Xpath.nodeElements(node, "executions/execution")
+    val execs = execNodes.map(in ⇒ {
+      val id = Xpath.nodeElementValue(in, "id").getOrElse("")
+      val phase = Xpath.nodeElementValue(in, "phase").getOrElse("")
+      val goals = Xpath.nodeElements(in, "goals/goal").map(_.getFirstChild.getTextContent)
+
+      val configNodes = Xpath.nodeElementMap(in, "configuration")
+      PluginExec(id, goals, phase, configNodes)
+    })
+
+    replacedVersionProperty(PluginDep(PomRef(id), groupId, artifactId, version, execs))
   }
 
   def changeVersion(version: String): Unit = {
@@ -280,7 +292,7 @@ case class PomMod(file: File) {
 
   private def replacedVersionProperties(deps: Seq[Dep]) = deps.map(dep ⇒ dep.copy(version = replacedPropertyOf(dep.version)))
 
-  private def replacedVersionProperty(dep:PluginDep) = dep.copy(version = replacedPropertyOf(dep.version))
+  private def replacedVersionProperty(dep: PluginDep) = dep.copy(version = replacedPropertyOf(dep.version))
 
   def listSnapshotsDistinct: Seq[Dep] = {
     Util.distinctOn[Dep, Dep](listSnapshots, _.copy(pomRef = PomRef.undef))
@@ -298,16 +310,8 @@ case class PomMod(file: File) {
 
   def listDependeciesReplaces(): Seq[Dep] = replacedVersionProperties(listDependecies)
 
-  private def toMapOf(markers: Seq[(String, String, Node)]): Map[String, String] = {
-    val markersMap: Map[String, String] = markers
-      .map(in ⇒ (in._1, in._2))
-      .map(t ⇒ (t._1, t._2))
-      .foldLeft(Map.empty[String, String])(_ + _)
-    markersMap
-  }
-
   private def depFrom(id: String)(depSeq: Seq[(String, String, Node)]): Dep = {
-    val deps = toMapOf(depSeq)
+    val deps = Xpath.toMapOf(depSeq)
     val dep = Dep(pomRef = PomRef(id),
       groupId = deps.getOrElse("groupId", ""),
       artifactId = deps.getOrElse("artifactId", ""),
@@ -545,7 +549,7 @@ object PomMod {
 
   case class PluginExec(id: String, goals: Seq[String], phase: String, config: Map[String, String])
 
-  case class PluginDep(pomRef: PomRef, groupId: String, artifactId: String, version: String, execs:Seq[PluginExec]) {
+  case class PluginDep(pomRef: PomRef, groupId: String, artifactId: String, version: String, execs: Seq[PluginExec]) {
     val gav: String = Seq(groupId, artifactId, version)
       .mkString(":").replaceAll("[:]{2,}", ":").replaceFirst(":$", "")
   }

@@ -1,24 +1,24 @@
 package release
 
-import release.PomMod.{Dep, PluginDep, PomRef}
+import release.PomMod.{Dep, PluginDep, PluginExec, PomRef}
 
 object Novosales1Deps {
 
   def plugins(): Seq[PluginDep] = Seq(
-    PluginDep(PomRef("com.novomind.ishop.shops.novosales:novosales-projects:27.0.0-SNAPSHOT:pom"), "org.jacoco", "jacoco-maven-plugin", "", Nil),
-    PluginDep(PomRef("com.novomind.ishop.shops.novosales:novosales-projects:27.0.0-SNAPSHOT:pom"), "org.apache.maven.plugins", "maven-dependency-plugin", "2.8", Nil),
-    PluginDep(PomRef("com.novomind.ishop.shops.novosales:novosales-projects:27.0.0-SNAPSHOT:pom"), "com.novomind.maven", "zkm-maven-plugin", "", Nil),
-    PluginDep(PomRef("com.novomind.ishop.shops.novosales:novosales-projects:27.0.0-SNAPSHOT:pom"), "org.apache.maven.plugins", "maven-checkstyle-plugin", "2.17", Nil),
-    PluginDep(PomRef("com.novomind.ishop.shops.novosales:novosales-projects:27.0.0-SNAPSHOT:pom"), "org.codehaus.mojo", "aspectj-maven-plugin", "1.8", Nil),
-    PluginDep(PomRef("com.novomind.ishop.shops.novosales:novosales-projects:27.0.0-SNAPSHOT:pom"), "", "maven-surefire-plugin", "", Nil),
-    PluginDep(PomRef("com.novomind.ishop.shops.novosales:novosales-projects:27.0.0-SNAPSHOT:pom"), "", "maven-failsafe-plugin", "2.19.1", Nil),
-    PluginDep(PomRef("com.novomind.ishop.shops:novosales:27.0.0-SNAPSHOT:war"), "com.novomind.ishop.maven", "ishop-maven-plugin", "", Nil),
-    PluginDep(PomRef("com.novomind.ishop.shops:novosales:27.0.0-SNAPSHOT:war"), "org.codehaus.mojo", "hibernate3-maven-plugin", "3.0", Nil),
-    PluginDep(PomRef("com.novomind.ishop.shops:novosales:27.0.0-SNAPSHOT:war"), "", "maven-assembly-plugin", "2.6", Nil),
-    PluginDep(PomRef("com.novomind.ishop.shops:novosales:27.0.0-SNAPSHOT:war"), "org.apache.maven.plugins", "maven-compiler-plugin", "", Nil),
-    PluginDep(PomRef("com.novomind.ishop.shops:novosales:27.0.0-SNAPSHOT:war"), "org.apache.maven.plugins", "maven-antrun-plugin", "1.8", Nil),
-    PluginDep(PomRef("com.novomind.ishop.shops:novosales:27.0.0-SNAPSHOT:war"), "org.codehaus.mojo", "aspectj-maven-plugin", "", Nil),
-    PluginDep(PomRef("com.novomind.ishop.shops:novosales:27.0.0-SNAPSHOT:war"), "pl.allegro", "grunt-maven-plugin", "1.5.1", Nil)
+    PluginDep(PomRef("com.novomind.ishop.shops.novosales:novosales-projects:27.0.0-SNAPSHOT:pom"), "org.jacoco", "jacoco-maven-plugin", "", Seq(PluginExec("default-prepare-agent", Seq("prepare-agent"), "", Map()), PluginExec("default-report", Seq("report"), "prepare-package", Map()))),
+    PluginDep(PomRef("com.novomind.ishop.shops.novosales:novosales-projects:27.0.0-SNAPSHOT:pom"), "org.apache.maven.plugins", "maven-dependency-plugin", "2.8", Seq(PluginExec("pre-build-validate-tree", Seq("tree"), "validate", Map("outputFile" -> "target/dependency-tree")), PluginExec("pre-build-validate-list", Seq("list"), "validate", Map("outputFile" -> "dep.list", "sort" -> "true")))),
+    PluginDep(PomRef("com.novomind.ishop.shops.novosales:novosales-projects:27.0.0-SNAPSHOT:pom"), "com.novomind.maven", "zkm-maven-plugin", "", Seq(PluginExec("", Seq(), "", Map()))),
+    PluginDep(PomRef("com.novomind.ishop.shops.novosales:novosales-projects:27.0.0-SNAPSHOT:pom"), "org.apache.maven.plugins", "maven-checkstyle-plugin", "2.17", Seq(PluginExec("validate", Seq("check"), "validate", Map("configLocation" -> "checkstyle.xml", "includeTestSourceDirectory" -> "true", "consoleOutput" -> "true", "encoding" -> "UTF-8", "failsOnError" -> "true")))),
+    PluginDep(PomRef("com.novomind.ishop.shops.novosales:novosales-projects:27.0.0-SNAPSHOT:pom"), "org.codehaus.mojo", "aspectj-maven-plugin", "1.8", Seq(PluginExec("", Seq("compile", "test-compile"), "", Map()))),
+    PluginDep(PomRef("com.novomind.ishop.shops.novosales:novosales-projects:27.0.0-SNAPSHOT:pom"), "", "maven-surefire-plugin", "", Seq()),
+    PluginDep(PomRef("com.novomind.ishop.shops.novosales:novosales-projects:27.0.0-SNAPSHOT:pom"), "", "maven-failsafe-plugin", "2.19.1", Seq(PluginExec("", Seq("integration-test", "verify"), "", Map()))),
+    PluginDep(PomRef("com.novomind.ishop.shops:novosales:27.0.0-SNAPSHOT:war"), "com.novomind.ishop.maven", "ishop-maven-plugin", "", Seq(PluginExec("", Seq("pom-to-class-path", "check-obsolete-artifacts", "check-for-changes-before", "check-for-changes-package"), "", Map()))),
+    PluginDep(PomRef("com.novomind.ishop.shops:novosales:27.0.0-SNAPSHOT:war"), "org.codehaus.mojo", "hibernate3-maven-plugin", "3.0", Seq()),
+    PluginDep(PomRef("com.novomind.ishop.shops:novosales:27.0.0-SNAPSHOT:war"), "", "maven-assembly-plugin", "2.6", Seq(PluginExec("assembly", Seq("single"), "package", Map()))),
+    PluginDep(PomRef("com.novomind.ishop.shops:novosales:27.0.0-SNAPSHOT:war"), "org.apache.maven.plugins", "maven-compiler-plugin", "", Seq()),
+    PluginDep(PomRef("com.novomind.ishop.shops:novosales:27.0.0-SNAPSHOT:war"), "org.apache.maven.plugins", "maven-antrun-plugin", "1.8", Seq(PluginExec("extractWarInfo", Seq("run"), "package", Map("target" -> "")), PluginExec("copyResources", Seq("run"), "prepare-package", Map("target" -> "")))),
+    PluginDep(PomRef("com.novomind.ishop.shops:novosales:27.0.0-SNAPSHOT:war"), "org.codehaus.mojo", "aspectj-maven-plugin", "", Seq()),
+    PluginDep(PomRef("com.novomind.ishop.shops:novosales:27.0.0-SNAPSHOT:war"), "pl.allegro", "grunt-maven-plugin", "1.5.1", Seq(PluginExec("", Seq("npm", "grunt"), "prepare-package", Map())))
   )
 
   def snapshots(): Seq[Dep] = {
