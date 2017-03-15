@@ -50,17 +50,6 @@ class PomModTest extends AssertionsForJUnit {
 
   @Test
   @Ignore
-  def t(): Unit = {
-    // GIVEN
-    val srcPoms = TestHelper.testResources("C:\\git\\novosales")
-    //val srcPoms = TestHelper.testResources("C:\\Users\\tstock\\git\\ishop-core-projects")
-
-    // WHEN
-    val mod = PomMod(srcPoms).showDependecyUpdates(72, Starter.TermOs("any", "any", simpleChars = false))
-  }
-
-  @Test
-  @Ignore
   def findNodesAndSetVersion(): Unit = {
     // GIVEN
     val orgPoms = TestHelper.testResources("novosales1")

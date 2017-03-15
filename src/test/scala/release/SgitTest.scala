@@ -3,7 +3,7 @@ package release
 import java.io.File
 import java.nio.file.{Files, StandardCopyOption}
 
-import org.junit.{Assert, Assume, Ignore, Test}
+import org.junit.{Assert, Assume, Test}
 import org.scalatest.junit.AssertionsForJUnit
 
 import scala.collection.JavaConverters
@@ -67,8 +67,7 @@ class SgitTest extends AssertionsForJUnit {
   }
 
   @Test
-  @Ignore
-  def testCommitIdHEAd(): Unit = {
+  def testCommitIdHEAD(): Unit = {
     // GIVEN
     val status = SgitTest.workSgit()
 
@@ -76,21 +75,20 @@ class SgitTest extends AssertionsForJUnit {
     val commitId = status.commitId("origin/master")
 
     // THEN
-    Assert.assertEquals("f5d9a967a8971d522d903810d1a2cd804d08a077", commitId)
+    Assert.assertEquals(40, commitId.length)
   }
 
   @Test
-  @Ignore
   def testCommitIds(): Unit = {
     // GIVEN
-    val status = Sgit(Util.localWork, showGitCmd = false, doVerify = true)
+    val status = SgitTest.workSgit()
 
     // WHEN
-    val commitIds = status.commitIds("60f6fe7", "3ac175e").map(_.substring(0, 7))
+    val commitIds = status.commitIds("21a1a3f", "606411c").map(_.substring(0, 7))
 
     // THEN
     Assert.assertTrue(commitIds.isInstanceOf[List[String]])
-    Assert.assertEquals(Seq("60f6fe7", "f5f8fe3", "626cfb6"), commitIds)
+    Assert.assertEquals(Seq("21a1a3f", "b299ac9", "29c5b35"), commitIds)
   }
 
   @Test
@@ -203,9 +201,9 @@ class SgitTest extends AssertionsForJUnit {
 
     def assertMsg(expected: Seq[String], sgit: Sgit): Unit = {
       val gitRawOut = sgit.gitNative(Seq("log", "-n1", "--pretty=\"%B\""))
-      println("rawout: ^" + gitRawOut + "^")
+      // println("rawout: ^" + gitRawOut + "^")
       val unwrapped = unw(gitRawOut)
-      println("unwrapped: ^" + unwrapped + "^")
+      //println("unwrapped: ^" + unwrapped + "^")
       val nativeLines = unwrapped.lines.toList
       val body = nativeLines match {
         case lines if lines.last.startsWith("Change-Id:") ⇒ lines.dropRight(1)
@@ -217,14 +215,14 @@ class SgitTest extends AssertionsForJUnit {
     }
 
     // WHEN
-    val gitA = Sgit.init(testRepoA, showGitCmd = true, SgitTest.hasCommitMsg)
+    val gitA = Sgit.init(testRepoA, showGitCmd = false, SgitTest.hasCommitMsg)
     copyMsgHook(testRepoA)
     gitA.add(testFile(testRepoA, "test"))
     gitA.commit("add test")
     Assert.assertEquals("master", gitA.currentBranch)
     Assert.assertEquals(None, gitA.findUpstreamBranch())
     gitA.config("receive.denyCurrentBranch", "warn")
-    val gitB = Sgit.clone(testRepoA, testRepoB, showGitCmd = true, SgitTest.hasCommitMsg)
+    val gitB = Sgit.clone(testRepoA, testRepoB, showGitCmd = false, SgitTest.hasCommitMsg)
     copyMsgHook(testRepoB)
 
     Assert.assertEquals("master", gitB.currentBranch)
