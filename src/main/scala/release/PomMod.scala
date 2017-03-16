@@ -96,7 +96,7 @@ case class PomMod(file: File) {
 
   private[release] val listPluginDependecies: Seq[PluginDep] = {
     val allP: Seq[PluginDep] = allPoms.map(in ⇒ {
-      val gav = selfDep(in).gav
+      val gav = selfDep(in).gavWithDetailsFormatted
       val nodes = Xpath.toSeqTuples(in, "//plugins/plugin")
       (nodes, gav)
     }).flatMap(gavNode ⇒ {
@@ -231,7 +231,7 @@ case class PomMod(file: File) {
 
       println(ch("║ ", "| ") + ref)
       mods.sortBy(_._1.toString).foreach((subElement: (PomMod.Dep, Seq[String])) ⇒ {
-        println(ch("╠═╦═ ", "+-+- ") + subElement._1.gav)
+        println(ch("╠═╦═ ", "+-+- ") + subElement._1.gavWithDetailsFormatted)
         val o: Seq[String] = subElement._2
         val majorVers: Seq[(String, Seq[String])] = o.groupBy(ver ⇒ ver.replaceFirst("\\..*", "")).toSeq
           .sortBy(_._1).reverse
@@ -271,6 +271,7 @@ case class PomMod(file: File) {
     if (props.isEmpty) {
       throw new IllegalStateException("property map is empty")
     }
+
     def tryReplace(in: String, p: (String, String)): String = {
       try {
         in.replace("${" + p._1 + "}", p._2)
@@ -305,7 +306,7 @@ case class PomMod(file: File) {
     onlySnapshots
   }
 
-  def listDependeciesReplaces(): Seq[Dep] = replacedVersionProperties(listDependecies)
+  private def listDependeciesReplaces(): Seq[Dep] = replacedVersionProperties(listDependecies)
 
   private def depFrom(id: String)(depSeq: Seq[(String, String, Node)]): Dep = {
     val deps = Xpath.toMapOf(depSeq)
@@ -548,15 +549,25 @@ object PomMod {
 
   case class Dep(pomRef: PomRef, groupId: String, artifactId: String, version: String, typeN: String,
                  scope: String, packaging: String) {
-    val gav: String = Seq(groupId, artifactId, version, typeN, scope, packaging)
-      .mkString(":").replaceAll("[:]{2,}", ":").replaceFirst(":$", "")
+    val gavWithDetailsFormatted: String = Gav.format(Seq(groupId, artifactId, version, typeN, scope, packaging))
+
+    def gav() = Gav(groupId, artifactId, version)
   }
 
   case class PluginExec(id: String, goals: Seq[String], phase: String, config: Map[String, String])
 
   case class PluginDep(pomRef: PomRef, groupId: String, artifactId: String, version: String, execs: Seq[PluginExec]) {
-    val gav: String = Seq(groupId, artifactId, version)
-      .mkString(":").replaceAll("[:]{2,}", ":").replaceFirst(":$", "")
+    val gavFormatted: String = Gav.format(Seq(groupId, artifactId, version))
+
+    def gav() = Gav(groupId, artifactId, version)
+  }
+
+  case class Gav(groupId: String, artifactId: String, version: String) {
+    def formatted = Gav.format(Seq(groupId, artifactId, version))
+  }
+
+  object Gav {
+    def format(parts: Seq[String]): String = parts.mkString(":").replaceAll("[:]{2,}", ":").replaceFirst(":$", "")
   }
 
   case class PomRef(id: String)

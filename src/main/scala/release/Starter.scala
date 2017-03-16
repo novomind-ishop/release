@@ -93,10 +93,10 @@ object Starter extends App with LazyLogging {
   }
 
   def offerAutoFixForReleaseSnapshots(mod: PomMod): PomMod = {
-    // TODO check plugin deps
     // TODO check ishop-maven-plugin -> check-for-changes-before, check-for-changes-package
     case class ReleaseInfo(gav: String, released: Boolean)
-    val snaps = mod.listSnapshotsDistinct
+    val snaps = mod.listSnapshotsDistinct.map(_.gav()) ++
+      mod.listPluginDependecies.map(_.gav()).filter(_.version.contains("SNAPSHOT"))
     val aetherStateLine = StatusLine(snaps.size, shellWidth)
     val snapState: Seq[ReleaseInfo] = snaps
       .par
@@ -104,7 +104,7 @@ object Starter extends App with LazyLogging {
         aetherStateLine.start()
         val released = Aether.existsGav(in.groupId, in.artifactId, in.version.replace("-SNAPSHOT", ""))
         aetherStateLine.end()
-        ReleaseInfo(in.gav, released)
+        ReleaseInfo(in.formatted, released)
       }).seq
     aetherStateLine.finish()
 
