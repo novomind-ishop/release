@@ -5,7 +5,6 @@ import java.util.jar.Manifest
 
 import com.typesafe.scalalogging.LazyLogging
 import org.eclipse.jgit.api.errors.RefAlreadyExistsException
-import release.PomMod.Dep
 
 import scala.io.StdIn
 
@@ -93,12 +92,9 @@ object Starter extends App with LazyLogging {
     git
   }
 
-  def checkForSnapshotsIn(mod: PomMod): Seq[Dep] = {
-    val deps = mod.listDependecies
-    deps
-  }
-
   def offerAutoFixForReleaseSnapshots(mod: PomMod): PomMod = {
+    // TODO check plugin deps
+    // TODO check ishop-maven-plugin -> check-for-changes-before, check-for-changes-package
     case class ReleaseInfo(gav: String, released: Boolean)
     val snaps = mod.listSnapshotsDistinct
     val aetherStateLine = StatusLine(snaps.size, shellWidth)
@@ -203,12 +199,12 @@ object Starter extends App with LazyLogging {
     val mod = PomMod(workDirFile)
 
     if (dependencyUpdates) {
-      val showUpdates = readFromOneOf("Show dependency updates?", Seq("y", "n"))
+      val showUpdates = readFrom("Show dependency updates?", "y")
       if (showUpdates == "y") {
         mod.showDependecyUpdates(shellWidth, termOs)
       }
     }
-    checkForSnapshotsIn(mod)
+
     val newMod = offerAutoFixForReleaseSnapshots(mod)
     if (newMod.hasNoShopPom) {
       println("---------")
