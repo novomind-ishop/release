@@ -86,12 +86,8 @@ case class PomMod(file: File) {
     allProps
   }
 
-  private lazy val currentVersion: String = {
-    val opt = Xpath.onlyString(rootPomDoc, "//project/version")
-    if (opt.isEmpty) {
-      throw new IllegalStateException(file.getName + " as no version, please define")
-    }
-    opt.get
+  private val currentVersion: Option[String] = {
+    Xpath.onlyString(rootPomDoc, "//project/version")
   }
 
   lazy val listDependecies: Seq[Dep] = {
@@ -358,12 +354,20 @@ case class PomMod(file: File) {
       "version" → version.orElse(parentVersion).getOrElse("")).toSeq.map(t ⇒ (t._1, t._2, null)))
   }
 
+  private def checkCurrentVersion(current: Option[String]): Unit = {
+    if (current.isEmpty) {
+      throw new IllegalStateException(file.getName + " as no version, please define")
+    }
+  }
+
   def suggestReleaseVersion(): Seq[String] = {
-    PomMod.suggestReleaseBy(LocalDate.now(), currentVersion, hasShopPom)
+    checkCurrentVersion(currentVersion)
+    PomMod.suggestReleaseBy(LocalDate.now(), currentVersion.get, hasShopPom)
   }
 
   def suggestNextRelease(releaseVersion: String): String = {
-    PomMod.suggestNextReleaseBy(currentVersion, releaseVersion)
+    checkCurrentVersion(currentVersion)
+    PomMod.suggestNextReleaseBy(currentVersion.get, releaseVersion)
   }
 
   private def writePom(file: File, document: Document): Unit = {
