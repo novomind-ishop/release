@@ -222,7 +222,7 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals("master", gitA.currentBranch)
     Assert.assertEquals(None, gitA.findUpstreamBranch())
     gitA.config("receive.denyCurrentBranch", "warn")
-    val gitB = Sgit.clone(testRepoA, testRepoB, showGitCmd = false, SgitTest.hasCommitMsg)
+    val gitB = Sgit.clone(testRepoA, testRepoB, showGitCmd = true, SgitTest.hasCommitMsg)
     copyMsgHook(testRepoB)
 
     Assert.assertEquals("master", gitB.currentBranch)
@@ -234,6 +234,7 @@ class SgitTest extends AssertionsForJUnit {
     val pomFile = testFile(testRepoB, "pom.xml")
     gitB.add(pomFile)
     val anyFile = testFile(testRepoB, "any.xml")
+    Assert.assertEquals(Seq("A pom.xml", "?? any.xml"), gitB.localChanges)
     gitB.add(anyFile)
     val subject = "add " + Seq(pomFile, anyFile).map(_.getName).mkString(", ") + "-"
     gitB.commit(subject + "\r\n\r\n test")
@@ -244,8 +245,9 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertFalse(gitB.hasLocalChanges)
     write(pomFile, Seq("a"))
     Assert.assertTrue(gitB.hasLocalChanges)
+    Assert.assertEquals(Seq("M pom.xml"), gitB.localChanges)
     gitB.doCommitPomXmls("update pom.xml\n\nSigned-off-by: Ishop-Dev-Infra <ishop-dev-infra@novomind.com>")
-
+    Assert.assertEquals(Nil, gitB.localChanges)
     assertMsg(Seq("update pom.xml", "", "Signed-off-by: Ishop-Dev-Infra <ishop-dev-infra@novomind.com>"), gitB)
 
     write(anyFile, Seq("a"))

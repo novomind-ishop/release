@@ -192,9 +192,13 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
     branchInfo.contains("ahead")
   }
 
+  def localChanges:Seq[String] = {
+    val status = gitNative(Seq("status", "--porcelain"))
+    status.lines.toList.map(_.replaceAll("[ ]+", " "))
+  }
+
   def hasLocalChanges: Boolean = {
-    val status = git.status().call()
-    status.hasUncommittedChanges
+    localChanges != Nil
   }
 
   def hasNoLocalChanges: Boolean = {
@@ -296,7 +300,7 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
     }
     val gitCmdCall = Sgit.selectedGitCmd() ++ workdir ++ Seq("--no-pager") ++ args
     if (showGitCmd) {
-      println(gitCmdCall)
+      println(gitCmdCall.mkString(" "))
     }
     Sgit.native(gitCmdCall, syserrErrors = showErrors, cmdFilter)
   }

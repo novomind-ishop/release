@@ -93,10 +93,23 @@ object Starter extends App with LazyLogging {
   }
 
   def offerAutoFixForReleaseSnapshots(mod: PomMod): PomMod = {
-    // TODO check ishop-maven-plugin -> check-for-changes-before, check-for-changes-package
+    // TODO check ishop-maven-plugin only in build/plugins/plugin
+    val plugins = mod.listPluginDependecies
+
+    val ishopMaven = plugins.find(_.artifactId == "ishop-maven-plugin")
+    if (ishopMaven.isDefined) {
+      val execs = Util.only(ishopMaven.get.execs, "only one exec for ishop maven plugin please")
+      if (!execs.goals.contains("check-for-changes-before")) {
+        throw new IllegalStateException("please add \"check-for-changes-before\" to you ishop maven plugin")
+      }
+      if (!execs.goals.contains("check-for-changes-package")) {
+        throw new IllegalStateException("please add \"check-for-changes-package\" to you ishop maven plugin")
+      }
+    }
+
     case class ReleaseInfo(gav: String, released: Boolean)
     val snaps = mod.listSnapshotsDistinct.map(_.gav()) ++
-      mod.listPluginDependecies.map(_.gav()).filter(_.version.contains("SNAPSHOT"))
+      plugins.map(_.gav()).filter(_.version.contains("SNAPSHOT"))
     val aetherStateLine = StatusLine(snaps.size, shellWidth)
     val snapState: Seq[ReleaseInfo] = snaps
       .par
@@ -184,7 +197,7 @@ object Starter extends App with LazyLogging {
 
   def readFromPrompt(rebaseFn: () ⇒ Unit, branch: String, sgit: Sgit): Seq[Unit] = {
     if (sgit.hasLocalChanges) {
-      throw new IllegalStateException(branch + " has local changes, please commit or reset")
+      throw new IllegalStateException(branch + " has local changes, please commit or reset " + sgit.localChanges.take(5))
     }
     rebaseFn.apply()
     registerExitFn("cleanup branches", () ⇒ {
