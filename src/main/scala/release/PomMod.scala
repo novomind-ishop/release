@@ -32,12 +32,58 @@ case class PomMod(file: File) {
   private val subs: Seq[SubPomFile] = toSubPoms(subPomFiles)
   private val allPoms: Seq[Document] = rootPomDoc +: subs.map(_.document)
 
-  val listSelf: Seq[Dep] = {
+  private[release] val listSelf: Seq[Dep] = {
     allPoms.map(selfDep)
   }
 
   val selfVersion: String = {
     Util.only(listSelf.map(_.version).distinct, "version")
+  }
+
+  private[release] val listProperties: Map[String, String] = {
+
+    // TODO man darf eigentlich nicht alle variablen überall ersetzen - später mal reparieren
+
+    def createPropertyMap(pomDoc: Document): Map[String, String] = {
+      val tuples = Xpath.toSeqTuples(pomDoc, "//project/properties")
+      val pro: Seq[(String, String)] = tuples.flatten.map(t ⇒ (t._1, t._2))
+      val result = pro.foldLeft(Map.empty[String, String])(_ + _)
+      val diff = Util.symmetricDiff(result.toSeq, pro)
+      if (diff.nonEmpty) {
+        throw new IllegalStateException("invalid property definition / multiple: " + diff)
+      }
+      result
+    }
+
+    val allPropsFromDocs: Seq[(String, String)] = allPoms.flatMap(createPropertyMap)
+
+    def checkRootFirstChildProperties(): Unit = {
+      val rootProperties: Seq[(String, String)] = createPropertyMap(rootPomDoc).toSeq
+      val withRootProps: Seq[(String, String)] = Util.symmetricDiff(allPropsFromDocs, rootProperties)
+      val diff = withRootProps intersect rootProperties
+      if (diff.nonEmpty) {
+        throw new IllegalStateException("unnecessary definition in sub poms: " + diff)
+      }
+
+    }
+
+    checkRootFirstChildProperties()
+
+    val result = allPropsFromDocs.foldLeft(Map.empty[String, String])(_ + _)
+    val selfVersion = Util.only(listSelf.map(_.version).distinct, "version")
+
+    def skip(key: String)(p: (String, String)) = p.copy(_2 = p._2.replace(key, "skip"))
+
+    val allProps = (result ++ Map("project.version" → selfVersion))
+      .map(skip("${project.basedir}"))
+      .map(skip("${project.build.finalName}"))
+      .map(skip("${project.build.directory}"))
+      .map(skip("${maven.build.timestamp}"))
+    val invalid = allProps.filter(_._2.contains("$"))
+    if (invalid.nonEmpty) {
+      throw new IllegalStateException("do not use properties in properties: " + invalid)
+    }
+    allProps
   }
 
   private lazy val currentVersion: String = {
@@ -211,52 +257,6 @@ case class PomMod(file: File) {
 
   }
 
-  def listProperties(): Map[String, String] = {
-
-    // TODO man darf eigentlich nicht alle variablen überall ersetzen - später mal reparieren
-
-    def createPropertyMap(pomDoc: Document): Map[String, String] = {
-      val tuples = Xpath.toSeqTuples(pomDoc, "//project/properties")
-      val pro: Seq[(String, String)] = tuples.flatten.map(t ⇒ (t._1, t._2))
-      val result = pro.foldLeft(Map.empty[String, String])(_ + _)
-      val diff = Util.symmetricDiff(result.toSeq, pro)
-      if (diff.nonEmpty) {
-        throw new IllegalStateException("invalid property definition / multiple: " + diff)
-      }
-      result
-    }
-
-    val allPropsFromDocs: Seq[(String, String)] = allPoms.flatMap(createPropertyMap)
-
-    def checkRootFirstChildProperties(): Unit = {
-      val rootProperties: Seq[(String, String)] = createPropertyMap(rootPomDoc).toSeq
-      val withRootProps: Seq[(String, String)] = Util.symmetricDiff(allPropsFromDocs, rootProperties)
-      val diff = withRootProps intersect rootProperties
-      if (diff.nonEmpty) {
-        throw new IllegalStateException("unnecessary definition in sub poms: " + diff)
-      }
-
-    }
-
-    checkRootFirstChildProperties()
-
-    val result = allPropsFromDocs.foldLeft(Map.empty[String, String])(_ + _)
-    val selfVersion = Util.only(listSelf.map(_.version).distinct, "version")
-
-    def skip(key: String)(p: (String, String)) = p.copy(_2 = p._2.replace(key, "skip"))
-
-    val allProps = (result ++ Map("project.version" → selfVersion))
-      .map(skip("${project.basedir}"))
-      .map(skip("${project.build.finalName}"))
-      .map(skip("${project.build.directory}"))
-      .map(skip("${maven.build.timestamp}"))
-    val invalid = allProps.filter(_._2.contains("$"))
-    if (invalid.nonEmpty) {
-      throw new IllegalStateException("do not use properties in properties: " + invalid)
-    }
-    allProps
-  }
-
   def selfDepsMod: Seq[Dep] = {
     val selfDeps: Seq[Dep] = listSelf ++ listSelf.map(_.copy(scope = "test")) ++
       listSelf.map(_.copy(scope = "test", packaging = "")) ++ listSelf.map(_.copy(packaging = ""))
@@ -288,7 +288,7 @@ case class PomMod(file: File) {
     Util.only(allReplacemdents, string)
   }
 
-  private def replacedPropertyOf(string: String) = replaceProperty(listProperties())(string)
+  private def replacedPropertyOf(string: String) = replaceProperty(listProperties)(string)
 
   private def replacedVersionProperties(deps: Seq[Dep]) = deps.map(dep ⇒ dep.copy(version = replacedPropertyOf(dep.version)))
 

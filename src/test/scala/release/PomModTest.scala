@@ -455,7 +455,7 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("novosales1")
 
     // WHEN
-    val props = PomMod(srcPoms).listProperties()
+    val props = PomMod(srcPoms).listProperties
 
     // THEN
     val expected = Map(
