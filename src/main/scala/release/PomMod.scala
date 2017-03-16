@@ -90,8 +90,7 @@ case class PomMod(file: File) {
     Xpath.onlyString(rootPomDoc, "//project/version")
   }
 
-  lazy val listDependecies: Seq[Dep] = {
-    // has side effect
+  val listDependecies: Seq[Dep] = {
     replacedVersionProperties(allPoms.flatMap(f ⇒ deps(f))).distinct
   }
 
@@ -146,7 +145,6 @@ case class PomMod(file: File) {
   }
 
   def findNodes(groupId: String, artifactId: String, version: String): Seq[Node] = {
-    listDependecies // side effect
     depMap.toSeq.filter(dep ⇒ dep._1.artifactId == artifactId).map(_._2).filter(_ != null)
   }
 
@@ -270,6 +268,9 @@ case class PomMod(file: File) {
   }
 
   private def replaceProperty(props: Map[String, String])(string: String) = {
+    if (props.isEmpty) {
+      throw new IllegalStateException("property map is empty")
+    }
     def tryReplace(in: String, p: (String, String)): String = {
       try {
         in.replace("${" + p._1 + "}", p._2)
@@ -281,7 +282,7 @@ case class PomMod(file: File) {
     val allReplacemdents = props.map(p ⇒ tryReplace(string, p)).toSeq
       .distinct
       .filterNot(_.startsWith("$"))
-    Util.only(allReplacemdents, string)
+    Util.only(allReplacemdents, "only one element was expected but was: " + string)
   }
 
   private def replacedPropertyOf(string: String) = replaceProperty(listProperties)(string)

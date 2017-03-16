@@ -24,7 +24,7 @@
       <dependency>
         <groupId>com.novomind.ishop.core</groupId>
         <artifactId>ishop-core-projects</artifactId>
-        <version>${ishop-core.version}</version>
+        <version>${ishop-core-sub.version}</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
@@ -62,6 +62,7 @@
 
   <properties>
     <subproject.property>true</subproject.property>
+    <ishop-core-sub.version>27.1.2-SNAPSHOT</ishop-core-sub.version>
   </properties>
 
 </project>

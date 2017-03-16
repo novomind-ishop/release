@@ -466,6 +466,7 @@ class PomModTest extends AssertionsForJUnit {
       "webappDirectory" → "skip/skip",
       "aspectj.version" → "1.8.8",
       "aspectj-maven-plugin.version" → "1.8",
+      "ishop-core-sub.version" → "27.1.2-SNAPSHOT",
       "build.timestamp" → "skip",
       "zkm.skip" → "true",
       "bo-client" → "27.0.0-SNAPSHOT",
