@@ -73,7 +73,7 @@ object Starter extends App with LazyLogging {
       val selectedBraches = git.branchListLocal().filter(_.getObjectId.getName == latestCommit)
       val found = selectedBraches.map(_.getName.replaceFirst("refs/heads/", ""))
       if (found.size != 1) {
-        throw new IllegalStateException("more then one branch found " + found)
+        throw new IllegalStateException("more than one branch found: " + found.mkString(", "))
       } else {
         found.head
       }
