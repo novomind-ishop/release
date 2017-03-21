@@ -222,7 +222,7 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals("master", gitA.currentBranch)
     Assert.assertEquals(None, gitA.findUpstreamBranch())
     gitA.config("receive.denyCurrentBranch", "warn")
-    val gitB = Sgit.clone(testRepoA, testRepoB, showGitCmd = true, SgitTest.hasCommitMsg)
+    val gitB = Sgit.clone(testRepoA, testRepoB, showGitCmd = false, SgitTest.hasCommitMsg)
     copyMsgHook(testRepoB)
 
     Assert.assertEquals("master", gitB.currentBranch)

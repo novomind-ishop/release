@@ -21,7 +21,7 @@ object Util {
   def only[T](ts: Seq[T], msg: String) = ts match {
     case Nil ⇒ throw new IllegalArgumentException(msg + " Nil.")
     case e if e.size == 1 ⇒ e.head
-    case e ⇒ throw new IllegalArgumentException("any: " + e + " " + msg)
+    case e ⇒ throw new IllegalArgumentException(msg + " " + e)
   }
 
   def err(x: AnyRef) = System.err.println(x)
@@ -31,7 +31,7 @@ object Util {
     case f: File ⇒ f
   }
 
-  def distinctOn[A, K](in:Seq[A], fn: A ⇒ K):Seq[A] = {
+  def distinctOn[A, K](in: Seq[A], fn: A ⇒ K): Seq[A] = {
     val b = Seq.newBuilder[A]
     val seen = mutable.HashSet[K]()
     for (x <- in) {

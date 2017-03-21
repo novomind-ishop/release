@@ -10,7 +10,6 @@ import scala.io.StdIn
 
 object Starter extends App with LazyLogging {
 
-
   val argSeq: Seq[String] = args.toSeq
   val releaseToolPath = argSeq.head
   val releaseToolDir = new File(releaseToolPath).getAbsoluteFile
@@ -25,6 +24,7 @@ object Starter extends App with LazyLogging {
   val showHelp = restArgs.contains("help")
   val showGit = restArgs.contains("showGit")
   val noVerify = !restArgs.contains("noVerify")
+  // TODO --batch ## alles mit default wählen
 
   val releaseToolGit = Sgit(releaseToolDir, showGitCmd = showGit, doVerify = false)
 
@@ -294,10 +294,13 @@ object Starter extends App with LazyLogging {
 
       if (sgit.hasChangesToPush) {
         val result = sgit.pushFor(srcBranchName = branch, targetBranchName = selectedBranch, pushTags = newMod.hasNoShopPom)
+        // try to notify jenkins about tag builds
       }
       if (newMod.hasShopPom) {
         val result = sgit.push(srcBranchName = "release/" + releaseWitoutSnapshot,
           targetBranchName = "release/" + releaseWitoutSnapshot, pushTags = newMod.hasNoShopPom)
+        // TODO try to trigger job updates for jenkins
+        // TODO try to trigger job execution in loop with abort
       }
       println("done.")
     } else {

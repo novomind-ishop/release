@@ -107,6 +107,10 @@ case class PomMod(file: File) {
     allP.toList
   }
 
+  private[release] val mavenDependecyPlugins: Seq[PluginDep] = {
+    PomMod.dependecyPlugins(listPluginDependecies)
+  }
+
   private def nodePath(node: Node): Seq[String] = {
     def nodePathOther(node: Node): Seq[String] = {
       val parent = node.getParentNode
@@ -419,6 +423,13 @@ case class PomMod(file: File) {
 }
 
 object PomMod {
+  private[release] def findPluginsByName(plugins: Seq[PluginDep], name:String) = {
+    plugins
+      .filterNot(_.pomPath.contains("pluginManagement"))
+      .filter(_.artifactId ==name)
+  }
+
+  private[release] def dependecyPlugins(plugins: Seq[PluginDep]) = findPluginsByName(plugins, "maven-dependency-plugin")
 
   def suggestReleaseBy(localDate: LocalDate, currentVersion: String, hasShopPom: Boolean): Seq[String] = {
     if (hasShopPom) {

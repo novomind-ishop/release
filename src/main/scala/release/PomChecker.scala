@@ -4,25 +4,55 @@ import release.PomMod.PluginDep
 
 object PomChecker {
 
+  private val path = Seq("plugin", "plugins", "build", "project")
+
   def check(plugins: Seq[PluginDep]): Unit = {
-    val ishopMavenOpt = plugins
-      .filter(_.artifactId == "ishop-maven-plugin")
-      .filterNot(_.pomPath.contains("pluginManagement"))
-    if (ishopMavenOpt.nonEmpty) {
-      ishopMavenOpt.foreach(ishopMaven ⇒ {
-        val execs = Util.only(ishopMaven.execs, "A single execution section for ishop maven plugin please required, but was")
-        if (!execs.goals.contains("check-for-changes-before")) {
-          throw new ValidationException("please add \"check-for-changes-before\" to your ishop maven plugin")
+    checkIshopMaven(plugins)
+    val depPlugins = PomMod.dependecyPlugins(plugins)
+    depPlugins.foreach(plugin ⇒ {
+      if (plugin.execs == Nil) {
+        throw new ValidationException("please add at least one execution to you maven-dependecy-plugin")
+      } else {
+        val treeOrLists = plugin.execs.filter(in ⇒ in.goals.contains("tree") || in.goals.contains("list"))
+        val invalidPhase = treeOrLists.filter(_.phase != "validate")
+        if (invalidPhase != Nil) {
+          throw new ValidationException("maven-dependecy-plugin goals " +
+            invalidPhase.flatMap(_.goals).mkString(", ") + " must be executed on phase \"validate\"")
+        } else {
+          val defectconfig = treeOrLists.filter(in ⇒ {
+            val outputFileValue = in.config.get("outputFile")
+            outputFileValue.isEmpty || outputFileValue.get.contains("/")
+          })
+          if (defectconfig != Nil) {
+            throw new ValidationException("maven-dependecy-plugin " +
+              defectconfig.map(_.id).mkString(", ") + " has no config or outputFile contains slashes")
+          }
+          checkDefaultPath(plugin)
         }
-        if (!execs.goals.contains("check-for-changes-package")) {
-          throw new ValidationException("please add \"check-for-changes-package\" to your ishop maven plugin")
-        }
-        val path = Seq("plugin", "plugins", "build", "project")
-        if (ishopMaven.pomPath != path) {
-          throw new ValidationException("please move your ishop-maven-plugin to " +
-            path.mkString("/") + " your path is " + ishopMaven.pomPath.mkString("/"))
-        }
-      })
+      }
+    })
+  }
+
+  private[release] def checkIshopMaven(_plugins: Seq[PluginDep]): Unit = {
+    val plugins = PomMod.findPluginsByName(_plugins, "ishop-maven-plugin")
+    // TODO ishop maven plugin muss definiert sein
+    plugins.foreach(ishopMaven ⇒ {
+      val execs = Util.only(ishopMaven.execs, ishopMaven.pomRef.id + " - a single execution section for ishop maven plugin please required, but was")
+      if (!execs.goals.contains("check-for-changes-before")) {
+        throw new ValidationException("please add \"check-for-changes-before\" to your ishop maven plugin")
+      }
+      if (!execs.goals.contains("check-for-changes-package")) {
+        throw new ValidationException("please add \"check-for-changes-package\" to your ishop maven plugin")
+      }
+
+      checkDefaultPath(ishopMaven)
+    })
+  }
+
+  private def checkDefaultPath(plugin: PluginDep): Unit = {
+    if (plugin.pomPath != path) {
+      throw new ValidationException("please move your " + plugin.artifactId + " to " +
+        path.mkString("/") + " your path is " + plugin.pomPath.mkString("/"))
     }
   }
 

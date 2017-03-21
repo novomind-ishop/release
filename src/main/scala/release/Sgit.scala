@@ -60,6 +60,21 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
     }
     config("core.safecrlf", "false")
     val oldComitId = commitIdHeadOpt()
+    // _gen_ChangeIdInput() {
+    //   echo "tree `git write-tree`"
+    //   if parent=`git rev-parse "HEAD^0" 2>/dev/null`
+    //   then
+    //   echo "parent $parent"
+    //   fi
+    //   echo "author `git var GIT_AUTHOR_IDENT`"
+    //   echo "committer `git var GIT_COMMITTER_IDENT`"
+    //   echo
+    //   printf '%s' "$clean_message"
+    // }
+    // _gen_ChangeId() {
+    //   _gen_ChangeIdInput |
+    //     git hash-object -t commit --stdin
+    // }
     gitNative(Seq("commit", "--no-verify", "-m", ms.mkString("\n").trim))
     if (oldComitId.isDefined) {
       val newCommitId = commitIdHead()

@@ -75,6 +75,24 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def mavenDependecyPlugin(): Unit = {
+    // GIVEN
+    val srcPoms = TestHelper.testResources("novosales1")
+    val pomMod = PomMod(srcPoms)
+
+    // WHEN
+    val dep: Seq[PluginDep] = pomMod.mavenDependecyPlugins
+
+    // THEN
+    assertPluginDeps(Seq(PluginDep(PomRef("com.novomind.ishop.shops.novosales:novosales-projects:27.0.0-SNAPSHOT:pom"),
+      "org.apache.maven.plugins", "maven-dependency-plugin", "2.8",
+      Seq(
+        PluginExec("pre-build-validate-tree", Seq("tree"), "validate", Map("outputFile" -> "target/dependency-tree")),
+        PluginExec("pre-build-validate-list", Seq("list"), "validate", Map("outputFile" -> "dep.list", "sort" -> "true"))),
+      Seq("plugin", "plugins", "build", "project"))), dep)
+  }
+
+  @Test
   @Ignore
   def findNodesAndSetVersion(): Unit = {
     // GIVEN
