@@ -107,10 +107,22 @@ case class PomMod(file: File) {
     allP.toList
   }
 
+  private def nodePath(node: Node): Seq[String] = {
+    def nodePathOther(node: Node): Seq[String] = {
+      val parent = node.getParentNode
+      if ("#document" == parent.getNodeName) {
+        Nil
+      } else {
+        Seq(parent.getNodeName) ++ nodePathOther(parent)
+      }
+    }
+
+    Seq(node.getNodeName) ++ nodePathOther(node)
+  }
+
   private def pluginDepFrom(id: String)(depSeq: Seq[(String, String, Node)]): PluginDep = {
     val deps = Xpath.toMapOf(depSeq)
     val node = Util.only(depSeq.map(_._3).distinct, "only a single instance is possible")
-
     val groupId = deps.getOrElse("groupId", "")
     val artifactId = deps.getOrElse("artifactId", "")
     val version = deps.getOrElse("version", "")
@@ -125,7 +137,7 @@ case class PomMod(file: File) {
       PluginExec(id, goals, phase, configNodes)
     })
 
-    replacedVersionProperty(PluginDep(PomRef(id), groupId, artifactId, version, execs))
+    replacedVersionProperty(PluginDep(PomRef(id), groupId, artifactId, version, execs, nodePath(node)))
   }
 
   def changeVersion(version: String): Unit = {
@@ -556,7 +568,7 @@ object PomMod {
 
   case class PluginExec(id: String, goals: Seq[String], phase: String, config: Map[String, String])
 
-  case class PluginDep(pomRef: PomRef, groupId: String, artifactId: String, version: String, execs: Seq[PluginExec]) {
+  case class PluginDep(pomRef: PomRef, groupId: String, artifactId: String, version: String, execs: Seq[PluginExec], pomPath: Seq[String]) {
     val gavFormatted: String = Gav.format(Seq(groupId, artifactId, version))
 
     def gav() = Gav(groupId, artifactId, version)

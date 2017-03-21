@@ -534,8 +534,9 @@ class PomModTest extends AssertionsForJUnit {
         }).mkString(", ") + ")"
       }
 
-      "PluginDep(PomRef(\"" + dep.pomRef.id + "\"), \"" + dep.groupId + "\", \"" +
-        dep.artifactId + "\", \"" + dep.version + "\", " + formatExec(dep.execs) + ")"
+      "PluginDep(PomRef(\"" + dep.pomRef.id + "\"),\n \"" + dep.groupId + "\", \"" +
+        dep.artifactId + "\", \"" + dep.version + "\", " + formatExec(dep.execs) +
+        ",\n Seq(" + dep.pomPath.map(in ⇒ "\"" + in + "\"").mkString(", ") + "))"
     }
 
     assertBy(expected, actual, defstr)
@@ -543,7 +544,7 @@ class PomModTest extends AssertionsForJUnit {
 
   private def assertDeps(expected: Seq[Dep], actual: Seq[Dep]) = {
     def defstr(dep: Dep): String = {
-      "Dep(PomRef(\"" + dep.pomRef.id + "\"), \"" + dep.groupId + "\", \"" +
+      "Dep(PomRef(\"" + dep.pomRef.id + "\"),\n \"" + dep.groupId + "\", \"" +
         dep.artifactId + "\", \"" + dep.version + "\", \"" + dep.typeN + "\", \"" + dep.scope + "\", \"" + dep.packaging + "\")"
     }
 
