@@ -10,6 +10,7 @@ import scala.io.StdIn
 
 object Starter extends App with LazyLogging {
 
+
   val argSeq: Seq[String] = args.toSeq
   val releaseToolPath = argSeq.head
   val releaseToolDir = new File(releaseToolPath).getAbsoluteFile
@@ -17,6 +18,8 @@ object Starter extends App with LazyLogging {
   val workDirFile = new File(workDir).getAbsoluteFile
   val shellWidth = argSeq(4).toInt
   val restArgs = argSeq.drop(5).filter(_ != null).map(_.trim)
+  val debug = restArgs.contains("debug")
+  debug("init")
   val termOs: TermOs = TermOs.select(argSeq(3), argSeq(2), restArgs.contains("simpleChars"))
   val dependencyUpdates = restArgs.contains("depUp")
   val showHelp = restArgs.contains("help")
@@ -24,6 +27,12 @@ object Starter extends App with LazyLogging {
   val noVerify = !restArgs.contains("noVerify")
 
   val releaseToolGit = Sgit(releaseToolDir, showGitCmd = showGit, doVerify = false)
+
+  def debug(message:String): Unit = {
+    if(debug) {
+      println("DEBUG: " + message)
+    }
+  }
 
   private def readFromOneOf(text: String, possibleValues: Seq[String]): String = {
     print(text + " [%s]: ".format(possibleValues.mkString("/")))
@@ -93,18 +102,10 @@ object Starter extends App with LazyLogging {
   }
 
   def offerAutoFixForReleaseSnapshots(mod: PomMod): PomMod = {
-    // TODO check ishop-maven-plugin only in build/plugins/plugin
     val plugins = mod.listPluginDependecies
-
-    val ishopMaven = plugins.find(_.artifactId == "ishop-maven-plugin")
-    if (ishopMaven.isDefined) {
-      val execs = Util.only(ishopMaven.get.execs, "only one exec for ishop maven plugin please")
-      if (!execs.goals.contains("check-for-changes-before")) {
-        throw new IllegalStateException("please add \"check-for-changes-before\" to you ishop maven plugin")
-      }
-      if (!execs.goals.contains("check-for-changes-package")) {
-        throw new IllegalStateException("please add \"check-for-changes-package\" to you ishop maven plugin")
-      }
+    if (mod.hasShopPom) {
+      // TODO check if core needs this checks too
+      PomChecker.check(plugins)
     }
 
     case class ReleaseInfo(gav: String, released: Boolean)
@@ -334,12 +335,9 @@ object Starter extends App with LazyLogging {
 
   private def handleException(t: Throwable) = {
     t match {
-      case x: Sgit.MissigCommitHookException ⇒ {
+      case x@(_: RefAlreadyExistsException | _: Sgit.MissigCommitHookException | _: PomChecker.ValidationException
+        ) ⇒ {
         println()
-        println(x.getMessage)
-        System.exit(1)
-      }
-      case x: RefAlreadyExistsException ⇒ {
         println("E: " + x.getMessage)
         System.exit(1)
       }
@@ -363,9 +361,13 @@ object Starter extends App with LazyLogging {
     System.exit(0)
   }
   try {
+    debug("fetching git")
     val git: Sgit = fetchGit(workDirFile)
+    debug("ask for release")
     val startBranch: String = askReleaseBranch()
+    debug("ask for rebase")
     val askForRebase = suggestRebase(git)
+    debug("change")
     readFromPrompt(askForRebase, startBranch, git)
   } catch {
     case t: Throwable ⇒ {

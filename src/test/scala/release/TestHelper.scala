@@ -33,12 +33,13 @@ object TestHelper {
   def assertException[T <: Exception](f: () ⇒ Unit, message: String, clazz: Class[T]): Unit = {
     try {
       f.apply()
-      Assert.fail()
+      Assert.fail("missing exception of type: " + clazz.getCanonicalName)
     } catch {
-      case e if e.isInstanceOf[T] ⇒ {
-        // TODO T ist hier weg, anders prüfen ob die klasse passt
+      case ae: AssertionError ⇒ throw ae
+      case e: Throwable ⇒ {
         try {
           Assert.assertEquals(message, e.getMessage)
+          Assert.assertEquals(clazz, e.getClass)
         } catch {
           case t: Throwable ⇒ e.printStackTrace(); throw t
         }

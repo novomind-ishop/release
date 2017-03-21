@@ -19,7 +19,7 @@ object Util {
   }
 
   def only[T](ts: Seq[T], msg: String) = ts match {
-    case Nil ⇒ throw new IllegalArgumentException("nil " + msg)
+    case Nil ⇒ throw new IllegalArgumentException(msg + " Nil.")
     case e if e.size == 1 ⇒ e.head
     case e ⇒ throw new IllegalArgumentException("any: " + e + " " + msg)
   }
