@@ -139,7 +139,7 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
   def currentBranch: String = gitNative(Seq("rev-parse", "--abbrev-ref", "HEAD"))
 
   def fetchAll(): Unit = {
-    gitNative(Seq("fetch", "-q", "--all", "--tags"), showErrors = true, useWorkdir = true, in ⇒ in == "fetch")
+    gitNative(Seq("fetch", "-q", "--all", "--tags"), cmdFilter = _ == "fetch")
   }
 
   def diff(): Seq[String] = {
@@ -207,7 +207,7 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
     branchInfo.contains("ahead")
   }
 
-  def localChanges:Seq[String] = {
+  def localChanges: Seq[String] = {
     val status = gitNative(Seq("status", "--porcelain"))
     status.lines.toList.map(_.replaceAll("[ ]+", " "))
   }
@@ -288,9 +288,9 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
   private def pushInner(srcBranchName: String, targetBranchName: String, pushTags: Boolean, refPrefix: String): Seq[String] = {
     val refDef = srcBranchName + ':' + refPrefix + targetBranchName
     if (pushTags) {
-      Seq(gitNative(Seq("push", "-q", "--tags", "-u", "origin", refDef)))
+      Seq(gitNative(Seq("push", "-q", "--tags", "-u", "origin", refDef), cmdFilter = _ == "push"))
     } else {
-      Seq(gitNative(Seq("push", "-q", "-u", "origin", refDef)))
+      Seq(gitNative(Seq("push", "-q", "-u", "origin", refDef), cmdFilter = _ == "push"))
     }
 
   }
