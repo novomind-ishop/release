@@ -79,23 +79,17 @@ object Starter extends App with LazyLogging {
   }
 
   private def suggestCurrentBranch(file: File) = {
-    try {
-      val git = Sgit(file, showGitCmd = showGit, doVerify = noVerify)
-      val latestCommit = git.commitIdHead()
-      val selectedBraches = git.branchListLocal().filter(_.getObjectId.getName == latestCommit)
-      val found = selectedBraches.map(_.getName.replaceFirst("refs/heads/", ""))
-      if (found.size != 1) {
-        throw new IllegalStateException("more than one branch found: " + found.mkString(", "))
-      } else {
-        found.head
-      }
-    } catch {
-      case e: IllegalStateException ⇒ {
-        println("W: " + e.getMessage)
-        logger.debug("", e)
-        "master"
-      }
+    val git = Sgit(file, showGitCmd = showGit, doVerify = noVerify)
+    val latestCommit = git.commitIdHead()
+    val selectedBraches = git.branchListLocal().filter(_.getObjectId.getName == latestCommit)
+    val found = selectedBraches.map(_.getName.replaceFirst("refs/heads/", ""))
+    if (found.size != 1) {
+      println("W: more than one branch found: " + found.mkString(", ") + "; using \"master\"")
+      "master"
+    } else {
+      found.head
     }
+
   }
 
   private def fetchGit(file: File): Sgit = {
@@ -167,7 +161,6 @@ object Starter extends App with LazyLogging {
     releaseToolGit.fetchAll()
     val headVersion = releaseToolGit.commitIdHead()
     val remoteMasterVersion = releaseToolGit.commitId("origin/master")
-    val headlg = releaseToolGit.commitIds("HEAD", "origin/master")
     if (headVersion != remoteMasterVersion) {
       println("Production Version: " + remoteMasterVersion)
       println("Your Version:       " + headVersion)
@@ -201,7 +194,12 @@ object Starter extends App with LazyLogging {
 
   def readFromPrompt(rebaseFn: () ⇒ Unit, branch: String, sgit: Sgit): Seq[Unit] = {
     if (sgit.hasLocalChanges) {
-      throw new PreconditionsException("Your branch: \"" + branch + "\" has local changes, please commit or reset\n" + sgit.localChanges.take(5).mkString("\n") + "\n...")
+      val changes = sgit.localChanges.take(5)
+      val changesOut = changes match {
+        case c if c.size <= 5 ⇒ c.mkString("\n")
+        case c ⇒ c.mkString("\n") + "\n..."
+      }
+      throw new PreconditionsException("Your branch: \"" + branch + "\" has local changes, please commit or reset\n" + changesOut)
     }
     rebaseFn.apply()
     registerExitFn("cleanup branches", () ⇒ {
@@ -343,8 +341,8 @@ object Starter extends App with LazyLogging {
 
   private def handleException(t: Throwable) = {
     t match {
-      case x@(_: RefAlreadyExistsException | _: Sgit.MissigCommitHookException | _: PomChecker.ValidationException | _: PreconditionsException
-        ) ⇒ {
+      case x@(_: RefAlreadyExistsException | _: Sgit.MissigCommitHookException |
+              _: PomChecker.ValidationException | _: PreconditionsException) ⇒ {
         println()
         println("E: " + x.getMessage)
         System.exit(1)
@@ -358,7 +356,7 @@ object Starter extends App with LazyLogging {
 
   }
 
-  def fetchGitAndAskForBranch(): (Sgit, String) = {
+  private def fetchGitAndAskForBranch(): (Sgit, String) = {
     implicit val ec = ExecutionContext.global
     val gitF: Future[Sgit] = Future {
       debug("fetching git")
@@ -371,9 +369,9 @@ object Starter extends App with LazyLogging {
       askReleaseBranch()
     }
     val result = for {
-      r1 <- gitF
-      r2 <- startBranchF
-    } yield (r1, r2)
+      git <- gitF
+      startBranch <- startBranchF
+    } yield (git, startBranch)
 
     try {
       Await.result(result, Span(60, Seconds))
@@ -394,9 +392,9 @@ object Starter extends App with LazyLogging {
   }
 
   try {
-    val gitBranchT = fetchGitAndAskForBranch()
-    val git = gitBranchT._1
-    val startBranch = gitBranchT._2
+    val gitAndBranchname = fetchGitAndAskForBranch()
+    val git = gitAndBranchname._1
+    val startBranch = gitAndBranchname._2
     debug("ask for rebase")
     val askForRebase = suggestRebase(git)
     debug("change")

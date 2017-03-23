@@ -209,7 +209,7 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
 
   def localChanges: Seq[String] = {
     val status = gitNative(Seq("status", "--porcelain"))
-    status.lines.toList.map(_.replaceAll("[ ]+", " "))
+    status.lines.toList.map(_.replaceAll("[ ]+", " ").trim)
   }
 
   def hasLocalChanges: Boolean = {
