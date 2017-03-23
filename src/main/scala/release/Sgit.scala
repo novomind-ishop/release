@@ -216,6 +216,10 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
     localChanges != Nil
   }
 
+  def rebase(): Unit = {
+    gitNative(Seq("rebase", "-q"))
+  }
+
   def hasNoLocalChanges: Boolean = {
     !hasLocalChanges
   }

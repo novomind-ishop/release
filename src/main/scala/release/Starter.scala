@@ -175,16 +175,20 @@ object Starter extends App with LazyLogging {
 
   }
 
-  def suggestRebase(sgit: Sgit): () ⇒ Unit = {
-    if (false) {
+  def suggestRebase(sgit: Sgit, branch: String): () ⇒ Unit = {
+    debug("ask for rebase")
+    val shouldRebase = sgit.commitIds("@{upstream}", branch)
+    if (shouldRebase != Nil) {
       () ⇒ {
-        val update = readFromOneOf("Remote changes detected. Rebase local branch?", Seq("y", "n"))
+        val update = readFromOneOf("Your branch is " + shouldRebase.size +
+          " commits behind defined upstream. Rebase local branch?", Seq("y", "n"))
+        if (update == "y") {
+          sgit.rebase()
+        }
 
       }
     } else {
-      () ⇒ {
-        println("Git updated - check for remote updates manually")
-      }
+      () ⇒ {}
     }
   }
 
@@ -395,8 +399,7 @@ object Starter extends App with LazyLogging {
     val gitAndBranchname = fetchGitAndAskForBranch()
     val git = gitAndBranchname._1
     val startBranch = gitAndBranchname._2
-    debug("ask for rebase")
-    val askForRebase = suggestRebase(git)
+    val askForRebase = suggestRebase(git, startBranch)
     debug("change")
     readFromPrompt(askForRebase, startBranch, git)
   } catch {
