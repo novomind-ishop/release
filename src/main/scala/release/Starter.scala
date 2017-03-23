@@ -201,7 +201,7 @@ object Starter extends App with LazyLogging {
 
   def readFromPrompt(rebaseFn: () ⇒ Unit, branch: String, sgit: Sgit): Seq[Unit] = {
     if (sgit.hasLocalChanges) {
-      throw new IllegalStateException(branch + " has local changes, please commit or reset " + sgit.localChanges.take(5))
+      throw new PreconditionsException("Your branch: \"" + branch + "\" has local changes, please commit or reset\n" + sgit.localChanges.take(5).mkString("\n") + "\n...")
     }
     rebaseFn.apply()
     registerExitFn("cleanup branches", () ⇒ {
@@ -339,9 +339,11 @@ object Starter extends App with LazyLogging {
     }))
   }
 
+  class PreconditionsException(msg: String) extends RuntimeException(msg)
+
   private def handleException(t: Throwable) = {
     t match {
-      case x@(_: RefAlreadyExistsException | _: Sgit.MissigCommitHookException | _: PomChecker.ValidationException
+      case x@(_: RefAlreadyExistsException | _: Sgit.MissigCommitHookException | _: PomChecker.ValidationException | _: PreconditionsException
         ) ⇒ {
         println()
         println("E: " + x.getMessage)
