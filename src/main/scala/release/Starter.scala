@@ -1,11 +1,14 @@
 package release
 
 import java.io.{File, IOException}
+import java.util.concurrent.TimeoutException
 import java.util.jar.Manifest
 
 import com.typesafe.scalalogging.LazyLogging
 import org.eclipse.jgit.api.errors.RefAlreadyExistsException
+import org.scalatest.time.{Seconds, Span}
 
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.io.StdIn
 
 object Starter extends App with LazyLogging {
@@ -28,8 +31,8 @@ object Starter extends App with LazyLogging {
 
   val releaseToolGit = Sgit(releaseToolDir, showGitCmd = showGit, doVerify = false)
 
-  def debug(message:String): Unit = {
-    if(debug) {
+  def debug(message: String): Unit = {
+    if (debug) {
       println("DEBUG: " + message)
     }
   }
@@ -353,6 +356,30 @@ object Starter extends App with LazyLogging {
 
   }
 
+  def fetchGitAndAskForBranch(): (Sgit, String) = {
+    implicit val ec = ExecutionContext.global
+    val gitF: Future[Sgit] = Future {
+      debug("fetching git")
+      val out = fetchGit(workDirFile)
+      debug("fetched git")
+      out
+    }
+    val startBranchF: Future[String] = Future {
+      debug("ask for release")
+      askReleaseBranch()
+    }
+    val result = for {
+      r1 <- gitF
+      r2 <- startBranchF
+    } yield (r1, r2)
+
+    try {
+      Await.result(result, Span(60, Seconds))
+    } catch {
+      case _: TimeoutException ⇒ throw new TimeoutException("git fetch failed")
+    }
+  }
+
   if (showHelp) {
     println("Possible args:")
     println("help        => shows this and exits")
@@ -363,11 +390,11 @@ object Starter extends App with LazyLogging {
     println("noVerify    => use this toggle for non gerrit projects")
     System.exit(0)
   }
+
   try {
-    debug("fetching git")
-    val git: Sgit = fetchGit(workDirFile)
-    debug("ask for release")
-    val startBranch: String = askReleaseBranch()
+    val gitBranchT = fetchGitAndAskForBranch()
+    val git = gitBranchT._1
+    val startBranch = gitBranchT._2
     debug("ask for rebase")
     val askForRebase = suggestRebase(git)
     debug("change")
