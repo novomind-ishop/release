@@ -49,16 +49,16 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
-  @Ignore
   def depTreeFile(): Unit = {
     // GIVEN
     val srcPoms = TestHelper.testResources("novosales1")
     val pomMod = PomMod(srcPoms)
+
     // WHEN
     val treeFile: Option[String] = pomMod.depTreeFile()
 
     // THEN
-    Assert.assertEquals(Some("asdf"), treeFile)
+    Assert.assertEquals(Some("target/dependency-tree"), treeFile)
   }
 
   @Test

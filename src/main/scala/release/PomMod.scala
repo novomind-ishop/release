@@ -156,8 +156,18 @@ case class PomMod(file: File) {
 
   }
 
+  private def mavenDependecyPluginConfigsByGoal(goalname: String): Seq[(String, String)] = {
+    mavenDependecyPlugins.flatMap(_.execs).filter(_.goals == Seq(goalname)).flatMap(_.config)
+  }
+
   def depTreeFile(): Option[String] = {
-    None
+    val depPluginConfigs: Seq[(String, String)] = mavenDependecyPluginConfigsByGoal("tree")
+    if (depPluginConfigs != Nil) {
+      val treeOutputFileName: String = Util.only(depPluginConfigs.filter(_._1 == "outputFile"), "not only tree file")._2
+      Some(treeOutputFileName)
+    } else {
+      None
+    }
   }
 
   def findNodes(groupId: String, artifactId: String, version: String): Seq[Node] = {
@@ -167,6 +177,7 @@ case class PomMod(file: File) {
   def writeTo(targetFolder: File): Unit = {
     writePom(new File(targetFolder, "pom.xml"), rootPomDoc)
     subs.par.foreach(sub ⇒ {
+
       writePom(new File(new File(targetFolder, sub.subfolder), "pom.xml"), sub.document)
     })
   }
@@ -423,10 +434,10 @@ case class PomMod(file: File) {
 }
 
 object PomMod {
-  private[release] def findPluginsByName(plugins: Seq[PluginDep], name:String) = {
+  private[release] def findPluginsByName(plugins: Seq[PluginDep], name: String) = {
     plugins
       .filterNot(_.pomPath.contains("pluginManagement"))
-      .filter(_.artifactId ==name)
+      .filter(_.artifactId == name)
   }
 
   private[release] def dependecyPlugins(plugins: Seq[PluginDep]) = findPluginsByName(plugins, "maven-dependency-plugin")
