@@ -7,7 +7,6 @@ import com.typesafe.scalalogging.LazyLogging
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.errors.CannotDeleteCurrentBranchException
 import org.eclipse.jgit.diff.DiffEntry
-import org.eclipse.jgit.lib.Ref
 
 import scala.collection.JavaConverters
 import scala.io.Source
@@ -147,8 +146,11 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
     JavaConverters.asScalaBufferConverter(call).asScala.map(_.toString)
   }
 
-  def branchListLocal(): Seq[Ref] = {
+  case class GitShaBranch(commitId: String, branchName: String)
+
+  def branchListLocal(): Seq[GitShaBranch] = {
     JavaConverters.iterableAsScalaIterable(git.branchList().call()).toSeq
+      .map(in ⇒ GitShaBranch(in.getObjectId.getName, in.getName))
   }
 
   def doCommitPomXmls(message: String): Unit = {

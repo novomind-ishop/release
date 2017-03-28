@@ -81,8 +81,8 @@ object Starter extends App with LazyLogging {
   private def suggestCurrentBranch(file: File) = {
     val git = Sgit(file, showGitCmd = showGit, doVerify = noVerify)
     val latestCommit = git.commitIdHead()
-    val selectedBraches = git.branchListLocal().filter(_.getObjectId.getName == latestCommit)
-    val found = selectedBraches.map(_.getName.replaceFirst("refs/heads/", ""))
+    val selectedBraches = git.branchListLocal().filter(_.commitId == latestCommit)
+    val found = selectedBraches.map(_.branchName.replaceFirst("refs/heads/", ""))
     if (found.size != 1) {
       println("W: more than one branch found: " + found.mkString(", ") + "; using \"master\"")
       "master"
