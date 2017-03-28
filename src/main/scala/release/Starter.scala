@@ -177,7 +177,12 @@ object Starter extends App with LazyLogging {
 
   def suggestRebase(sgit: Sgit, branch: String): () ⇒ Unit = {
     debug("ask for rebase")
-    val shouldRebase = sgit.commitIds("@{upstream}", branch)
+    val shouldRebase = if (sgit.findUpstreamBranch().isDefined) {
+      sgit.commitIds("@{upstream}", branch)
+    } else {
+      // TODO ask for upstream before
+      Nil
+    }
     if (shouldRebase != Nil) {
       () ⇒ {
         val update = readFromOneOf("Your branch is " + shouldRebase.size +
