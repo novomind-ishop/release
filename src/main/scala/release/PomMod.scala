@@ -13,7 +13,7 @@ import javax.xml.transform.{OutputKeys, TransformerFactory}
 
 import org.w3c.dom.{Document, Node}
 import org.xml.sax.SAXParseException
-import release.PomMod.{Dep, PluginDep, PluginExec, PomRef}
+import release.PomMod._
 import release.Starter.TermOs
 
 case class PomMod(file: File) {
@@ -416,7 +416,7 @@ case class PomMod(file: File) {
       val out = PomMod.newDocument(new String(Files.readAllBytes(file.toPath), StandardCharsets.UTF_8))
       out
     } catch {
-      case se: SAXParseException ⇒ throw new IllegalStateException(file.getAbsolutePath, se);
+      case se: SAXParseException ⇒ throw new InvalidPomXmlException(file, se);
     }
   }
 
@@ -609,5 +609,7 @@ object PomMod {
   object PomRef {
     val undef = PomRef("X")
   }
+
+  case class InvalidPomXmlException(file:File, parent:Exception) extends IllegalStateException(file.getAbsolutePath, parent)
 
 }

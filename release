@@ -9,7 +9,9 @@ if [[ -n $(echo "${argLine}" | egrep "replace") ]]; then
   pushd .  > /dev/null
   cd $(dirname $0)
   release_jar=$(dirname $0)/target/scala-2.12/release.jar
-  cp -v ${release_jar} $(dirname $0)/release.jar
+  if [[ $(diff -q ${release_jar} $(dirname $0)/release.jar) ]]; then
+    cp -v ${release_jar} $(dirname $0)/release.jar
+  fi
   popd > /dev/null
 else
   release_jar=$(dirname $0)/release.jar

@@ -37,6 +37,8 @@ object Starter extends App with LazyLogging {
     }
   }
 
+  private def readFromOneOfYesNo(text: String) = readFromOneOf(text, Seq("y", "n"))
+
   private def readFromOneOf(text: String, possibleValues: Seq[String]): String = {
     print(text + " [%s]: ".format(possibleValues.mkString("/")))
     val line = StdIn.readLine
@@ -68,6 +70,8 @@ object Starter extends App with LazyLogging {
     }
   }
 
+  private def readFromYes(text: String) = readFrom(text, "y")
+
   private def readFrom(text: String, defaultValue: String): String = {
     print(text + " [%s]: ".format(defaultValue))
     val line = StdIn.readLine()
@@ -78,11 +82,11 @@ object Starter extends App with LazyLogging {
     }
   }
 
-  private def suggestCurrentBranch(file: File) = {
+  private def suggestCurrentBranch(file: File):String = {
     val git = Sgit(file, showGitCmd = showGit, doVerify = noVerify)
     val latestCommit = git.commitIdHead()
     val selectedBraches = git.branchListLocal().filter(_.commitId == latestCommit)
-    val found = selectedBraches.map(_.branchName.replaceFirst("refs/heads/", ""))
+    val found = selectedBraches.map(_.branchName.replaceFirst("refs/heads/", "")).filterNot(_ == "HEAD")
     if (found.size != 1) {
       println("W: more than one branch found: " + found.mkString(", ") + "; using \"master\"")
       "master"
@@ -136,7 +140,7 @@ object Starter extends App with LazyLogging {
         .foreach(println)
       println("")
 
-      val again = readFromOneOf("Try again?", Seq("y", "n"))
+      val again = readFromOneOfYesNo("Try again?")
       if (again == "n") {
         System.exit(1)
       } else {
@@ -177,16 +181,13 @@ object Starter extends App with LazyLogging {
 
   def suggestRebase(sgit: Sgit, branch: String): () ⇒ Unit = {
     debug("ask for rebase")
-    val shouldRebase = if (sgit.findUpstreamBranch().isDefined) {
-      sgit.commitIds("@{upstream}", branch)
-    } else {
-      // TODO ask for upstream before
-      Nil
-    }
+    sgit.checkout(branch)
+    chooseUpstreamIfUndef(sgit, branch)
+    val shouldRebase = sgit.commitIds("@{upstream}", branch)
     if (shouldRebase != Nil) {
       () ⇒ {
-        val update = readFromOneOf("Your branch is " + shouldRebase.size +
-          " commits behind defined upstream. Rebase local branch?", Seq("y", "n"))
+        val update = readFromOneOfYesNo("Your branch is " + shouldRebase.size +
+          " commits behind defined upstream. Rebase local branch?")
         if (update == "y") {
           sgit.rebase()
         }
@@ -199,6 +200,14 @@ object Starter extends App with LazyLogging {
 
   def askReleaseBranch(): String = {
     readFrom("Enter branch name where the release should start from", suggestCurrentBranch(workDirFile))
+  }
+
+  private def chooseUpstreamIfUndef(sgit: Sgit, branch: String): Unit = {
+    val upstream = sgit.findUpstreamBranch()
+    if (upstream.isEmpty) {
+      val newUpstream = readChooseOneOfOrType("No upstream found, please set", Seq("origin/master", "origin/" + branch).distinct)
+      sgit.setUpstream(newUpstream)
+    }
   }
 
   def readFromPrompt(rebaseFn: () ⇒ Unit, branch: String, sgit: Sgit): Seq[Unit] = {
@@ -215,15 +224,11 @@ object Starter extends App with LazyLogging {
       sgit.checkout(sgit.currentBranch)
     })
     sgit.checkout(branch)
-    val upstream = sgit.findUpstreamBranch()
-    if (upstream.isEmpty) {
-      val newUpstream = readChooseOneOfOrType("No upstream found, please set", Seq("origin/master", "origin/" + branch))
-      sgit.setUpstream(newUpstream)
-    }
+    chooseUpstreamIfUndef(sgit, branch)
     val mod = PomMod(workDirFile)
 
     if (dependencyUpdates) {
-      val showUpdates = readFrom("Show dependency updates?", "y")
+      val showUpdates = readFromYes("Show dependency updates?")
       if (showUpdates == "y") {
         mod.showDependecyUpdates(shellWidth, termOs)
       }
@@ -298,7 +303,7 @@ object Starter extends App with LazyLogging {
       sgit.deleteBranch(releaseBrachName)
     }
     println(sgit.graph())
-    val sendToGerrit = readFromOneOf("Send to Gerrit?", Seq("y", "n"))
+    val sendToGerrit = readFromOneOfYesNo("Send to Gerrit?")
     val selectedBranch = sgit.findUpstreamBranch().getOrElse(branch)
     if (sendToGerrit == "y") {
 
@@ -354,6 +359,13 @@ object Starter extends App with LazyLogging {
               _: PomChecker.ValidationException | _: PreconditionsException) ⇒ {
         println()
         println("E: " + x.getMessage)
+        System.exit(1)
+      }
+
+      case x@(_: PomMod.InvalidPomXmlException) ⇒ {
+        println()
+        println("E: " + x.getMessage)
+        println("E: " + x.parent.getMessage)
         System.exit(1)
       }
       case _ ⇒ {
