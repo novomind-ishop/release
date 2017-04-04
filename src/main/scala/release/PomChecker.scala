@@ -51,7 +51,7 @@ object PomChecker {
 
   private def checkDefaultPath(plugin: PluginDep): Unit = {
     if (plugin.pomPath != path) {
-      throw new ValidationException("please move your " + plugin.artifactId + " to " +
+      throw new ValidationException("please check your pom.xml's and move your " + plugin.artifactId + " to " +
         path.mkString("/") + " your path is " + plugin.pomPath.mkString("/"))
     }
   }
