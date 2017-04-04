@@ -187,7 +187,7 @@ object Starter extends App with LazyLogging {
     if (shouldRebase != Nil) {
       () ⇒ {
         val update = readFromOneOfYesNo("Your branch is " + shouldRebase.size +
-          " commits behind defined upstream. Rebase local branch?")
+          " commits behind or ahead defined upstream. Rebase local branch?")
         if (update == "y") {
           sgit.rebase()
         }

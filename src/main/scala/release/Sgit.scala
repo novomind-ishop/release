@@ -119,14 +119,7 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
 
   }
 
-  gitNative(Seq("--version"), useWorkdir = false) match {
-    case v: String if v.startsWith("git version 2.8") ⇒ // do nothing
-    case v: String if v.startsWith("git version 2.9") ⇒ // do nothing
-    case v: String if v.startsWith("git version 2.10") ⇒ // do nothing
-    case v: String if v.startsWith("git version 2.11") ⇒ // do nothing
-    case v: String if v.startsWith("git version 2.12") ⇒ // do nothing
-    case v: String ⇒ println("W: unknown git version: \"" + v + "\"")
-  }
+  Sgit.checkVersion(this)
 
   @Deprecated
   private lazy val git = Git.open(gitRoot)
@@ -173,11 +166,15 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
   }
 
   def findUpstreamBranch(): Option[String] = {
-    val upstreamOpt = gitNativeOpt(Seq("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"))
+    val upstreamOpt = gitNativeOpt(Seq("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"))
     selectUpstream(upstreamOpt)
   }
 
   private[release] def selectUpstream(upstreamOpt: Option[String]): Option[String] = {
+    val remotes = upstreamOpt.filter(_.startsWith("remotes/")).isDefined
+    if (remotes) {
+      throw new IllegalStateException("you have local branches that overlapps with remotes - please clean up first")
+    }
     upstreamOpt
       .filter(_.startsWith("origin/"))
       .map(_.replaceFirst("^origin/", ""))
@@ -328,6 +325,24 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
 }
 
 object Sgit {
+
+  private var gits = Map.empty[Seq[String], Unit]
+
+  private[release] def checkVersion(sgit: Sgit): Unit = synchronized {
+    val cmd: Seq[String] = selectedGitCmd()
+    val git = gits.get(cmd)
+    if (git.isEmpty) {
+      val result: Unit = sgit.gitNative(Seq("--version"), useWorkdir = false) match {
+        case v: String if v.startsWith("git version 2.8") ⇒ // do nothing
+        case v: String if v.startsWith("git version 2.9") ⇒ // do nothing
+        case v: String if v.startsWith("git version 2.10") ⇒ // do nothing
+        case v: String if v.startsWith("git version 2.11") ⇒ // do nothing
+        case v: String if v.startsWith("git version 2.12") ⇒ // do nothing
+        case v: String ⇒ println("W: unknown git version: \"" + v + "\"");
+      }
+      gits = gits ++ Map(cmd → result)
+    }
+  }
 
   private[release] def outLogger(syserrErrors: Boolean, cmd: Seq[String], cmdFilter: String ⇒ Boolean, errOut: String ⇒ Unit): ProcessLogger = {
     new ProcessLogger {
