@@ -139,11 +139,22 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
     JavaConverters.asScalaBufferConverter(call).asScala.map(_.toString)
   }
 
-  case class GitShaBranch(commitId: String, branchName: String)
+  case class GitShaBranch(commitId: String, branchName: String) {
+    if (commitId.length != 40) {
+      throw new IllegalStateException("invalid commit id length: " + commitId.length + " (" + commitId + ")")
+    }
+
+    if (!commitId.matches("[0-9a-f]{40}")) {
+      throw new IllegalStateException("invalid commit id: " + commitId + "")
+    }
+  }
 
   def branchListLocal(): Seq[GitShaBranch] = {
-    JavaConverters.iterableAsScalaIterable(git.branchList().call()).toSeq
-      .map(in ⇒ GitShaBranch(in.getObjectId.getName, in.getName))
+    gitNative(Seq("branch", "--list", "--verbose", "--no-abbrev")).lines.toSeq
+      .map(in ⇒ {
+        val parts = in.replaceFirst("^\\*", "").trim.split("[ \t]+")
+        GitShaBranch(parts(1), "refs/heads/" + parts(0))
+      })
   }
 
   def doCommitPomXmls(message: String): Unit = {

@@ -216,10 +216,12 @@ class SgitTest extends AssertionsForJUnit {
 
     // WHEN
     val gitA = Sgit.init(testRepoA, showGitCmd = false, SgitTest.hasCommitMsg)
+    Assert.assertEquals(Nil, gitA.branchListLocal())
     copyMsgHook(testRepoA)
     gitA.add(testFile(testRepoA, "test"))
     gitA.commit("add test")
     Assert.assertEquals("master", gitA.currentBranch)
+    Assert.assertEquals(Seq("refs/heads/master"), gitA.branchListLocal().map(_.branchName))
     Assert.assertEquals(None, gitA.findUpstreamBranch())
     gitA.config("receive.denyCurrentBranch", "warn")
     val gitB = Sgit.clone(testRepoA, testRepoB, showGitCmd = false, SgitTest.hasCommitMsg)
@@ -263,7 +265,10 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertTrue(gitB.hasLocalChanges)
     gitB.commit("add " + Seq(anyFile).map(_.getName).mkString(", "))
     Assert.assertFalse(gitB.hasLocalChanges)
+    Assert.assertEquals(Seq("refs/heads/master"), gitB.branchListLocal().map(_.branchName))
 
+    gitB.createBranch("any")
+    Assert.assertEquals(Seq("refs/heads/any", "refs/heads/master"), gitB.branchListLocal().map(_.branchName))
   }
 
 }
