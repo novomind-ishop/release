@@ -4,11 +4,7 @@ import java.io.File
 import java.net.URI
 
 import com.typesafe.scalalogging.LazyLogging
-import org.eclipse.jgit.api.Git
-import org.eclipse.jgit.api.errors.CannotDeleteCurrentBranchException
-import org.eclipse.jgit.diff.DiffEntry
 
-import scala.collection.JavaConverters
 import scala.io.Source
 import scala.sys.process.ProcessLogger
 import scala.util.{Failure, Success, Try}
@@ -47,7 +43,7 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
     addByString(f.getAbsolutePath)
   }
 
-  private[release] def commit(message: String): Unit = {
+  private[release] def commitAll(message: String): Unit = {
     val lines = message.replaceAll("\r", "").lines.toList
     val ms = if (lines.size == 1) {
       lines ++ Seq("")
@@ -121,9 +117,6 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
 
   Sgit.checkVersion(this)
 
-  @Deprecated
-  private lazy val git = Git.open(gitRoot)
-
   if (doVerify) {
     verify()
   }
@@ -132,11 +125,6 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
 
   def fetchAll(): Unit = {
     gitNative(Seq("fetch", "-q", "--all", "--tags"), cmdFilter = _ == "fetch")
-  }
-
-  def diff(): Seq[String] = {
-    val call: java.util.List[DiffEntry] = git.diff().call()
-    JavaConverters.asScalaBufferConverter(call).asScala.map(_.toString)
   }
 
   case class GitShaBranch(commitId: String, branchName: String) {
@@ -149,27 +137,36 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
     }
   }
 
+  def branchNamesLocal(): Seq[String] = branchListLocal().map(_.branchName.replaceFirst("refs/heads/", ""))
+
   def branchListLocal(): Seq[GitShaBranch] = {
     gitNative(Seq("branch", "--list", "--verbose", "--no-abbrev")).lines.toSeq
       .map(in ⇒ {
         val parts = in.replaceFirst("^\\*", "").trim.split("[ \t]+")
         GitShaBranch(parts(1), "refs/heads/" + parts(0))
-      })
+      }).toList
+  }
+
+  def localPomChanges(): Seq[String] = {
+    val modPom = localChanges()
+    val modWithoutState = modPom.map(in ⇒ in.replaceFirst("^[^ ]+ ", ""))
+    val modDistinct = modWithoutState.map(in ⇒ in.replaceFirst(".*/pom.xml", "pom.xml")).distinct
+    if (modDistinct != Seq("pom.xml")) {
+      throw new IllegalStateException("only pom changes are allowed => " +
+        modPom.mkString(", ") + " => " + modDistinct.mkString(", "))
+    }
+    modWithoutState
   }
 
   def doCommitPomXmls(message: String): Unit = {
-    val modPom = status()
-    val modDistinct = modPom.map(in ⇒ in.replaceFirst(".*/", "")).distinct
-    if (modDistinct != Seq("pom.xml")) {
-      throw new IllegalStateException("only pom changes are allowed = " + modPom.mkString(", "))
-    }
-    addAll(modPom)
-    val statusAfterAdd = status()
+
+    addAll(localPomChanges())
+    val statusAfterAdd = localChanges().filterNot(_.endsWith("pom.xml"))
     if (statusAfterAdd.nonEmpty) {
-      throw new IllegalStateException("uncommited changes: " + statusAfterAdd.mkString(", "))
+      throw new IllegalStateException("uncommitted changes: " + statusAfterAdd.mkString(", "))
     }
 
-    commit(message)
+    commitAll(message)
   }
 
   def setUpstream(upstreamName: String): Unit = {
@@ -182,7 +179,7 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
   }
 
   private[release] def selectUpstream(upstreamOpt: Option[String]): Option[String] = {
-    val remotes = upstreamOpt.filter(_.startsWith("remotes/")).isDefined
+    val remotes = upstreamOpt.exists(_.startsWith("remotes/"))
     if (remotes) {
       throw new IllegalStateException("you have local branches that overlapps with remotes - please clean up first")
     }
@@ -217,13 +214,13 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
     branchInfo.contains("ahead")
   }
 
-  def localChanges: Seq[String] = {
+  def localChanges(): Seq[String] = {
     val status = gitNative(Seq("status", "--porcelain"))
     status.lines.toList.map(_.replaceAll("[ ]+", " ").trim)
   }
 
   def hasLocalChanges: Boolean = {
-    localChanges != Nil
+    localChanges() != Nil
   }
 
   def rebase(): Unit = {
@@ -251,30 +248,26 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
     }
   }
 
-  private def status(): Seq[String] = {
-    val status = git.status().call()
-    val modPom: Seq[String] = JavaConverters.asScalaSet(status.getModified).toSeq
-    modPom
-  }
+  def listTags() = gitNative(Seq("tag", "--list")).lines.toSeq
 
   def doTag(tagName: String): Unit = {
-    try {
-      git.tag().setName("v" + tagName).call()
-    } catch {
-      // TODO wenn tag schon existiert
-      case e: RuntimeException ⇒ Util.err(e.getMessage)
+    if (tagName.startsWith("v")) {
+      throw new IllegalArgumentException("tags must not start with 'v', but was " + tagName)
     }
+    val allTags = listTags()
+    val newTag = "v" + tagName
+    if (allTags.contains(newTag)) {
+      throw new IllegalStateException("tag " + newTag + " already exists")
+    }
+    gitNative(Seq("tag", newTag))
+
   }
 
   def deleteBranch(branchName: String): Unit = {
-    try {
-      git.branchDelete()
-        .setForce(true)
-        .setBranchNames(branchName)
-        .call()
-    } catch {
-      case e: CannotDeleteCurrentBranchException ⇒ println(e.getClass.getCanonicalName + " " + e.getMessage)
-      case t: Throwable ⇒ throw t
+    if (branchNamesLocal().contains(branchName)) {
+      gitNative(Seq("branch", "-D", branchName))
+    } else {
+      throw new IllegalStateException("branch '" + branchName + "' not found.")
     }
   }
 
@@ -286,9 +279,7 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
   }
 
   def createBranch(branchName: String): Unit = {
-    git.branchCreate()
-      .setName(branchName)
-      .call()
+    gitNative(Seq("branch", branchName))
   }
 
   def push(srcBranchName: String, targetBranchName: String, pushTags: Boolean): Seq[String] = {

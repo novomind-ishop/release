@@ -199,6 +199,16 @@ class SgitTest extends AssertionsForJUnit {
       }
     }
 
+    def testFail(expectedMsg: String, fn: () ⇒ Unit): Unit = {
+      try {
+        fn.apply()
+        Assert.fail("no exception was thrown")
+      } catch {
+        case e: IllegalStateException if e.getMessage == expectedMsg ⇒ // do nothing
+        case e: Exception ⇒ Assert.fail(e.getMessage)
+      }
+    }
+
     def assertMsg(expected: Seq[String], sgit: Sgit): Unit = {
       val gitRawOut = sgit.gitNative(Seq("log", "-n1", "--pretty=\"%B\""))
       // println("rawout: ^" + gitRawOut + "^")
@@ -218,8 +228,13 @@ class SgitTest extends AssertionsForJUnit {
     val gitA = Sgit.init(testRepoA, showGitCmd = false, SgitTest.hasCommitMsg)
     Assert.assertEquals(Nil, gitA.branchListLocal())
     copyMsgHook(testRepoA)
+
+    Assert.assertEquals(Nil, gitA.localChanges())
     gitA.add(testFile(testRepoA, "test"))
-    gitA.commit("add test")
+
+    Assert.assertEquals(Seq("A test"), gitA.localChanges())
+    gitA.commitAll("add test")
+    Assert.assertEquals(Nil, gitA.localChanges())
     Assert.assertEquals("master", gitA.currentBranch)
     Assert.assertEquals(Seq("refs/heads/master"), gitA.branchListLocal().map(_.branchName))
     Assert.assertEquals(None, gitA.findUpstreamBranch())
@@ -234,36 +249,65 @@ class SgitTest extends AssertionsForJUnit {
     gitB.pushFor("master", "master", pushTags = false)
 
     val pomFile = testFile(testRepoB, "pom.xml")
+    val sub = new File(testRepoB, "sub")
+    sub.mkdir()
+    val subPomFile = testFile(sub, "pom.xml")
+    Assert.assertEquals(Seq("?? pom.xml", "?? sub/"), gitB.localChanges())
     gitB.add(pomFile)
+    Assert.assertEquals(Seq("A pom.xml", "?? sub/"), gitB.localChanges())
+    testFail("only pom changes are allowed => A pom.xml, ?? sub/ => pom.xml, sub/", () ⇒ {
+      gitB.localPomChanges()
+    })
     val anyFile = testFile(testRepoB, "any.xml")
-    Assert.assertEquals(Seq("A pom.xml", "?? any.xml"), gitB.localChanges)
+    Assert.assertEquals(Seq("A pom.xml", "?? any.xml", "?? sub/"), gitB.localChanges())
+
+    testFail("only pom changes are allowed => A pom.xml, ?? any.xml, ?? sub/ => pom.xml, any.xml, sub/", () ⇒ {
+      gitB.doCommitPomXmls("fail")
+    })
+
     gitB.add(anyFile)
     val subject = "add " + Seq(pomFile, anyFile).map(_.getName).mkString(", ") + "-"
-    gitB.commit(subject + "\r\n\r\n test")
+    gitB.commitAll(subject + "\r\n\r\n test")
 
     assertMsg(Seq(subject, "", " test"), gitB)
 
     Assert.assertTrue(gitB.hasChangesToPush)
     Assert.assertFalse(gitB.hasLocalChanges)
     write(pomFile, Seq("a"))
+    write(subPomFile, Seq("a"))
     Assert.assertTrue(gitB.hasLocalChanges)
-    Assert.assertEquals(Seq("M pom.xml"), gitB.localChanges)
-    gitB.doCommitPomXmls("update pom.xml\n\nSigned-off-by: Ishop-Dev-Infra <ishop-dev-infra@novomind.com>")
-    Assert.assertEquals(Nil, gitB.localChanges)
-    assertMsg(Seq("update pom.xml", "", "Signed-off-by: Ishop-Dev-Infra <ishop-dev-infra@novomind.com>"), gitB)
 
+    Assert.assertEquals(Seq("M pom.xml", "M sub/pom.xml"), gitB.localChanges())
+    Assert.assertEquals(Seq("pom.xml", "sub/pom.xml"), gitB.localPomChanges())
+    gitB.doCommitPomXmls("update pom.xml\n\nSigned-off-by: Ishop-Dev-Infra <ishop-dev-infra@novomind.com>")
+    Assert.assertEquals(Nil, gitB.localChanges())
+    gitB.doTag("1.0.0")
+    gitB.doTag("1.0.1")
+    Assert.assertEquals(Seq("master"), gitB.branchNamesLocal())
+    assertMsg(Seq("update pom.xml", "", "Signed-off-by: Ishop-Dev-Infra <ishop-dev-infra@novomind.com>"), gitB)
+    gitB.createBranch("feature/test")
+    Assert.assertEquals(Seq("feature/test", "master"), gitB.branchNamesLocal())
+    gitB.deleteBranch("feature/test")
+    testFail("branch 'test' not found.", () ⇒ {
+      gitB.deleteBranch("test")
+    })
+    Assert.assertEquals(Seq("master"), gitB.branchNamesLocal())
     write(anyFile, Seq("a"))
     try {
       gitB.doCommitPomXmls("update pom.xml")
       Assert.fail()
     } catch {
-      case e: IllegalStateException ⇒ Assert.assertEquals("only pom changes are allowed = any.xml", e.getMessage)
+      case e: IllegalStateException ⇒
+        Assert.assertEquals("only pom changes are allowed => M any.xml => any.xml", e.getMessage)
     }
     Assert.assertTrue(gitB.hasChangesToPush)
     gitB.pushFor("master", "master", pushTags = false)
     gitB.add(anyFile)
     Assert.assertTrue(gitB.hasLocalChanges)
-    gitB.commit("add " + Seq(anyFile).map(_.getName).mkString(", "))
+    gitB.commitAll("add " + Seq(anyFile).map(_.getName).mkString(", "))
+    testFail("tag v1.0.0 already exists", () ⇒ {
+      gitB.doTag("1.0.0")
+    })
     Assert.assertFalse(gitB.hasLocalChanges)
     Assert.assertEquals(Seq("refs/heads/master"), gitB.branchListLocal().map(_.branchName))
 

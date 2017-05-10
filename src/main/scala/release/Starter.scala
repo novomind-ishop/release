@@ -212,7 +212,7 @@ object Starter extends App with LazyLogging {
 
   def readFromPrompt(rebaseFn: () ⇒ Unit, branch: String, sgit: Sgit): Seq[Unit] = {
     if (sgit.hasLocalChanges) {
-      val changes = sgit.localChanges.take(5)
+      val changes = sgit.localChanges().take(5)
       val changesOut = changes match {
         case c if c.size <= 5 ⇒ c.mkString("\n")
         case c ⇒ c.mkString("\n") + "\n..."

@@ -20,7 +20,7 @@ class PomModTest extends AssertionsForJUnit {
       .writeTo(targetPoms)
 
     // THEN
-    assert(Nil === TestHelper.gitDiff())
+    assert(Nil === TestHelper.localChanges())
   }
 
   @Test
@@ -362,7 +362,7 @@ class PomModTest extends AssertionsForJUnit {
       .writeTo(targetPoms)
 
     // THEN
-    assert(Nil === TestHelper.gitDiff())
+    assert(Nil === TestHelper.localChanges())
   }
 
   @Test

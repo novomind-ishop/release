@@ -50,5 +50,5 @@ object TestHelper {
 
   private lazy val git = SgitTest.workSgit()
 
-  def gitDiff(): Seq[String] = git.diff()
+  def localChanges(): Seq[String] = git.localChanges()
 }
