@@ -1,9 +1,12 @@
 package release
 
 import java.io.{File, IOException}
+import java.nio.charset.StandardCharsets
+import java.time.LocalDateTime
 import java.util.concurrent.TimeoutException
 import java.util.jar.Manifest
 
+import com.google.common.hash.Hashing
 import com.typesafe.scalalogging.LazyLogging
 import org.eclipse.jgit.api.errors.RefAlreadyExistsException
 import org.scalatest.time.{Seconds, Span}
@@ -210,6 +213,12 @@ object Starter extends App with LazyLogging {
     }
   }
 
+  private def sign():String = {
+    Hashing.sha1()
+      .hashString(LocalDateTime.now().toString, StandardCharsets.UTF_8)
+      .toString
+  }
+
   def readFromPrompt(rebaseFn: () ⇒ Unit, branch: String, sgit: Sgit): Seq[Unit] = {
     if (sgit.hasLocalChanges) {
       val changes = sgit.localChanges().take(5)
@@ -260,7 +269,6 @@ object Starter extends App with LazyLogging {
     }
     val toolSh1 = releaseToolGit.headStatusValue()
     val headCommitId = sgit.commitIdHead()
-
     if (sgit.hasNoLocalChanges) {
       println("skipped release commit on " + branch)
     } else {
@@ -269,7 +277,8 @@ object Starter extends App with LazyLogging {
         """[ishop-release] prepare for next iteration - %s
           |
           |Signed-off-by: Ishop-Dev-Infra <ishop-dev-infra@novomind.com>
-          |Releasetool-sha1: %s""".stripMargin.format(nextReleaseWithoutSnapshot, toolSh1))
+          |Releasetool-sign: %s
+          |Releasetool-sha1: %s""".stripMargin.format(nextReleaseWithoutSnapshot, sign(), toolSh1))
 
       println(". done")
     }
@@ -290,7 +299,8 @@ object Starter extends App with LazyLogging {
         """[ishop-release] perform to - %s
           |
           |Signed-off-by: Ishop-Dev-Infra <ishop-dev-infra@novomind.com>
-          |Releasetool-sha1: %s""".stripMargin.format(release, toolSh1))
+          |Releasetool-sign: %s
+          |Releasetool-sha1: %s""".stripMargin.format(release, sign(), toolSh1))
       println(". done")
     }
     if (releaseMod.hasNoShopPom) {
