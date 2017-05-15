@@ -352,7 +352,6 @@ object Sgit {
 
       override def err(s: ⇒ String): Unit = {
         if (syserrErrors && s.nonEmpty && !cmd.exists(cmdFilter)) {
-          errOut.apply(cmd.mkString("!"))
           errOut.apply("err: " + s)
         }
       }
@@ -364,8 +363,26 @@ object Sgit {
   private[release] def native(cmd: Seq[String], syserrErrors: Boolean,
                               cmdFilter: String ⇒ Boolean): String = {
     import sys.process._
-    val result: String = cmd !! outLogger(syserrErrors, cmd, cmdFilter, in ⇒ System.err.println(in))
-    result.trim
+
+    var errors: String = ""
+
+    def logError(in: String): Unit = {
+      System.err.println(in)
+      errors = errors.concat(in)
+    }
+
+    try {
+      val result: String = cmd !! outLogger(syserrErrors, cmd, cmdFilter, in ⇒ logError(in))
+      result.trim
+    } catch {
+      case e: RuntimeException if e.getMessage != null &&
+        e.getMessage.startsWith("Nonzero exit value:") && cmd.head.contains("git") ⇒
+        throw new RuntimeException(e.getMessage + "; git -C [...] " + cmd.drop(3).mkString(" ") + "; " + errors)
+      case e: Throwable ⇒ {
+        throw e
+      }
+    }
+
   }
 
   private[release] def selectedGitCmd(): Seq[String] = {

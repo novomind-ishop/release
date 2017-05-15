@@ -135,7 +135,7 @@ class SgitTest extends AssertionsForJUnit {
     testee.err("any")
 
     // THEN
-    Assert.assertEquals(Seq("fetch", "err: any"), s)
+    Assert.assertEquals(Seq("err: any"), s)
   }
 
   @Test
@@ -170,6 +170,30 @@ class SgitTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testGitNative(): Unit = {
+    testFail("Nonzero exit value: 1; git -C [...] --no-pager iutghiprjhpeth; " +
+      "err: git: 'iutghiprjhpeth' is not a git command. See 'git --help'.",
+      classOf[RuntimeException], () ⇒ {
+        SgitTest.workSgit().gitNative(Seq("iutghiprjhpeth"))
+      })
+
+  }
+
+  private def testFail[E >: Exception](expectedMsg: String, e: E, fn: () ⇒ Unit): Unit = {
+    try {
+      fn.apply()
+      Assert.fail("no exception was thrown")
+    } catch {
+      case e: Exception if e.isInstanceOf[E] ⇒ Assert.assertEquals(expectedMsg, e.getMessage)
+      case e: Exception ⇒ Assert.fail(e.getMessage)
+    }
+  }
+
+  private def testFailIllegal(expectedMsg: String, fn: () ⇒ Unit): Unit = {
+    testFail(expectedMsg, classOf[IllegalStateException], fn)
+  }
+
+  @Test
   def testInitCloneCommitPoms(): Unit = {
 
     def testFile(folder: File, name: String): File = {
@@ -196,16 +220,6 @@ class SgitTest extends AssertionsForJUnit {
     def copyMsgHook(to: File): Unit = {
       if (SgitTest.hasCommitMsg) {
         Files.copy(SgitTest.commitMsg, to.toPath.resolve(".git/hooks/commit-msg"), StandardCopyOption.REPLACE_EXISTING)
-      }
-    }
-
-    def testFail(expectedMsg: String, fn: () ⇒ Unit): Unit = {
-      try {
-        fn.apply()
-        Assert.fail("no exception was thrown")
-      } catch {
-        case e: IllegalStateException if e.getMessage == expectedMsg ⇒ // do nothing
-        case e: Exception ⇒ Assert.fail(e.getMessage)
       }
     }
 
@@ -255,13 +269,13 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(Seq("?? pom.xml", "?? sub/"), gitB.localChanges())
     gitB.add(pomFile)
     Assert.assertEquals(Seq("A pom.xml", "?? sub/"), gitB.localChanges())
-    testFail("only pom changes are allowed => A pom.xml, ?? sub/ => pom.xml, sub/", () ⇒ {
+    testFailIllegal("only pom changes are allowed => A pom.xml, ?? sub/ => pom.xml, sub/", () ⇒ {
       gitB.localPomChanges()
     })
     val anyFile = testFile(testRepoB, "any.xml")
     Assert.assertEquals(Seq("A pom.xml", "?? any.xml", "?? sub/"), gitB.localChanges())
 
-    testFail("only pom changes are allowed => A pom.xml, ?? any.xml, ?? sub/ => pom.xml, any.xml, sub/", () ⇒ {
+    testFailIllegal("only pom changes are allowed => A pom.xml, ?? any.xml, ?? sub/ => pom.xml, any.xml, sub/", () ⇒ {
       gitB.doCommitPomXmls("fail")
     })
 
@@ -288,7 +302,7 @@ class SgitTest extends AssertionsForJUnit {
     gitB.createBranch("feature/test")
     Assert.assertEquals(Seq("feature/test", "master"), gitB.branchNamesLocal())
     gitB.deleteBranch("feature/test")
-    testFail("branch 'test' not found.", () ⇒ {
+    testFailIllegal("branch 'test' not found.", () ⇒ {
       gitB.deleteBranch("test")
     })
     Assert.assertEquals(Seq("master"), gitB.branchNamesLocal())
@@ -305,7 +319,7 @@ class SgitTest extends AssertionsForJUnit {
     gitB.add(anyFile)
     Assert.assertTrue(gitB.hasLocalChanges)
     gitB.commitAll("add " + Seq(anyFile).map(_.getName).mkString(", "))
-    testFail("tag v1.0.0 already exists", () ⇒ {
+    testFailIllegal("tag v1.0.0 already exists", () ⇒ {
       gitB.doTag("1.0.0")
     })
     Assert.assertFalse(gitB.hasLocalChanges)
