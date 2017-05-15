@@ -37,7 +37,7 @@ case class PomMod(file: File) {
   }
 
   val selfVersion: String = {
-    Util.only(listSelf.map(_.version).distinct, "version")
+    Util.only(listSelf.map(_.version).distinct, "More then one Version found in your pom.xmls")
   }
 
   private[release] val listProperties: Map[String, String] = {

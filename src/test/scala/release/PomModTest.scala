@@ -10,6 +10,18 @@ import release.PomMod.{Dep, PluginDep, PluginExec, PomRef}
 class PomModTest extends AssertionsForJUnit {
 
   @Test
+  def defectSelfPom(): Unit = {
+    // GIVEN
+    val srcPoms = TestHelper.testResources("defect-self-pom")
+
+    // WHEN
+    TestHelper.assertException(() ⇒ {
+      PomMod(srcPoms).selfVersion
+    }, "More then one Version found in your pom.xmls (27.0.0-SNAPSHOT, 28.0.0-SNAPSHOT)", classOf[IllegalArgumentException])
+
+  }
+
+  @Test
   def writeSelf(): Unit = {
     // GIVEN
     val srcPoms = TestHelper.testResources("novosales1")
