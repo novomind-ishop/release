@@ -35,8 +35,8 @@ object Starter extends App with LazyLogging {
   def init(argSeq: Seq[String], out: PrintStream, err: PrintStream): Int = {
 
     if (argSeq.size <= 4) {
-
-      1
+      err.println("usage: $0 \"$(dirname $0)\" \"$(pwd)\" \"${os}\" \"${TERM}\" \"${terminal_cols}\" ${argLine}")
+      return 1
     }
     val releaseToolPath = argSeq.head
     val releaseToolDir = new File(releaseToolPath).getAbsoluteFile
@@ -55,7 +55,7 @@ object Starter extends App with LazyLogging {
     debug("init")
     val termOs: TermOs = TermOs.select(argSeq(3), argSeq(2), restArgs.contains("simpleChars"))
     val dependencyUpdates = restArgs.contains("depUp")
-    val showHelp = restArgs.contains("help")
+    val showHelp = restArgs.contains("help") || restArgs.contains("--help")
     val showGit = restArgs.contains("showGit")
     val noVerify = !restArgs.contains("noVerify")
     // TODO --batch ## alles mit default wählen
@@ -199,7 +199,7 @@ object Starter extends App with LazyLogging {
           releaseToolPath
         }
         out.println("Please update your release tool: (cd " + updatePath + " && git rebase && cd -)")
-        System.exit(1)
+        return 1
       }
 
     }
@@ -385,25 +385,25 @@ object Starter extends App with LazyLogging {
 
     class PreconditionsException(msg: String) extends RuntimeException(msg)
 
-    def handleException(t: Throwable) = {
+    def handleException(t: Throwable): Int = {
       t match {
         case x@(_: RefAlreadyExistsException | _: Sgit.MissigCommitHookException |
                 _: PomChecker.ValidationException | _: PreconditionsException) ⇒ {
-          out.println()
-          out.println("E: " + x.getMessage)
-          System.exit(1)
+          err.println()
+          err.println("E: " + x.getMessage)
+          1
         }
 
         case x@(_: PomMod.InvalidPomXmlException) ⇒ {
-          out.println()
-          out.println("E: " + x.getMessage)
-          out.println("E: " + x.parent.getMessage)
-          System.exit(1)
+          err.println()
+          err.println("E: " + x.getMessage)
+          err.println("E: " + x.parent.getMessage)
+          1
         }
         case _ ⇒ {
-          out.println(t)
-          t.printStackTrace()
-          System.exit(2)
+          err.println(t)
+          t.printStackTrace(err)
+          2
         }
       }
 
@@ -435,13 +435,13 @@ object Starter extends App with LazyLogging {
 
     if (showHelp) {
       out.println("Possible args:")
-      out.println("help        => shows this and exits")
+      out.println("help/--help => shows this and exits")
       out.println("depUp       => shows dependency updates from nexus option")
       out.println("simpleChars => use no drawing chars")
       out.println("showGit     => shows all git commands for debug")
       out.println("replace     => replaces release jar / only required for development")
       out.println("noVerify    => use this toggle for non gerrit projects")
-      System.exit(0)
+      return 0
     }
 
     try {
@@ -451,11 +451,10 @@ object Starter extends App with LazyLogging {
       val askForRebase = suggestRebase(git, startBranch)
       debug("change")
       readFromPrompt(askForRebase, startBranch, git)
-      0
+      return 0
     } catch {
       case t: Throwable ⇒ {
-        handleException(t)
-        1
+        return handleException(t)
       }
     }
 

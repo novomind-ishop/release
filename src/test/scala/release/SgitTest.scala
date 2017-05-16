@@ -171,7 +171,7 @@ class SgitTest extends AssertionsForJUnit {
 
   @Test
   def testGitNative(): Unit = {
-    testFail("Nonzero exit value: 1; git -C [...] --no-pager iutghiprjhpeth; " +
+    SgitTest.testFail("Nonzero exit value: 1; git -C [...] --no-pager iutghiprjhpeth; " +
       "err: git: 'iutghiprjhpeth' is not a git command. See 'git --help'.",
       classOf[RuntimeException], () ⇒ {
         SgitTest.workSgit().gitNative(Seq("iutghiprjhpeth"))
@@ -179,18 +179,8 @@ class SgitTest extends AssertionsForJUnit {
 
   }
 
-  private def testFail[E >: Exception](expectedMsg: String, e: E, fn: () ⇒ Unit): Unit = {
-    try {
-      fn.apply()
-      Assert.fail("no exception was thrown")
-    } catch {
-      case e: Exception if e.isInstanceOf[E] ⇒ Assert.assertEquals(expectedMsg, e.getMessage)
-      case e: Exception ⇒ Assert.fail(e.getMessage)
-    }
-  }
-
   private def testFailIllegal(expectedMsg: String, fn: () ⇒ Unit): Unit = {
-    testFail(expectedMsg, classOf[IllegalStateException], fn)
+    SgitTest.testFail(expectedMsg, classOf[IllegalStateException], fn)
   }
 
   @Test
@@ -336,4 +326,14 @@ object SgitTest {
   val hasCommitMsg = Files.exists(commitMsg)
 
   def workSgit(): Sgit = Sgit(Util.localWork, showGitCmd = false, doVerify = hasCommitMsg, System.out, System.err)
+
+  def testFail[E >: Exception](expectedMsg: String, e: E, fn: () ⇒ Unit): Unit = {
+    try {
+      fn.apply()
+      Assert.fail("no exception was thrown")
+    } catch {
+      case e: Exception if e.isInstanceOf[E] ⇒ Assert.assertEquals(expectedMsg, e.getMessage)
+      case e: Exception ⇒ Assert.fail(e.getMessage)
+    }
+  }
 }
