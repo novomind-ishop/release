@@ -24,8 +24,6 @@ object Util {
     case e ⇒ throw new IllegalArgumentException(msg + " (" + e.toList.mkString(", ") + ")")
   }
 
-  def err(x: AnyRef) = System.err.println(x)
-
   lazy val localWork: File = new File(".").getAbsoluteFile match {
     case f: File if f.getParentFile.getName == "modules" ⇒ f.getParentFile.getParentFile.getParentFile
     case f: File ⇒ f

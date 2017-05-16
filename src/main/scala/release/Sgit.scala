@@ -1,6 +1,6 @@
 package release
 
-import java.io.File
+import java.io.{File, PrintStream}
 import java.net.URI
 
 import com.typesafe.scalalogging.LazyLogging
@@ -9,7 +9,7 @@ import scala.io.Source
 import scala.sys.process.ProcessLogger
 import scala.util.{Failure, Success, Try}
 
-case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends LazyLogging {
+case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintStream, err: PrintStream) extends LazyLogging {
 
   private def gitRoot = Sgit.findGit(file.getAbsoluteFile)
 
@@ -115,7 +115,7 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
 
   }
 
-  Sgit.checkVersion(this)
+  Sgit.checkVersion(this, out, err)
 
   if (doVerify) {
     verify()
@@ -318,11 +318,11 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean) extends Lazy
     } else {
       Nil
     }
-    val gitCmdCall = Sgit.selectedGitCmd() ++ workdir ++ Seq("--no-pager") ++ args
+    val gitCmdCall = Sgit.selectedGitCmd(err) ++ workdir ++ Seq("--no-pager") ++ args
     if (showGitCmd) {
-      println(gitCmdCall.mkString(" "))
+      out.println(gitCmdCall.mkString(" "))
     }
-    Sgit.native(gitCmdCall, syserrErrors = showErrors, cmdFilter)
+    Sgit.native(gitCmdCall, syserrErrors = showErrors, cmdFilter, err)
   }
 }
 
@@ -330,8 +330,8 @@ object Sgit {
 
   private var gits = Map.empty[Seq[String], Unit]
 
-  private[release] def checkVersion(sgit: Sgit): Unit = synchronized {
-    val cmd: Seq[String] = selectedGitCmd()
+  private[release] def checkVersion(sgit: Sgit, out: PrintStream, err: PrintStream): Unit = synchronized {
+    val cmd: Seq[String] = selectedGitCmd(err)
     val git = gits.get(cmd)
     if (git.isEmpty) {
       val result: Unit = sgit.gitNative(Seq("--version"), useWorkdir = false) match {
@@ -340,7 +340,7 @@ object Sgit {
         case v: String if v.startsWith("git version 2.10") ⇒ // do nothing
         case v: String if v.startsWith("git version 2.11") ⇒ // do nothing
         case v: String if v.startsWith("git version 2.12") ⇒ // do nothing
-        case v: String ⇒ println("W: unknown git version: \"" + v + "\"");
+        case v: String ⇒ out.println("W: unknown git version: \"" + v + "\"");
       }
       gits = gits ++ Map(cmd → result)
     }
@@ -361,13 +361,13 @@ object Sgit {
   }
 
   private[release] def native(cmd: Seq[String], syserrErrors: Boolean,
-                              cmdFilter: String ⇒ Boolean): String = {
+                              cmdFilter: String ⇒ Boolean, err: PrintStream): String = {
     import sys.process._
 
     var errors: String = ""
 
     def logError(in: String): Unit = {
-      System.err.println(in)
+      err.println(in)
       errors = errors.concat(in)
     }
 
@@ -385,9 +385,9 @@ object Sgit {
 
   }
 
-  private[release] def selectedGitCmd(): Seq[String] = {
+  private[release] def selectedGitCmd(err: PrintStream): Seq[String] = {
     val gitCygCmd: Try[Seq[String]] = try {
-      Success(Seq(native(Seq("cygpath", "-daw", "/usr/bin/git"), syserrErrors = false, _ ⇒ false)))
+      Success(Seq(native(Seq("cygpath", "-daw", "/usr/bin/git"), syserrErrors = false, _ ⇒ false, err)))
     } catch {
       case e: Exception ⇒ Failure(e)
     }
@@ -415,13 +415,13 @@ object Sgit {
   }
 
   private[release] def clone(src: File, dest: File, showGitCmd: Boolean = false, verify: Boolean = true): Sgit = {
-    val o = Sgit(dest, showGitCmd, doVerify = verify)
+    val o = Sgit(dest, showGitCmd, doVerify = verify, out = System.out, err = System.err)
     o.clone(src, dest)
-    Sgit(dest, showGitCmd, doVerify = false)
+    Sgit(dest, showGitCmd, doVerify = false, out = System.out, err = System.err)
   }
 
   private[release] def init(f: File, showGitCmd: Boolean = false, verify: Boolean = true): Sgit = {
-    val sgit = Sgit(f, showGitCmd, doVerify = verify)
+    val sgit = Sgit(f, showGitCmd, doVerify = verify, out = System.out, err = System.err)
     sgit.init()
     sgit
   }

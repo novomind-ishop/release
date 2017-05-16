@@ -1,6 +1,6 @@
 package release
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File}
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File, PrintStream}
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.time.LocalDate
@@ -190,8 +190,8 @@ case class PomMod(file: File) {
     })
   }
 
-  def showDependecyUpdates(shellWidth: Int, termOs: TermOs): Unit = {
-    println("checking dependecies agains nexus - please wait")
+  def showDependecyUpdates(shellWidth: Int, termOs: TermOs, out: PrintStream): Unit = {
+    out.println("checking dependecies agains nexus - please wait")
     val rootDeps = listDependeciesReplaces()
 
     def normalizeUnwanted(in: Seq[String]): Seq[String] = {
@@ -256,25 +256,25 @@ case class PomMod(file: File) {
         simple
       }
 
-      println(ch("║ ", "| ") + ref)
+      out.println(ch("║ ", "| ") + ref)
       mods.sortBy(_._1.toString).foreach((subElement: (PomMod.Dep, Seq[String])) ⇒ {
-        println(ch("╠═╦═ ", "+-+- ") + subElement._1.gavWithDetailsFormatted)
+        out.println(ch("╠═╦═ ", "+-+- ") + subElement._1.gavWithDetailsFormatted)
         val o: Seq[String] = subElement._2
         val majorVers: Seq[(String, Seq[String])] = o.groupBy(ver ⇒ ver.replaceFirst("\\..*", "")).toSeq
           .sortBy(_._1).reverse
         if (majorVers.size == 1) {
-          println(ch("║ ╚═══ ", "| +--- ") + majorVers.head._2.mkString(", "))
+          out.println(ch("║ ╚═══ ", "| +--- ") + majorVers.head._2.mkString(", "))
         } else {
           majorVers.tail.foreach(el ⇒ {
-            println(ch("║ ╠═══ ", "| +--- ") + "(" + el._1 + ") " + el._2.mkString(", "))
+            out.println(ch("║ ╠═══ ", "| +--- ") + "(" + el._1 + ") " + el._2.mkString(", "))
           })
-          println(ch("║ ╚═══ ", "| +--- ") + "(" + majorVers.head._1 + ") " + majorVers.head._2.mkString(", "))
+          out.println(ch("║ ╚═══ ", "| +--- ") + "(" + majorVers.head._1 + ") " + majorVers.head._2.mkString(", "))
         }
 
       })
-      println(ch("║", "|"))
+      out.println(ch("║", "|"))
     })
-    println("term: " + termOs)
+    out.println("term: " + termOs)
 
   }
 

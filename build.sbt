@@ -20,7 +20,7 @@ libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.1.8"
 
 libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0"
 
-libraryDependencies += "com.github.stefanbirkner" % "system-rules" % "1.15.1" % "test"
+libraryDependencies += "com.github.stefanbirkner" % "system-rules" % "1.16.0" % "test"
 
 libraryDependencies += "com.typesafe" % "config" % "1.0.0"
 

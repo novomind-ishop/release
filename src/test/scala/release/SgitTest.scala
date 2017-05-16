@@ -12,7 +12,7 @@ class SgitTest extends AssertionsForJUnit {
 
   @Test
   def testSelectGitCmd(): Unit = {
-    val git = Sgit.selectedGitCmd()
+    val git = Sgit.selectedGitCmd(System.err)
 
     System.getProperty("os.name") match {
       case "Windows 10" ⇒ {
@@ -335,5 +335,5 @@ object SgitTest {
   val commitMsg = Sgit.findGit(Util.localWork).toPath.resolve(".git/hooks/commit-msg")
   val hasCommitMsg = Files.exists(commitMsg)
 
-  def workSgit(): Sgit = Sgit(Util.localWork, showGitCmd = false, doVerify = hasCommitMsg)
+  def workSgit(): Sgit = Sgit(Util.localWork, showGitCmd = false, doVerify = hasCommitMsg, System.out, System.err)
 }
