@@ -128,26 +128,99 @@ class SgitTest extends AssertionsForJUnit {
 
   @Test
   def testOutLogger(): Unit = {
-    var s: Seq[String] = Seq.empty[String]
-    val testee = Sgit.outLogger(syserrErrors = true, Seq("fetch"), _ ⇒ false, in ⇒ s = s :+ in)
+    var err: Seq[String] = Seq.empty[String]
+    var out: Seq[String] = Seq.empty[String]
+    val testee = Sgit.outLogger(syserrErrors = true, Seq("fetch"), _ ⇒ false,
+      in ⇒ err = err :+ in, in ⇒ out = out :+ in, in ⇒ Some(in))
 
     // WHEN
     testee.err("any")
 
     // THEN
-    Assert.assertEquals(Seq("err: any"), s)
+    Assert.assertEquals(Seq("any"), err)
   }
 
   @Test
   def testOutLoggerEmpty(): Unit = {
-    var s: Seq[String] = Seq.empty[String]
-    val testee = Sgit.outLogger(syserrErrors = true, Seq("fetch"), in ⇒ in == "fetch", in ⇒ s = s :+ in)
+    var err: Seq[String] = Seq.empty[String]
+    var out: Seq[String] = Seq.empty[String]
+    val testee = Sgit.outLogger(syserrErrors = true, Seq("fetch"), in ⇒ in == "fetch",
+      in ⇒ err = err :+ in, in ⇒ out = out :+ in, in ⇒ Some(in))
 
     // WHEN
     testee.err("Total 31 (delta 0), reused 0 (delta 0)")
 
     // THEN
-    Assert.assertEquals(Nil, s)
+    Assert.assertEquals(Nil, err)
+  }
+
+  @Test
+  def testOutLoggerGerrit_push(): Unit = {
+    var err: Seq[String] = Seq.empty[String]
+    var out: Seq[String] = Seq.empty[String]
+    val testee = Sgit.outLogger(syserrErrors = true, Seq("push"), in ⇒ in == "fetch",
+      in ⇒ err = err :+ in, in ⇒ out = out :+ in, Sgit.gerritPushFilter)
+
+    // WHEN
+    testee.err("remote: ")
+    testee.err("remote: Processing changes: new: 2, refs: 3")
+    testee.err("remote: Processing changes: new: 2, refs: 3")
+    testee.err("remote: Processing changes: new: 2, refs: 3, done")
+    testee.err("remote: ")
+    testee.err("remote: ")
+    testee.err("remote: ")
+    testee.err("remote: ")
+    testee.err("remote: New Changes:")
+    testee.err("remote:   https://git-ishop.novomind.com:9091/72458 snap weg")
+    testee.err("remote:   https://git-ishop.novomind.com:9091/72459 [ishop-release] prepare for next iteration - 29.0.6")
+    testee.err("remote: ")
+
+    // THEN
+    Assert.assertEquals(List("See https://git-ishop.novomind.com:9091/72458 snap weg",
+      "See https://git-ishop.novomind.com:9091/72459 [ishop-release] prepare for next iteration - 29.0.6"), err)
+  }
+
+  @Test
+  def testOutLoggerGerrit_push_fail(): Unit = {
+    var err: Seq[String] = Seq.empty[String]
+    var out: Seq[String] = Seq.empty[String]
+    val testee = Sgit.outLogger(syserrErrors = true, Seq("push"), in ⇒ in == "fetch",
+      in ⇒ err = err :+ in, in ⇒ out = out :+ in, Sgit.gerritPushFilter)
+
+    // WHEN
+    testee.err("remote: ")
+    testee.err("remote: Processing changes: refs: 2")
+    testee.err("remote: Processing changes: refs: 2, done")
+    testee.err("remote: ")
+    testee.err("remote: error: Line is too long. Reduce it to 72 chars please; " +
+      "\"Eine wichtichte asfasd asdf asf sd fjrei eirgj eiogjeio jgirj ierjiogj iodfgj ioeiojgierge\"")
+    testee.err("remote: ")
+    testee.err("remote: ")
+    testee.err("remote: error: Line is too long. Reduce it to 72 chars please; " +
+      "\"Eine wichtichte asfasd asdf asf sd fjrei eirgj eiogjeio jgirj ierjiogj iodfgj ioeiojgierge\"")
+    testee.err("To ssh://tstock@git-ishop.novomind.com:19418/ishop/user/tstock/sonar-demo")
+    testee.err(" ! [remote rejected] master -> refs/for/master " +
+      "(Commit Message Problem: Line is too long. Reduce it to 72 chars please; " +
+      "\"Eine wichtichte asfasd asdf asf sd fjrei eirgj eiogjeio jgirj ierjiogj iodfgj ioeiojgierge\")")
+    testee.err(" ! [remote rejected] v29.0.6 -> v29.0.6 " +
+      "(Commit Message Problem: Line is too long. Reduce it to 72 chars please; " +
+      "\"Eine wichtichte asfasd asdf asf sd fjrei eirgj eiogjeio jgirj ierjiogj iodfgj ioeiojgierge\")")
+    testee.err("error: failed to push some refs to 'ssh://tstock@git-ishop.novomind.com:19418/ishop/user/tstock/sonar-demo'")
+
+    // THEN
+    Assert.assertEquals(
+      List(
+        """[remote rejected] master -> refs/for/master
+          |(Commit Message Problem: Line is too long. Reduce it to 72 chars please;
+          |"Eine wichtichte asfasd asdf asf sd fjrei eirgj eiogjeio jgirj ierjiogj iodfgj ioeiojgierge")""".stripMargin
+          .replaceAll("[\r\n]+", " "),
+        """[remote rejected] v29.0.6 -> v29.0.6
+          |(Commit Message Problem: Line is too long. Reduce it to 72 chars please;
+          |"Eine wichtichte asfasd asdf asf sd fjrei eirgj eiogjeio jgirj ierjiogj iodfgj ioeiojgierge")""".stripMargin
+          .replaceAll("[\r\n]+", " "),
+        """git-err: 'error: failed to push some refs to
+          |'ssh://tstock@git-ishop.novomind.com:19418/ishop/user/tstock/sonar-demo''""".stripMargin
+          .replaceAll("[\r\n]+", " ")), err)
   }
 
   private def unw(in: String) = {
@@ -172,7 +245,7 @@ class SgitTest extends AssertionsForJUnit {
   @Test
   def testGitNative(): Unit = {
     SgitTest.testFail("Nonzero exit value: 1; git -C [...] --no-pager iutghiprjhpeth; " +
-      "err: git: 'iutghiprjhpeth' is not a git command. See 'git --help'.",
+      "git: 'iutghiprjhpeth' is not a git command. See 'git --help'.",
       classOf[RuntimeException], () ⇒ {
         SgitTest.workSgit().gitNative(Seq("iutghiprjhpeth"))
       })
@@ -230,7 +303,32 @@ class SgitTest extends AssertionsForJUnit {
 
     // WHEN
     val gitA = Sgit.init(testRepoA, showGitCmd = false, SgitTest.hasCommitMsg)
+
+    SgitTest.testFail("Nonzero exit value: 1; git -C [...] --no-pager push -q -u origin master:refs/for/master; " +
+      "git-err: 'error: src refspec master does not match any.' " +
+      "git-err: 'error: failed to push some refs to 'origin''",
+      classOf[RuntimeException], () ⇒ {
+        gitA.pushFor("master", "master", pushTags = false)
+      })
+
+    gitA.fetchAll()
+    gitA.remoteAdd("ubglu", "failfail")
+    SgitTest.testFail("Nonzero exit value: 1; " +
+      "git -C [...] --no-pager fetch -q --all --tags; fatal: 'failfail' does not appear to be a git repository " +
+      "fatal: Could not read from remote repository. Please make sure you have the correct access rights " +
+      "and the repository exists. error: Could not fetch ubglu",
+      classOf[RuntimeException], () ⇒ {
+        gitA.fetchAll()
+      })
+    SgitTest.testFail("Nonzero exit value: 1; git -C [...] --no-pager push -q -u origin master:refs/heads/master; " +
+      "git-err: 'error: src refspec master does not match any.' " +
+      "git-err: 'error: failed to push some refs to 'origin''",
+      classOf[RuntimeException], () ⇒ {
+        gitA.push("master", "master", pushTags = false)
+      })
+    gitA.remoteRemove("ubglu")
     Assert.assertEquals(Nil, gitA.branchListLocal())
+    Assert.assertEquals(None, gitA.findUpstreamBranch())
     copyMsgHook(testRepoA)
 
     Assert.assertEquals(Nil, gitA.localChanges())
@@ -242,16 +340,18 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals("master", gitA.currentBranch)
     Assert.assertEquals(Seq("refs/heads/master"), gitA.branchListLocal().map(_.branchName))
     Assert.assertEquals(None, gitA.findUpstreamBranch())
-    gitA.config("receive.denyCurrentBranch", "warn")
     val gitB = Sgit.clone(testRepoA, testRepoB, showGitCmd = false, SgitTest.hasCommitMsg)
     copyMsgHook(testRepoB)
-
+    gitA.config("receive.denyCurrentBranch", "warn")
+    gitA.add(testFile(testRepoA, "test2"))
+    gitA.commitAll("add test2")
+    gitB.fetchAll()
     Assert.assertEquals("master", gitB.currentBranch)
     Assert.assertEquals("master", gitB.findUpstreamBranch().get)
     Assert.assertFalse(gitB.hasChangesToPush)
 
-    gitB.pushFor("master", "master", pushTags = false)
-
+    Assert.assertEquals(Some("master"), gitB.findUpstreamBranch())
+    gitB.pushFor("master", "master", pushTags = true)
     val pomFile = testFile(testRepoB, "pom.xml")
     val sub = new File(testRepoB, "sub")
     sub.mkdir()
@@ -317,6 +417,17 @@ class SgitTest extends AssertionsForJUnit {
 
     gitB.createBranch("any")
     Assert.assertEquals(Seq("refs/heads/any", "refs/heads/master"), gitB.branchListLocal().map(_.branchName))
+    gitB.remoteRemove("origin")
+    gitB.remoteAdd("origin", "ssh://none@git-ishop.novomind.com:19418/ishop/user/tstock/sonar-demo")
+
+    SgitTest.testFail("Nonzero exit value: 128; git -C [...] --no-pager push -q -u origin master:refs/heads/master; " +
+      "git-err: 'Permission denied (publickey).' " +
+      "git-err: 'fatal: Could not read from remote repository.' " +
+      "git-err: 'Please make sure you have the correct access rights' " +
+      "git-err: 'and the repository exists.'",
+      classOf[RuntimeException], () ⇒ {
+        gitB.push("master", "master", pushTags = false)
+      })
   }
 
 }

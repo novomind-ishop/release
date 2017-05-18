@@ -124,7 +124,15 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
   def currentBranch: String = gitNative(Seq("rev-parse", "--abbrev-ref", "HEAD"))
 
   def fetchAll(): Unit = {
-    gitNative(Seq("fetch", "-q", "--all", "--tags"), cmdFilter = _ == "fetch")
+    gitNative(Seq("fetch", "-q", "--all", "--tags")) // cmdFilter = _ == "fetch"
+  }
+
+  def remoteAdd(name: String, url: String): Unit = {
+    gitNative(Seq("remote", "add", name, url))
+  }
+
+  def remoteRemove(name: String): Unit = {
+    gitNative(Seq("remote", "remove", name))
   }
 
   case class GitShaBranch(commitId: String, branchName: String) {
@@ -290,14 +298,13 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
     pushInner(srcBranchName, targetBranchName, pushTags, "refs/for/")
   }
 
-  private def pushInner(srcBranchName: String, targetBranchName: String, pushTags: Boolean, refPrefix: String): Seq[String] = {
+  private[release] def pushInner(srcBranchName: String, targetBranchName: String, pushTags: Boolean, refPrefix: String): Seq[String] = {
     val refDef = srcBranchName + ':' + refPrefix + targetBranchName
     if (pushTags) {
-      Seq(gitNative(Seq("push", "-q", "--tags", "-u", "origin", refDef), cmdFilter = _ == "push"))
+      Seq(gitNative(Seq("push", "-q", "--tags", "-u", "origin", refDef), errMapper = Sgit.gerritPushFilter))
     } else {
-      Seq(gitNative(Seq("push", "-q", "-u", "origin", refDef), cmdFilter = _ == "push"))
+      Seq(gitNative(Seq("push", "-q", "-u", "origin", refDef), errMapper = Sgit.gerritPushFilter))
     }
-
   }
 
   private[release] def gitNativeOpt(args: Seq[String]): Option[String] = {
@@ -309,7 +316,8 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
   }
 
   private[release] def gitNative(args: Seq[String], showErrors: Boolean = true, useWorkdir: Boolean = true,
-                                 cmdFilter: String ⇒ Boolean = _ ⇒ false): String = {
+                                 cmdFilter: String ⇒ Boolean = _ ⇒ false,
+                                 errMapper: String ⇒ Option[String] = errLine ⇒ Some(errLine)): String = {
     if (!gitRoot.isDirectory) {
       throw new IllegalStateException("invalid git dir: " + gitRoot.getAbsolutePath)
     }
@@ -322,7 +330,7 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
     if (showGitCmd) {
       out.println(gitCmdCall.mkString(" "))
     }
-    Sgit.native(gitCmdCall, syserrErrors = showErrors, cmdFilter, err)
+    Sgit.native(gitCmdCall, syserrErrors = showErrors, cmdFilter, err, errMapper)
   }
 }
 
@@ -346,13 +354,21 @@ object Sgit {
     }
   }
 
-  private[release] def outLogger(syserrErrors: Boolean, cmd: Seq[String], cmdFilter: String ⇒ Boolean, errOut: String ⇒ Unit): ProcessLogger = {
+  private[release] def outLogger(syserrErrors: Boolean, cmd: Seq[String], cmdFilter: String ⇒ Boolean,
+                                 errOut: String ⇒ Unit, outLog: String ⇒ Unit,
+                                 errorLineMapper: String ⇒ Option[String]): ProcessLogger = {
     new ProcessLogger {
-      override def out(s: ⇒ String): Unit = {}
+      override def out(s: ⇒ String): Unit = {
+        outLog.apply(s)
+      }
 
       override def err(s: ⇒ String): Unit = {
         if (syserrErrors && s.nonEmpty && !cmd.exists(cmdFilter)) {
-          errOut.apply("err: " + s)
+          val out = errorLineMapper.apply(s)
+          if (out.isDefined) {
+            errOut.apply(out.get)
+
+          }
         }
       }
 
@@ -360,24 +376,46 @@ object Sgit {
     }
   }
 
+  private[release] def gerritPushFilter(line: String): Option[String] = {
+    line match {
+      case l if l == "remote: " ⇒ None
+      case l if l.startsWith("remote: Processing change") ⇒ None
+      case l if l.startsWith("remote: error:") ⇒ None
+      case l if l.startsWith("To ssh:") ⇒ None
+      case l if l == "remote: New Changes:" ⇒ None
+      case l if l.startsWith("remote:   http") ⇒ Some(l.replaceFirst(".*http", "See http"))
+      case l if l.contains("[remote rejected]") ⇒ Some(l.replaceFirst(".*\\[remote rejected\\]", "[remote rejected]"))
+      case l ⇒ Some("git-err: '" + l + "'")
+    }
+
+  }
+
   private[release] def native(cmd: Seq[String], syserrErrors: Boolean,
-                              cmdFilter: String ⇒ Boolean, err: PrintStream): String = {
+                              cmdFilter: String ⇒ Boolean, err: PrintStream,
+                              errLineMapper: String ⇒ Option[String]): String = {
     import sys.process._
 
     var errors: String = ""
+    var stdout = ""
 
     def logError(in: String): Unit = {
       err.println(in)
-      errors = errors.concat(in)
+      errors = errors.concat(" ").concat(in).trim
+    }
+
+    def logOut(in: String): Unit = {
+      stdout = stdout.concat(" ").concat(in).trim
     }
 
     try {
-      val result: String = cmd !! outLogger(syserrErrors, cmd, cmdFilter, in ⇒ logError(in))
+      val result: String = cmd !! outLogger(syserrErrors, cmd, cmdFilter, logError, logOut, errLineMapper)
       result.trim
     } catch {
       case e: RuntimeException if e.getMessage != null &&
         e.getMessage.startsWith("Nonzero exit value:") && cmd.head.contains("git") ⇒
-        throw new RuntimeException(e.getMessage + "; git -C [...] " + cmd.drop(3).mkString(" ") + "; " + errors)
+        val msg = e.getMessage + "; git -C [...] " + cmd.drop(3).mkString(" ") +
+          "; " + Seq(errors, stdout).filterNot(_.isEmpty).mkString("; ")
+        throw new RuntimeException(msg.trim)
       case e: Throwable ⇒ {
         throw e
       }
@@ -387,7 +425,7 @@ object Sgit {
 
   private[release] def selectedGitCmd(err: PrintStream): Seq[String] = {
     val gitCygCmd: Try[Seq[String]] = try {
-      Success(Seq(native(Seq("cygpath", "-daw", "/usr/bin/git"), syserrErrors = false, _ ⇒ false, err)))
+      Success(Seq(native(Seq("cygpath", "-daw", "/usr/bin/git"), syserrErrors = false, _ ⇒ false, err, s ⇒ Some(s))))
     } catch {
       case e: Exception ⇒ Failure(e)
     }
