@@ -2,7 +2,7 @@ name := "release"
 
 version := "1.0"
 
-scalaVersion := "2.12.1"
+scalaVersion := "2.12.2"
 
 libraryDependencies += "io.reactivex" % "rxscala_2.11" % "0.26.4"
 
