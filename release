@@ -1,6 +1,6 @@
 #!/bin/bash
 # Released sowohl Shop- als auch sonstige Artefakte mit Hilfe des CI Servers
-
+# TODO sollte auch verlinkt funktionieren $ ln -s ${this_file} ${HOME}/bin/release
 set -eu
 
 argLine="${*:-}"
