@@ -124,7 +124,7 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
   def currentBranch: String = gitNative(Seq("rev-parse", "--abbrev-ref", "HEAD"))
 
   def fetchAll(): Unit = {
-    gitNative(Seq("fetch", "-q", "--all", "--tags")) // cmdFilter = _ == "fetch"
+    gitNative(Seq("fetch", "-q", "--all", "--tags"), errMapper = Sgit.fetchFilter)
   }
 
   def remoteAdd(name: String, url: String): Unit = {
@@ -342,19 +342,25 @@ object Sgit {
     val cmd: Seq[String] = selectedGitCmd(err)
     val git = gits.get(cmd)
     if (git.isEmpty) {
+      // git lg --date=short --simplify-by-decoration --pretty=format:'(%cd)%d'
       val result: Unit = sgit.gitNative(Seq("--version"), useWorkdir = false) match {
-        case v: String if v.startsWith("git version 2.8") ⇒ // do nothing
-        case v: String if v.startsWith("git version 2.9") ⇒ // do nothing
-        case v: String if v.startsWith("git version 2.10") ⇒ // do nothing
-        case v: String if v.startsWith("git version 2.11") ⇒ // do nothing
-        case v: String if v.startsWith("git version 2.12") ⇒ // do nothing
+        case v: String if v.startsWith("git version 2.8") ⇒
+          // (2016-06-06) - (tag: v2.8.4)
+          out.println("W: please update your git version, \"" + v + "\" support ends at 2017-07-01");
+        case v: String if v.startsWith("git version 2.9") ⇒
+          // (2016-08-12) - (tag: v2.9.3)
+          out.println("W: please update your git version, \"" + v + "\" support ends at 2017-08-01");
+        case v: String if v.startsWith("git version 2.10") ⇒ // do nothing (2016-10-28) - (tag: v2.10.2)
+        case v: String if v.startsWith("git version 2.11") ⇒ // do nothing (2017-02-02) - (tag: v2.11.1)
+        case v: String if v.startsWith("git version 2.12") ⇒ // do nothing (2017-03-20) - (tag: v2.12.1)
+        case v: String if v.startsWith("git version 2.13") ⇒ // do nothing
         case v: String ⇒ out.println("W: unknown git version: \"" + v + "\"");
       }
       gits = gits ++ Map(cmd → result)
     }
   }
 
-  private[release] def outLogger(syserrErrors: Boolean, cmd: Seq[String], cmdFilter: String ⇒ Boolean,
+  private[release] def outLogger(syserrErrors: Boolean, cmd: Seq[String],
                                  errOut: String ⇒ Unit, outLog: String ⇒ Unit,
                                  errorLineMapper: String ⇒ Option[String]): ProcessLogger = {
     new ProcessLogger {
@@ -363,7 +369,7 @@ object Sgit {
       }
 
       override def err(s: ⇒ String): Unit = {
-        if (syserrErrors && s.nonEmpty && !cmd.exists(cmdFilter)) {
+        if (syserrErrors && s.nonEmpty) {
           val out = errorLineMapper.apply(s)
           if (out.isDefined) {
             errOut.apply(out.get)
@@ -374,6 +380,11 @@ object Sgit {
 
       override def buffer[T](f: ⇒ T): T = f
     }
+  }
+
+  private[release] def fetchFilter(line: String) = line match {
+    case l: String if l.matches("Total [0-9]+ \\(delta [0-9]+\\), reused [0-9]+ \\(delta [0-9]+\\)") ⇒ None
+    case l: String ⇒ Some(l)
   }
 
   private[release] def gerritPushFilter(line: String): Option[String] = {
@@ -408,7 +419,7 @@ object Sgit {
     }
 
     try {
-      val result: String = cmd !! outLogger(syserrErrors, cmd, cmdFilter, logError, logOut, errLineMapper)
+      val result: String = cmd !! outLogger(syserrErrors, cmd, logError, logOut, errLineMapper)
       result.trim
     } catch {
       case e: RuntimeException if e.getMessage != null &&

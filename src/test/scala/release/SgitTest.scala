@@ -130,7 +130,7 @@ class SgitTest extends AssertionsForJUnit {
   def testOutLogger(): Unit = {
     var err: Seq[String] = Seq.empty[String]
     var out: Seq[String] = Seq.empty[String]
-    val testee = Sgit.outLogger(syserrErrors = true, Seq("fetch"), _ ⇒ false,
+    val testee = Sgit.outLogger(syserrErrors = true, Seq("fetch"),
       in ⇒ err = err :+ in, in ⇒ out = out :+ in, in ⇒ Some(in))
 
     // WHEN
@@ -144,11 +144,12 @@ class SgitTest extends AssertionsForJUnit {
   def testOutLoggerEmpty(): Unit = {
     var err: Seq[String] = Seq.empty[String]
     var out: Seq[String] = Seq.empty[String]
-    val testee = Sgit.outLogger(syserrErrors = true, Seq("fetch"), in ⇒ in == "fetch",
-      in ⇒ err = err :+ in, in ⇒ out = out :+ in, in ⇒ Some(in))
+    val testee = Sgit.outLogger(syserrErrors = true, Seq("fetch"),
+      in ⇒ err = err :+ in, in ⇒ out = out :+ in, Sgit.fetchFilter)
 
     // WHEN
     testee.err("Total 31 (delta 0), reused 0 (delta 0)")
+    testee.err("Total 286 (delta 177), reused 278 (delta 177)")
 
     // THEN
     Assert.assertEquals(Nil, err)
@@ -158,7 +159,7 @@ class SgitTest extends AssertionsForJUnit {
   def testOutLoggerGerrit_push(): Unit = {
     var err: Seq[String] = Seq.empty[String]
     var out: Seq[String] = Seq.empty[String]
-    val testee = Sgit.outLogger(syserrErrors = true, Seq("push"), in ⇒ in == "fetch",
+    val testee = Sgit.outLogger(syserrErrors = true, Seq("push"),
       in ⇒ err = err :+ in, in ⇒ out = out :+ in, Sgit.gerritPushFilter)
 
     // WHEN
@@ -184,7 +185,7 @@ class SgitTest extends AssertionsForJUnit {
   def testOutLoggerGerrit_push_fail(): Unit = {
     var err: Seq[String] = Seq.empty[String]
     var out: Seq[String] = Seq.empty[String]
-    val testee = Sgit.outLogger(syserrErrors = true, Seq("push"), in ⇒ in == "fetch",
+    val testee = Sgit.outLogger(syserrErrors = true, Seq("push"),
       in ⇒ err = err :+ in, in ⇒ out = out :+ in, Sgit.gerritPushFilter)
 
     // WHEN
