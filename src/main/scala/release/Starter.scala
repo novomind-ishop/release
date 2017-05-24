@@ -340,12 +340,19 @@ object Starter extends App with LazyLogging {
       if (sendToGerrit == "y") {
 
         if (sgit.hasChangesToPush) {
-          val result = sgit.pushFor(srcBranchName = branch, targetBranchName = selectedBranch, pushTags = newMod.hasNoShopPom)
+          val result = sgit.pushFor(srcBranchName = branch, targetBranchName = selectedBranch)
+          if (newMod.hasNoShopPom) {
+            sgit.pushTag(release)
+
+          }
           // try to notify jenkins about tag builds
         }
         if (newMod.hasShopPom) {
-          val result = sgit.push(srcBranchName = "release/" + releaseWitoutSnapshot,
-            targetBranchName = "release/" + releaseWitoutSnapshot, pushTags = newMod.hasNoShopPom)
+          val result = sgit.pushHeads(srcBranchName = "release/" + releaseWitoutSnapshot,
+            targetBranchName = "release/" + releaseWitoutSnapshot)
+          if (newMod.hasNoShopPom) {
+            sgit.pushTag(release)
+          }
           // TODO try to trigger job updates for jenkins
           // TODO try to trigger job execution in loop with abort
         }

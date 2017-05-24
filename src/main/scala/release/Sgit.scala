@@ -256,19 +256,22 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
     }
   }
 
-  def listTags() = gitNative(Seq("tag", "--list")).lines.toSeq
+  def listTags(): Seq[String] = gitNative(Seq("tag", "--list")).lines.toList
 
-  def doTag(tagName: String): Unit = {
+  private def checkedTagName(tagName: String): String = {
     if (tagName.startsWith("v")) {
       throw new IllegalArgumentException("tags must not start with 'v', but was " + tagName)
     }
+    "v" + tagName
+  }
+
+  def doTag(tagName: String): Unit = {
+    val newTag = checkedTagName(tagName)
     val allTags = listTags()
-    val newTag = "v" + tagName
     if (allTags.contains(newTag)) {
       throw new IllegalStateException("tag " + newTag + " already exists")
     }
     gitNative(Seq("tag", newTag))
-
   }
 
   def deleteBranch(branchName: String): Unit = {
@@ -290,21 +293,24 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
     gitNative(Seq("branch", branchName))
   }
 
-  def push(srcBranchName: String, targetBranchName: String, pushTags: Boolean): Seq[String] = {
-    pushInner(srcBranchName, targetBranchName, pushTags, "refs/heads/")
+  def pushTag(tagName: String) = {
+    pushInnerRaw(checkedTagName(tagName))
   }
 
-  def pushFor(srcBranchName: String, targetBranchName: String, pushTags: Boolean): Seq[String] = {
-    pushInner(srcBranchName, targetBranchName, pushTags, "refs/for/")
+  def pushHeads(srcBranchName: String, targetBranchName: String): Seq[String] = {
+    pushInner(srcBranchName, targetBranchName, "refs/heads/")
   }
 
-  private[release] def pushInner(srcBranchName: String, targetBranchName: String, pushTags: Boolean, refPrefix: String): Seq[String] = {
-    val refDef = srcBranchName + ':' + refPrefix + targetBranchName
-    if (pushTags) {
-      Seq(gitNative(Seq("push", "-q", "--tags", "-u", "origin", refDef), errMapper = Sgit.gerritPushFilter))
-    } else {
-      Seq(gitNative(Seq("push", "-q", "-u", "origin", refDef), errMapper = Sgit.gerritPushFilter))
-    }
+  def pushFor(srcBranchName: String, targetBranchName: String): Seq[String] = {
+    pushInner(srcBranchName, targetBranchName, "refs/for/")
+  }
+
+  private[release] def pushInner(srcBranchName: String, targetBranchName: String, refPrefix: String): Seq[String] = {
+    pushInnerRaw(srcBranchName + ':' + refPrefix + targetBranchName)
+  }
+
+  private[release] def pushInnerRaw(src: String): Seq[String] = {
+    Seq(gitNative(Seq("push", "-q", "-u", "origin", src), errMapper = Sgit.gerritPushFilter))
   }
 
   private[release] def gitNativeOpt(args: Seq[String]): Option[String] = {

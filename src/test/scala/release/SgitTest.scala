@@ -309,7 +309,7 @@ class SgitTest extends AssertionsForJUnit {
       "git-err: 'error: src refspec master does not match any.' " +
       "git-err: 'error: failed to push some refs to 'origin''",
       classOf[RuntimeException], () ⇒ {
-        gitA.pushFor("master", "master", pushTags = false)
+        gitA.pushFor("master", "master")
       })
 
     gitA.fetchAll()
@@ -325,7 +325,7 @@ class SgitTest extends AssertionsForJUnit {
       "git-err: 'error: src refspec master does not match any.' " +
       "git-err: 'error: failed to push some refs to 'origin''",
       classOf[RuntimeException], () ⇒ {
-        gitA.push("master", "master", pushTags = false)
+        gitA.pushHeads("master", "master")
       })
     gitA.remoteRemove("ubglu")
     Assert.assertEquals(Nil, gitA.branchListLocal())
@@ -352,7 +352,14 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertFalse(gitB.hasChangesToPush)
 
     Assert.assertEquals(Some("master"), gitB.findUpstreamBranch())
-    gitB.pushFor("master", "master", pushTags = true)
+    gitB.pushFor("master", "master")
+    Assert.assertEquals(Nil, gitA.listTags())
+    Assert.assertEquals(Nil, gitB.listTags())
+    gitB.doTag("0.0.9")
+    Assert.assertEquals(Seq("v0.0.9"), gitB.listTags())
+    Assert.assertEquals(Nil, gitA.listTags())
+    gitB.pushTag("0.0.9")
+    Assert.assertEquals(Seq("v0.0.9"), gitA.listTags())
     val pomFile = testFile(testRepoB, "pom.xml")
     val sub = new File(testRepoB, "sub")
     sub.mkdir()
@@ -406,7 +413,7 @@ class SgitTest extends AssertionsForJUnit {
         Assert.assertEquals("only pom changes are allowed => M any.xml => any.xml", e.getMessage)
     }
     Assert.assertTrue(gitB.hasChangesToPush)
-    gitB.pushFor("master", "master", pushTags = false)
+    gitB.pushFor("master", "master")
     gitB.add(anyFile)
     Assert.assertTrue(gitB.hasLocalChanges)
     gitB.commitAll("add " + Seq(anyFile).map(_.getName).mkString(", "))
@@ -427,7 +434,7 @@ class SgitTest extends AssertionsForJUnit {
       "git-err: 'Please make sure you have the correct access rights' " +
       "git-err: 'and the repository exists.'",
       classOf[RuntimeException], () ⇒ {
-        gitB.push("master", "master", pushTags = false)
+        gitB.pushHeads("master", "master")
       })
   }
 
