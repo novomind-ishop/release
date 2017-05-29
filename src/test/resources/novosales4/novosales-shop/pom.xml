@@ -209,26 +209,26 @@
     <dependency>
       <groupId>com.novomind.ishop.shops.novosales</groupId>
       <artifactId>novosales-erp</artifactId>
-      <version>27.0.0-SNAPSHOT</version>
+      <version>any-SNAPSHOT</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.novomind.ishop.shops.novosales</groupId>
       <artifactId>novosales-erp</artifactId>
-      <version>27.0.0-SNAPSHOT</version>
+      <version>any-SNAPSHOT</version>
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.novomind.ishop.shops.novosales</groupId>
       <artifactId>novosales-erp</artifactId>
-      <version>27.0.0-SNAPSHOT</version>
+      <version>any-SNAPSHOT</version>
       <classifier>pom</classifier>
     </dependency>
     <dependency>
       <groupId>com.novomind.ishop.shops.novosales</groupId>
       <artifactId>novosales-erp</artifactId>
-      <version>27.0.0-SNAPSHOT</version>
+      <version>any-SNAPSHOT</version>
       <classifier>pom</classifier>
       <scope>test</scope>
     </dependency>

@@ -36,6 +36,12 @@ object Xpath {
     tupleOpts.flatten
   }
 
+  def mapToSeqMap(nodes: Seq[Node]): Seq[Map[String, String]] = {
+    mapToSeqTuples(nodes).map(in ⇒ {
+      in.foldLeft(Map.empty[String, String])((m, t) ⇒ m ++ Map(t._1 → t._2))
+    })
+  }
+
   private def mapToSeqTuples(nodes: Seq[Node]): Seq[Seq[(String, String, Node)]] = {
     nodes.map(in ⇒ convertToTuples(in, in.getChildNodes))
   }

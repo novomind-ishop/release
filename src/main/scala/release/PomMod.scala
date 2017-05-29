@@ -171,7 +171,7 @@ case class PomMod(file: File) {
   }
 
   def findNodes(groupId: String, artifactId: String, version: String): Seq[Node] = {
-    depMap.toSeq.filter(dep ⇒ dep._1.artifactId == artifactId).map(_._2).filter(_ != null)
+    depMap.toList.filter(dep ⇒ replacedPropertyOf(dep._1.artifactId) == artifactId).map(_._2).filter(_ != null)
   }
 
   def writeTo(targetFolder: File): Unit = {
@@ -343,7 +343,8 @@ case class PomMod(file: File) {
       version = deps.getOrElse("version", ""),
       typeN = deps.getOrElse("type", ""),
       scope = deps.getOrElse("scope", ""),
-      packaging = deps.getOrElse("packaging", ""))
+      packaging = deps.getOrElse("packaging", ""),
+      classifier = deps.getOrElse("classifier", ""))
     val ma = depSeq.map(_._3).distinct
     depMap = depMap ++ Map(dep → Util.only(ma, "invalid dep creation"))
     dep
@@ -587,8 +588,8 @@ object PomMod {
   }
 
   case class Dep(pomRef: PomRef, groupId: String, artifactId: String, version: String, typeN: String,
-                 scope: String, packaging: String) {
-    val gavWithDetailsFormatted: String = Gav.format(Seq(groupId, artifactId, version, typeN, scope, packaging))
+                 scope: String, packaging: String, classifier:String) {
+    val gavWithDetailsFormatted: String = Gav.format(Seq(groupId, artifactId, version, typeN, scope, packaging, classifier))
 
     def gav() = Gav(groupId, artifactId, version)
   }

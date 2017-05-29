@@ -57,7 +57,38 @@ class PomModTest extends AssertionsForJUnit {
     val nodes: Seq[Node] = pomMod.findNodes("com.novomind.ishop.shops.novosales", "novosales-erp", "27.0.0-SNAPSHOT")
 
     // THEN
-    Assert.assertEquals(4, nodes.size)
+
+    val baseVersion = Map(
+      "groupId" → "com.novomind.ishop.shops.novosales",
+      "artifactId" → "novosales-erp",
+      "version" → "${project.version}")
+    val noVersion = Map(
+      "groupId" → "com.novomind.ishop.shops.novosales",
+      "artifactId" → "novosales-erp")
+    val testScope = Map(
+      "groupId" → "com.novomind.ishop.shops.novosales",
+      "artifactId" → "novosales-erp",
+      "version" → "27.0.0-SNAPSHOT",
+      "scope" → "test")
+    val testsScope = Map(
+      "groupId" → "com.novomind.ishop.shops.novosales",
+      "artifactId" → "novosales-erp",
+      "version" → "27.0.0-SNAPSHOT",
+      "classifier" → "tests",
+      "scope" → "test")
+    val pomClassifier = Map(
+      "groupId" → "com.novomind.ishop.shops.novosales",
+      "artifactId" → "novosales-erp",
+      "version" → "27.0.0-SNAPSHOT",
+      "classifier" → "pom")
+    val testsPomScope = Map(
+      "groupId" → "com.novomind.ishop.shops.novosales",
+      "artifactId" → "novosales-erp",
+      "version" → "27.0.0-SNAPSHOT",
+      "classifier" → "pom",
+      "scope" → "test")
+
+    Assert.assertEquals(Seq(baseVersion, noVersion, testScope, testsScope, pomClassifier, testsPomScope), Xpath.mapToSeqMap(nodes))
   }
 
   @Test
@@ -115,7 +146,7 @@ class PomModTest extends AssertionsForJUnit {
     val targetPoms = TestHelper.testResources("novosales4")
     orgMod.writeTo(targetPoms)
     val targetMod = PomMod(targetPoms)
-    val newVersion = "27.0.0-SNAPSHOT" // TODO change
+    val newVersion = "any-SNAPSHOT"
     // WHEN
     targetMod.findNodesAndSetVersion("com.novomind.ishop.shops.novosales", "novosales-erp", "27.0.0-SNAPSHOT", newVersion)
     targetMod.writeTo(targetPoms)
@@ -417,18 +448,19 @@ class PomModTest extends AssertionsForJUnit {
 
     // THEN
     assertDeps(Seq(Dep(PomRef("com.novomind.ishop.deployment:deployment-planning:0.11-SNAPSHOT"),
-      "org.springframework", "spring-other", "0.11-SNAPSHOT", "", "", "")), deps)
+      "org.springframework", "spring-other", "0.11-SNAPSHOT", "", "", "", "")), deps)
   }
 
   @Test
-  def listSnapshotsPacakgeDepsPom(): Unit = {
+  def listSnapshotsPackgeDepsPom(): Unit = {
     // GIVEN
     val srcPoms = TestHelper.testResources("pom-packaged")
 
     val deps = PomMod(srcPoms).listSnapshots
 
     // THEN
-    assertDeps(Nil, deps)
+    assertDeps(Seq(Dep(PomRef("com.novomind.ishop.core:ishop-core-parent"),
+      "com.novomind.ishop", "meta", "29.0.0-SNAPSHOT", "pom", "", "", "tests")), deps)
   }
 
   @Test
@@ -581,7 +613,8 @@ class PomModTest extends AssertionsForJUnit {
   private def assertDeps(expected: Seq[Dep], actual: Seq[Dep]) = {
     def defstr(dep: Dep): String = {
       "Dep(PomRef(\"" + dep.pomRef.id + "\"),\n \"" + dep.groupId + "\", \"" +
-        dep.artifactId + "\", \"" + dep.version + "\", \"" + dep.typeN + "\", \"" + dep.scope + "\", \"" + dep.packaging + "\")"
+        dep.artifactId + "\", \"" + dep.version + "\", \"" + dep.typeN + "\", \"" +
+        dep.scope + "\", \"" + dep.packaging + "\", \"" + dep.classifier + "\")"
     }
 
     assertBy(expected, actual, defstr)
