@@ -6,6 +6,12 @@ import scala.collection.mutable
 
 object Util {
 
+  def emptyToNone(in:String):Option[String] = in match {
+    case "" ⇒ None
+    case any if any.trim == "" ⇒ None
+    case any ⇒ Some(any)
+  }
+
   def symmetricDiff[R](left: Seq[R], right: Seq[R]): Seq[R] = {
     val s1 = left
     val s2 = right

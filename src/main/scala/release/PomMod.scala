@@ -32,6 +32,8 @@ case class PomMod(file: File) {
   private val subs: Seq[SubPomFile] = toSubPoms(subPomFiles)
   private val allPoms: Seq[Document] = rootPomDoc +: subs.map(_.document)
 
+  case class DepTree(content: String)
+
   private[release] val listSelf: Seq[Dep] = {
     allPoms.map(selfDep)
   }
@@ -111,6 +113,10 @@ case class PomMod(file: File) {
     PomMod.dependecyPlugins(listPluginDependecies)
   }
 
+  private[release] var depTreeFileContents: Map[File, DepTree] = depTreeFiles()
+    .map(f ⇒ (f, DepTree(new String(Files.readAllBytes(f.toPath)))))
+    .foldLeft(Map.empty[File, DepTree])(_ + _)
+
   private def nodePath(node: Node): Seq[String] = {
     def nodePathOther(node: Node): Seq[String] = {
       val parent = node.getParentNode
@@ -144,20 +150,39 @@ case class PomMod(file: File) {
     replacedVersionProperty(PluginDep(PomRef(id), groupId, artifactId, version, execs, nodePath(node)))
   }
 
-  def changeVersion(version: String): Unit = {
-    Seq(rootPomDoc).foreach(d ⇒ {
-      PomMod.applyValueOfXpathTo(d, xPathToProjectVersion, version)
-    })
-    subs.map(_.document).foreach(d ⇒ {
-      PomMod.applyValueOfXpathTo(d, xPathToProjectParentVersion, version)
-      PomMod.applyValueOfXpathTo(d, xPathToProjectVersion, version)
-      PomMod.applyVersionTo(d, listSelf, version)
-    })
-
-  }
-
   private def mavenDependecyPluginConfigsByGoal(goalname: String): Seq[(String, String)] = {
     mavenDependecyPlugins.flatMap(_.execs).filter(_.goals == Seq(goalname)).flatMap(_.config)
+  }
+
+  def findNodesAndChangeVersion(groupId: String, artifactId: String, version: String, newVersion: String): Unit = {
+    findNodes(groupId, artifactId, version).foreach(n ⇒ {
+      Xpath.toSeqNodes(n.getChildNodes).find(_.getNodeName == "version").foreach(as ⇒ {
+        as.setTextContent(newVersion)
+      })
+    })
+
+    changeDepTrees(groupId, artifactId, version, newVersion)
+  }
+
+  private[release] def changeDepTrees(groupId: String, artifactId: String, version: String, newVersion: String): Unit = {
+    depTreeFileContents = depTreeFileContents.map(entry ⇒ {
+      (entry._1, entry._2.copy(replacedDepTrees(entry._2.content, groupId, artifactId, version, newVersion)))
+    }).foldLeft(Map.empty[File, DepTree])(_ + _)
+  }
+
+  def changeVersion(newVersion: String): Unit = {
+    Seq(rootPomDoc).foreach(d ⇒ {
+      PomMod.applyValueOfXpathTo(d, xPathToProjectVersion, newVersion)
+    })
+    subs.map(_.document).foreach(d ⇒ {
+      PomMod.applyValueOfXpathTo(d, xPathToProjectParentVersion, newVersion)
+      PomMod.applyValueOfXpathTo(d, xPathToProjectVersion, newVersion)
+      PomMod.applyVersionTo(d, listSelf, newVersion)
+    })
+    selfDepsMod.foreach(entry ⇒ {
+      changeDepTrees(entry.groupId, entry.artifactId, entry.version, newVersion)
+    })
+
   }
 
   def depTreeFilenames(): Seq[String] = {
@@ -171,8 +196,13 @@ case class PomMod(file: File) {
   }
 
   def depTreeFiles(): Seq[File] = {
-    (depTreeFilename().toList ++ subs.map(_.subfolder + "/" + depTreeFilename().get))
-      .map(in ⇒ new File(file, in).getAbsoluteFile).filter(_.exists())
+    depTreeFilename().map(f ⇒ Seq(f) ++ subs.map(_.subfolder + "/" + f))
+      .map(in ⇒ in.map(f ⇒ new File(file, f).getAbsoluteFile).filter(_.exists()))
+      .getOrElse(Nil)
+  }
+
+  def depTreeFilenameList(): Seq[String] = {
+    depTreeFilename().map(Seq(_)).getOrElse(Nil)
   }
 
   def depTreeFilename(): Option[String] = {
@@ -194,14 +224,16 @@ case class PomMod(file: File) {
     subs.par.foreach(sub ⇒ {
       writePom(new File(new File(targetFolder, sub.subfolder), "pom.xml"), sub.document)
     })
-  }
 
-  def findNodesAndSetVersion(groupId: String, artifactId: String, version: String, newVersion: String): Unit = {
-    findNodes(groupId, artifactId, version).foreach(n ⇒ {
-      Xpath.toSeqNodes(n.getChildNodes).find(_.getNodeName == "version").foreach(as ⇒ {
-        as.setTextContent(newVersion)
+    depTreeFileContents
+      .foreach(fe ⇒ {
+        val content = fe._2.content
+        if (fe._1.getParentFile.getName == file.getName) {
+          writeContent(new File(targetFolder, fe._1.getName), content)
+        } else {
+          writeContent(new File(new File(targetFolder, fe._1.getParentFile.getName), fe._1.getName), content)
+        }
       })
-    })
   }
 
   def showDependecyUpdates(shellWidth: Int, termOs: TermOs, out: PrintStream): Unit = {
@@ -294,6 +326,8 @@ case class PomMod(file: File) {
 
   def selfDepsMod: Seq[Dep] = {
     val selfDeps: Seq[Dep] = listSelf ++ listSelf.map(_.copy(scope = "test")) ++
+      listSelf.map(_.copy(scope = "test", classifier = "tests")) ++
+      listSelf.map(_.copy(classifier = "tests")) ++
       listSelf.map(_.copy(scope = "test", packaging = "")) ++ listSelf.map(_.copy(packaging = ""))
     val pomMods = selfDeps.map(_.copy(typeN = "pom"))
     (pomMods ++ selfDeps).map(_.copy(pomRef = PomRef.undef)).distinct.sortBy(_.toString)
@@ -332,6 +366,13 @@ case class PomMod(file: File) {
   private def replacedVersionProperties(deps: Seq[Dep]) = deps.map(dep ⇒ dep.copy(version = replacedPropertyOf(dep.version)))
 
   private def replacedVersionProperty(dep: PluginDep) = dep.copy(version = replacedPropertyOf(dep.version))
+
+  def replacedDepTrees(in: String, groupId: String, artifactId: String, version: String, newVersion: String) = {
+    in.lines
+      .map(_.replaceFirst(groupId + ":" + artifactId + ":([^:]*):([^:]*):" + version, groupId + ":" + artifactId + ":$1:$2:" + newVersion))
+      .map(_.replaceFirst(groupId + ":" + artifactId + ":([^:]*):" + version, groupId + ":" + artifactId + ":$1:" + newVersion))
+      .mkString("\n") + "\n"
+  }
 
   def listSnapshotsDistinct: Seq[Dep] = {
     Util.distinctOn[Dep, Dep](listSnapshots, _.copy(pomRef = PomRef.undef))
@@ -414,14 +455,18 @@ case class PomMod(file: File) {
     PomMod.suggestNextReleaseBy(currentVersion.get, releaseVersion)
   }
 
-  private def writePom(file: File, document: Document): Unit = {
+  private def writeContent(file: File, text: String): Unit = {
     if (Files.exists(file.toPath)) {
       Files.delete(file.toPath)
     }
     if (!Files.isDirectory(file.toPath.getParent)) {
       Files.createDirectories(file.toPath.getParent)
     }
-    Files.write(file.toPath, (PomMod.toString(document) + "\n").getBytes(StandardCharsets.UTF_8))
+    Files.write(file.toPath, text.getBytes(StandardCharsets.UTF_8))
+  }
+
+  private def writePom(file: File, document: Document): Unit = {
+    writeContent(file, PomMod.toString(document) + "\n")
   }
 
   private def toSubPoms(pomFiles: Seq[File]): Seq[SubPomFile] = {

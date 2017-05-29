@@ -156,20 +156,34 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
   }
 
   def localPomChanges(): Seq[String] = {
+    localChangesWithFilter(Seq("pom.xml"))
+  }
+
+  def localChangesWithFilter(filter: Seq[String]): Seq[String] = {
     val modPom = localChanges()
     val modWithoutState = modPom.map(in ⇒ in.replaceFirst("^[^ ]+ ", ""))
-    val modDistinct = modWithoutState.map(in ⇒ in.replaceFirst(".*/pom.xml", "pom.xml")).distinct
-    if (modDistinct != Seq("pom.xml")) {
-      throw new IllegalStateException("only pom changes are allowed => " +
-        modPom.mkString(", ") + " => " + modDistinct.mkString(", "))
+
+    val modDistinct = modWithoutState.map(in ⇒ filter.foldLeft(in)((i, fi) ⇒ i.replaceFirst(".*/" + fi, fi))).distinct.sorted
+    val mod = modDistinct.filterNot(in ⇒ filter.contains(in))
+    if (mod.nonEmpty) {
+      throw new IllegalStateException("only (" + filter.mkString(", ") + ") changes are allowed => " +
+        modPom.mkString(", ") + " => " + modDistinct.filterNot(in ⇒ filter.contains(in)).mkString(", ") + " <= " + modDistinct.mkString(", "))
     }
     modWithoutState
   }
 
-  def doCommitPomXmls(message: String): Unit = {
+  def doCommitPomXmlsAnd(message: String, otherFilenames: Seq[String]): Unit = {
+    doCommitWithFilter(message, Seq("pom.xml") ++ otherFilenames)
+  }
 
-    addAll(localPomChanges())
-    val statusAfterAdd = localChanges().filterNot(_.endsWith("pom.xml"))
+  def doCommitPomXmls(message: String): Unit = {
+    doCommitPomXmlsAnd(message, Nil)
+  }
+
+  def doCommitWithFilter(message: String, filter: Seq[String]): Unit = {
+    val distinctFilter = filter.distinct.sorted
+    addAll(localChangesWithFilter(distinctFilter))
+    val statusAfterAdd = localChanges().filterNot(line ⇒ distinctFilter.exists(key ⇒ line.endsWith(key)))
     if (statusAfterAdd.nonEmpty) {
       throw new IllegalStateException("uncommitted changes: " + statusAfterAdd.mkString(", "))
     }

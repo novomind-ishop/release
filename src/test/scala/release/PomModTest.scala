@@ -152,6 +152,19 @@ class PomModTest extends AssertionsForJUnit {
 
   @Test
   def findNodesAndSetVersion(): Unit = {
+
+    def depTreeMap(pomMod: PomMod): Map[String, Seq[String]] = {
+      pomMod.depTreeFileContents.map(entry ⇒ {
+        val erpLines = entry._2.content.lines.filter(l ⇒ l.contains("novosales-erp")).toList
+        val key = if (pomMod.file.getName == entry._1.getParentFile.getName) {
+          entry._1.getName
+        } else {
+          entry._1.getParentFile.getName
+        }
+        (key, erpLines)
+      }).foldLeft(Map.empty[String, Seq[String]])(_ + _)
+    }
+
     // GIVEN
     val orgPoms = TestHelper.testResources("novosales1")
     val orgMod = PomMod(orgPoms)
@@ -163,7 +176,18 @@ class PomModTest extends AssertionsForJUnit {
     val targetMod = PomMod(targetPoms)
     val newVersion = "any-SNAPSHOT"
     // WHEN
-    targetMod.findNodesAndSetVersion("com.novomind.ishop.shops.novosales", "novosales-erp", "27.0.0-SNAPSHOT", newVersion)
+    Assert.assertEquals(Map("dep.tree" -> Nil,
+      "novosales-erp" -> Seq("com.novomind.ishop.shops.novosales:novosales-erp:jar:27.0.0-SNAPSHOT"),
+      "novosales-shop" -> Seq("+- com.novomind.ishop.shops.novosales:novosales-erp:jar:tests:27.0.0-SNAPSHOT:test",
+        "+- com.novomind.ishop.shops.novosales:novosales-erp:jar:27.0.0-SNAPSHOT:compile")),
+      depTreeMap(targetMod))
+    targetMod.findNodesAndChangeVersion("com.novomind.ishop.shops.novosales", "novosales-erp", "27.0.0-SNAPSHOT", newVersion)
+
+    Assert.assertEquals(Map("dep.tree" -> Nil,
+      "novosales-erp" -> Seq("com.novomind.ishop.shops.novosales:novosales-erp:jar:" + newVersion),
+      "novosales-shop" -> Seq("+- com.novomind.ishop.shops.novosales:novosales-erp:jar:tests:" + newVersion + ":test",
+        "+- com.novomind.ishop.shops.novosales:novosales-erp:jar:" + newVersion + ":compile")),
+      depTreeMap(targetMod))
     targetMod.writeTo(targetPoms)
 
     // THEN

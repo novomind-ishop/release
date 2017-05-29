@@ -289,9 +289,7 @@ class SgitTest extends AssertionsForJUnit {
 
     def assertMsg(expected: Seq[String], sgit: Sgit): Unit = {
       val gitRawOut = sgit.gitNative(Seq("log", "-n1", "--pretty=\"%B\""))
-      // println("rawout: ^" + gitRawOut + "^")
       val unwrapped = unw(gitRawOut)
-      //println("unwrapped: ^" + unwrapped + "^")
       val nativeLines = unwrapped.lines.toList
       val body = nativeLines match {
         case lines if lines.last.startsWith("Change-Id:") ⇒ lines.dropRight(1)
@@ -367,14 +365,18 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(Seq("?? pom.xml", "?? sub/"), gitB.localChanges())
     gitB.add(pomFile)
     Assert.assertEquals(Seq("A pom.xml", "?? sub/"), gitB.localChanges())
-    testFailIllegal("only pom changes are allowed => A pom.xml, ?? sub/ => pom.xml, sub/", () ⇒ {
+    testFailIllegal("only (pom.xml) changes are allowed => A pom.xml, ?? sub/ => sub/ <= pom.xml, sub/", () ⇒ {
       gitB.localPomChanges()
     })
     val anyFile = testFile(testRepoB, "any.xml")
     Assert.assertEquals(Seq("A pom.xml", "?? any.xml", "?? sub/"), gitB.localChanges())
 
-    testFailIllegal("only pom changes are allowed => A pom.xml, ?? any.xml, ?? sub/ => pom.xml, any.xml, sub/", () ⇒ {
+    testFailIllegal("only (pom.xml) changes are allowed => A pom.xml, ?? any.xml, ?? sub/ => any.xml, sub/ <= any.xml, pom.xml, sub/", () ⇒ {
       gitB.doCommitPomXmls("fail")
+    })
+
+    testFailIllegal("only (any.xml, pom.xml) changes are allowed => A pom.xml, ?? any.xml, ?? sub/ => sub/ <= any.xml, pom.xml, sub/", () ⇒ {
+      gitB.doCommitWithFilter("fail", Seq("pom.xml", "any.xml"))
     })
 
     gitB.add(anyFile)
@@ -397,6 +399,12 @@ class SgitTest extends AssertionsForJUnit {
     gitB.doTag("1.0.1")
     Assert.assertEquals(Seq("master"), gitB.branchNamesLocal())
     assertMsg(Seq("update pom.xml", "", "Signed-off-by: Ishop-Dev-Infra <ishop-dev-infra@novomind.com>"), gitB)
+
+    write(pomFile, Seq("b"))
+    write(subPomFile, Seq("b"))
+    gitB.doCommitWithFilter("subset\n\ntest", Seq("pom.xml", "any.xml"))
+    assertMsg(Seq("subset", "", "test"), gitB)
+
     gitB.createBranch("feature/test")
     Assert.assertEquals(Seq("feature/test", "master"), gitB.branchNamesLocal())
     gitB.deleteBranch("feature/test")
@@ -410,7 +418,7 @@ class SgitTest extends AssertionsForJUnit {
       Assert.fail()
     } catch {
       case e: IllegalStateException ⇒
-        Assert.assertEquals("only pom changes are allowed => M any.xml => any.xml", e.getMessage)
+        Assert.assertEquals("only (pom.xml) changes are allowed => M any.xml => any.xml <= any.xml", e.getMessage)
     }
     Assert.assertTrue(gitB.hasChangesToPush)
     gitB.pushFor("master", "master")

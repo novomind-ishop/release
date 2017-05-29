@@ -291,23 +291,24 @@ object Starter extends App with LazyLogging {
       }
       val toolSh1 = releaseToolGit.headStatusValue()
       val headCommitId = sgit.commitIdHead()
+      val releaseMod = PomMod(workDirFile)
       if (sgit.hasNoLocalChanges) {
         out.println("skipped release commit on " + branch)
       } else {
         out.print("Commit pom changes ..")
-        sgit.doCommitPomXmls(
+        sgit.doCommitPomXmlsAnd(
           """[ishop-release] prepare for next iteration - %s
             |
             |Signed-off-by: Ishop-Dev-Infra <ishop-dev-infra@novomind.com>
             |Releasetool-sign: %s
-            |Releasetool-sha1: %s""".stripMargin.format(nextReleaseWithoutSnapshot, sign(), toolSh1))
+            |Releasetool-sha1: %s""".stripMargin.format(nextReleaseWithoutSnapshot, sign(), toolSh1), releaseMod.depTreeFilenameList())
 
         out.println(". done")
       }
       out.print("checkout " + releaseBrachName + " ..")
       sgit.checkout(releaseBrachName)
       out.println(". done")
-      val releaseMod = PomMod(workDirFile)
+
       if (releaseMod.selfVersion != release) {
         releaseMod.changeVersion(release)
         releaseMod.writeTo(workDirFile)
@@ -317,12 +318,12 @@ object Starter extends App with LazyLogging {
         out.println("skipped release commit on " + releaseBrachName)
       } else {
         out.print("Commit pom changes ..")
-        sgit.doCommitPomXmls(
+        sgit.doCommitPomXmlsAnd(
           """[ishop-release] perform to - %s
             |
             |Signed-off-by: Ishop-Dev-Infra <ishop-dev-infra@novomind.com>
             |Releasetool-sign: %s
-            |Releasetool-sha1: %s""".stripMargin.format(release, sign(), toolSh1))
+            |Releasetool-sha1: %s""".stripMargin.format(release, sign(), toolSh1), releaseMod.depTreeFilenameList())
         out.println(". done")
       }
       if (releaseMod.hasNoShopPom) {
@@ -400,7 +401,11 @@ object Starter extends App with LazyLogging {
           err.println("E: " + x.getMessage)
           1
         }
-
+        case x@(_: TimeoutException) ⇒ {
+          err.println()
+          err.println("E: User timeout: " + x.getMessage)
+          1
+        }
         case x@(_: PomMod.InvalidPomXmlException) ⇒ {
           err.println()
           err.println("E: " + x.getMessage)
@@ -408,6 +413,7 @@ object Starter extends App with LazyLogging {
           1
         }
         case _ ⇒ {
+          err.println()
           err.println(t)
           t.printStackTrace(err)
           2
@@ -456,7 +462,7 @@ object Starter extends App with LazyLogging {
       val git = gitAndBranchname._1
       val startBranch = gitAndBranchname._2
       val askForRebase = suggestRebase(git, startBranch)
-      debug("change")
+      debug("readFromPrompt")
       readFromPrompt(askForRebase, startBranch, git)
       return 0
     } catch {
