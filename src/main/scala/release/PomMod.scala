@@ -160,7 +160,22 @@ case class PomMod(file: File) {
     mavenDependecyPlugins.flatMap(_.execs).filter(_.goals == Seq(goalname)).flatMap(_.config)
   }
 
-  def depTreeFile(): Option[String] = {
+  def depTreeFilenames(): Seq[String] = {
+    depTreeFiles().map(f ⇒ {
+      if (f.getParentFile.getName != file.getName) {
+        f.getParentFile.getName + "/" + f.getName
+      } else {
+        f.getName
+      }
+    })
+  }
+
+  def depTreeFiles(): Seq[File] = {
+    (depTreeFilename().toList ++ subs.map(_.subfolder + "/" + depTreeFilename().get))
+      .map(in ⇒ new File(file, in).getAbsoluteFile).filter(_.exists())
+  }
+
+  def depTreeFilename(): Option[String] = {
     val depPluginConfigs: Seq[(String, String)] = mavenDependecyPluginConfigsByGoal("tree")
     if (depPluginConfigs != Nil) {
       val treeOutputFileName: String = Util.only(depPluginConfigs.filter(_._1 == "outputFile"), "not only tree file")._2
@@ -177,7 +192,6 @@ case class PomMod(file: File) {
   def writeTo(targetFolder: File): Unit = {
     writePom(new File(targetFolder, "pom.xml"), rootPomDoc)
     subs.par.foreach(sub ⇒ {
-
       writePom(new File(new File(targetFolder, sub.subfolder), "pom.xml"), sub.document)
     })
   }
@@ -588,7 +602,7 @@ object PomMod {
   }
 
   case class Dep(pomRef: PomRef, groupId: String, artifactId: String, version: String, typeN: String,
-                 scope: String, packaging: String, classifier:String) {
+                 scope: String, packaging: String, classifier: String) {
     val gavWithDetailsFormatted: String = Gav.format(Seq(groupId, artifactId, version, typeN, scope, packaging, classifier))
 
     def gav() = Gav(groupId, artifactId, version)
@@ -616,6 +630,6 @@ object PomMod {
     val undef = PomRef("X")
   }
 
-  case class InvalidPomXmlException(file:File, parent:Exception) extends IllegalStateException(file.getAbsolutePath, parent)
+  case class InvalidPomXmlException(file: File, parent: Exception) extends IllegalStateException(file.getAbsolutePath, parent)
 
 }

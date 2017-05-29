@@ -27,7 +27,7 @@ object TestHelper {
   }
 
   def testResources(folderName: String): File = {
-    testResourcesRoot().resolve(folderName).toFile
+    testResourcesRoot().resolve(folderName).toFile.getAbsoluteFile
   }
 
   def assertException[T <: Exception](f: () ⇒ Unit, message: String, clazz: Class[T]): Unit = {

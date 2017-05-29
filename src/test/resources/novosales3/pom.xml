@@ -166,7 +166,7 @@
               <goal>tree</goal>
             </goals>
             <configuration>
-              <outputFile>target/dependency-tree</outputFile>
+              <outputFile>dep.tree</outputFile>
             </configuration>
           </execution>
           <execution>

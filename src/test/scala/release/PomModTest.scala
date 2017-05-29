@@ -92,16 +92,31 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
-  def depTreeFile(): Unit = {
+  def depTreeFilename(): Unit = {
     // GIVEN
     val srcPoms = TestHelper.testResources("novosales1")
     val pomMod = PomMod(srcPoms)
 
     // WHEN
-    val treeFile: Option[String] = pomMod.depTreeFile()
+    val treeFile: Option[String] = pomMod.depTreeFilename()
 
     // THEN
-    Assert.assertEquals(Some("target/dependency-tree"), treeFile)
+    Assert.assertEquals(Seq("dep.tree", "novosales-erp/dep.tree", "novosales-shop/dep.tree"), pomMod.depTreeFilenames())
+    Assert.assertEquals(Some("dep.tree"), treeFile)
+  }
+
+  @Test
+  def depTreeFilename_defect(): Unit = {
+    // GIVEN
+    val srcPoms = TestHelper.testResources("defect-dep-tree")
+    val pomMod = PomMod(srcPoms)
+
+    // WHEN
+    val treeFile: Option[String] = pomMod.depTreeFilename()
+
+    // THEN
+    Assert.assertEquals(Some("target/dep.tree"), treeFile)
+    Assert.assertEquals(Seq(), pomMod.depTreeFilenames())
   }
 
   @Test
@@ -130,7 +145,7 @@ class PomModTest extends AssertionsForJUnit {
     assertPluginDeps(Seq(PluginDep(PomRef("com.novomind.ishop.shops.novosales:novosales-projects:27.0.0-SNAPSHOT:pom"),
       "org.apache.maven.plugins", "maven-dependency-plugin", "2.8",
       Seq(
-        PluginExec("pre-build-validate-tree", Seq("tree"), "validate", Map("outputFile" -> "target/dependency-tree")),
+        PluginExec("pre-build-validate-tree", Seq("tree"), "validate", Map("outputFile" -> "dep.tree")),
         PluginExec("pre-build-validate-list", Seq("list"), "validate", Map("outputFile" -> "dep.list", "sort" -> "true"))),
       Seq("plugin", "plugins", "build", "project"))), dep)
   }

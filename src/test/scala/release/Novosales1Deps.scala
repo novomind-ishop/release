@@ -9,7 +9,7 @@ object Novosales1Deps {
       "org.jacoco", "jacoco-maven-plugin", "", Seq(PluginExec("default-prepare-agent", Seq("prepare-agent"), "", Map()), PluginExec("default-report", Seq("report"), "prepare-package", Map())),
       Seq("plugin", "plugins", "build", "project")),
     PluginDep(PomRef("com.novomind.ishop.shops.novosales:novosales-projects:27.0.0-SNAPSHOT:pom"),
-      "org.apache.maven.plugins", "maven-dependency-plugin", "2.8", Seq(PluginExec("pre-build-validate-tree", Seq("tree"), "validate", Map("outputFile" -> "target/dependency-tree")), PluginExec("pre-build-validate-list", Seq("list"), "validate", Map("outputFile" -> "dep.list", "sort" -> "true"))),
+      "org.apache.maven.plugins", "maven-dependency-plugin", "2.8", Seq(PluginExec("pre-build-validate-tree", Seq("tree"), "validate", Map("outputFile" -> "dep.tree")), PluginExec("pre-build-validate-list", Seq("list"), "validate", Map("outputFile" -> "dep.list", "sort" -> "true"))),
       Seq("plugin", "plugins", "build", "project")),
     PluginDep(PomRef("com.novomind.ishop.shops.novosales:novosales-projects:27.0.0-SNAPSHOT:pom"),
       "com.novomind.maven", "zkm-maven-plugin", "", Seq(PluginExec("", Seq(), "", Map())),
