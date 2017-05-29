@@ -400,7 +400,12 @@ case class PomMod(file: File) {
   }
 
   private def writePom(file: File, document: Document): Unit = {
-    Files.delete(file.toPath)
+    if (Files.exists(file.toPath)) {
+      Files.delete(file.toPath)
+    }
+    if (!Files.isDirectory(file.toPath.getParent)) {
+      Files.createDirectories(file.toPath.getParent)
+    }
     Files.write(file.toPath, (PomMod.toString(document) + "\n").getBytes(StandardCharsets.UTF_8))
   }
 

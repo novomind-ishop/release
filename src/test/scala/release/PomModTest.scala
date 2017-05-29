@@ -2,7 +2,7 @@ package release
 
 import java.time.{LocalDate, Month}
 
-import org.junit.{Assert, Ignore, Test}
+import org.junit.{Assert, Test}
 import org.scalatest.junit.AssertionsForJUnit
 import org.w3c.dom.Node
 import release.PomMod.{Dep, PluginDep, PluginExec, PomRef}
@@ -105,24 +105,30 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
-  @Ignore
   def findNodesAndSetVersion(): Unit = {
     // GIVEN
     val orgPoms = TestHelper.testResources("novosales1")
     val orgMod = PomMod(orgPoms)
-    val srcPoms = TestHelper.testResources("novosales3")
-    orgMod.writeTo(srcPoms)
+    Assert.assertEquals("27.0.0-SNAPSHOT", orgMod.selfVersion)
+    assertDeps(Novosales1Deps.ownDeps(), orgMod.listDependecies.filter(_.artifactId.contains("novosales")))
 
-    val pomMod = PomMod(srcPoms)
+    val targetPoms = TestHelper.testResources("novosales4")
+    orgMod.writeTo(targetPoms)
+    val targetMod = PomMod(targetPoms)
+    val newVersion = "27.0.0-SNAPSHOT" // TODO change
     // WHEN
-    pomMod.findNodesAndSetVersion("com.novomind.ishop.shops.novosales", "novosales-erp",
-      "27.0.0-SNAPSHOT", "ublgusa")
-    pomMod.writeTo(srcPoms)
+    targetMod.findNodesAndSetVersion("com.novomind.ishop.shops.novosales", "novosales-erp", "27.0.0-SNAPSHOT", newVersion)
+    targetMod.writeTo(targetPoms)
 
-    pomMod.findNodesAndSetVersion("com.novomind.ishop.shops.novosales", "novosales-erp",
-      "ublgusa", "27.0.0-SNAPSHOT")
-    pomMod.writeTo(srcPoms)
     // THEN
+    val newTargetMod = PomMod(targetPoms)
+    Assert.assertEquals("27.0.0-SNAPSHOT", newTargetMod.selfVersion)
+    val erpVersionChanged = Novosales1Deps.ownDeps().map(in ⇒ if (in.artifactId.contains("novosales-erp") && in.version.nonEmpty) {
+      in.copy(version = newVersion)
+    } else {
+      in
+    })
+    assertDeps(erpVersionChanged, newTargetMod.listDependecies.filter(_.artifactId.contains("novosales")))
 
   }
 

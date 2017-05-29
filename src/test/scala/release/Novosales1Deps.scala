@@ -126,6 +126,19 @@ object Novosales1Deps {
 
   def self(): Seq[Dep] = selfVersion("27.0.0-SNAPSHOT")
 
+  def ownDeps(): Seq[Dep] = Seq(Dep(PomRef("com.novomind.ishop.shops.novosales:novosales-projects:27.0.0-SNAPSHOT"), "com.novomind.ishop.shops.novosales", "novosales-erp", "27.0.0-SNAPSHOT", "", "", ""),
+    Dep(PomRef("com.novomind.ishop.shops.novosales:novosales-erp:27.0.0-SNAPSHOT"), "com.novomind.ishop.shops.novosales", "novosales-projects", "27.0.0-SNAPSHOT", "", "", ""),
+    Dep(PomRef("novosales-erp"), "com.novomind.ishop.shops.novosales", "novosales-commons", "27.0.0-SNAPSHOT", "", "", ""),
+    Dep(PomRef("novosales-erp"), "com.novomind.ishop.shops.novosales", "novosales-commons", "27.0.0-SNAPSHOT", "", "test", ""),
+    Dep(PomRef("com.novomind.ishop.shops:novosales:27.0.0-SNAPSHOT"), "com.novomind.ishop.shops.novosales", "novosales-projects", "27.0.0-SNAPSHOT", "", "", ""),
+    Dep(PomRef("com.novomind.ishop.shops:novosales"), "com.novomind.ishop.shops.novosales", "novosales-commons", "27.0.0-SNAPSHOT", "", "", ""),
+    Dep(PomRef("com.novomind.ishop.shops:novosales"), "com.novomind.ishop.shops.novosales", "novosales-commons", "27.0.0-SNAPSHOT", "", "test", ""),
+    Dep(PomRef("com.novomind.ishop.shops:novosales"), "com.novomind.ishop.shops.novosales", "novosales-erp", "", "", "", ""),
+    Dep(PomRef("com.novomind.ishop.shops:novosales"), "com.novomind.ishop.shops.novosales", "novosales-erp", "27.0.0-SNAPSHOT", "", "test", ""),
+    Dep(PomRef("com.novomind.ishop.shops:novosales"), "com.novomind.ishop.shops.novosales", "novosales-erp", "27.0.0-SNAPSHOT", "", "", ""),
+    Dep(PomRef("com.novomind.ishop.shops:novosales"), "com.novomind.ishop.shops.novosales", "novosales-db-migration", "27.0.0-SNAPSHOT", "", "", ""),
+    Dep(PomRef("com.novomind.ishop.shops:novosales"), "com.novomind.ishop.shops.novosales", "novosales-ipim-reviews", "27.0.0-SNAPSHOT", "", "", ""))
+
   def all(): Seq[Dep] = {
     Seq(
       Dep(PomRef("com.novomind.ishop.shops.novosales:novosales-projects:27.0.0-SNAPSHOT"), "com.novomind.ishop.shops", "ishop-shop-parent", "27.0.0-SNAPSHOT", "", "", ""),
