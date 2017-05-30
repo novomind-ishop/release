@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 import com.google.common.collect.{ImmutableList, ImmutableSet}
 import com.google.common.hash.Hashing
+import com.typesafe.scalalogging.LazyLogging
 import org.apache.maven.repository.internal.MavenRepositorySystemUtils
 import org.eclipse.aether.artifact.DefaultArtifact
 import org.eclipse.aether.connector.basic.BasicRepositoryConnectorFactory
@@ -27,7 +28,8 @@ import org.eclipse.aether.{DefaultRepositorySystemSession, RepositorySystem}
 import scala.collection.JavaConverters
 import scala.util.Random
 
-object Aether {
+object Aether extends LazyLogging {
+  logger.debug("init aether to suppress replayed slf4j logging - See also http://www.slf4j.org/codes.html#replay")
 
   def existsGav(groupID: String, artifactId: String, version: String): Boolean = {
     val versions = getVersionsOf(Seq(groupID, artifactId, "[" + version + "," + version + "]").mkString(":"))
