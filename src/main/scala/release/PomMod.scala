@@ -244,6 +244,7 @@ case class PomMod(file: File) {
       in.filterNot(_.endsWith("-SNAPSHOT"))
         .filterNot(_.contains("patch"))
         .filterNot(_.matches(".*M[0-9]+$"))
+        .filterNot(_.matches(".*pr[0-9]+$"))
         .filterNot(_.contains("pre"))
         .filterNot(_.contains("alpha"))
         .filterNot(_.contains("Alpha"))
@@ -311,7 +312,7 @@ case class PomMod(file: File) {
         if (majorVers.size == 1) {
           out.println(ch("║ ╚═══ ", "| +--- ") + majorVers.head._2.mkString(", "))
         } else {
-          majorVers.tail.foreach(el ⇒ {
+          majorVers.tail.reverse.foreach(el ⇒ {
             out.println(ch("║ ╠═══ ", "| +--- ") + "(" + el._1 + ") " + el._2.mkString(", "))
           })
           out.println(ch("║ ╚═══ ", "| +--- ") + "(" + majorVers.head._1 + ") " + majorVers.head._2.mkString(", "))
