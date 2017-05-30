@@ -30,21 +30,21 @@ libraryDependencies += "com.github.scala-incubator.io" % "scala-io-core_2.10" % 
 
 libraryDependencies += "org.apache.httpcomponents" % "httpclient" % "4.3.6"
 
-libraryDependencies += "org.eclipse.aether" % "aether-api" % "1.1.0"
+libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-api" % "1.0.3"
 
-libraryDependencies += "org.eclipse.aether" % "aether-spi" % "1.1.0"
+libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-spi" % "1.0.3"
 
-libraryDependencies += "org.eclipse.aether" % "aether-util" % "1.1.0"
+libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-util" % "1.0.3"
 
-libraryDependencies += "org.eclipse.aether" % "aether-impl" % "1.1.0"
+libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-impl" % "1.0.3"
 
-libraryDependencies += "org.eclipse.aether" % "aether-connector-basic" % "1.1.0"
+libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-connector-basic" % "1.0.3"
 
-libraryDependencies += "org.eclipse.aether" % "aether-transport-file" % "1.1.0"
+libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-transport-file" % "1.0.3"
 
-libraryDependencies += ("org.eclipse.aether" % "aether-transport-http" % "1.1.0")
+libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-transport-http" % "1.0.3"
 
-libraryDependencies += "org.apache.maven" % "maven-aether-provider" % "3.1.0"
+libraryDependencies += "org.apache.maven" % "maven-resolver-provider" % "3.5.0"
 
 libraryDependencies += "org.scalatest" % "scalatest_2.12" % "3.0.1"
 
