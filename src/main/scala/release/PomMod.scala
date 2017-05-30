@@ -325,12 +325,18 @@ case class PomMod(file: File) {
   }
 
   def selfDepsMod: Seq[Dep] = {
-    val selfDeps: Seq[Dep] = listSelf ++ listSelf.map(_.copy(scope = "test")) ++
+    val selfDeps: Seq[Dep] = listSelf ++
+      listSelf.map(_.copy(scope = "test")) ++
       listSelf.map(_.copy(scope = "test", classifier = "tests")) ++
+      listSelf.map(_.copy(scope = "test", classifier = "tests", packaging = "")) ++
+      listSelf.map(_.copy(scope = "test", packaging = "")) ++
       listSelf.map(_.copy(classifier = "tests")) ++
-      listSelf.map(_.copy(scope = "test", packaging = "")) ++ listSelf.map(_.copy(packaging = ""))
+      listSelf.map(_.copy(packaging = ""))
     val pomMods = selfDeps.map(_.copy(typeN = "pom"))
-    (pomMods ++ selfDeps).map(_.copy(pomRef = PomRef.undef)).distinct.sortBy(_.toString)
+    (pomMods ++ selfDeps)
+      .map(_.copy(pomRef = PomRef.undef))
+      .distinct
+      .sortBy(_.toString)
   }
 
   def hasNoShopPom: Boolean = {
@@ -650,19 +656,18 @@ object PomMod {
                  scope: String, packaging: String, classifier: String) {
     val gavWithDetailsFormatted: String = Gav.format(Seq(groupId, artifactId, version, typeN, scope, packaging, classifier))
 
-    def gav() = Gav(groupId, artifactId, version)
+    def gav() = Gav(groupId, artifactId, version, packaging, classifier, scope)
   }
 
   case class PluginExec(id: String, goals: Seq[String], phase: String, config: Map[String, String])
 
   case class PluginDep(pomRef: PomRef, groupId: String, artifactId: String, version: String, execs: Seq[PluginExec], pomPath: Seq[String]) {
-    val gavFormatted: String = Gav.format(Seq(groupId, artifactId, version))
 
     def gav() = Gav(groupId, artifactId, version)
   }
 
-  case class Gav(groupId: String, artifactId: String, version: String) {
-    def formatted = Gav.format(Seq(groupId, artifactId, version))
+  case class Gav(groupId: String, artifactId: String, version: String, packageing:String = "", classifier: String = "", scope: String = "") {
+    def formatted = Gav.format(Seq(groupId, artifactId, version, packageing, classifier, scope))
   }
 
   object Gav {

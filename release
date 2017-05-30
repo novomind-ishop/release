@@ -9,13 +9,14 @@ if [[ -n $(echo "${argLine}" | egrep "replace") ]]; then
   pushd .  > /dev/null
   cd $(dirname $0)
   release_jar=$(dirname $0)/target/scala-2.12/release.jar
-  if [[ $(diff -q ${release_jar} $(dirname $0)/release.jar) ]]; then
+  jar_out="$(java -jar ${release_jar} 2>&1 || true)"
+  cmp_out="$(cmp ${release_jar} $(dirname $0)/release.jar 2>&1 || true)"
+  if [[ $(echo "$jar_out" | egrep -v "^Error: ") != "" ]] && [[ $(echo "$cmp_out" | egrep "differ") != "" ]]; then
     cp -v ${release_jar} $(dirname $0)/release.jar
   fi
   popd > /dev/null
-else
-  release_jar=$(dirname $0)/release.jar
 fi
+release_jar=$(dirname $0)/release.jar
 if command -v tput >/dev/null; then
   terminal_cols=$(tput cols)
 else

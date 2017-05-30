@@ -1,5 +1,6 @@
 package release
 
+import java.io.File
 import java.time.{LocalDate, Month}
 
 import org.junit.{Assert, Test}

@@ -10,6 +10,7 @@ import com.google.common.hash.Hashing
 import com.typesafe.scalalogging.LazyLogging
 import org.eclipse.jgit.api.errors.RefAlreadyExistsException
 import org.scalatest.time.{Seconds, Span}
+import release.PomMod.Gav
 
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.io.StdIn
@@ -135,7 +136,7 @@ object Starter extends App with LazyLogging {
       }
 
       case class ReleaseInfo(gav: String, released: Boolean)
-      val snaps = mod.listSnapshotsDistinct.map(_.gav()) ++
+      val snaps:Seq[Gav] = mod.listSnapshotsDistinct.map(_.gav()) ++
         plugins.map(_.gav()).filter(_.version.contains("SNAPSHOT"))
       val aetherStateLine = StatusLine(snaps.size, shellWidth)
       val snapState: Seq[ReleaseInfo] = snaps
