@@ -517,15 +517,34 @@ object PomMod {
   def suggestReleaseBy(localDate: LocalDate, currentVersion: String, hasShopPom: Boolean,
                        localBranchNames: Seq[String]): Seq[String] = {
     if (hasShopPom) {
+      val releaseBranchNames = localBranchNames.filter(_.startsWith("release/")).map(_.replaceFirst("^release/", ""))
+
+      def nextReleaseIfExisting(known: Seq[String], name: String, suffix: Int): String = {
+        val finalName = if (suffix == 0) {
+          name
+        } else {
+          name + "." + suffix
+        }
+        if (known.contains(finalName)) {
+          nextReleaseIfExisting(known, name, suffix + 1)
+        } else {
+          finalName
+        }
+      }
+
       if (currentVersion.startsWith("master")) {
-        def dateBased(localDate: LocalDate): String = {
+
+        def dateBased(localDate: LocalDate, known: Seq[String]): String = {
           val weekFields = WeekFields.of(Locale.getDefault())
-          "RC-" + localDate.getYear + "." + "%02d".format(localDate.get(weekFields.weekOfWeekBasedYear())) + "-SNAPSHOT"
+          val releaseVersion = "RC-" + localDate.getYear + "." + "%02d".format(localDate.get(weekFields.weekOfWeekBasedYear()))
+          nextReleaseIfExisting(known, releaseVersion, 0) + "-SNAPSHOT"
         }
 
-        Seq(dateBased(localDate), dateBased(localDate.plusWeeks(1)), dateBased(localDate.plusWeeks(2)))
+        Seq(dateBased(localDate, releaseBranchNames),
+          dateBased(localDate.plusWeeks(1), releaseBranchNames),
+          dateBased(localDate.plusWeeks(2), releaseBranchNames))
       } else {
-        Seq(currentVersion)
+        Seq(nextReleaseIfExisting(releaseBranchNames, currentVersion.replaceFirst("-SNAPSHOT$", ""), 0) + "-SNAPSHOT")
       }
     } else {
       Seq(currentVersion.replaceFirst("-SNAPSHOT$", ""))

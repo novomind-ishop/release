@@ -2,7 +2,7 @@ package release
 
 import java.time.{LocalDate, Month}
 
-import org.junit.{Assert, Ignore, Test}
+import org.junit.{Assert, Test}
 import org.scalatest.junit.AssertionsForJUnit
 import org.w3c.dom.Node
 import release.PomMod.{Dep, PluginDep, PluginExec, PomRef}
@@ -362,7 +362,6 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
-  @Ignore
   def suggestRelease_shop_existing(): Unit = {
 
     // GIVEN/WHEN
@@ -423,7 +422,6 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
-  @Ignore
   def suggestRelease_shop_master_used(): Unit = {
 
     // GIVEN/WHEN
