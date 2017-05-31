@@ -452,9 +452,9 @@ case class PomMod(file: File) {
     }
   }
 
-  def suggestReleaseVersion(): Seq[String] = {
+  def suggestReleaseVersion(localBranchNames: Seq[String] = Nil): Seq[String] = {
     checkCurrentVersion(currentVersion)
-    PomMod.suggestReleaseBy(LocalDate.now(), currentVersion.get, hasShopPom)
+    PomMod.suggestReleaseBy(LocalDate.now(), currentVersion.get, hasShopPom, localBranchNames)
   }
 
   def suggestNextRelease(releaseVersion: String): String = {
@@ -514,7 +514,8 @@ object PomMod {
 
   private[release] def dependecyPlugins(plugins: Seq[PluginDep]) = findPluginsByName(plugins, "maven-dependency-plugin")
 
-  def suggestReleaseBy(localDate: LocalDate, currentVersion: String, hasShopPom: Boolean): Seq[String] = {
+  def suggestReleaseBy(localDate: LocalDate, currentVersion: String, hasShopPom: Boolean,
+                       localBranchNames: Seq[String]): Seq[String] = {
     if (hasShopPom) {
       if (currentVersion.startsWith("master")) {
         def dateBased(localDate: LocalDate): String = {
@@ -667,7 +668,7 @@ object PomMod {
     def gav() = Gav(groupId, artifactId, version)
   }
 
-  case class Gav(groupId: String, artifactId: String, version: String, packageing:String = "", classifier: String = "", scope: String = "") {
+  case class Gav(groupId: String, artifactId: String, version: String, packageing: String = "", classifier: String = "", scope: String = "") {
     def formatted = Gav.format(Seq(groupId, artifactId, version, packageing, classifier, scope))
   }
 

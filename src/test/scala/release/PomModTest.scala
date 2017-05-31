@@ -1,9 +1,8 @@
 package release
 
-import java.io.File
 import java.time.{LocalDate, Month}
 
-import org.junit.{Assert, Test}
+import org.junit.{Assert, Ignore, Test}
 import org.scalatest.junit.AssertionsForJUnit
 import org.w3c.dom.Node
 import release.PomMod.{Dep, PluginDep, PluginExec, PomRef}
@@ -356,17 +355,28 @@ class PomModTest extends AssertionsForJUnit {
   def suggestRelease_shop(): Unit = {
 
     // GIVEN/WHEN
-    val release = PomMod.suggestReleaseBy(LocalDate.now(), "RC-2017.52-SNAPSHOT", hasShopPom = true)
+    val release = PomMod.suggestReleaseBy(LocalDate.now(), "RC-2017.52-SNAPSHOT", hasShopPom = true, Nil)
 
     // THEN
     assert(Seq("RC-2017.52-SNAPSHOT") === release)
   }
 
   @Test
+  @Ignore
+  def suggestRelease_shop_existing(): Unit = {
+
+    // GIVEN/WHEN
+    val release = PomMod.suggestReleaseBy(LocalDate.now(), "RC-2017.52-SNAPSHOT", hasShopPom = true, Seq("release/RC-2017.52"))
+
+    // THEN
+    assert(Seq("RC-2017.52.1-SNAPSHOT") === release)
+  }
+
+  @Test
   def suggestRelease_other(): Unit = {
 
     // GIVEN/WHEN
-    val release = PomMod.suggestReleaseBy(LocalDate.now(), "3.43.2-SNAPSHOT", hasShopPom = false)
+    val release = PomMod.suggestReleaseBy(LocalDate.now(), "3.43.2-SNAPSHOT", hasShopPom = false, Nil)
 
     // THEN
     assert(Seq("3.43.2") === release)
@@ -376,7 +386,7 @@ class PomModTest extends AssertionsForJUnit {
   def suggestRelease_other_lowdash(): Unit = {
 
     // GIVEN/WHEN
-    val release = PomMod.suggestReleaseBy(LocalDate.now(), "3.43.2_3-SNAPSHOT", hasShopPom = false)
+    val release = PomMod.suggestReleaseBy(LocalDate.now(), "3.43.2_3-SNAPSHOT", hasShopPom = false, Nil)
 
     // THEN
     assert(Seq("3.43.2_3") === release)
@@ -386,7 +396,7 @@ class PomModTest extends AssertionsForJUnit {
   def suggestRelease_other_lowdash_text(): Unit = {
 
     // GIVEN/WHEN
-    val release = PomMod.suggestReleaseBy(LocalDate.now(), "3.43.2_mööp-SNAPSHOT", hasShopPom = false)
+    val release = PomMod.suggestReleaseBy(LocalDate.now(), "3.43.2_mööp-SNAPSHOT", hasShopPom = false, Nil)
 
     // THEN
     assert(Seq("3.43.2_mööp") === release)
@@ -396,7 +406,7 @@ class PomModTest extends AssertionsForJUnit {
   def suggestRelease_other_master(): Unit = {
 
     // GIVEN/WHEN
-    val release = PomMod.suggestReleaseBy(LocalDate.now(), "master-SNAPSHOT", hasShopPom = false)
+    val release = PomMod.suggestReleaseBy(LocalDate.now(), "master-SNAPSHOT", hasShopPom = false, Nil)
 
     // THEN
     assert(Seq("master") === release)
@@ -406,10 +416,22 @@ class PomModTest extends AssertionsForJUnit {
   def suggestRelease_shop_master(): Unit = {
 
     // GIVEN/WHEN
-    val release = PomMod.suggestReleaseBy(LocalDate.of(2017, Month.FEBRUARY, 1), "master-SNAPSHOT", hasShopPom = true)
+    val release = PomMod.suggestReleaseBy(LocalDate.of(2017, Month.FEBRUARY, 1), "master-SNAPSHOT", hasShopPom = true, Nil)
 
     // THEN
     assert(Seq("RC-2017.05-SNAPSHOT", "RC-2017.06-SNAPSHOT", "RC-2017.07-SNAPSHOT") === release)
+  }
+
+  @Test
+  @Ignore
+  def suggestRelease_shop_master_used(): Unit = {
+
+    // GIVEN/WHEN
+    val release = PomMod.suggestReleaseBy(LocalDate.of(2017, Month.FEBRUARY, 1), "master-SNAPSHOT", hasShopPom = true,
+      Seq("hula", "release/RC-2017.05", "release/RC-2017.07", "release/RC-2017.07.1", "release/RC-2017.07.2"))
+
+    // THEN
+    assert(Seq("RC-2017.05.1-SNAPSHOT", "RC-2017.06-SNAPSHOT", "RC-2017.07.3-SNAPSHOT") === release)
   }
 
   @Test
