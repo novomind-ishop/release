@@ -296,7 +296,7 @@ object Starter extends App with LazyLogging {
       if (sgit.hasNoLocalChanges) {
         out.println("skipped release commit on " + branch)
       } else {
-        out.print("Commit pom changes ..")
+        out.print("Committing pom changes ..")
         sgit.doCommitPomXmlsAnd(
           """[ishop-release] prepare for next iteration - %s
             |
@@ -306,7 +306,7 @@ object Starter extends App with LazyLogging {
 
         out.println(". done")
       }
-      out.print("checkout " + releaseBrachName + " ..")
+      out.print("Checking out " + releaseBrachName + " ..")
       sgit.checkout(releaseBrachName)
       out.println(". done")
 
@@ -318,7 +318,7 @@ object Starter extends App with LazyLogging {
       if (sgit.hasNoLocalChanges) {
         out.println("skipped release commit on " + releaseBrachName)
       } else {
-        out.print("Commit pom changes ..")
+        out.print("Commiting pom changes ..")
         sgit.doCommitPomXmlsAnd(
           """[ishop-release] perform to - %s
             |
@@ -330,7 +330,7 @@ object Starter extends App with LazyLogging {
       if (releaseMod.hasNoShopPom) {
         sgit.doTag(release)
       }
-      out.print("checkout " + branch + " ..")
+      out.print("Checking out " + branch + " ..")
       sgit.checkout(branch)
       out.println(". done")
       if (newMod.hasNoShopPom) {
