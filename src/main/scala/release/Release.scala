@@ -7,8 +7,7 @@ import release.Starter.{PreconditionsException, TermOs}
 
 object Release {
 
-  def readFromPrompt(workDirFile: File, out: PrintStream, err: PrintStream, rebaseFn: () ⇒ Unit, branch: String, sgit: Sgit,
-                     dependencyUpdates: Boolean, termOs: TermOs, shellWidth: Int, releaseToolGit: Sgit): Seq[Unit] = {
+  def checkLocalChanges(sgit: Sgit, branch: String) = {
     if (sgit.hasLocalChanges) {
       val changes = sgit.localChanges().take(5)
       val changesOut = changes match {
@@ -17,8 +16,23 @@ object Release {
       }
       throw new PreconditionsException("Your branch: \"" + branch + "\" has local changes, please commit or reset\n" + changesOut)
     }
+  }
+
+  def checkNoSlashesNotEmpty(s: String): String = {
+    if (s.contains("/")) {
+      throw new IllegalArgumentException("no slashes are allowed in " + s)
+    } else if (s.trim.isEmpty) {
+      throw new IllegalArgumentException("empty is not allowed")
+    } else {
+      s
+    }
+  }
+
+  def work(workDirFile: File, out: PrintStream, err: PrintStream, rebaseFn: () ⇒ Unit, branch: String, sgit: Sgit,
+           dependencyUpdates: Boolean, termOs: TermOs, shellWidth: Int, releaseToolGitSha1: String): Seq[Unit] = {
+    checkLocalChanges(sgit, branch)
     rebaseFn.apply()
-    Starter.registerExitFn("cleanup branches", () ⇒ {
+    Starter.addExitFn("cleanup branches", () ⇒ {
       sgit.checkout(sgit.currentBranch)
     })
     sgit.checkout(branch)
@@ -42,7 +56,7 @@ object Release {
       out.println("---------")
     }
 
-    val release = Term.readChooseOneOfOrType(out, "Enter the release version", newMod.suggestReleaseVersion(sgit.branchNamesLocal()))
+    val release = checkNoSlashesNotEmpty(Term.readChooseOneOfOrType(out, "Enter the release version", newMod.suggestReleaseVersion(sgit.branchNamesLocal())))
     val releaseWitoutSnapshot = release.replaceFirst("-SNAPSHOT$", "")
     val nextReleaseWithoutSnapshot = Term.readFrom(out, "Enter the next version without -SNAPSHOT", newMod.suggestNextRelease(release))
 
@@ -56,7 +70,7 @@ object Release {
     if (newMod.selfVersion != nextSnapshot) {
       newMod.writeTo(workDirFile)
     }
-    val toolSh1 = releaseToolGit.headStatusValue()
+    val toolSh1 = releaseToolGitSha1
     val headCommitId = sgit.commitIdHead()
     val releaseMod = PomMod(workDirFile)
     if (sgit.hasNoLocalChanges) {

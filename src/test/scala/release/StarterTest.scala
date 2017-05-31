@@ -43,7 +43,9 @@ class StarterTest extends AssertionsForJUnit {
       |simpleChars => use no drawing chars
       |showGit     => shows all git commands for debug
       |replace     => replaces release jar / only required for development
-      |noVerify    => use this toggle for non gerrit projects""".stripMargin
+      |noVerify    => use this toggle for non gerrit projects
+      |
+      |nothing-but-create-feature-branch""".stripMargin
 
   @Test
   def test_help(): Unit = {

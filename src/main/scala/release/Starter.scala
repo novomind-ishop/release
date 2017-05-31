@@ -71,6 +71,8 @@ object Starter extends App with LazyLogging {
       out.println("showGit     => shows all git commands for debug")
       out.println("replace     => replaces release jar / only required for development")
       out.println("noVerify    => use this toggle for non gerrit projects")
+      out.println()
+      out.println("nothing-but-create-feature-branch")
       return 0
     }
 
@@ -198,8 +200,13 @@ object Starter extends App with LazyLogging {
       val askForRebase = suggestRebase(git, startBranch)
       debug("readFromPrompt")
       debugFn(() ⇒ "local branches: " + git.branchNamesLocal())
-      Release.readFromPrompt(workDirFile, out, err, askForRebase, startBranch,
-        git, dependencyUpdates, termOs, shellWidth, releaseToolGit)
+      if (createFeatureBranch) {
+        FeatureBranch.work(workDirFile, out, err, git, startBranch, askForRebase, releaseToolGit.headStatusValue())
+      } else {
+        Release.work(workDirFile, out, err, askForRebase, startBranch,
+          git, dependencyUpdates, termOs, shellWidth, releaseToolGit.headStatusValue())
+      }
+
       return 0
     } catch {
       case t: Throwable ⇒ {
@@ -223,7 +230,7 @@ object Starter extends App with LazyLogging {
       .toString
   }
 
-  def registerExitFn(msg: String, fn: () ⇒ Unit): Unit = {
+  def addExitFn(msg: String, fn: () ⇒ Unit): Unit = {
     Runtime.getRuntime.addShutdownHook(new Thread(() ⇒ {
       fn.apply()
     }))
