@@ -38,12 +38,13 @@ class StarterTest extends AssertionsForJUnit {
 
   private val helpMessage =
     """Possible args:
-      |help/--help => shows this and exits
-      |depUp       => shows dependency updates from nexus option
-      |simpleChars => use no drawing chars
-      |showGit     => shows all git commands for debug
-      |replace     => replaces release jar / only required for development
-      |noVerify    => use this toggle for non gerrit projects
+      |help/--help      => shows this and exits
+      |depUp            => shows dependency updates from nexus option
+      |simpleChars      => use no drawing chars
+      |showGit          => shows all git commands for debug
+      |replace          => replaces release jar / only required for development
+      |noVerify         => use this toggle for non gerrit projects
+      |jenkinsTrigger   => beta: jenkins trigger for builds
       |
       |nothing-but-create-feature-branch""".stripMargin
 

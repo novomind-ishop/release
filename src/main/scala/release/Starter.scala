@@ -61,16 +61,18 @@ object Starter extends App with LazyLogging {
     val showGit = restArgs.contains("showGit")
     val createFeatureBranch = restArgs.contains("nothing-but-create-feature-branch")
     val noVerify = !restArgs.contains("noVerify")
+    val jenkinsTrigger = restArgs.contains("jenkinsTrigger")
     // TODO --batch ## alles mit default wählen
 
     if (showHelp) {
       out.println("Possible args:")
-      out.println("help/--help => shows this and exits")
-      out.println("depUp       => shows dependency updates from nexus option")
-      out.println("simpleChars => use no drawing chars")
-      out.println("showGit     => shows all git commands for debug")
-      out.println("replace     => replaces release jar / only required for development")
-      out.println("noVerify    => use this toggle for non gerrit projects")
+      out.println("help/--help      => shows this and exits")
+      out.println("depUp            => shows dependency updates from nexus option")
+      out.println("simpleChars      => use no drawing chars")
+      out.println("showGit          => shows all git commands for debug")
+      out.println("replace          => replaces release jar / only required for development")
+      out.println("noVerify         => use this toggle for non gerrit projects")
+      out.println("jenkinsTrigger   => beta: jenkins trigger for builds")
       out.println()
       out.println("nothing-but-create-feature-branch")
       return 0
@@ -207,6 +209,17 @@ object Starter extends App with LazyLogging {
       } else {
         Release.work(workDirFile, out, err, askForRebase, startBranch,
           git, dependencyUpdates, termOs, shellWidth, releaseToolGit.headStatusValue())
+
+        def notifyNovomindJenkinsToBuild(pomMod: PomMod): Unit = {
+          // TODO write intial jenkins url to ${HOME}/.nm-release-config; else read
+          if (System.getenv("USERDNSDOMAIN") == "NOVOMIND.COM" && jenkinsTrigger) {
+            println("WIP try to notify jenkins to create new jenkins jobs")
+            println("WIP try to notify created release job")
+          }
+
+        }
+
+        notifyNovomindJenkinsToBuild(null)
       }
 
       return 0
