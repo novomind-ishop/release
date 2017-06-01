@@ -56,7 +56,7 @@ object Release {
       out.println("---------")
     }
 
-    val release = checkNoSlashesNotEmpty(Term.readChooseOneOfOrType(out, "Enter the release version", newMod.suggestReleaseVersion(sgit.branchNamesLocal())))
+    val release = checkNoSlashesNotEmpty(Term.readChooseOneOfOrType(out, "Enter the release version", newMod.suggestReleaseVersion(sgit.branchNamesAll())))
     val releaseWitoutSnapshot = release.replaceFirst("-SNAPSHOT$", "")
     val nextReleaseWithoutSnapshot = Term.readFrom(out, "Enter the next version without -SNAPSHOT", newMod.suggestNextRelease(release))
 
@@ -117,7 +117,7 @@ object Release {
       sgit.deleteBranch(releaseBrachName)
     }
     out.println(sgit.graph())
-    val sendToGerrit = Term.readFromOneOfYesNo(out, "Send to Gerrit?")
+    val sendToGerrit = Term.readFromOneOfYesNo(out, "Push to Gerrit?")
     val selectedBranch = sgit.findUpstreamBranch().getOrElse(branch)
     if (sendToGerrit == "y") {
 

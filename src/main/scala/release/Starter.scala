@@ -96,23 +96,6 @@ object Starter extends App with LazyLogging {
 
     }
 
-    def askReleaseBranch(): String = {
-      def suggestCurrentBranch(file: File): String = {
-        val git = Sgit(file, showGitCmd = showGit, doVerify = noVerify, out, err)
-        val latestCommit = git.commitIdHead()
-        val selectedBraches = git.branchListLocal().filter(_.commitId == latestCommit)
-        val found = selectedBraches.map(_.branchName.replaceFirst("refs/heads/", "")).filterNot(_ == "HEAD")
-        if (found.size != 1) {
-          out.println("W: more than one branch found: " + found.mkString(", ") + "; using \"master\"")
-          "master"
-        } else {
-          found.head
-        }
-
-      }
-
-      Term.readFrom(out, "Enter branch name where the release should start from", suggestCurrentBranch(workDirFile))
-    }
 
     def fetchGitAndAskForBranch(): (Sgit, String) = {
 
@@ -129,6 +112,25 @@ object Starter extends App with LazyLogging {
         debug("fetched git")
         out
       }
+
+      def askReleaseBranch(): String = {
+        def suggestCurrentBranch(file: File): String = {
+          val git = Sgit(file, showGitCmd = showGit, doVerify = noVerify, out, err)
+          val latestCommit = git.commitIdHead()
+          val selectedBraches = git.branchListLocal().filter(_.commitId == latestCommit)
+          val found = selectedBraches.map(_.branchName.replaceFirst("refs/heads/", "")).filterNot(_ == "HEAD")
+          if (found.size != 1) {
+            out.println("W: more than one branch found: " + found.mkString(", ") + "; using \"master\"")
+            "master"
+          } else {
+            found.head
+          }
+
+        }
+
+        Term.readFrom(out, "Enter branch name where to start from", suggestCurrentBranch(workDirFile))
+      }
+
       val startBranchF: Future[String] = Future {
         debug("ask for release")
         askReleaseBranch()

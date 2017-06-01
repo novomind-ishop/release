@@ -363,7 +363,6 @@ class PomModTest extends AssertionsForJUnit {
 
   @Test
   def suggestRelease_shop_existing(): Unit = {
-
     // GIVEN/WHEN
     val release = PomMod.suggestReleaseBy(LocalDate.now(), "RC-2017.52-SNAPSHOT", hasShopPom = true, Seq("release/RC-2017.52"))
 

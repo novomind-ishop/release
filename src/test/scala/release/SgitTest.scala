@@ -327,6 +327,7 @@ class SgitTest extends AssertionsForJUnit {
       })
     gitA.remoteRemove("ubglu")
     Assert.assertEquals(Nil, gitA.branchListLocal())
+    Assert.assertEquals(Nil, gitA.branchListRemote())
     Assert.assertEquals(None, gitA.findUpstreamBranch())
     copyMsgHook(testRepoA)
 
@@ -345,6 +346,9 @@ class SgitTest extends AssertionsForJUnit {
     gitA.add(testFile(testRepoA, "test2"))
     gitA.commitAll("add test2")
     gitB.fetchAll()
+    Assert.assertEquals(Seq("refs/remotes/origin/master"), gitB.branchListRemote().map(_.branchName))
+    Assert.assertEquals(Seq("master"), gitB.branchNamesRemote())
+    Assert.assertEquals(Seq("master"), gitB.branchNamesAll())
     Assert.assertEquals("master", gitB.currentBranch)
     Assert.assertEquals("master", gitB.findUpstreamBranch().get)
     Assert.assertFalse(gitB.hasChangesToPush)

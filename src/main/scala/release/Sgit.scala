@@ -145,13 +145,31 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
     }
   }
 
-  def branchNamesLocal(): Seq[String] = branchListLocal().map(_.branchName.replaceFirst("refs/heads/", ""))
+  def branchNamesLocal(): Seq[String] = branchListLocal().map(_.branchName.replaceFirst("refs/heads/", "")).sorted
 
   def branchListLocal(): Seq[GitShaBranch] = {
-    gitNative(Seq("branch", "--list", "--verbose", "--no-abbrev")).lines.toSeq
+    gitNative(Seq("branch", "--list", "--verbose", "--no-abbrev"))
+      .lines.toSeq
       .map(in ⇒ {
         val parts = in.replaceFirst("^\\*", "").trim.split("[ \t]+")
         GitShaBranch(parts(1), "refs/heads/" + parts(0))
+      }).toList
+  }
+
+  def branchNamesRemote(): Seq[String] = branchListRemote().map(_.branchName.replaceFirst("refs/remotes/origin/", "")).sorted
+
+  def branchNamesAll():Seq[String] = (branchNamesRemote() ++ branchNamesLocal()).distinct.sorted
+
+  def branchListRemote(): Seq[GitShaBranch] = {
+    gitNative(Seq("branch", "--list", "--verbose", "--no-abbrev", "--remote"))
+      .lines.toSeq
+      .flatMap(in ⇒ in match {
+        case l: String if l.trim.startsWith("origin/HEAD") ⇒ None
+        case l: String if l.trim.startsWith("origin/") ⇒ {
+          val parts = l.replaceFirst("^\\*", "").trim.split("[ \t]+")
+          Some(GitShaBranch(parts(1), "refs/remotes/" + parts(0)))
+        }
+        case _: String ⇒ None
       }).toList
   }
 
@@ -307,7 +325,7 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
     gitNative(Seq("branch", branchName))
   }
 
-  def pushTag(tagName: String) = {
+  def pushTag(tagName: String): Seq[String] = {
     pushInnerRaw(checkedTagName(tagName))
   }
 

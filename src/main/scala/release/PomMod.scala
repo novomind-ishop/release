@@ -452,9 +452,9 @@ case class PomMod(file: File) {
     }
   }
 
-  def suggestReleaseVersion(localBranchNames: Seq[String] = Nil): Seq[String] = {
+  def suggestReleaseVersion(branchNames: Seq[String] = Nil): Seq[String] = {
     checkCurrentVersion(currentVersion)
-    PomMod.suggestReleaseBy(LocalDate.now(), currentVersion.get, hasShopPom, localBranchNames)
+    PomMod.suggestReleaseBy(LocalDate.now(), currentVersion.get, hasShopPom, branchNames)
   }
 
   def suggestNextRelease(releaseVersion: String): String = {
