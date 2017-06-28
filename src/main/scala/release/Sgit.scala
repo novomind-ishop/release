@@ -4,6 +4,7 @@ import java.io.{File, PrintStream}
 import java.net.URI
 
 import com.typesafe.scalalogging.LazyLogging
+import release.Sgit.BranchAlreadyExistsException
 
 import scala.io.Source
 import scala.sys.process.ProcessLogger
@@ -322,7 +323,13 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
   }
 
   def createBranch(branchName: String): Unit = {
+    try {
     gitNative(Seq("branch", branchName))
+    } catch {
+      case e:RuntimeException if e.getMessage.contains("A branch named '" + branchName + "' already exists.") ⇒
+        throw new BranchAlreadyExistsException(e.getMessage)
+      case t:Throwable ⇒ throw t
+    }
   }
 
   def pushTag(tagName: String): Seq[String] = {
@@ -462,7 +469,7 @@ object Sgit {
     } catch {
       case e: RuntimeException if e.getMessage != null &&
         e.getMessage.startsWith("Nonzero exit value:") && cmd.head.contains("git") ⇒
-        val msg = e.getMessage + "; git -C [...] " + cmd.drop(3).mkString(" ") +
+        val msg = e.getMessage + "; git " + cmd.drop(3).mkString(" ") +
           "; " + Seq(errors, stdout).filterNot(_.isEmpty).mkString("; ")
         throw new RuntimeException(msg.trim)
       case e: Throwable ⇒ {
@@ -492,6 +499,7 @@ object Sgit {
   }
 
   class MissigCommitHookException(msg: String) extends RuntimeException(msg)
+  class BranchAlreadyExistsException(msg: String) extends RuntimeException(msg)
 
   private[release] def findGit(in: File): File = {
     if (new File(in, ".git").exists()) {

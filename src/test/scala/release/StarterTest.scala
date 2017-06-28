@@ -46,7 +46,7 @@ class StarterTest extends AssertionsForJUnit {
       |noVerify         => use this toggle for non gerrit projects
       |jenkinsTrigger   => beta: jenkins trigger for builds
       |
-      |nothing-but-create-feature-branch""".stripMargin
+      |nothing-but-create-feature-branch => creates a feature branch and changes pom.xmls""".stripMargin
 
   @Test
   def test_help(): Unit = {

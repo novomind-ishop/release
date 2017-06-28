@@ -1,18 +1,16 @@
 package release
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File, PrintStream}
+import java.io.{ByteArrayOutputStream, File, PrintStream}
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.time.LocalDate
 import java.time.temporal.WeekFields
 import java.util.Locale
-import javax.xml.parsers.DocumentBuilderFactory
 import javax.xml.transform.dom.DOMSource
 import javax.xml.transform.stream.StreamResult
 import javax.xml.transform.{OutputKeys, TransformerFactory}
 
 import org.w3c.dom.{Document, Node}
-import org.xml.sax.SAXParseException
 import release.PomMod._
 import release.Starter.TermOs
 
@@ -27,7 +25,7 @@ case class PomMod(file: File) {
   if (!rootPom.canRead) {
     throw new IllegalStateException(file.toString + " seems to be no maven project")
   }
-  private val rootPomDoc = pomDoc(rootPom)
+  private val rootPomDoc = Xpath.pomDoc(rootPom)
   private val subPomFiles = subModulePomsFiles(file, rootPomDoc)
   private val subs: Seq[SubPomFile] = toSubPoms(subPomFiles)
   private val allPoms: Seq[Document] = rootPomDoc +: subs.map(_.document)
@@ -479,18 +477,10 @@ case class PomMod(file: File) {
   private def toSubPoms(pomFiles: Seq[File]): Seq[SubPomFile] = {
     pomFiles.map(file ⇒ {
       val folderName = file.getAbsoluteFile.getParentFile.getName
-      SubPomFile(folderName, pomDoc(file))
+      SubPomFile(folderName, Xpath.pomDoc(file))
     })
   }
 
-  private def pomDoc(file: File): Document = {
-    try {
-      val out = PomMod.newDocument(new String(Files.readAllBytes(file.toPath), StandardCharsets.UTF_8))
-      out
-    } catch {
-      case se: SAXParseException ⇒ throw new InvalidPomXmlException(file, se);
-    }
-  }
 
   private def subModuleNames(document: Document): Seq[String] = {
     Xpath.toSeq(rootPomDoc, "//project/modules/module").map(_.getTextContent)
@@ -611,7 +601,7 @@ object PomMod {
   }
 
   def formatDependcy(in: String, selectedGroupId: String, selectedArtifcatId: String, selectedVersion: String, newVersion: String): String = {
-    val doc = newDocument(in)
+    val doc = Xpath.newDocument(in)
     val filtered = filterBy(doc, selectedGroupId, selectedArtifcatId, Some(selectedVersion))
     filtered.headOption.foreach(node ⇒ {
       val gavElements = Xpath.toSeqNodes(node.getChildNodes)
@@ -622,12 +612,6 @@ object PomMod {
     toString(doc)
   }
 
-  private def newDocument(in: String): Document = {
-    val docFactory = DocumentBuilderFactory.newInstance()
-    val docBuilder = docFactory.newDocumentBuilder()
-    val stream = new ByteArrayInputStream(in.getBytes(StandardCharsets.UTF_8))
-    docBuilder.parse(stream)
-  }
 
   private def toString(doc: Document): String = {
     val transformerFactory = TransformerFactory.newInstance()
@@ -668,7 +652,7 @@ object PomMod {
   }
 
   def format(in: String, xPathStr: String, value: String): String = {
-    val doc = newDocument(in)
+    val doc = Xpath.newDocument(in)
     applyValueOfXpathTo(doc, xPathStr, value)
     toString(doc)
   }
@@ -700,7 +684,5 @@ object PomMod {
   object PomRef {
     val undef = PomRef("X")
   }
-
-  case class InvalidPomXmlException(file: File, parent: Exception) extends IllegalStateException(file.getAbsolutePath, parent)
 
 }

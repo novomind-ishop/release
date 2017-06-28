@@ -9,6 +9,7 @@ import com.google.common.hash.Hashing
 import com.typesafe.scalalogging.LazyLogging
 import org.eclipse.jgit.api.errors.RefAlreadyExistsException
 import org.scalatest.time.{Seconds, Span}
+import release.Xpath.InvalidPomXmlException
 
 import scala.concurrent.{Await, ExecutionContext, Future}
 
@@ -74,7 +75,7 @@ object Starter extends App with LazyLogging {
       out.println("noVerify         => use this toggle for non gerrit projects")
       out.println("jenkinsTrigger   => beta: jenkins trigger for builds")
       out.println()
-      out.println("nothing-but-create-feature-branch")
+      out.println("nothing-but-create-feature-branch => creates a feature branch and changes pom.xmls")
       return 0
     }
 
@@ -97,7 +98,6 @@ object Starter extends App with LazyLogging {
       }
 
     }
-
 
     def fetchGitAndAskForBranch(): (Sgit, String) = {
 
@@ -171,7 +171,7 @@ object Starter extends App with LazyLogging {
     def handleException(t: Throwable): Int = {
       t match {
         case x@(_: RefAlreadyExistsException | _: Sgit.MissigCommitHookException |
-                _: PomChecker.ValidationException | _: PreconditionsException) ⇒ {
+                _: PomChecker.ValidationException | _: PreconditionsException | _: Sgit.BranchAlreadyExistsException) ⇒ {
           err.println()
           err.println("E: " + x.getMessage)
           1
@@ -181,7 +181,7 @@ object Starter extends App with LazyLogging {
           err.println("E: User timeout: " + x.getMessage)
           1
         }
-        case x@(_: PomMod.InvalidPomXmlException) ⇒ {
+        case x@(_: InvalidPomXmlException) ⇒ {
           err.println()
           err.println("E: " + x.getMessage)
           err.println("E: " + x.parent.getMessage)

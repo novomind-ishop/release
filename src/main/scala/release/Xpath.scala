@@ -1,10 +1,31 @@
 package release
 
+import java.io.{ByteArrayInputStream, File}
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import javax.xml.parsers.DocumentBuilderFactory
 import javax.xml.xpath.{XPathConstants, XPathFactory}
 
 import org.w3c.dom.{Document, Node, NodeList}
+import org.xml.sax.SAXParseException
 
 object Xpath {
+
+  def pomDoc(file: File): Document = {
+    try {
+      val out = newDocument(new String(Files.readAllBytes(file.toPath), StandardCharsets.UTF_8))
+      out
+    } catch {
+      case se: SAXParseException ⇒ throw new InvalidPomXmlException(file, se);
+    }
+  }
+
+  def newDocument(in: String): Document = {
+    val docFactory = DocumentBuilderFactory.newInstance()
+    val docBuilder = docFactory.newDocumentBuilder()
+    val stream = new ByteArrayInputStream(in.getBytes(StandardCharsets.UTF_8))
+    docBuilder.parse(stream)
+  }
 
   def onlyString(document: Document, xpath: String): Option[String] = {
     only(document, xpath).map(_.getTextContent)
@@ -92,5 +113,7 @@ object Xpath {
     val xpathInstance = XPathFactory.newInstance().newXPath()
     xpathInstance.compile(xpath).evaluate(doc, XPathConstants.NODESET).asInstanceOf[NodeList]
   }
+
+  case class InvalidPomXmlException(file: File, parent: Exception) extends IllegalStateException(file.getAbsolutePath, parent)
 
 }
