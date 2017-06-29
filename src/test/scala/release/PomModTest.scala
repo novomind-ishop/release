@@ -282,6 +282,16 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def suggestNextRelease_x(): Unit = {
+
+    // GIVEN/WHEN
+    val next = PomMod.suggestNextReleaseBy("28x-SNAPSHOT", "28.0.1-SNAPSHOT")
+
+    // THEN
+    assert("28x" === next)
+  }
+
+  @Test
   def suggestNextRelease_shop(): Unit = {
 
     // GIVEN/WHEN
@@ -411,6 +421,16 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def suggestRelease_other_x(): Unit = {
+
+    // GIVEN/WHEN
+    val release = PomMod.suggestReleaseBy(LocalDate.now(), "x34-SNAPSHOT", hasShopPom = false, Nil)
+
+    // THEN
+    assert(Seq("x34") === release)
+  }
+
+  @Test
   def suggestRelease_shop_master(): Unit = {
 
     // GIVEN/WHEN
@@ -429,6 +449,49 @@ class PomModTest extends AssertionsForJUnit {
 
     // THEN
     assert(Seq("RC-2017.05.1-SNAPSHOT", "RC-2017.06-SNAPSHOT", "RC-2017.07.3-SNAPSHOT") === release)
+  }
+
+  @Test
+  def suggestRelease_shop_x(): Unit = {
+
+    // GIVEN/WHEN
+    val release = PomMod.suggestReleaseBy(LocalDate.of(2017, Month.FEBRUARY, 1), "28x-SNAPSHOT", hasShopPom = true, Nil)
+
+    // THEN
+    assert(Seq("28.0.0-SNAPSHOT") === release)
+  }
+
+  @Test
+  def suggestRelease_shop_x_used(): Unit = {
+
+    // GIVEN/WHEN
+    val release = PomMod.suggestReleaseBy(LocalDate.of(2017, Month.FEBRUARY, 1), "29x-SNAPSHOT", hasShopPom = true,
+      Seq("hula", "release/RC-2017.05", "release/29.0.0"))
+
+    // THEN
+    assert(Seq("29.0.1-SNAPSHOT", "29.1.0-SNAPSHOT") === release)
+  }
+
+  @Test
+  def suggestRelease_shop_x_used_minor(): Unit = {
+
+    // GIVEN/WHEN
+    val release = PomMod.suggestReleaseBy(LocalDate.of(2017, Month.FEBRUARY, 1), "29x-SNAPSHOT", hasShopPom = true,
+      Seq("hula", "release/RC-2017.05", "release/29.0.0", "release/29.0.1"))
+
+    // THEN
+    assert(Seq("29.0.2-SNAPSHOT", "29.1.0-SNAPSHOT") === release)
+  }
+
+  @Test
+  def suggestRelease_shop_x_used_major(): Unit = {
+
+    // GIVEN/WHEN
+    val release = PomMod.suggestReleaseBy(LocalDate.of(2017, Month.FEBRUARY, 1), "29x-SNAPSHOT", hasShopPom = true,
+      Seq("hula", "release/29.0.0", "release/29.1.0", "release/29.1.1"))
+
+    // THEN
+    assert(Seq("29.1.2-SNAPSHOT", "29.2.0-SNAPSHOT") === release)
   }
 
   @Test

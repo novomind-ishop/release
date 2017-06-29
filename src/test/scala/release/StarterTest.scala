@@ -45,6 +45,7 @@ class StarterTest extends AssertionsForJUnit {
       |replace          => replaces release jar / only required for development
       |noVerify         => use this toggle for non gerrit projects
       |jenkinsTrigger   => beta: jenkins trigger for builds
+      |versionSet       => draft: changes version like maven
       |
       |nothing-but-create-feature-branch => creates a feature branch and changes pom.xmls""".stripMargin
 

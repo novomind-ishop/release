@@ -74,6 +74,7 @@ object Starter extends App with LazyLogging {
       out.println("replace          => replaces release jar / only required for development")
       out.println("noVerify         => use this toggle for non gerrit projects")
       out.println("jenkinsTrigger   => beta: jenkins trigger for builds")
+      out.println("versionSet       => draft: changes version like maven")
       out.println()
       out.println("nothing-but-create-feature-branch => creates a feature branch and changes pom.xmls")
       return 0

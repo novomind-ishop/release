@@ -481,7 +481,6 @@ case class PomMod(file: File) {
     })
   }
 
-
   private def subModuleNames(document: Document): Seq[String] = {
     Xpath.toSeq(rootPomDoc, "//project/modules/module").map(_.getTextContent)
   }
@@ -496,6 +495,10 @@ case class PomMod(file: File) {
 }
 
 object PomMod {
+
+  private val semverPattern = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)$".r
+  private val semverPatternLowdash = "^([0-9]+)\\.([0-9]+)\\.([0-9]+_)([0-9]+)$".r
+
   private[release] def findPluginsByName(plugins: Seq[PluginDep], name: String) = {
     plugins
       .filterNot(_.pomPath.contains("pluginManagement"))
@@ -505,9 +508,9 @@ object PomMod {
   private[release] def dependecyPlugins(plugins: Seq[PluginDep]) = findPluginsByName(plugins, "maven-dependency-plugin")
 
   def suggestReleaseBy(localDate: LocalDate, currentVersion: String, hasShopPom: Boolean,
-                       localBranchNames: Seq[String]): Seq[String] = {
+                       branchNames: Seq[String]): Seq[String] = {
     if (hasShopPom) {
-      val releaseBranchNames = localBranchNames.filter(_.startsWith("release/")).map(_.replaceFirst("^release/", ""))
+      val releaseBranchNames = branchNames.filter(_.startsWith("release/")).map(_.replaceFirst("^release/", ""))
 
       def nextReleaseIfExisting(known: Seq[String], name: String, suffix: Int): String = {
         val finalName = if (suffix == 0) {
@@ -533,6 +536,30 @@ object PomMod {
         Seq(dateBased(localDate, releaseBranchNames),
           dateBased(localDate.plusWeeks(1), releaseBranchNames),
           dateBased(localDate.plusWeeks(2), releaseBranchNames))
+      } else if (currentVersion.matches("^[0-9]+x-SNAPSHOT$")) {
+        val withoutSnapshot = currentVersion.replaceFirst("x-SNAPSHOT$", "") + ".0.0"
+
+        def toInts(m: String): (Int, Int, Int, Int) = m match {
+          case semverPattern(ma, mi, b) ⇒ (ma.toInt, mi.toInt, b.toInt, 0)
+          case semverPatternLowdash(ma, mi, b, low) ⇒ (ma.toInt, mi.toInt, b.toInt, low.toInt)
+          case _ ⇒ (-1, -1, -1, -1)
+        }
+
+        val versionTupels = branchNames.map(_.replace("release/", "")).map(toInts).filterNot(_._1 <= -1)
+
+        def nextNumberedReleaseIfExisting(known: Seq[(Int, Int, Int, Int)], name: (Int, Int, Int, Int)): Seq[String] = {
+
+          if (known.contains(name)) {
+            val latest = known.max
+            nextNumberedReleaseIfExisting(known, latest.copy(_3 = latest._3 + 1)) ++
+              nextNumberedReleaseIfExisting(known, latest.copy(_2 = latest._2 + 1, _3 = 0))
+          } else {
+            Seq(Seq(name._1, name._2, name._3).mkString("."))
+          }
+        }
+
+        val n = toInts(withoutSnapshot)
+        nextNumberedReleaseIfExisting(versionTupels, n).map(_ + "-SNAPSHOT")
       } else {
         Seq(nextReleaseIfExisting(releaseBranchNames, currentVersion.replaceFirst("-SNAPSHOT$", ""), 0) + "-SNAPSHOT")
       }
@@ -548,9 +575,9 @@ object PomMod {
   def suggestNextReleaseBy(currentVersion: String, releaseVersion: String): String = {
     if (currentVersion == "master-SNAPSHOT") {
       "master"
+    } else if (currentVersion.matches("^[0-9]+x-SNAPSHOT")) {
+      currentVersion.replaceFirst("-SNAPSHOT$", "")
     } else {
-      val semverPattern = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)$".r
-      val semverPatternLowdash = "^([0-9]+)\\.([0-9]+)\\.([0-9]+_)([0-9]+)$".r
       val shopPattern = "^(RC-)([0-9]{4})\\.([0-9]+)(?:\\.[0-9]+)?$".r
 
       val snapped = releaseVersion.replaceFirst("-SNAPSHOT", "")
@@ -611,7 +638,6 @@ object PomMod {
 
     toString(doc)
   }
-
 
   private def toString(doc: Document): String = {
     val transformerFactory = TransformerFactory.newInstance()
