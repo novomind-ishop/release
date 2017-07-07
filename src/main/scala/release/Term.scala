@@ -6,6 +6,15 @@ import scala.io.StdIn
 
 object Term {
 
+  def removeSnapshot(str: String): String = {
+    val out = str.replaceFirst("-SNAPSHOT$", "")
+    if (out.contains("-SNAPSHOT")) {
+      removeSnapshot(out)
+    } else {
+      out
+    }
+  }
+
   def readFrom(out: PrintStream, text: String, defaultValue: String): String = {
     out.print(text + " [%s]: ".format(defaultValue))
     val line = StdIn.readLine()

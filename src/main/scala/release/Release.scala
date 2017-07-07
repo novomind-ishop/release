@@ -56,8 +56,13 @@ object Release {
       out.println("---------")
     }
 
-    val release = checkNoSlashesNotEmpty(Term.readChooseOneOfOrType(out, "Enter the release version", newMod.suggestReleaseVersion(sgit.branchNamesAll())))
-    val releaseWitoutSnapshot = release.replaceFirst("-SNAPSHOT$", "")
+    val releaseRead = checkNoSlashesNotEmpty(Term.readChooseOneOfOrType(out, "Enter the release version", newMod.suggestReleaseVersion(sgit.branchNamesAll())))
+    val release = if (mod.hasShopPom) {
+      Term.removeSnapshot(releaseRead) + "-SNAPSHOT"
+    } else {
+      releaseRead
+    }
+    val releaseWitoutSnapshot = Term.removeSnapshot(release)
     val nextReleaseWithoutSnapshot = Term.readFrom(out, "Enter the next version without -SNAPSHOT", newMod.suggestNextRelease(release))
 
     val nextSnapshot = nextReleaseWithoutSnapshot + "-SNAPSHOT"
@@ -125,15 +130,15 @@ object Release {
         val result = sgit.pushFor(srcBranchName = branch, targetBranchName = selectedBranch)
         if (newMod.hasNoShopPom) {
           sgit.pushTag(release)
-
+          // try to notify jenkins about tag builds
         }
-        // try to notify jenkins about tag builds
       }
       if (newMod.hasShopPom) {
         val result = sgit.pushHeads(srcBranchName = "release/" + releaseWitoutSnapshot,
           targetBranchName = "release/" + releaseWitoutSnapshot)
         if (newMod.hasNoShopPom) {
           sgit.pushTag(release)
+          // try to notify jenkins about tag builds
         }
         // TODO try to trigger job updates for jenkins
         // TODO try to trigger job execution in loop with abort
