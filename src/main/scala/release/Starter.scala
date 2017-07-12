@@ -213,7 +213,7 @@ object Starter extends App with LazyLogging {
 
         def notifyNovomindJenkinsToBuild(pomMod: PomMod): Unit = {
           // TODO write intial jenkins url to ${HOME}/.nm-release-config; else read
-          if (System.getenv("USERDNSDOMAIN") == "NOVOMIND.COM" && jenkinsTrigger) {
+          if (isInNovomindNetwork && jenkinsTrigger) {
             println("WIP try to notify jenkins to create new jenkins jobs")
             println("WIP try to notify created release job")
           }
@@ -230,6 +230,10 @@ object Starter extends App with LazyLogging {
       }
     }
 
+  }
+
+  def isInNovomindNetwork: Boolean = {
+    System.getenv("USERDNSDOMAIN") == "NOVOMIND.COM"
   }
 
   def chooseUpstreamIfUndef(out: PrintStream, sgit: Sgit, branch: String): Unit = {

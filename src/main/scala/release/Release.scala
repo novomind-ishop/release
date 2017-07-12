@@ -1,6 +1,8 @@
 package release
 
+import java.awt.Desktop
 import java.io.{File, PrintStream}
+import java.net.URI
 
 import release.PomMod.Gav
 import release.Starter.{PreconditionsException, TermOs}
@@ -122,6 +124,7 @@ object Release {
       sgit.deleteBranch(releaseBrachName)
     }
     out.println(sgit.graph())
+
     val sendToGerrit = Term.readFromOneOfYesNo(out, "Push to Gerrit?")
     val selectedBranch = sgit.findUpstreamBranch().getOrElse(branch)
     if (sendToGerrit == "y") {
@@ -131,19 +134,26 @@ object Release {
         if (newMod.hasNoShopPom) {
           sgit.pushTag(release)
           // try to notify jenkins about tag builds
+          if (Starter.isInNovomindNetwork && Desktop.isDesktopSupported) {
+            // TODO hier erstmal nur den browser auf machen damit man build tag klicken kann
+            // TODO wenn man den passenden tag build öffnen könnte wär noch cooler
+            Desktop.getDesktop.browse(new URI("https://build-ishop.novomind.com/search/?q=-tag"))
+          }
+        }
+        if (Starter.isInNovomindNetwork && Desktop.isDesktopSupported) {
+          // TODO hier gerrit öffnen da man submit klicken muss
+          // TODO wenn man genau den change öffnen könnte wär noch cooler
+          Desktop.getDesktop.browse(new URI("https://git-ishop.novomind.com:9091/#/q/status:open"))
         }
       }
       if (newMod.hasShopPom) {
         val result = sgit.pushHeads(srcBranchName = "release/" + releaseWitoutSnapshot,
           targetBranchName = "release/" + releaseWitoutSnapshot)
-        if (newMod.hasNoShopPom) {
-          sgit.pushTag(release)
-          // try to notify jenkins about tag builds
-        }
         // TODO try to trigger job updates for jenkins
         // TODO try to trigger job execution in loop with abort
       }
       out.println("done.")
+
     } else {
       val pushTagOrBranch = if (newMod.hasNoShopPom) {
         "git push origin tag v" + releaseWitoutSnapshot + "; "
