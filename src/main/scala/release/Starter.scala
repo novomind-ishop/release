@@ -1,6 +1,8 @@
 package release
 
+import java.awt.Desktop
 import java.io.{File, PrintStream}
+import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
 import java.util.concurrent.TimeoutException
@@ -234,6 +236,16 @@ object Starter extends App with LazyLogging {
 
   def isInNovomindNetwork: Boolean = {
     System.getenv("USERDNSDOMAIN") == "NOVOMIND.COM"
+  }
+
+  def openInDefaultBrowser(url: String): Unit = {
+    try {
+      if (Desktop.isDesktopSupported) {
+        Desktop.getDesktop.browse(new URI(url))
+      }
+    } catch {
+      case e: Exception ⇒ e.printStackTrace()
+    }
   }
 
   def chooseUpstreamIfUndef(out: PrintStream, sgit: Sgit, branch: String): Unit = {

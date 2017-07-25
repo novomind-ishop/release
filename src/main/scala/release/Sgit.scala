@@ -438,7 +438,7 @@ object Sgit {
       case l if l.startsWith("remote: Processing change") ⇒ None
       case l if l.startsWith("remote: error:") ⇒ None
       case l if l.startsWith("To ssh:") ⇒ None
-      case l if l == "remote: New Changes:" ⇒ None
+      case l if l.trim == "remote: New Changes:" ⇒ None
       case l if l.startsWith("remote:   http") ⇒ Some(l.replaceFirst(".*http", "See http"))
       case l if l.contains("[remote rejected]") ⇒ Some(l.replaceFirst(".*\\[remote rejected\\]", "[remote rejected]"))
       case l ⇒ Some("git-err: '" + l + "'")

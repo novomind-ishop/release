@@ -172,6 +172,7 @@ class SgitTest extends AssertionsForJUnit {
     testee.err("remote: ")
     testee.err("remote: ")
     testee.err("remote: New Changes:")
+    testee.err("remote: New Changes:        ")
     testee.err("remote:   https://git-ishop.novomind.com:9091/72458 snap weg")
     testee.err("remote:   https://git-ishop.novomind.com:9091/72459 [ishop-release] prepare for next iteration - 29.0.6")
     testee.err("remote: ")
