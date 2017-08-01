@@ -203,6 +203,35 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def changeVersionSub(): Unit = {
+    // GIVEN
+    val orgPoms = TestHelper.testResources("pom-packed-sub-sub")
+    val orgMod = PomMod(orgPoms)
+
+    assertDeps(Seq(
+      Dep(PomRef("any:a-parent:1.0.0-SNAPSHOT"),
+        "", "", "", "", "", "", ""),
+      Dep(PomRef("other:a:1.0.0-SNAPSHOT"),
+        "any", "a-parent", "1.0.0-SNAPSHOT", "", "", "", ""),
+      Dep(PomRef("any:bparent:1.0.0-SNAPSHOT"),
+        "any", "a-parent", "1.0.0-SNAPSHOT", "", "", "", ""),
+      Dep(PomRef("any:bsub:1.0.0-SNAPSHOT"),
+        "any", "bparent", "1.0.0-SNAPSHOT", "", "", "", ""),
+      Dep(PomRef("bsub:1.0.0-SNAPSHOT"),
+        "other", "a", "1.0.0-SNAPSHOT", "", "", "", ""),
+      Dep(PomRef("any:c:1.0.0-SNAPSHOT"),
+        "any", "a-parent", "1.0.0-SNAPSHOT", "", "", "", ""),
+      Dep(PomRef("c:1.0.0-SNAPSHOT"),
+        "any", "bsub", "1.0.0-SNAPSHOT", "", "", "", ""),
+      Dep(PomRef("c:1.0.0-SNAPSHOT"),
+        "any", "other", "1.0.0-SNAPSHOT", "", "", "", ""),
+      Dep(PomRef("c:1.0.0-SNAPSHOT"),
+        "any", "final", "1.0.1", "", "", "", "")
+    ), orgMod.listDependecies)
+    assertDeps(Seq(Dep(PomRef("c:1.0.0-SNAPSHOT"), "any", "other", "1.0.0-SNAPSHOT", "", "", "", "")), orgMod.listSnapshots)
+  }
+
+  @Test
   def changeVersion(): Unit = {
     // GIVEN
     val orgPoms = TestHelper.testResources("novosales1")
@@ -213,6 +242,7 @@ class PomModTest extends AssertionsForJUnit {
     // WHEN
     val mod = PomMod(srcPoms)
     assertDeps(Novosales1Deps.selfVersion("27.0.0-SNAPSHOT"), mod.listSelf)
+    assert("27.0.0-SNAPSHOT" === mod.getVersionFromDocs())
     assertDeps(Novosales1Deps.all(), mod.listDependecies)
 
     mod.changeVersion("RC-2017.01-SNAPSHOT")

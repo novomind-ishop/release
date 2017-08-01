@@ -93,7 +93,7 @@
       <dependency>
         <groupId>com.novomind.ishop.shops.novosales</groupId>
         <artifactId>novosales-erp</artifactId>
-        <version>${project.version}</version>
+        <version>RC-2017.01-SNAPSHOT</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

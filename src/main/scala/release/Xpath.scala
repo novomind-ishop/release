@@ -12,11 +12,14 @@ import org.xml.sax.SAXParseException
 object Xpath {
 
   def pomDoc(file: File): Document = {
+    if (!file.isFile) {
+      throw new IllegalArgumentException("only files are allowed; you passed: " + file.getAbsolutePath)
+    }
     try {
       val out = newDocument(new String(Files.readAllBytes(file.toPath), StandardCharsets.UTF_8))
       out
     } catch {
-      case se: SAXParseException ⇒ throw new InvalidPomXmlException(file, se);
+      case se: SAXParseException ⇒ throw InvalidPomXmlException(file, se);
     }
   }
 

@@ -25,48 +25,49 @@ case class PomMod(file: File) {
   if (!rootPom.canRead) {
     throw new IllegalStateException(file.toString + " seems to be no maven project")
   }
-  private val rootPomDoc = Xpath.pomDoc(rootPom)
-  private val subPomFiles = subModulePomsFiles(file, rootPomDoc)
-  private val subs: Seq[SubPomFile] = toSubPoms(subPomFiles)
-  private val allPoms: Seq[Document] = rootPomDoc +: subs.map(_.document)
+  private val allRawPomFiles = allRawModulePomsFiles(Seq(file))
+
+  private val raws: Seq[RawPomFile] = toRawPoms(allRawPomFiles)
+  private val allPomsDocs: Seq[Document] = raws.map(_.document)
 
   case class DepTree(content: String)
 
   private[release] val listSelf: Seq[Dep] = {
-    allPoms.map(selfDep)
+    allPomsDocs.map(selfDep)
   }
 
   val selfVersion: String = {
     Util.only(listSelf.map(_.version).distinct, "More then one Version found in your pom.xmls")
   }
 
+  private val currentVersion: Option[String] = {
+    Xpath.onlyString(Xpath.pomDoc(rootPom), "//project/version")
+  }
+
+  val allPropsFromDocs: Seq[(String, String)] = allPomsDocs.flatMap(createPropertyMap)
+
+  private def checkRootFirstChildProperties(): Unit = {
+    val rootProperties: Seq[(String, String)] = createPropertyMap(Xpath.pomDoc(rootPom)).toSeq
+    val withRootProps: Seq[(String, String)] = Util.symmetricDiff(allPropsFromDocs, rootProperties)
+    val diff = withRootProps intersect rootProperties
+    if (diff.nonEmpty) {
+      throw new IllegalStateException("unnecessary definition in sub poms: " + diff)
+    }
+
+  }
+
+  private def createPropertyMap(pomDoc: Document): Map[String, String] = {
+    val tuples = Xpath.toSeqTuples(pomDoc, "//project/properties")
+    val pro: Seq[(String, String)] = tuples.flatten.map(t ⇒ (t._1, t._2))
+    val result = pro.foldLeft(Map.empty[String, String])(_ + _)
+    val diff = Util.symmetricDiff(result.toSeq, pro)
+    if (diff.nonEmpty) {
+      throw new IllegalStateException("invalid property definition / multiple: " + diff)
+    }
+    result
+  }
+
   private[release] val listProperties: Map[String, String] = {
-
-    // TODO man darf eigentlich nicht alle variablen überall ersetzen - später mal reparieren
-
-    def createPropertyMap(pomDoc: Document): Map[String, String] = {
-      val tuples = Xpath.toSeqTuples(pomDoc, "//project/properties")
-      val pro: Seq[(String, String)] = tuples.flatten.map(t ⇒ (t._1, t._2))
-      val result = pro.foldLeft(Map.empty[String, String])(_ + _)
-      val diff = Util.symmetricDiff(result.toSeq, pro)
-      if (diff.nonEmpty) {
-        throw new IllegalStateException("invalid property definition / multiple: " + diff)
-      }
-      result
-    }
-
-    val allPropsFromDocs: Seq[(String, String)] = allPoms.flatMap(createPropertyMap)
-
-    def checkRootFirstChildProperties(): Unit = {
-      val rootProperties: Seq[(String, String)] = createPropertyMap(rootPomDoc).toSeq
-      val withRootProps: Seq[(String, String)] = Util.symmetricDiff(allPropsFromDocs, rootProperties)
-      val diff = withRootProps intersect rootProperties
-      if (diff.nonEmpty) {
-        throw new IllegalStateException("unnecessary definition in sub poms: " + diff)
-      }
-
-    }
-
     checkRootFirstChildProperties()
 
     val result = allPropsFromDocs.foldLeft(Map.empty[String, String])(_ + _)
@@ -86,16 +87,12 @@ case class PomMod(file: File) {
     allProps
   }
 
-  private val currentVersion: Option[String] = {
-    Xpath.onlyString(rootPomDoc, "//project/version")
-  }
-
   val listDependecies: Seq[Dep] = {
-    replacedVersionProperties(allPoms.flatMap(f ⇒ deps(f))).distinct
+    replacedVersionProperties(allPomsDocs.flatMap(f ⇒ deps(f))).distinct
   }
 
   private[release] val listPluginDependecies: Seq[PluginDep] = {
-    val allP: Seq[PluginDep] = allPoms.map(in ⇒ {
+    val allP: Seq[PluginDep] = allPomsDocs.map(in ⇒ {
       val gav = selfDep(in).gavWithDetailsFormatted
       val nodes = Xpath.toSeqTuples(in, "//plugins/plugin")
       (nodes, gav)
@@ -113,6 +110,7 @@ case class PomMod(file: File) {
 
   private[release] var depTreeFileContents: Map[File, DepTree] = depTreeFiles()
     .map(f ⇒ (f, DepTree(new String(Files.readAllBytes(f.toPath)))))
+    .filterNot(in ⇒ in._1.getParentFile.getName == ".")
     .foldLeft(Map.empty[File, DepTree])(_ + _)
 
   private def nodePath(node: Node): Seq[String] = {
@@ -168,14 +166,27 @@ case class PomMod(file: File) {
     }).foldLeft(Map.empty[File, DepTree])(_ + _)
   }
 
+  def getVersionFromDocs(): String = {
+    val out = raws.map(_.document).flatMap(d ⇒ {
+      val parentVersion = Xpath.toSeq(d, xPathToProjectParentVersion).map(_.getTextContent)
+      val projectVersion = Xpath.toSeq(d, xPathToProjectVersion).map(_.getTextContent)
+
+      parentVersion ++ projectVersion ++ listSelf.map(_.version)
+    }).distinct
+    Util.only(out, "only one Version is allowed")
+  }
+
   def changeVersion(newVersion: String): Unit = {
-    Seq(rootPomDoc).foreach(d ⇒ {
-      PomMod.applyValueOfXpathTo(d, xPathToProjectVersion, newVersion)
-    })
-    subs.map(_.document).foreach(d ⇒ {
-      PomMod.applyValueOfXpathTo(d, xPathToProjectParentVersion, newVersion)
-      PomMod.applyValueOfXpathTo(d, xPathToProjectVersion, newVersion)
-      PomMod.applyVersionTo(d, listSelf, newVersion)
+    raws.foreach(d ⇒ {
+      if (d.pomFile.getParentFile == file) {
+        PomMod.applyValueOfXpathTo(d.document, xPathToProjectVersion, newVersion)
+        PomMod.applyVersionTo(d.document, listSelf, newVersion)
+      } else {
+        PomMod.applyValueOfXpathTo(d.document, xPathToProjectParentVersion, newVersion)
+        PomMod.applyValueOfXpathTo(d.document, xPathToProjectVersion, newVersion)
+        PomMod.applyVersionTo(d.document, listSelf, newVersion)
+      }
+
     })
     selfDepsMod.foreach(entry ⇒ {
       changeDepTrees(entry.groupId, entry.artifactId, entry.version, newVersion)
@@ -186,15 +197,19 @@ case class PomMod(file: File) {
   def depTreeFilenames(): Seq[String] = {
     depTreeFiles().map(f ⇒ {
       if (f.getParentFile.getName != file.getName) {
-        f.getParentFile.getName + "/" + f.getName
+        val prefix = f.getParentFile.getName + "/" match {
+          case "./" ⇒ ""
+          case other ⇒ other
+        }
+        prefix + f.getName
       } else {
         f.getName
       }
-    })
+    }).distinct
   }
 
   def depTreeFiles(): Seq[File] = {
-    depTreeFilename().map(f ⇒ Seq(f) ++ subs.map(_.subfolder + "/" + f))
+    depTreeFilename().map(f ⇒ Seq(f) ++ raws.map(_.subfolder + "/" + f))
       .map(in ⇒ in.map(f ⇒ new File(file, f).getAbsoluteFile).filter(_.exists()))
       .getOrElse(Nil)
   }
@@ -218,8 +233,7 @@ case class PomMod(file: File) {
   }
 
   def writeTo(targetFolder: File): Unit = {
-    writePom(new File(targetFolder, "pom.xml"), rootPomDoc)
-    subs.par.foreach(sub ⇒ {
+    raws.par.foreach(sub ⇒ {
       writePom(new File(new File(targetFolder, sub.subfolder), "pom.xml"), sub.document)
     })
 
@@ -474,23 +488,61 @@ case class PomMod(file: File) {
     writeContent(file, PomMod.toString(document) + "\n")
   }
 
-  private def toSubPoms(pomFiles: Seq[File]): Seq[SubPomFile] = {
-    pomFiles.map(file ⇒ {
-      val folderName = file.getAbsoluteFile.getParentFile.getName
-      SubPomFile(folderName, Xpath.pomDoc(file))
-    })
+  private def toRawPom(pomFile: File): RawPomFile = {
+
+    // TODO check if pom is sub sub module - parse
+    RawPomFile(pomFile, Xpath.pomDoc(pomFile))
+  }
+
+  private def toRawPoms(pomFiles: Seq[File]): Seq[RawPomFile] = {
+    pomFiles.map(toRawPom)
   }
 
   private def subModuleNames(document: Document): Seq[String] = {
-    Xpath.toSeq(rootPomDoc, "//project/modules/module").map(_.getTextContent)
+    Xpath.toSeq(document, "//project/modules/module").map(_.getTextContent)
   }
 
-  private def subModulePomsFiles(rootFolder: File, document: Document): Seq[File] = {
-    val subModules = subModuleNames(document)
-    subModules.par.map(subModluleName ⇒ new File(new File(rootFolder, subModluleName).getAbsoluteFile, "pom.xml")).seq
+  private def allRawModulePomsFiles(rootFolders: Seq[File]): Seq[File] = {
+    def isPomPacked(document: Document): Boolean = {
+      Seq("pom") == Xpath.toSeq(document, "//project/packaging").map(_.getTextContent)
+    }
+
+    rootFolders
+      .flatMap(rootFolder ⇒ {
+        val p = if (rootFolder.isFile) {
+          rootFolder.getParentFile
+        } else {
+          new File(rootFolder, "pom.xml")
+        }
+        val document: Document = Xpath.pomDoc(p)
+        if (isPomPacked(document)) {
+          val subModules = subModuleNames(document)
+          val s = subModules.par.map(subModuleName ⇒ {
+            new File(p.getParentFile, subModuleName).getAbsoluteFile
+          }).seq
+          val o: Seq[File] = p +: allRawModulePomsFiles(s)
+          o
+        } else {
+          Seq(p)
+        }
+      }).map(r ⇒ {
+      val files = r.isFile
+      if (!files) {
+        throw new IllegalStateException("asdf " + r)
+      } else {
+        r
+      }
+    })
+
   }
 
-  case class SubPomFile(subfolder: String, document: Document)
+  case class RawPomFile(pomFile: File, document: Document) {
+    val subfolder: String = if (pomFile.getParentFile == file) {
+      "."
+    } else {
+      pomFile.getAbsoluteFile.getParentFile.getName
+    }
+  }
 
 }
 
