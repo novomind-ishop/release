@@ -187,8 +187,17 @@ object Release {
     }
 
     case class ReleaseInfo(gav: String, released: Boolean)
-    val snaps: Seq[Gav] = mod.listSnapshotsDistinct.map(_.gav()) ++
-      plugins.map(_.gav()).filter(_.version.contains("SNAPSHOT"))
+
+    val noShops: (Gav ⇒ Boolean) = if (mod.hasNoShopPom) {
+      gav: Gav ⇒ gav.groupId.contains("com.novomind.ishop.shops")
+    } else {
+      _ ⇒ false
+    }
+    val snaps: Seq[Gav] = mod.listSnapshotsDistinct
+      .map(_.gav())
+      .filterNot(noShops) ++ plugins.map(_.gav())
+      .filter(_.version.contains("SNAPSHOT"))
+
     val aetherStateLine = StatusLine(snaps.size, shellWidth)
     val snapState: Seq[ReleaseInfo] = snaps
       .par
