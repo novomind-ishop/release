@@ -265,6 +265,47 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def changeGA(): Unit = {
+    // GIVEN
+    val orgPoms = TestHelper.testResources("novosales1")
+    val orgMod = PomMod(orgPoms)
+    val srcPoms = TestHelper.testResources("novosales5")
+    orgMod.writeTo(srcPoms)
+
+    // WHEN
+    val mod = PomMod(srcPoms)
+    assertDeps(Novosales1Deps.selfVersion("27.0.0-SNAPSHOT"), mod.listSelf)
+    assert("27.0.0-SNAPSHOT" === mod.getVersionFromDocs())
+    assertDeps(Novosales1Deps.all(), mod.listDependecies)
+
+    mod.changeShopGroupArtifact("anyshop")
+    mod.writeTo(srcPoms)
+
+    val allMod: Seq[Dep] = Novosales1Deps.all()
+      .map(dep ⇒ if (!Seq("novosales-commons", "novosales-db-migration", "novosales-ipim-reviews").contains(dep.artifactId)) {
+        dep.copy(groupId = dep.groupId.replace("novosales", "anyshop"),
+          artifactId = dep.artifactId.replace("novosales", "anyshop"),
+          pomRef = dep.pomRef.copy(id = dep.pomRef.id.replace("novosales", "anyshop")))
+      } else {
+        dep.copy(pomRef = dep.pomRef.copy(id = dep.pomRef.id.replace("novosales", "anyshop")))
+      })
+
+    // THEN
+    val s = Seq(
+      Dep(PomRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop", "anyshop-projects", "27.0.0-SNAPSHOT", "", "", "pom", ""),
+      Dep(PomRef("anyshop-erp"),
+        "com.novomind.ishop.shops.anyshop", "anyshop-erp", "27.0.0-SNAPSHOT", "", "", "", ""),
+      Dep(PomRef("com.novomind.ishop.shops:anyshop"),
+        "com.novomind.ishop.shops", "anyshop", "27.0.0-SNAPSHOT", "", "", "war", "")
+    )
+    val newMod = PomMod(srcPoms)
+    assertDeps(s, newMod.listSelf)
+    assertDeps(allMod, newMod.listDependecies)
+
+  }
+
+  @Test
   def suggestReleaseVersion(): Unit = {
     // GIVEN
     val srcPoms = TestHelper.testResources("mini")

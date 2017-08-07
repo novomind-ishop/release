@@ -10,14 +10,20 @@ import javax.xml.transform.dom.DOMSource
 import javax.xml.transform.stream.StreamResult
 import javax.xml.transform.{OutputKeys, TransformerFactory}
 
+import com.google.common.annotations.VisibleForTesting
 import org.w3c.dom.{Document, Node}
-import release.PomMod._
+import release.PomMod.{Dep, PluginDep, PluginExec, PomRef}
 import release.Starter.TermOs
 
 case class PomMod(file: File) {
 
   private var depMap: Map[Dep, Node] = Map.empty
+  private val xPathToProjectGroupId = "//project/groupId"
+  private val xPathToProjectArtifactId = "//project/artifactId"
+  private val xPathToProjectName = "//project/name"
   private val xPathToProjectVersion = "//project/version"
+  private val xPathToProjectParentGroupId = "//project/parent/groupId"
+  private val xPathToProjectParentArtifactId = "//project/parent/artifactId"
   private val xPathToProjectParentVersion = "//project/parent/version"
   private val xPathToDependecies = "//dependencies/dependency"
 
@@ -157,13 +163,36 @@ case class PomMod(file: File) {
       })
     })
 
-    changeDepTrees(groupId, artifactId, version, newVersion)
+    changeDepTreesVersion(groupId, artifactId, version, newVersion)
   }
 
-  private[release] def changeDepTrees(groupId: String, artifactId: String, version: String, newVersion: String): Unit = {
+  private[release] def changeDepTreesVersion(groupId: String, artifactId: String, version: String, newVersion: String): Unit = {
     depTreeFileContents = depTreeFileContents.map(entry ⇒ {
-      (entry._1, entry._2.copy(replacedDepTrees(entry._2.content, groupId, artifactId, version, newVersion)))
+      (entry._1, entry._2.copy(replacedDepTreesVersion(entry._2.content, groupId, artifactId, version, newVersion)))
     }).foldLeft(Map.empty[File, DepTree])(_ + _)
+  }
+
+  private def replacedDepTreesVersion(in: String, groupId: String, artifactId: String, version: String, newVersion: String) = {
+    in.lines
+      .map(_.replaceFirst(groupId + ":" + artifactId + ":([^:]*):([^:]*):" + version, groupId + ":" + artifactId + ":$1:$2:" + newVersion))
+      .map(_.replaceFirst(groupId + ":" + artifactId + ":([^:]*):" + version, groupId + ":" + artifactId + ":$1:" + newVersion))
+      .mkString("\n") + "\n"
+  }
+
+  private[release] def changeDepTreesGA(groupId: String, artifactId: String, version: String,
+                                        groupIdFn: String ⇒ String, artifactIdFn: String ⇒ String): Unit = {
+    depTreeFileContents = depTreeFileContents.map(entry ⇒ {
+      (entry._1, entry._2.copy(replacedDepTreesGA(entry._2.content, groupId, artifactId, version, groupIdFn, artifactIdFn)))
+    }).foldLeft(Map.empty[File, DepTree])(_ + _)
+  }
+
+  private def replacedDepTreesGA(in: String, groupId: String, artifactId: String, version: String,
+                                 groupIdFn: String ⇒ String, artifactIdFn: String ⇒ String) = {
+    in.lines
+      .map(_.replaceFirst(groupId + ":" + artifactId + ":war:" + version, groupIdFn.apply(groupId).replace("." + artifactIdFn.apply(artifactId), "") + ":" + artifactIdFn.apply(artifactId) + ":war:" + version))
+      .map(_.replaceFirst(groupId + ":" + artifactId + ":([^:]*):([^:]*):" + version, groupIdFn.apply(groupId) + ":" + artifactIdFn.apply(artifactId) + ":$1:$2:" + version))
+      .map(_.replaceFirst(groupId + ":" + artifactId + ":([^:]*):" + version, groupIdFn.apply(groupId) + ":" + artifactIdFn.apply(artifactId) + ":$1:" + version))
+      .mkString("\n") + "\n"
   }
 
   def getVersionFromDocs(): String = {
@@ -176,20 +205,53 @@ case class PomMod(file: File) {
     Util.only(out, "only one Version is allowed")
   }
 
+  def changeShopGroupArtifact(newValue: String): Unit = {
+    if (!newValue.matches("[a-z]+")) {
+      throw new IllegalArgumentException("invalid groupidArtifactName " + newValue)
+    }
+
+    val replaceInArtifactId: (String ⇒ String) = in ⇒ {
+      newValue + in.replaceFirst("^[^-]+", "")
+    }
+
+    val replaceInName: (String ⇒ String) = {
+      case any if any.startsWith("Shopsystem:") ⇒ "Shopsystem:" + newValue.substring(0, 1).toUpperCase + newValue.substring(1)
+      case any ⇒ newValue + any.replaceFirst("^[^-]+", "")
+    }
+
+    raws.foreach(d ⇒ {
+      if (d.pomFile.getParentFile == file) {
+        PomMod.applyValueOfXpathTo(d, xPathToProjectGroupId, "com.novomind.ishop.shops." + newValue)
+        PomMod.modifyValueOfXpathTo(d, xPathToProjectArtifactId, replaceInArtifactId)
+        PomMod.modifyValueOfXpathTo(d, xPathToProjectName, replaceInName)
+        PomMod.applyToGroupAndArtifactId(d, listSelf, _ ⇒ "com.novomind.ishop.shops." + newValue, replaceInArtifactId)
+      } else {
+        PomMod.applyValueOfXpathTo(d, xPathToProjectParentGroupId, "com.novomind.ishop.shops." + newValue)
+        PomMod.modifyValueOfXpathTo(d, xPathToProjectParentArtifactId, replaceInArtifactId)
+        PomMod.modifyValueOfXpathTo(d, xPathToProjectName, replaceInName)
+        PomMod.applyValueOfXpathTo(d, xPathToProjectGroupId, "com.novomind.ishop.shops")
+        PomMod.modifyValueOfXpathTo(d, xPathToProjectArtifactId, replaceInArtifactId)
+        PomMod.applyToGroupAndArtifactId(d, listSelf, _ ⇒ "com.novomind.ishop.shops." + newValue, replaceInArtifactId)
+      }
+    })
+    selfDepsMod.foreach(entry ⇒ {
+      changeDepTreesGA(entry.groupId, entry.artifactId, entry.version, _ ⇒ "com.novomind.ishop.shops." + newValue, replaceInArtifactId)
+    })
+  }
+
   def changeVersion(newVersion: String): Unit = {
     raws.foreach(d ⇒ {
       if (d.pomFile.getParentFile == file) {
-        PomMod.applyValueOfXpathTo(d.document, xPathToProjectVersion, newVersion)
-        PomMod.applyVersionTo(d.document, listSelf, newVersion)
+        PomMod.applyValueOfXpathTo(d, xPathToProjectVersion, newVersion)
+        PomMod.applyVersionTo(d, listSelf, newVersion)
       } else {
-        PomMod.applyValueOfXpathTo(d.document, xPathToProjectParentVersion, newVersion)
-        PomMod.applyValueOfXpathTo(d.document, xPathToProjectVersion, newVersion)
-        PomMod.applyVersionTo(d.document, listSelf, newVersion)
+        PomMod.applyValueOfXpathTo(d, xPathToProjectParentVersion, newVersion)
+        PomMod.applyValueOfXpathTo(d, xPathToProjectVersion, newVersion)
+        PomMod.applyVersionTo(d, listSelf, newVersion)
       }
-
     })
     selfDepsMod.foreach(entry ⇒ {
-      changeDepTrees(entry.groupId, entry.artifactId, entry.version, newVersion)
+      changeDepTreesVersion(entry.groupId, entry.artifactId, entry.version, newVersion)
     })
 
   }
@@ -386,13 +448,6 @@ case class PomMod(file: File) {
 
   private def replacedVersionProperty(dep: PluginDep) = dep.copy(version = replacedPropertyOf(dep.version))
 
-  def replacedDepTrees(in: String, groupId: String, artifactId: String, version: String, newVersion: String) = {
-    in.lines
-      .map(_.replaceFirst(groupId + ":" + artifactId + ":([^:]*):([^:]*):" + version, groupId + ":" + artifactId + ":$1:$2:" + newVersion))
-      .map(_.replaceFirst(groupId + ":" + artifactId + ":([^:]*):" + version, groupId + ":" + artifactId + ":$1:" + newVersion))
-      .mkString("\n") + "\n"
-  }
-
   def listSnapshotsDistinct: Seq[Dep] = {
     Util.distinctOn[Dep, Dep](listSnapshots, _.copy(pomRef = PomRef.undef))
   }
@@ -491,7 +546,7 @@ case class PomMod(file: File) {
   private def toRawPom(pomFile: File): RawPomFile = {
 
     // TODO check if pom is sub sub module - parse
-    RawPomFile(pomFile, Xpath.pomDoc(pomFile))
+    RawPomFile(pomFile, Xpath.pomDoc(pomFile), file)
   }
 
   private def toRawPoms(pomFiles: Seq[File]): Seq[RawPomFile] = {
@@ -535,15 +590,14 @@ case class PomMod(file: File) {
     })
 
   }
+}
 
-  case class RawPomFile(pomFile: File, document: Document) {
-    val subfolder: String = if (pomFile.getParentFile == file) {
-      "."
-    } else {
-      pomFile.getAbsoluteFile.getParentFile.getName
-    }
+case class RawPomFile(pomFile: File, document: Document, file: File) {
+  val subfolder: String = if (pomFile.getParentFile == file) {
+    "."
+  } else {
+    pomFile.getAbsoluteFile.getParentFile.getName
   }
-
 }
 
 object PomMod {
@@ -701,38 +755,81 @@ object PomMod {
       .replaceAll("/>", " />").replaceFirst("[ ]+xsi:schemaLocation", "\n  xsi:schemaLocation")
   }
 
-  private def applyVersionTo(doc: Document, selfs: Seq[Dep], newValue: String): Unit = {
+  private def applyVersionTo(raw: RawPomFile, selfs: Seq[Dep], newValue: String): Unit = {
+    applyToKey(raw, selfs, "version", _ ⇒ newValue)
+  }
+
+  private def applyToGroupAndArtifactId(raw: RawPomFile, selfs: Seq[Dep], groupidFn: (String ⇒ String), artifactIdFn: (String ⇒ String)): Unit = {
 
     val ga = selfs.map(x ⇒ (x.groupId, x.artifactId))
 
-    def asf(depNode: Node) = {
+    def childNodesByExternalKey(depNode: Node): Seq[Node] = {
       Xpath.toSeqNodes(depNode.getChildNodes)
-        .filter(u ⇒ u.getNodeName == "version" && !u.getTextContent.isEmpty)
+        .filter(u ⇒ (u.getNodeName == "groupId" || u.getNodeName == "artifactId") && !u.getTextContent.isEmpty)
     }
 
-    val result = ga.flatMap(in ⇒ filterBy(doc, in._1, in._2, None))
-      .map(asf)
+    val tt = ga.flatMap(in ⇒ filterBy(raw.document, in._1, in._2, None))
+    val result = tt
+      .map(childNodesByExternalKey)
       .filter(_.nonEmpty)
       .flatten
 
     if (result.nonEmpty) {
-      result.foreach(_.setTextContent(newValue))
+      result.foreach(in ⇒ {
+        if (in.getNodeName == "groupId") {
+          in.setTextContent(groupidFn.apply(in.getTextContent))
+        } else if (in.getNodeName == "artifactId") {
+          in.setTextContent(artifactIdFn.apply(in.getTextContent))
+        } else {
+          throw new IllegalStateException("bad node name " + in.getNodeName)
+        }
+      })
     }
 
   }
 
-  def applyValueOfXpathTo(doc: Document, xpath: String, newValue: String): Unit = {
-    val xPathResult = Xpath.toSeq(doc, xpath)
+  private def applyToKey(raw: RawPomFile, selfs: Seq[Dep], key: String, newValueFn: (String ⇒ String)): Unit = {
+
+    val ga = selfs.map(x ⇒ (x.groupId, x.artifactId))
+
+    def childNodesByExternalKey(depNode: Node): Seq[Node] = {
+      Xpath.toSeqNodes(depNode.getChildNodes)
+        .filter(u ⇒ u.getNodeName == key && !u.getTextContent.isEmpty)
+    }
+
+    val tt = ga.flatMap(in ⇒ filterBy(raw.document, in._1, in._2, None))
+    val result = tt
+      .map(childNodesByExternalKey)
+      .filter(_.nonEmpty)
+      .flatten
+
+    if (result.nonEmpty) {
+      result.foreach(in ⇒ in.setTextContent(newValueFn.apply(in.getTextContent)))
+    }
+
+  }
+
+  def modifyValueOfXpathTo(raw: RawPomFile, xpath: String, newValueFn: (String ⇒ String)): Unit = {
+    val xPathResult = Xpath.toSeq(raw.document, xpath)
+    val node = xPathResult.headOption
+    if (node.isDefined) {
+      node.get.setTextContent(newValueFn.apply(node.get.getTextContent))
+    }
+  }
+
+  def applyValueOfXpathTo(raw: RawPomFile, xpath: String, newValue: String): Unit = {
+    val xPathResult = Xpath.toSeq(raw.document, xpath)
     val node = xPathResult.headOption
     if (node.isDefined) {
       node.get.setTextContent(newValue)
     }
   }
 
+  @VisibleForTesting
   def format(in: String, xPathStr: String, value: String): String = {
-    val doc = Xpath.newDocument(in)
-    applyValueOfXpathTo(doc, xPathStr, value)
-    toString(doc)
+    val raw = RawPomFile(new File("."), Xpath.newDocument(in), new File("."))
+    applyValueOfXpathTo(raw, xPathStr, value)
+    toString(raw.document)
   }
 
   case class Dep(pomRef: PomRef, groupId: String, artifactId: String, version: String, typeN: String,

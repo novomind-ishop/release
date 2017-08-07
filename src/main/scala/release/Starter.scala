@@ -65,7 +65,11 @@ object Starter extends App with LazyLogging {
     val createFeatureBranch = restArgs.contains("nothing-but-create-feature-branch")
     val noVerify = !restArgs.contains("noVerify")
     val jenkinsTrigger = restArgs.contains("jenkinsTrigger")
-    val versionSetMode = restArgs.sliding(2).exists(_.head == "versionSet")
+    val versionSetFilter: (List[String] ⇒ Boolean) = in ⇒ in.head == "versionSet"
+    val versionSetMode = restArgs.sliding(2).exists(versionSetFilter)
+    val shopGASetFilter: (List[String] ⇒ Boolean) = in ⇒ in.head == "shopGASet"
+    val shopGASetMode = restArgs.sliding(2).exists(shopGASetFilter)
+
     // TODO --batch ## alles mit default wählen
 
     if (showHelp) {
@@ -79,7 +83,7 @@ object Starter extends App with LazyLogging {
       out.println("jenkinsTrigger   => beta: jenkins trigger for builds")
       out.println()
       out.println("versionSet newVersion                => changes version like maven")
-      out.println("shopGASet newGroupId:newArtifactId   => draft: changes GroupId and ArtifactId for Shops")
+      out.println("shopGASet newGroupIdAndAtifactId     => changes GroupId and ArtifactId for Shops")
       out.println("nothing-but-create-feature-branch    => creates a feature branch and changes pom.xmls")
       return 0
     }
@@ -212,12 +216,18 @@ object Starter extends App with LazyLogging {
       if (versionSetMode) {
         Release.checkLocalChanges(git, startBranch)
         val mod = PomMod(workDirFile)
-        val version = restArgs.sliding(2).find(in ⇒ in.head == "versionSet").get.last
+        val version = restArgs.sliding(2).find(versionSetFilter).get.last
         val versionWithoutSnapshot = Term.removeSnapshot(version)
         mod.changeVersion(versionWithoutSnapshot + "-SNAPSHOT")
         mod.writeTo(workDirFile)
         println("You have local changes")
-
+      } else if (shopGASetMode) {
+        Release.checkLocalChanges(git, startBranch)
+        val mod = PomMod(workDirFile)
+        val groupIdArtifactIdLine = restArgs.sliding(2).find(shopGASetFilter).get.last
+        mod.changeShopGroupArtifact(groupIdArtifactIdLine)
+        mod.writeTo(workDirFile)
+        println("You have local changes")
       } else if (createFeatureBranch) {
         FeatureBranch.work(workDirFile, out, err, git, startBranch, askForRebase, releaseToolGit.headStatusValue())
       } else {

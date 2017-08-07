@@ -47,7 +47,7 @@ class StarterTest extends AssertionsForJUnit {
       |jenkinsTrigger   => beta: jenkins trigger for builds
       |
       |versionSet newVersion                => changes version like maven
-      |shopGASet newGroupId:newArtifactId   => draft: changes GroupId and ArtifactId for Shops
+      |shopGASet newGroupIdAndAtifactId     => changes GroupId and ArtifactId for Shops
       |nothing-but-create-feature-branch    => creates a feature branch and changes pom.xmls""".stripMargin
 
   @Test
