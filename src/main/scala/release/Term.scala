@@ -7,7 +7,7 @@ import scala.io.StdIn
 object Term {
 
   def removeSnapshot(str: String): String = {
-    val out = str.replaceFirst("-SNAPSHOT$", "")
+    val out = str.replaceFirst("-SNAPSHOT$", "").trim
     if (out.contains("-SNAPSHOT")) {
       removeSnapshot(out)
     } else {

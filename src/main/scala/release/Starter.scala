@@ -44,7 +44,7 @@ object Starter extends App with LazyLogging {
     val workDir = argSeq(1)
     val workDirFile = new File(workDir).getAbsoluteFile
     val shellWidth = argSeq(4).toInt
-    val restArgs = argSeq.drop(5).filter(_ != null).map(_.trim)
+    val restArgs = argSeq.drop(5).filter(_ != null).map(_.trim).toList
     val debugKey = restArgs.contains("debug")
 
     def debug(message: String): Unit = {
@@ -65,6 +65,7 @@ object Starter extends App with LazyLogging {
     val createFeatureBranch = restArgs.contains("nothing-but-create-feature-branch")
     val noVerify = !restArgs.contains("noVerify")
     val jenkinsTrigger = restArgs.contains("jenkinsTrigger")
+    val versionSetMode = restArgs.sliding(2).exists(_.head == "versionSet")
     // TODO --batch ## alles mit default wählen
 
     if (showHelp) {
@@ -76,9 +77,10 @@ object Starter extends App with LazyLogging {
       out.println("replace          => replaces release jar / only required for development")
       out.println("noVerify         => use this toggle for non gerrit projects")
       out.println("jenkinsTrigger   => beta: jenkins trigger for builds")
-      out.println("versionSet       => draft: changes version like maven")
       out.println()
-      out.println("nothing-but-create-feature-branch => creates a feature branch and changes pom.xmls")
+      out.println("versionSet newVersion                => changes version like maven")
+      out.println("shopGASet newGroupId:newArtifactId   => draft: changes GroupId and ArtifactId for Shops")
+      out.println("nothing-but-create-feature-branch    => creates a feature branch and changes pom.xmls")
       return 0
     }
 
@@ -207,7 +209,16 @@ object Starter extends App with LazyLogging {
       val askForRebase = suggestRebase(git, startBranch)
       debug("readFromPrompt")
       debugFn(() ⇒ "local branches: " + git.branchNamesLocal())
-      if (createFeatureBranch) {
+      if (versionSetMode) {
+        Release.checkLocalChanges(git, startBranch)
+        val mod = PomMod(workDirFile)
+        val version = restArgs.sliding(2).find(in ⇒ in.head == "versionSet").get.last
+        val versionWithoutSnapshot = Term.removeSnapshot(version)
+        mod.changeVersion(versionWithoutSnapshot + "-SNAPSHOT")
+        mod.writeTo(workDirFile)
+        println("You have local changes")
+
+      } else if (createFeatureBranch) {
         FeatureBranch.work(workDirFile, out, err, git, startBranch, askForRebase, releaseToolGit.headStatusValue())
       } else {
         Release.work(workDirFile, out, err, askForRebase, startBranch,

@@ -45,9 +45,10 @@ class StarterTest extends AssertionsForJUnit {
       |replace          => replaces release jar / only required for development
       |noVerify         => use this toggle for non gerrit projects
       |jenkinsTrigger   => beta: jenkins trigger for builds
-      |versionSet       => draft: changes version like maven
       |
-      |nothing-but-create-feature-branch => creates a feature branch and changes pom.xmls""".stripMargin
+      |versionSet newVersion                => changes version like maven
+      |shopGASet newGroupId:newArtifactId   => draft: changes GroupId and ArtifactId for Shops
+      |nothing-but-create-feature-branch    => creates a feature branch and changes pom.xmls""".stripMargin
 
   @Test
   def test_help(): Unit = {
