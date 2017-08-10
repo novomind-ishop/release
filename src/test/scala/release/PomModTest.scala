@@ -433,6 +433,26 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def suggestNextRelease_no_bugfix(): Unit = {
+
+    // GIVEN/WHEN
+    val next = PomMod.suggestNextReleaseBy("28.0")
+
+    // THEN
+    assert("28.1.0" === next)
+  }
+
+  @Test
+  def suggestNextRelease_no_minor(): Unit = {
+
+    // GIVEN/WHEN
+    val next = PomMod.suggestNextReleaseBy("28")
+
+    // THEN
+    assert("29.0.0" === next)
+  }
+
+  @Test
   def suggestRelease_shop(): Unit = {
 
     // GIVEN/WHEN

@@ -206,8 +206,9 @@ case class PomMod(file: File) {
   }
 
   def changeShopGroupArtifact(newValue: String): Unit = {
-    if (!newValue.matches("[a-z]+")) {
-      throw new IllegalArgumentException("invalid groupidArtifactName " + newValue)
+    val pattern = "[a-z0-9]+"
+    if (!newValue.matches(pattern)) {
+      throw new IllegalArgumentException("invalid groupidArtifactName \"" + newValue + "\"; must match " + pattern)
     }
 
     val replaceInArtifactId: (String ⇒ String) = in ⇒ {
@@ -603,6 +604,8 @@ case class RawPomFile(pomFile: File, document: Document, file: File) {
 object PomMod {
 
   private val semverPattern = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)$".r
+  private val semverPatternNoBugfix = "^([0-9]+)\\.([0-9]+)$".r
+  private val semverPatternNoMinor = "^([0-9]+)$".r
   private val semverPatternLowdash = "^([0-9]+)\\.([0-9]+)\\.([0-9]+_)([0-9]+)$".r
 
   private[release] def findPluginsByName(plugins: Seq[PluginDep], name: String) = {
@@ -688,8 +691,10 @@ object PomMod {
 
       val snapped = releaseVersion.replaceFirst("-SNAPSHOT", "")
       snapped match {
-        case semverPattern(ma, mi, b) ⇒ ma + "." + mi + "." + (b.toInt + 1)
         case semverPatternLowdash(ma, mi, b, low) ⇒ ma + "." + mi + "." + b + (low.toInt + 1)
+        case semverPattern(ma, mi, b) ⇒ ma + "." + mi + "." + (b.toInt + 1)
+        case semverPatternNoBugfix(ma, mi) ⇒ ma + "." + (mi.toInt + 1) + ".0"
+        case semverPatternNoMinor(ma) ⇒ (ma.toInt + 1) + ".0.0"
         case shopPattern(pre, year, week) ⇒ {
           val addWeek = week.toInt + 1
           val nextWeek = if (addWeek > 52) {
