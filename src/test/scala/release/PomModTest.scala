@@ -229,6 +229,11 @@ class PomModTest extends AssertionsForJUnit {
         "any", "final", "1.0.1", "", "", "", "")
     ), orgMod.listDependecies)
     assertDeps(Seq(Dep(PomRef("c:1.0.0-SNAPSHOT"), "any", "other", "1.0.0-SNAPSHOT", "", "", "", "")), orgMod.listSnapshots)
+    orgMod.changeVersion("master-SNAPSHOT")
+    orgMod.writeTo(orgPoms)
+    val orgMod1 = PomMod(orgPoms)
+    orgMod1.changeVersion("1.0.0-SNAPSHOT")
+    orgMod1.writeTo(orgPoms)
   }
 
   @Test

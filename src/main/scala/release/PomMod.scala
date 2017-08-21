@@ -297,7 +297,8 @@ case class PomMod(file: File) {
 
   def writeTo(targetFolder: File): Unit = {
     raws.par.foreach(sub ⇒ {
-      writePom(new File(new File(targetFolder, sub.subfolder), "pom.xml"), sub.document)
+      val path = file.toPath.relativize(sub.pomFile.toPath)
+      writePom(targetFolder.toPath.resolve(path).toFile, sub.document)
     })
 
     depTreeFileContents
