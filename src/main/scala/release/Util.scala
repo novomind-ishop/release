@@ -25,7 +25,7 @@ object Util {
   }
 
   def only[T](ts: Seq[T], msg: String) = ts match {
-    case Nil ⇒ throw new IllegalArgumentException(msg + " Nil.")
+    case Nil ⇒ throw new IllegalArgumentException(msg + ". Input is Nil.")
     case e if e.size == 1 ⇒ e.head
     case e ⇒ throw new IllegalArgumentException(msg + " (" + e.toList.mkString(", ") + ")")
   }

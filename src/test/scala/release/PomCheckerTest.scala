@@ -75,7 +75,7 @@ class PomCheckerTest extends AssertionsForJUnit {
 
     // WHEN / THEN
     TestHelper.assertException(() ⇒ PomChecker.checkIshopMaven(deps),
-      "c.n.i.s:n-any:0.0.1-SNAPSHOT:jar - a single execution section for ishop maven plugin please required, but was Nil.",
+      "c.n.i.s:n-any:0.0.1-SNAPSHOT:jar - a single execution section for ishop maven plugin please required. Input is Nil.",
       classOf[IllegalArgumentException])
   }
 

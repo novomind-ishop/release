@@ -246,7 +246,7 @@ class SgitTest extends AssertionsForJUnit {
 
   @Test
   def testGitNative(): Unit = {
-    SgitTest.testFail("Nonzero exit value: 1; git --no-pager iutghiprjhpeth; " +
+    TestHelper.testFail("Nonzero exit value: 1; git --no-pager iutghiprjhpeth; " +
       "git: 'iutghiprjhpeth' is not a git command. See 'git --help'.",
       classOf[RuntimeException], () ⇒ {
         SgitTest.workSgit().gitNative(Seq("iutghiprjhpeth"))
@@ -255,7 +255,7 @@ class SgitTest extends AssertionsForJUnit {
   }
 
   private def testFailIllegal(expectedMsg: String, fn: () ⇒ Unit): Unit = {
-    SgitTest.testFail(expectedMsg, classOf[IllegalStateException], fn)
+    TestHelper.testFail(expectedMsg, classOf[IllegalStateException], fn)
   }
 
   @Test
@@ -304,7 +304,7 @@ class SgitTest extends AssertionsForJUnit {
     // WHEN
     val gitA = Sgit.init(testRepoA, showGitCmd = false, SgitTest.hasCommitMsg)
 
-    SgitTest.testFail("Nonzero exit value: 1; git --no-pager push -q -u origin master:refs/for/master; " +
+    TestHelper.testFail("Nonzero exit value: 1; git --no-pager push -q -u origin master:refs/for/master; " +
       "git-err: 'error: src refspec master does not match any.' " +
       "git-err: 'error: failed to push some refs to 'origin''",
       classOf[RuntimeException], () ⇒ {
@@ -313,14 +313,14 @@ class SgitTest extends AssertionsForJUnit {
 
     gitA.fetchAll()
     gitA.remoteAdd("ubglu", "failfail")
-    SgitTest.testFail("Nonzero exit value: 1; " +
+    TestHelper.testFail("Nonzero exit value: 1; " +
       "git --no-pager fetch -q --all --tags; fatal: 'failfail' does not appear to be a git repository " +
       "fatal: Could not read from remote repository. Please make sure you have the correct access rights " +
       "and the repository exists. error: Could not fetch ubglu",
       classOf[RuntimeException], () ⇒ {
         gitA.fetchAll()
       })
-    SgitTest.testFail("Nonzero exit value: 1; git --no-pager push -q -u origin master:refs/heads/master; " +
+    TestHelper.testFail("Nonzero exit value: 1; git --no-pager push -q -u origin master:refs/heads/master; " +
       "git-err: 'error: src refspec master does not match any.' " +
       "git-err: 'error: failed to push some refs to 'origin''",
       classOf[RuntimeException], () ⇒ {
@@ -441,7 +441,7 @@ class SgitTest extends AssertionsForJUnit {
     gitB.remoteRemove("origin")
     gitB.remoteAdd("origin", "ssh://none@git-ishop.novomind.com:19418/ishop/user/tstock/sonar-demo")
 
-    SgitTest.testFail("Nonzero exit value: 128; git --no-pager push -q -u origin master:refs/heads/master; " +
+    TestHelper.testFail("Nonzero exit value: 128; git --no-pager push -q -u origin master:refs/heads/master; " +
       "git-err: 'Permission denied (publickey).' " +
       "git-err: 'fatal: Could not read from remote repository.' " +
       "git-err: 'Please make sure you have the correct access rights' " +
@@ -458,14 +458,4 @@ object SgitTest {
   val hasCommitMsg = Files.exists(commitMsg)
 
   def workSgit(): Sgit = Sgit(Util.localWork, showGitCmd = false, doVerify = hasCommitMsg, System.out, System.err)
-
-  def testFail[E >: Exception](expectedMsg: String, e: E, fn: () ⇒ Unit): Unit = {
-    try {
-      fn.apply()
-      Assert.fail("no exception was thrown")
-    } catch {
-      case e: Exception if e.isInstanceOf[E] ⇒ Assert.assertEquals(expectedMsg, e.getMessage)
-      case e: Exception ⇒ Assert.fail(e.getMessage)
-    }
-  }
 }

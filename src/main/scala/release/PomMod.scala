@@ -590,7 +590,7 @@ object PomMod {
   private val semverPatternNoMinor = "^([0-9]+)$".r
   private val semverPatternLowdash = "^([0-9]+)\\.([0-9]+)\\.([0-9]+_)([0-9]+)$".r
 
-  private[release] def replaceProperty(props: Map[String, String])(string: String) = {
+  private[release] def replaceProperty(props: Map[String, String])(input: String) = {
     if (props.isEmpty) {
       throw new IllegalStateException("property map is empty")
     }
@@ -603,10 +603,10 @@ object PomMod {
       }
     }
 
-    val allReplacemdents = props.map(p ⇒ tryReplace(string, p)).toSeq
+    val allReplacemdents = props.map(p ⇒ tryReplace(input, p)).toSeq
       .distinct
-      .filterNot(_.startsWith("$"))
-    Util.only(allReplacemdents, "only one element was expected but was: " + string)
+      .filterNot(_.contains("$"))
+    Util.only(allReplacemdents, "No property replacement found in pom.xmls for: \"" + input + "\"")
   }
 
   private[release] def findPluginsByName(plugins: Seq[PluginDep], name: String) = {

@@ -30,6 +30,16 @@ object TestHelper {
     testResourcesRoot().resolve(folderName).toFile.getAbsoluteFile
   }
 
+  def testFail[E >: Exception](expectedMsg: String, e: E, fn: () ⇒ Unit): Unit = {
+    try {
+      fn.apply()
+      Assert.fail("no exception was thrown")
+    } catch {
+      case e: Exception if e.isInstanceOf[E] ⇒ Assert.assertEquals(expectedMsg, e.getMessage)
+      case e: Exception ⇒ Assert.fail(e.getMessage)
+    }
+  }
+
   def assertException[T <: Exception](f: () ⇒ Unit, message: String, clazz: Class[T]): Unit = {
     try {
       f.apply()
