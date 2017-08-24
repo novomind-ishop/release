@@ -270,6 +270,24 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def replaceProperty(): Unit = {
+    Assert.assertEquals("ab", PomMod.replaceProperty(Map("a" → "b"))("a${a}"))
+    Assert.assertEquals("a${", PomMod.replaceProperty(Map("a" → "b"))("a${"))
+    Assert.assertEquals("a${}", PomMod.replaceProperty(Map("a" → "b"))("a${}"))
+    Assert.assertEquals("a${b}", PomMod.replaceProperty(Map("a" → "b"))("a${b}"))
+    Assert.assertEquals("a${b}", PomMod.replaceProperty(Map("a" → "b"))("a${b}"))
+
+    // TODO improve this message later
+    SgitTest.testFail("only one element was expected but was: ${u} Nil.", classOf[IllegalArgumentException], () ⇒ {
+      PomMod.replaceProperty(Map("a" → "b"))("${u}")
+    })
+
+    SgitTest.testFail("property map is empty", classOf[IllegalStateException], () ⇒ {
+      PomMod.replaceProperty(Map.empty)("a${b}")
+    })
+  }
+
+  @Test
   def changeGA(): Unit = {
     // GIVEN
     val orgPoms = TestHelper.testResources("novosales1")

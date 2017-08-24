@@ -425,26 +425,7 @@ case class PomMod(file: File) {
     filtered.map(_.groupId).contains("com.novomind.ishop.shops")
   }
 
-  private def replaceProperty(props: Map[String, String])(string: String) = {
-    if (props.isEmpty) {
-      throw new IllegalStateException("property map is empty")
-    }
-
-    def tryReplace(in: String, p: (String, String)): String = {
-      try {
-        in.replace("${" + p._1 + "}", p._2)
-      } catch {
-        case e: IllegalArgumentException ⇒ throw new IllegalStateException(e.getMessage + " in " + in)
-      }
-    }
-
-    val allReplacemdents = props.map(p ⇒ tryReplace(string, p)).toSeq
-      .distinct
-      .filterNot(_.startsWith("$"))
-    Util.only(allReplacemdents, "only one element was expected but was: " + string)
-  }
-
-  private def replacedPropertyOf(string: String) = replaceProperty(listProperties)(string)
+  private def replacedPropertyOf(string: String) = PomMod.replaceProperty(listProperties)(string)
 
   private def replacedVersionProperties(deps: Seq[Dep]) = deps.map(dep ⇒ dep.copy(version = replacedPropertyOf(dep.version)))
 
@@ -608,6 +589,25 @@ object PomMod {
   private val semverPatternNoBugfix = "^([0-9]+)\\.([0-9]+)$".r
   private val semverPatternNoMinor = "^([0-9]+)$".r
   private val semverPatternLowdash = "^([0-9]+)\\.([0-9]+)\\.([0-9]+_)([0-9]+)$".r
+
+  private[release] def replaceProperty(props: Map[String, String])(string: String) = {
+    if (props.isEmpty) {
+      throw new IllegalStateException("property map is empty")
+    }
+
+    def tryReplace(in: String, p: (String, String)): String = {
+      try {
+        in.replace("${" + p._1 + "}", p._2)
+      } catch {
+        case e: IllegalArgumentException ⇒ throw new IllegalStateException(e.getMessage + " in " + in)
+      }
+    }
+
+    val allReplacemdents = props.map(p ⇒ tryReplace(string, p)).toSeq
+      .distinct
+      .filterNot(_.startsWith("$"))
+    Util.only(allReplacemdents, "only one element was expected but was: " + string)
+  }
 
   private[release] def findPluginsByName(plugins: Seq[PluginDep], name: String) = {
     plugins

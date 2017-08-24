@@ -79,6 +79,7 @@ class StatusLineTest extends AssertionsForJUnit {
     assertLine("Progress: (000/500)[-------                                                                 ]", 50)
     assertLine("Progress: (000/500)[--------------                                                          ]", 100)
     assertLine("Progress: (250/500)[====================================------------------------------------]", 750)
+    assertLine("Progress: (499/500)[=======================================================================-]", 999)
     Assert.assertEquals(93, lines.split("\r")(0).length)
 
   }
