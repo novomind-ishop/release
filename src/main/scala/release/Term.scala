@@ -18,10 +18,16 @@ object Term {
   def readFrom(out: PrintStream, text: String, defaultValue: String): String = {
     out.print(text + " [%s]: ".format(defaultValue))
     val line = StdIn.readLine()
-    line match {
+    val result = line match {
       case null ⇒ System.exit(1); null
       case "" ⇒ defaultValue
       case any: String ⇒ Option(any.trim).getOrElse(defaultValue)
+    }
+
+    result match {
+      case in if in.contains("-UNDEF") ⇒ throw new IllegalArgumentException("\"-UNDEF\" is not allowed")
+      case in if in.trim.isEmpty ⇒ throw new IllegalArgumentException("blank is not allowed")
+      case other ⇒ other
     }
   }
 

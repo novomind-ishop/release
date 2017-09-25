@@ -5,14 +5,14 @@ import java.io.{File, PrintStream}
 import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
-import java.util.concurrent.TimeoutException
+import java.util.concurrent.{TimeUnit, TimeoutException}
 
 import com.google.common.hash.Hashing
 import com.typesafe.scalalogging.LazyLogging
 import org.eclipse.jgit.api.errors.RefAlreadyExistsException
-import org.scalatest.time.{Seconds, Span}
 import release.Xpath.InvalidPomXmlException
 
+import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 
 object Starter extends App with LazyLogging {
@@ -152,7 +152,7 @@ object Starter extends App with LazyLogging {
       } yield (git, startBranch)
 
       try {
-        Await.result(result, Span(60, Seconds))
+        Await.result(result, Duration.create(60, TimeUnit.SECONDS))
       } catch {
         case _: TimeoutException ⇒ throw new TimeoutException("git fetch failed")
       }
