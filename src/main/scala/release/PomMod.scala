@@ -13,7 +13,7 @@ import javax.xml.transform.{OutputKeys, TransformerFactory}
 import com.google.common.annotations.VisibleForTesting
 import org.w3c.dom.{Document, Node}
 import release.PomMod.{Dep, PluginDep, PluginExec, PomRef}
-import release.Starter.TermOs
+import release.Starter.{PreconditionsException, TermOs}
 
 case class PomMod(file: File) {
 
@@ -29,7 +29,7 @@ case class PomMod(file: File) {
 
   private val rootPom = new File(file, "pom.xml")
   if (!rootPom.canRead) {
-    throw new IllegalStateException(file.toString + " seems to be no maven project")
+    throw new PreconditionsException(file.toString + " seems to be no maven project")
   }
   private val allRawPomFiles = allRawModulePomsFiles(Seq(file))
 

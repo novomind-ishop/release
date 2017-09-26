@@ -179,7 +179,7 @@ object Starter extends App with LazyLogging {
 
     def handleException(t: Throwable): Int = {
       t match {
-        case x@(_: RefAlreadyExistsException | _: Sgit.MissigCommitHookException |
+        case x@(_: RefAlreadyExistsException | _: Sgit.MissigCommitHookException | _:Sgit.MissigGitDirException |
                 _: PomChecker.ValidationException | _: PreconditionsException | _: Sgit.BranchAlreadyExistsException) ⇒ {
           err.println()
           err.println("E: " + x.getMessage)

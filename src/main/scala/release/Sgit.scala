@@ -4,7 +4,7 @@ import java.io.{File, PrintStream}
 import java.net.URI
 
 import com.typesafe.scalalogging.LazyLogging
-import release.Sgit.BranchAlreadyExistsException
+import release.Sgit.{BranchAlreadyExistsException, MissigGitDirException}
 
 import scala.io.Source
 import scala.sys.process.ProcessLogger
@@ -12,7 +12,8 @@ import scala.util.{Failure, Success, Try}
 
 case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintStream, err: PrintStream) extends LazyLogging {
 
-  private def gitRoot = Sgit.findGit(file.getAbsoluteFile)
+  private def gitRoot = Sgit.findGit(file.getAbsoluteFile, file.getAbsoluteFile)
+  println("[sgit out] " + gitRoot.getAbsolutePath)
 
   private def dotGit = new File(gitRoot, ".git")
 
@@ -95,7 +96,7 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
         val realGitDir = new File(workTreeDef)
         new File(new File(realGitDir, "hooks"), "commit-msg")
       } else {
-        throw new IllegalStateException("invalid git folder")
+        throw new MissigGitDirException("invalid git folder")
       }
 
       if (!(commitMsgHook.canRead && commitMsgHook.canExecute)) {
@@ -112,6 +113,8 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
 
     if (dotGit.exists()) {
       checkCommitMessageHook(dotGit)
+    } else {
+      throw new MissigGitDirException("no .git dir in " + file.getAbsolutePath + " was found (2)")
     }
 
   }
@@ -505,13 +508,19 @@ object Sgit {
 
   class MissigCommitHookException(msg: String) extends RuntimeException(msg)
 
+  class MissigGitDirException(msg: String) extends RuntimeException(msg)
+
   class BranchAlreadyExistsException(msg: String) extends RuntimeException(msg)
 
-  private[release] def findGit(in: File): File = {
+  private[release] def findGit(start:File, in: File): File = {
     if (new File(in, ".git").exists()) {
       in
     } else {
-      findGit(in.getParentFile)
+      in.getParentFile match {
+        case null ⇒ throw new MissigGitDirException("no .git dir in " + start.getAbsolutePath + " was found")
+        case parent ⇒ findGit(start, parent)
+      }
+
     }
   }
 

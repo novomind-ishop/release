@@ -5,6 +5,8 @@ import java.nio.file.{Files, StandardCopyOption}
 
 import org.junit.{Assert, Assume, Test}
 import org.scalatest.junit.AssertionsForJUnit
+import release.Sgit.MissigGitDirException
+import release.SgitTest.hasCommitMsg
 
 import scala.collection.JavaConverters
 
@@ -26,6 +28,19 @@ class SgitTest extends AssertionsForJUnit {
       }
       case other ⇒ Assert.fail("unknown os: " + other + " => " + git)
     }
+  }
+
+  @Test
+  def testMissingGitDir(): Unit = {
+
+    TestHelper.assertExceptionWithCheck(message ⇒ Assert.assertEquals("no .git dir in sgit-test was found", message.replaceFirst("[^ ]+sgit-test-[^ ]+", "sgit-test"))
+      , classOf[MissigGitDirException], () ⇒ {
+        val temp = Files.createTempDirectory("sgit-test-").toFile.getAbsoluteFile
+        Sgit(temp, showGitCmd = false, doVerify = hasCommitMsg, System.out, System.err)
+        temp.deleteOnExit()
+      })
+
+
   }
 
   @Test
@@ -454,7 +469,7 @@ class SgitTest extends AssertionsForJUnit {
 }
 
 object SgitTest {
-  val commitMsg = Sgit.findGit(Util.localWork).toPath.resolve(".git/hooks/commit-msg")
+  val commitMsg = Sgit.findGit(Util.localWork, Util.localWork).toPath.resolve(".git/hooks/commit-msg")
   val hasCommitMsg = Files.exists(commitMsg)
 
   def workSgit(): Sgit = Sgit(Util.localWork, showGitCmd = false, doVerify = hasCommitMsg, System.out, System.err)

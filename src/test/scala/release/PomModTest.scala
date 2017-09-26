@@ -15,9 +15,9 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("defect-self-pom")
 
     // WHEN
-    TestHelper.assertException(() ⇒ {
-      PomMod(srcPoms).selfVersion
-    }, "More then one Version found in your pom.xmls (27.0.0-SNAPSHOT, 28.0.0-SNAPSHOT)", classOf[IllegalArgumentException])
+    TestHelper.assertException("More then one Version found in your pom.xmls (27.0.0-SNAPSHOT, 28.0.0-SNAPSHOT)", classOf[IllegalArgumentException], () ⇒ {
+          PomMod(srcPoms).selfVersion
+        })
 
   }
 
@@ -273,27 +273,27 @@ class PomModTest extends AssertionsForJUnit {
   def replaceProperty(): Unit = {
     Assert.assertEquals("ab", PomMod.replaceProperty(Map("a" → "b"))("a${a}"))
 
-    TestHelper.testFail("No property replacement found in pom.xmls for: \"a${\". Input is Nil.",
+    TestHelper.assertException("No property replacement found in pom.xmls for: \"a${\". Input is Nil.",
       classOf[IllegalArgumentException], () ⇒ {
         PomMod.replaceProperty(Map("a" → "b"))("a${")
       })
 
-    TestHelper.testFail("No property replacement found in pom.xmls for: \"a${b}\". Input is Nil.",
+    TestHelper.assertException("No property replacement found in pom.xmls for: \"a${b}\". Input is Nil.",
       classOf[IllegalArgumentException], () ⇒ {
         PomMod.replaceProperty(Map("a" → "b"))("a${b}")
       })
 
-    TestHelper.testFail("No property replacement found in pom.xmls for: \"a${}\". Input is Nil.",
+    TestHelper.assertException("No property replacement found in pom.xmls for: \"a${}\". Input is Nil.",
       classOf[IllegalArgumentException], () ⇒ {
         PomMod.replaceProperty(Map("a" → "b"))("a${}")
       })
 
-    TestHelper.testFail("No property replacement found in pom.xmls for: \"${u}\". Input is Nil.",
+    TestHelper.assertException("No property replacement found in pom.xmls for: \"${u}\". Input is Nil.",
       classOf[IllegalArgumentException], () ⇒ {
         PomMod.replaceProperty(Map("a" → "b"))("${u}")
       })
 
-    TestHelper.testFail("property map is empty", classOf[IllegalStateException], () ⇒ {
+    TestHelper.assertException("property map is empty", classOf[IllegalStateException], () ⇒ {
       PomMod.replaceProperty(Map.empty)("a${b}")
     })
   }
@@ -357,8 +357,7 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("novosales1/novosales-erp")
 
     // WHEN / THEN
-    TestHelper.assertException(() ⇒ PomMod(srcPoms).suggestReleaseVersion(),
-      "novosales-erp as no version, please define", classOf[IllegalStateException])
+    TestHelper.assertException("novosales-erp as no version, please define", classOf[IllegalStateException], () ⇒ PomMod(srcPoms).suggestReleaseVersion())
 
   }
 
