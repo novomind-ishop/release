@@ -159,7 +159,7 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
 
   def branchNamesRemote(): Seq[String] = branchListRemote().map(_.branchName.replaceFirst("refs/remotes/origin/", "")).sorted
 
-  def branchNamesAll():Seq[String] = (branchNamesRemote() ++ branchNamesLocal()).distinct.sorted
+  def branchNamesAll(): Seq[String] = (branchNamesRemote() ++ branchNamesLocal()).distinct.sorted
 
   def branchListRemote(): Seq[GitShaBranch] = {
     gitNative(Seq("branch", "--list", "--verbose", "--no-abbrev", "--remote"))
@@ -324,11 +324,11 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
 
   def createBranch(branchName: String): Unit = {
     try {
-    gitNative(Seq("branch", branchName))
+      gitNative(Seq("branch", branchName))
     } catch {
-      case e:RuntimeException if e.getMessage.contains("A branch named '" + branchName + "' already exists.") ⇒
+      case e: RuntimeException if e.getMessage.contains("A branch named '" + branchName + "' already exists.") ⇒
         throw new BranchAlreadyExistsException(e.getMessage)
-      case t:Throwable ⇒ throw t
+      case t: Throwable ⇒ throw t
     }
   }
 
@@ -387,19 +387,24 @@ object Sgit {
     val cmd: Seq[String] = selectedGitCmd(err)
     val git = gits.get(cmd)
     if (git.isEmpty) {
-      // git lg --date=short --simplify-by-decoration --pretty=format:'(%cd)%d'
+      // git lg --tags --date=short --simplify-by-decoration --pretty=format:'(%cd)%d'
       val result: Unit = sgit.gitNative(Seq("--version"), useWorkdir = false) match {
         case v: String if v.startsWith("git version 2.8") ⇒
           // (2016-06-06) - (tag: v2.8.4)
-          out.println("W: please update your git version, \"" + v + "\" support ends at 2017-07-01");
+          throw new IllegalStateException("support ended at 2017-07-01")
         case v: String if v.startsWith("git version 2.9") ⇒
           // (2016-08-12) - (tag: v2.9.3)
-          out.println("W: please update your git version, \"" + v + "\" support ends at 2017-08-01");
-        case v: String if v.startsWith("git version 2.10") ⇒ // do nothing (2016-10-28) - (tag: v2.10.2)
-        case v: String if v.startsWith("git version 2.11") ⇒ // do nothing (2017-02-02) - (tag: v2.11.1)
+          throw new IllegalStateException("support ended at 2017-08-01")
+        case v: String if v.startsWith("git version 2.10") ⇒
+          // (2016-10-28) - (tag: v2.10.2)
+          out.println("W: please update your git version, \"" + v + "\" support ends at 2017-11-01");
+        case v: String if v.startsWith("git version 2.11") ⇒
+          // 2017-02-02) - (tag: v2.11.1)
+          out.println("W: please update your git version, \"" + v + "\" support ends at 2017-11-01");
         case v: String if v.startsWith("git version 2.12") ⇒ // do nothing (2017-03-20) - (tag: v2.12.1)
-        case v: String if v.startsWith("git version 2.13") ⇒ // do nothing
-        case v: String ⇒ out.println("W: unknown git version: \"" + v + "\"");
+        case v: String if v.startsWith("git version 2.13") ⇒ // do nothing (2017-09-22) - (tag: v2.13.6)
+        case v: String if v.startsWith("git version 2.14") ⇒ // do nothing
+        case v: String ⇒ out.println("W: unknown/untested git version: \"" + v + "\". Please create a ticket at ISPS.");
       }
       gits = gits ++ Map(cmd → result)
     }
@@ -499,6 +504,7 @@ object Sgit {
   }
 
   class MissigCommitHookException(msg: String) extends RuntimeException(msg)
+
   class BranchAlreadyExistsException(msg: String) extends RuntimeException(msg)
 
   private[release] def findGit(in: File): File = {
