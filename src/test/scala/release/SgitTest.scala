@@ -5,7 +5,7 @@ import java.nio.file.{Files, StandardCopyOption}
 
 import org.junit.{Assert, Assume, Test}
 import org.scalatest.junit.AssertionsForJUnit
-import release.Sgit.MissigGitDirException
+import release.Sgit.{GitRemote, MissigGitDirException}
 import release.SgitTest.hasCommitMsg
 
 import scala.collection.JavaConverters
@@ -36,10 +36,9 @@ class SgitTest extends AssertionsForJUnit {
     TestHelper.assertExceptionWithCheck(message ⇒ Assert.assertEquals("no .git dir in sgit-test was found", message.replaceFirst("[^ ]+sgit-test-[^ ]+", "sgit-test"))
       , classOf[MissigGitDirException], () ⇒ {
         val temp = Files.createTempDirectory("sgit-test-").toFile.getAbsoluteFile
-        Sgit(temp, showGitCmd = false, doVerify = hasCommitMsg, System.out, System.err)
         temp.deleteOnExit()
+        Sgit(temp, showGitCmd = false, doVerify = hasCommitMsg, System.out, System.err)
       })
-
 
   }
 
@@ -240,8 +239,8 @@ class SgitTest extends AssertionsForJUnit {
           .replaceAll("[\r\n]+", " ")), err)
   }
 
-  private def unw(in: String) = {
-    in.trim match {
+  private def unw(input: String) = {
+    input.trim match {
       case in: String if in.startsWith("\"") && in.endsWith("\"") ⇒ in.replaceFirst("^[\"]+", "").replaceFirst("[\"]+$", "")
       case in ⇒ in
     }
@@ -261,7 +260,7 @@ class SgitTest extends AssertionsForJUnit {
 
   @Test
   def testGitNative(): Unit = {
-    TestHelper.testFail("Nonzero exit value: 1; git --no-pager iutghiprjhpeth; " +
+    TestHelper.assertException("Nonzero exit value: 1; git --no-pager iutghiprjhpeth; " +
       "git: 'iutghiprjhpeth' is not a git command. See 'git --help'.",
       classOf[RuntimeException], () ⇒ {
         SgitTest.workSgit().gitNative(Seq("iutghiprjhpeth"))
@@ -270,7 +269,7 @@ class SgitTest extends AssertionsForJUnit {
   }
 
   private def testFailIllegal(expectedMsg: String, fn: () ⇒ Unit): Unit = {
-    TestHelper.testFail(expectedMsg, classOf[IllegalStateException], fn)
+    TestHelper.assertException(expectedMsg, classOf[IllegalStateException], fn)
   }
 
   @Test
@@ -319,7 +318,7 @@ class SgitTest extends AssertionsForJUnit {
     // WHEN
     val gitA = Sgit.init(testRepoA, showGitCmd = false, SgitTest.hasCommitMsg)
 
-    TestHelper.testFail("Nonzero exit value: 1; git --no-pager push -q -u origin master:refs/for/master; " +
+    TestHelper.assertException("Nonzero exit value: 1; git --no-pager push -q -u origin master:refs/for/master; " +
       "git-err: 'error: src refspec master does not match any.' " +
       "git-err: 'error: failed to push some refs to 'origin''",
       classOf[RuntimeException], () ⇒ {
@@ -327,20 +326,24 @@ class SgitTest extends AssertionsForJUnit {
       })
 
     gitA.fetchAll()
+    Assert.assertEquals(Nil, gitA.remoteList())
     gitA.remoteAdd("ubglu", "failfail")
-    TestHelper.testFail("Nonzero exit value: 1; " +
+    TestHelper.assertException("Nonzero exit value: 1; " +
       "git --no-pager fetch -q --all --tags; fatal: 'failfail' does not appear to be a git repository " +
       "fatal: Could not read from remote repository. Please make sure you have the correct access rights " +
       "and the repository exists. error: Could not fetch ubglu",
       classOf[RuntimeException], () ⇒ {
         gitA.fetchAll()
       })
-    TestHelper.testFail("Nonzero exit value: 1; git --no-pager push -q -u origin master:refs/heads/master; " +
+    TestHelper.assertException("Nonzero exit value: 1; git --no-pager push -q -u origin master:refs/heads/master; " +
       "git-err: 'error: src refspec master does not match any.' " +
       "git-err: 'error: failed to push some refs to 'origin''",
       classOf[RuntimeException], () ⇒ {
         gitA.pushHeads("master", "master")
       })
+
+    Assert.assertEquals(Seq(GitRemote("ubglu", "failfail", "(fetch)"), GitRemote("ubglu", "failfail", "(push)")),
+      gitA.remoteList())
     gitA.remoteRemove("ubglu")
     Assert.assertEquals(Nil, gitA.branchListLocal())
     Assert.assertEquals(Nil, gitA.branchListRemote())
@@ -456,7 +459,7 @@ class SgitTest extends AssertionsForJUnit {
     gitB.remoteRemove("origin")
     gitB.remoteAdd("origin", "ssh://none@git-ishop.novomind.com:19418/ishop/user/tstock/sonar-demo")
 
-    TestHelper.testFail("Nonzero exit value: 128; git --no-pager push -q -u origin master:refs/heads/master; " +
+    TestHelper.assertException("Nonzero exit value: 128; git --no-pager push -q -u origin master:refs/heads/master; " +
       "git-err: 'Permission denied (publickey).' " +
       "git-err: 'fatal: Could not read from remote repository.' " +
       "git-err: 'Please make sure you have the correct access rights' " +
@@ -469,8 +472,8 @@ class SgitTest extends AssertionsForJUnit {
 }
 
 object SgitTest {
-  val commitMsg = Sgit.findGit(Util.localWork, Util.localWork).toPath.resolve(".git/hooks/commit-msg")
-  val hasCommitMsg = Files.exists(commitMsg)
+  private[release] val commitMsg = Sgit.findGit(Util.localWork, Util.localWork, checkExisting = true).toPath.resolve(".git/hooks/commit-msg")
+  private[release] val hasCommitMsg = Files.exists(commitMsg)
 
   def workSgit(): Sgit = Sgit(Util.localWork, showGitCmd = false, doVerify = hasCommitMsg, System.out, System.err)
 }

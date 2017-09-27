@@ -9,6 +9,8 @@ import java.util.concurrent.{TimeUnit, TimeoutException}
 
 import com.google.common.hash.Hashing
 import com.typesafe.scalalogging.LazyLogging
+import org.apache.http.client.methods.HttpGet
+import org.apache.http.impl.client.HttpClients
 import org.eclipse.jgit.api.errors.RefAlreadyExistsException
 import release.Xpath.InvalidPomXmlException
 
@@ -179,7 +181,7 @@ object Starter extends App with LazyLogging {
 
     def handleException(t: Throwable): Int = {
       t match {
-        case x@(_: RefAlreadyExistsException | _: Sgit.MissigCommitHookException | _:Sgit.MissigGitDirException |
+        case x@(_: RefAlreadyExistsException | _: Sgit.MissigCommitHookException | _: Sgit.MissigGitDirException |
                 _: PomChecker.ValidationException | _: PreconditionsException | _: Sgit.BranchAlreadyExistsException) ⇒ {
           err.println()
           err.println("E: " + x.getMessage)
@@ -228,22 +230,23 @@ object Starter extends App with LazyLogging {
         mod.changeShopGroupArtifact(groupIdArtifactIdLine)
         mod.writeTo(workDirFile)
         println("You have local changes")
+      } else if (jenkinsTrigger) {
+        if (isInNovomindNetwork) {
+          val jenkinsBase = "https://build-ishop.novomind.com"
+          out.println(tagBuildUrl(git, jenkinsBase))
+          out.println("WIP try to notify jenkins to create new jenkins jobs")
+          out.println("WIP try to notify created release job")
+          return 0
+        } else {
+          out.println("only available in novomind network")
+          return 1
+        }
+
       } else if (createFeatureBranch) {
         FeatureBranch.work(workDirFile, out, err, git, startBranch, askForRebase, releaseToolGit.headStatusValue())
       } else {
         Release.work(workDirFile, out, err, askForRebase, startBranch,
           git, dependencyUpdates, termOs, shellWidth, releaseToolGit.headStatusValue())
-
-        def notifyNovomindJenkinsToBuild(pomMod: PomMod): Unit = {
-          // TODO write intial jenkins url to ${HOME}/.nm-release-config; else read
-          if (isInNovomindNetwork && jenkinsTrigger) {
-            println("WIP try to notify jenkins to create new jenkins jobs")
-            println("WIP try to notify created release job")
-          }
-
-        }
-
-        notifyNovomindJenkinsToBuild(null)
       }
 
       return 0
@@ -251,6 +254,42 @@ object Starter extends App with LazyLogging {
       case t: Throwable ⇒ {
         return handleException(t)
       }
+    }
+
+  }
+
+  def tagBuildUrl(git: Sgit, jenkinsBase: String): Option[String] = {
+    // TODO write intial jenkins url to ${HOME}/.nm-release-config; else read
+    val remote = git.remoteList().find(_.name == "origin").map(_.position)
+    val path = remote
+      .map(_.replaceFirst("^[^/]+//", ""))
+      .map(_.replaceFirst("^[^/]+/", ""))
+      .map(_.replaceAll("[/]", "-"))
+      .map(_.toLowerCase)
+      .map(in ⇒ jenkinsBase + "/job/" + in + "-tag/")
+    // TODO vorher testen ob diese URl auch erreichbar wäre und fehler loggen
+    if (path.isDefined) {
+      try {
+        val httpclient = HttpClients.createDefault
+        val httpGet = new HttpGet(path.get)
+        val response = httpclient.execute(httpGet)
+        try {
+          val statusCode = response.getStatusLine.getStatusCode
+          if (statusCode == 200) {
+            path
+          } else {
+            println("W: invalid response for (" + statusCode + ") " + path.get)
+            println("W: > please create an ISPS ticket")
+            None
+          }
+        } finally {
+          response.close()
+        }
+      } catch {
+        case e: Exception ⇒ println("W: http problem: " + e.getClass.getCanonicalName + " => " + e.getMessage); None
+      }
+    } else {
+      None
     }
 
   }

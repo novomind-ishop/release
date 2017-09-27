@@ -131,11 +131,13 @@ object Release {
         val result = sgit.pushFor(srcBranchName = branch, targetBranchName = selectedBranch)
         if (newMod.hasNoShopPom) {
           sgit.pushTag(release)
-          // try to notify jenkins about tag builds
           if (Starter.isInNovomindNetwork) {
+            val jenkinsBase = "https://build-ishop.novomind.com"
+            val tagUrl = Starter.tagBuildUrl(sgit, jenkinsBase)
             // TODO hier erstmal nur den browser auf machen damit man build tag klicken kann
-            // TODO wenn man den passenden tag build öffnen könnte wär noch cooler
-            Starter.openInDefaultBrowser("https://build-ishop.novomind.com/search/?q=-tag")
+            Starter.openInDefaultBrowser(tagUrl.getOrElse(jenkinsBase + "/search/?q=-tag"))
+            // try to notify jenkins about tag builds
+            // TODO try to wait for successful tag builds ... subscribe to logs
           }
         }
         if (Starter.isInNovomindNetwork) {

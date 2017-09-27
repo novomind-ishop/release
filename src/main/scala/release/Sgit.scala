@@ -4,18 +4,18 @@ import java.io.{File, PrintStream}
 import java.net.URI
 
 import com.typesafe.scalalogging.LazyLogging
-import release.Sgit.{BranchAlreadyExistsException, MissigGitDirException}
+import release.Sgit.{BranchAlreadyExistsException, GitRemote, GitShaBranch, MissigGitDirException}
 
 import scala.io.Source
 import scala.sys.process.ProcessLogger
 import scala.util.{Failure, Success, Try}
 
-case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintStream, err: PrintStream) extends LazyLogging {
+case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintStream, err: PrintStream,
+                checkExisting: Boolean = true) extends LazyLogging {
 
-  private def gitRoot = Sgit.findGit(file.getAbsoluteFile, file.getAbsoluteFile)
-  println("[sgit out] " + gitRoot.getAbsolutePath)
+  private val gitRoot = Sgit.findGit(file.getAbsoluteFile, file.getAbsoluteFile, checkExisting)
 
-  private def dotGit = new File(gitRoot, ".git")
+  private val dotGit = new File(gitRoot, ".git")
 
   private def init(): Unit = {
     gitNative(Seq("init", file.getAbsolutePath), useWorkdir = false)
@@ -111,9 +111,9 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
       }
     }
 
-    if (dotGit.exists()) {
+    if (dotGit.exists() && checkExisting) {
       checkCommitMessageHook(dotGit)
-    } else {
+    } else if (checkExisting) {
       throw new MissigGitDirException("no .git dir in " + file.getAbsolutePath + " was found (2)")
     }
 
@@ -139,23 +139,23 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
     gitNative(Seq("remote", "remove", name))
   }
 
-  case class GitShaBranch(commitId: String, branchName: String) {
-    if (commitId.length != 40) {
-      throw new IllegalStateException("invalid commit id length: " + commitId.length + " (" + commitId + ")")
-    }
-
-    if (!commitId.matches("[0-9a-f]{40}")) {
-      throw new IllegalStateException("invalid commit id: " + commitId + "")
-    }
+  def remoteList(): Seq[GitRemote] = {
+    val out = gitNative(Seq("remote", "-v"))
+    out.lines.toList.map(in ⇒ {
+      val splitted = split(in)
+      GitRemote(splitted(0), splitted(1), splitted(2))
+    })
   }
 
   def branchNamesLocal(): Seq[String] = branchListLocal().map(_.branchName.replaceFirst("refs/heads/", "")).sorted
+
+  private def split(in: String): Seq[String] = in.replaceFirst("^\\*", "").trim.split("[ \t]+")
 
   def branchListLocal(): Seq[GitShaBranch] = {
     gitNative(Seq("branch", "--list", "--verbose", "--no-abbrev"))
       .lines.toSeq
       .map(in ⇒ {
-        val parts = in.replaceFirst("^\\*", "").trim.split("[ \t]+")
+        val parts = split(in)
         GitShaBranch(parts(1), "refs/heads/" + parts(0))
       }).toList
   }
@@ -366,7 +366,7 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
   private[release] def gitNative(args: Seq[String], showErrors: Boolean = true, useWorkdir: Boolean = true,
                                  cmdFilter: String ⇒ Boolean = _ ⇒ false,
                                  errMapper: String ⇒ Option[String] = errLine ⇒ Some(errLine)): String = {
-    if (!gitRoot.isDirectory) {
+    if (!gitRoot.isDirectory && checkExisting) {
       throw new IllegalStateException("invalid git dir: " + gitRoot.getAbsolutePath)
     }
     val workdir = if (useWorkdir) {
@@ -383,6 +383,18 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
 }
 
 object Sgit {
+
+  case class GitShaBranch(commitId: String, branchName: String) {
+    if (commitId.length != 40) {
+      throw new IllegalStateException("invalid commit id length: " + commitId.length + " (" + commitId + ")")
+    }
+
+    if (!commitId.matches("[0-9a-f]{40}")) {
+      throw new IllegalStateException("invalid commit id: " + commitId + "")
+    }
+  }
+
+  case class GitRemote(name: String, position: String, remoteType: String)
 
   private var gits = Map.empty[Seq[String], Unit]
 
@@ -512,26 +524,24 @@ object Sgit {
 
   class BranchAlreadyExistsException(msg: String) extends RuntimeException(msg)
 
-  private[release] def findGit(start:File, in: File): File = {
+  private[release] def findGit(start: File, in: File, checkExisting:Boolean): File = {
     if (new File(in, ".git").exists()) {
       in
+    } else if (checkExisting) {
+      throw new MissigGitDirException("no .git dir in " + start.getAbsolutePath + " was found")
     } else {
-      in.getParentFile match {
-        case null ⇒ throw new MissigGitDirException("no .git dir in " + start.getAbsolutePath + " was found")
-        case parent ⇒ findGit(start, parent)
-      }
-
+      in
     }
   }
 
   private[release] def clone(src: File, dest: File, showGitCmd: Boolean = false, verify: Boolean = true): Sgit = {
-    val o = Sgit(dest, showGitCmd, doVerify = verify, out = System.out, err = System.err)
+    val o = Sgit(dest, showGitCmd, doVerify = verify, out = System.out, err = System.err, checkExisting = false)
     o.clone(src, dest)
-    Sgit(dest, showGitCmd, doVerify = false, out = System.out, err = System.err)
+    o.copy(doVerify = false, checkExisting = true)
   }
 
   private[release] def init(f: File, showGitCmd: Boolean = false, verify: Boolean = true): Sgit = {
-    val sgit = Sgit(f, showGitCmd, doVerify = verify, out = System.out, err = System.err)
+    val sgit = Sgit(f, showGitCmd, doVerify = verify, out = System.out, err = System.err, checkExisting = false)
     sgit.init()
     sgit
   }
