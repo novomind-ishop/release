@@ -1,8 +1,10 @@
 package release
 
 import java.io.File
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
 
-import scala.collection.mutable
+import scala.collection.{JavaConverters, mutable}
 
 object Util {
 
@@ -46,6 +48,18 @@ object Util {
       }
     }
     b.result()
+  }
+
+  def write(f: File, content: Seq[String]): Unit = {
+    Files.write(f.toPath, JavaConverters.bufferAsJavaList(content.toBuffer))
+  }
+
+  def read(f:File): String = {
+    readLines(f).mkString("\n") + "\n"
+  }
+
+  def readLines(f:File):Seq[String] = {
+    JavaConverters.asScalaBuffer(Files.readAllLines(f.toPath, StandardCharsets.UTF_8))
   }
 
   def delete(file: File): Unit = {

@@ -127,7 +127,13 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
 
   def currentBranch: String = gitNative(Seq("rev-parse", "--abbrev-ref", "HEAD"))
 
-  def lsFiles():Seq[String] = gitNative(Seq("ls-files")).lines.toList.map(_.trim)
+  def lsFiles():Seq[String] = gitNative(Seq("ls-files")).lines.toList.map(_.trim).map(in ⇒ if (in.startsWith("\"") && in.endsWith("\"")) {
+    println("W: missing standard c char unescaper. Provide a patch if you see this warning")
+    // https://git-scm.com/docs/git-config#git-config-corequotePath
+    in
+  } else {
+    in
+  })
 
   def fetchAll(): Unit = {
     gitNative(Seq("fetch", "-q", "--all", "--tags"), errMapper = Sgit.fetchFilter)
@@ -388,7 +394,8 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
     if (showGitCmd) {
       out.println(gitCmdCall.mkString(" "))
     }
-    Sgit.native(gitCmdCall, syserrErrors = showErrors, cmdFilter, err, errMapper)
+    val ff = Sgit.native(gitCmdCall, syserrErrors = showErrors, cmdFilter, err, errMapper)
+    ff
   }
 }
 

@@ -115,7 +115,7 @@ case class PomMod(file: File) {
   }
 
   private[release] var depTreeFileContents: Map[File, DepTree] = depTreeFiles()
-    .map(f ⇒ (f, DepTree(new String(Files.readAllBytes(f.toPath)))))
+    .map(f ⇒ (f, DepTree(Util.read(f))))
     .filterNot(in ⇒ in._1.getParentFile.getName == ".")
     .foldLeft(Map.empty[File, DepTree])(_ + _)
 

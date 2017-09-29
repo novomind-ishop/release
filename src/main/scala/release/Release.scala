@@ -1,11 +1,46 @@
 package release
 
 import java.io.{File, PrintStream}
+import java.nio.charset.MalformedInputException
+import java.nio.file.{InvalidPathException, Path, Paths}
+import java.util.regex.Pattern
 
 import release.PomMod.Gav
 import release.Starter.{PreconditionsException, TermOs}
 
 object Release {
+
+  def findBadLines(regexp: Pattern)(aFileName: String): Seq[(Int, String, Path)] = {
+    try {
+      val path = Paths.get(aFileName)
+      val lines = Util.readLines(path.toFile).zipWithIndex
+
+      lines.par.flatMap(line ⇒ {
+        val matcher = regexp.matcher("")
+        matcher.reset(line._1)
+        if (matcher.find) {
+          Seq((line._2, line._1, path))
+        } else {
+          Nil
+        }
+      }).seq.toList
+    } catch {
+      case _: MalformedInputException ⇒ {
+        Nil
+      }
+      case e: InvalidPathException ⇒ {
+        println("W: " + e.getMessage + " " + " < " + aFileName)
+        Nil
+      }
+
+      case e: Exception ⇒ {
+        println("W: " + e.getClass.getCanonicalName + " " + e.getMessage + " " + " < " + aFileName)
+        e.printStackTrace()
+        Nil
+      }
+    }
+
+  }
 
   def checkLocalChanges(sgit: Sgit, branch: String) = {
     if (sgit.hasLocalChanges) {
@@ -46,7 +81,7 @@ object Release {
       }
     }
 
-    val newMod = offerAutoFixForReleaseSnapshots(out, mod, shellWidth)
+    val newMod = offerAutoFixForReleaseSnapshots(out, mod, sgit.lsFiles(), shellWidth)
     if (newMod.hasNoShopPom) {
       out.println("---------")
       out.println("1. MAJOR version when you make incompatible API changes,")
@@ -181,11 +216,35 @@ object Release {
     Nil
   }
 
-  def offerAutoFixForReleaseSnapshots(out: PrintStream, mod: PomMod, shellWidth: Int): PomMod = {
+  def offerAutoFixForReleaseSnapshots(out: PrintStream, mod: PomMod, gitFiles: Seq[String], shellWidth: Int): PomMod = {
     val plugins = mod.listPluginDependecies
     if (mod.hasShopPom) {
       // TODO check if core needs this checks too
       PomChecker.check(plugins)
+    }
+
+
+    val snapsF = gitFiles.par
+      .filterNot(in ⇒ in.endsWith(".list"))
+      .filterNot(in ⇒ in.endsWith(".tree"))
+      .filterNot(in ⇒ in.endsWith(".java"))
+      .filterNot(in ⇒ in.endsWith(".png"))
+      .filterNot(in ⇒ in.endsWith(".potx"))
+      .filterNot(in ⇒ in.endsWith(".jpg"))
+      .filterNot(in ⇒ in.endsWith("pom.xml"))
+      .flatMap(findBadLines(Pattern.compile("-SNAPSHOT")))
+      .seq
+      .sortBy(_._3)
+
+    if (snapsF != Nil) {
+      println()
+      println("Warning: Found SNAPSHOT occurrences in following files")
+      snapsF.foreach(in ⇒ {
+        println(in._3.toFile.getAbsolutePath + ":" + in._1)
+        println("  " + in._2.trim())
+        println()
+      })
+      println()
     }
 
     case class ReleaseInfo(gav: String, released: Boolean)
@@ -232,7 +291,7 @@ object Release {
       if (again == "n") {
         System.exit(1)
       } else {
-        offerAutoFixForReleaseSnapshots(out, PomMod(mod.file), shellWidth)
+        offerAutoFixForReleaseSnapshots(out, PomMod(mod.file), gitFiles, shellWidth)
       }
     }
     mod

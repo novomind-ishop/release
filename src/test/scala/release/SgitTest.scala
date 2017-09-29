@@ -8,8 +8,6 @@ import org.scalatest.junit.AssertionsForJUnit
 import release.Sgit.{GitRemote, MissigGitDirException}
 import release.SgitTest.hasCommitMsg
 
-import scala.collection.JavaConverters
-
 class SgitTest extends AssertionsForJUnit {
 
   @Test
@@ -292,10 +290,6 @@ class SgitTest extends AssertionsForJUnit {
       Util.delete(testRepoB)
     }
 
-    def write(f: File, content: Seq[String]): Unit = {
-      Files.write(f.toPath, JavaConverters.bufferAsJavaList(content.toBuffer))
-    }
-
     def copyMsgHook(to: File): Unit = {
       if (SgitTest.hasCommitMsg) {
         Files.copy(SgitTest.commitMsg, to.toPath.resolve(".git/hooks/commit-msg"), StandardCopyOption.REPLACE_EXISTING)
@@ -397,6 +391,7 @@ class SgitTest extends AssertionsForJUnit {
       gitB.localPomChanges()
     })
     val anyFile = testFile(testRepoB, "any.xml")
+
     Assert.assertEquals(Seq("A pom.xml", "?? any.xml", "?? sub/"), gitB.localChanges())
 
     testFailIllegal("only (pom.xml) changes are allowed => A pom.xml, ?? any.xml, ?? sub/ => any.xml, sub/ <= any.xml, pom.xml, sub/", () ⇒ {
@@ -408,15 +403,17 @@ class SgitTest extends AssertionsForJUnit {
     })
 
     gitB.add(anyFile)
-    val subject = "add " + Seq(pomFile, anyFile).map(_.getName).mkString(", ") + "-"
+    val otherFile = testFile(testRepoB, "schoenes Ding") // TODO change "oe" to "ö"
+    gitB.add(otherFile)
+    val subject = "add " + Seq(pomFile, anyFile, otherFile).map(_.getName).mkString(", ") + "-"
     gitB.commitAll(subject + "\r\n\r\n test")
 
     assertMsg(Seq(subject, "", " test"), gitB)
 
     Assert.assertTrue(gitB.hasChangesToPush)
     Assert.assertFalse(gitB.hasLocalChanges)
-    write(pomFile, Seq("a"))
-    write(subPomFile, Seq("a"))
+    Util.write(pomFile, Seq("a"))
+    Util.write(subPomFile, Seq("a"))
     Assert.assertTrue(gitB.hasLocalChanges)
 
     Assert.assertEquals(Seq("M pom.xml", "M sub/pom.xml"), gitB.localChanges())
@@ -425,12 +422,12 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(Nil, gitB.localChanges())
     gitB.doTag("1.0.0")
     gitB.doTag("1.0.1")
-    Assert.assertEquals(Seq("any.xml", "pom.xml", "sub/pom.xml", "test"), gitB.lsFiles())
+    Assert.assertEquals(Seq("any.xml", "pom.xml", "schoenes Ding", "sub/pom.xml", "test"), gitB.lsFiles())
     Assert.assertEquals(Seq("master"), gitB.branchNamesLocal())
     assertMsg(Seq("update pom.xml", "", "Signed-off-by: Ishop-Dev-Infra <ishop-dev-infra@novomind.com>"), gitB)
 
-    write(pomFile, Seq("b"))
-    write(subPomFile, Seq("b"))
+    Util.write(pomFile, Seq("b"))
+    Util.write(subPomFile, Seq("b"))
     gitB.doCommitWithFilter("subset\n\ntest", Seq("pom.xml", "any.xml"))
     assertMsg(Seq("subset", "", "test"), gitB)
 
@@ -441,7 +438,7 @@ class SgitTest extends AssertionsForJUnit {
       gitB.deleteBranch("test")
     })
     Assert.assertEquals(Seq("master"), gitB.branchNamesLocal())
-    write(anyFile, Seq("a"))
+    Util.write(anyFile, Seq("a"))
     try {
       gitB.doCommitPomXmls("update pom.xml")
       Assert.fail()
