@@ -127,6 +127,8 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
 
   def currentBranch: String = gitNative(Seq("rev-parse", "--abbrev-ref", "HEAD"))
 
+  def lsFiles():Seq[String] = gitNative(Seq("ls-files")).lines.toList.map(_.trim)
+
   def fetchAll(): Unit = {
     gitNative(Seq("fetch", "-q", "--all", "--tags"), errMapper = Sgit.fetchFilter)
   }
@@ -142,20 +144,20 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
   def remoteList(): Seq[GitRemote] = {
     val out = gitNative(Seq("remote", "-v"))
     out.lines.toList.map(in ⇒ {
-      val splitted = split(in)
+      val splitted = splitLineOnWhitespace(in)
       GitRemote(splitted(0), splitted(1), splitted(2))
     })
   }
 
   def branchNamesLocal(): Seq[String] = branchListLocal().map(_.branchName.replaceFirst("refs/heads/", "")).sorted
 
-  private def split(in: String): Seq[String] = in.replaceFirst("^\\*", "").trim.split("[ \t]+")
+  private def splitLineOnWhitespace(in: String): Seq[String] = in.replaceFirst("^\\*", "").trim.split("[ \t]+")
 
   def branchListLocal(): Seq[GitShaBranch] = {
     gitNative(Seq("branch", "--list", "--verbose", "--no-abbrev"))
       .lines.toSeq
       .map(in ⇒ {
-        val parts = split(in)
+        val parts = splitLineOnWhitespace(in)
         GitShaBranch(parts(1), "refs/heads/" + parts(0))
       }).toList
   }
@@ -256,6 +258,14 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
   def hasChangesToPush: Boolean = {
     val branchInfo = gitNative(Seq("status", "--branch", "--porcelain", currentBranch))
     branchInfo.contains("ahead")
+  }
+
+  def stash(): Unit = {
+    gitNative(Seq("stash", "-u"))
+  }
+
+  def stashPop(): Unit = {
+    gitNative(Seq("stash", "pop"))
   }
 
   def localChanges(): Seq[String] = {
@@ -406,10 +416,10 @@ object Sgit {
       val result: Unit = sgit.gitNative(Seq("--version"), useWorkdir = false) match {
         case v: String if v.startsWith("git version 2.8") ⇒
           // (2016-06-06) - (tag: v2.8.4)
-          throw new IllegalStateException("support ended at 2017-07-01")
+          throw new IllegalStateException("git version 2.8 support ended at 2017-07-01")
         case v: String if v.startsWith("git version 2.9") ⇒
           // (2016-08-12) - (tag: v2.9.3)
-          throw new IllegalStateException("support ended at 2017-08-01")
+          throw new IllegalStateException("git version 2.9 support ended at 2017-08-01")
         case v: String if v.startsWith("git version 2.10") ⇒
           // (2016-10-28) - (tag: v2.10.2)
           out.println("W: please update your git version, \"" + v + "\" support ends at 2017-11-01");

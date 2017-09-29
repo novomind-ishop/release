@@ -11,12 +11,12 @@ object PomChecker {
     val depPlugins = PomMod.dependecyPlugins(plugins)
     depPlugins.foreach(plugin ⇒ {
       if (plugin.execs == Nil) {
-        throw new ValidationException("please add at least one execution to you maven-dependecy-plugin")
+        throw new ValidationException("please add at least one execution to you maven-dependency-plugin")
       } else {
         val treeOrLists = plugin.execs.filter(in ⇒ in.goals.contains("tree") || in.goals.contains("list"))
         val invalidPhase = treeOrLists.filter(_.phase != "validate")
         if (invalidPhase != Nil) {
-          throw new ValidationException("maven-dependecy-plugin goals " +
+          throw new ValidationException("maven-dependency-plugin goals " +
             invalidPhase.flatMap(_.goals).mkString(", ") + " must be executed on phase \"validate\"")
         } else {
           val defectconfig = treeOrLists.filter(in ⇒ {
@@ -24,7 +24,7 @@ object PomChecker {
             outputFileValue.isEmpty || outputFileValue.get.contains("/")
           })
           if (defectconfig != Nil) {
-            throw new ValidationException("maven-dependecy-plugin " +
+            throw new ValidationException("maven-dependency-plugin " +
               defectconfig.map(_.id).mkString(", ") + " has no config or outputFile contains slashes")
           }
           checkDefaultPath(plugin)

@@ -346,6 +346,7 @@ class SgitTest extends AssertionsForJUnit {
       gitA.remoteList())
     gitA.remoteRemove("ubglu")
     Assert.assertEquals(Nil, gitA.branchListLocal())
+    Assert.assertEquals(Nil, gitA.lsFiles())
     Assert.assertEquals(Nil, gitA.branchListRemote())
     Assert.assertEquals(None, gitA.findUpstreamBranch())
     copyMsgHook(testRepoA)
@@ -386,6 +387,10 @@ class SgitTest extends AssertionsForJUnit {
     sub.mkdir()
     val subPomFile = testFile(sub, "pom.xml")
     Assert.assertEquals(Seq("?? pom.xml", "?? sub/"), gitB.localChanges())
+    gitB.stash()
+    Assert.assertEquals(Nil, gitB.localChanges())
+    gitB.stashPop()
+    Assert.assertEquals(Seq("?? pom.xml", "?? sub/"), gitB.localChanges())
     gitB.add(pomFile)
     Assert.assertEquals(Seq("A pom.xml", "?? sub/"), gitB.localChanges())
     testFailIllegal("only (pom.xml) changes are allowed => A pom.xml, ?? sub/ => sub/ <= pom.xml, sub/", () ⇒ {
@@ -420,6 +425,7 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(Nil, gitB.localChanges())
     gitB.doTag("1.0.0")
     gitB.doTag("1.0.1")
+    Assert.assertEquals(Seq("any.xml", "pom.xml", "sub/pom.xml", "test"), gitB.lsFiles())
     Assert.assertEquals(Seq("master"), gitB.branchNamesLocal())
     assertMsg(Seq("update pom.xml", "", "Signed-off-by: Ishop-Dev-Infra <ishop-dev-infra@novomind.com>"), gitB)
 

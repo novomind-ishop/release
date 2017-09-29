@@ -129,6 +129,11 @@ object Release {
 
       if (sgit.hasChangesToPush) {
         val result = sgit.pushFor(srcBranchName = branch, targetBranchName = selectedBranch)
+        if (Starter.isInNovomindNetwork) {
+          // TODO hier gerrit öffnen da man submit klicken muss
+          // TODO wenn man genau den change öffnen könnte wär noch cooler
+          Starter.openInDefaultBrowser("https://git-ishop.novomind.com:9091/#/q/status:open")
+        }
         if (newMod.hasNoShopPom) {
           sgit.pushTag(release)
           if (Starter.isInNovomindNetwork) {
@@ -139,11 +144,6 @@ object Release {
             // try to notify jenkins about tag builds
             // TODO try to wait for successful tag builds ... subscribe to logs
           }
-        }
-        if (Starter.isInNovomindNetwork) {
-          // TODO hier gerrit öffnen da man submit klicken muss
-          // TODO wenn man genau den change öffnen könnte wär noch cooler
-          Starter.openInDefaultBrowser("https://git-ishop.novomind.com:9091/#/q/status:open")
         }
       }
       if (newMod.hasShopPom) {

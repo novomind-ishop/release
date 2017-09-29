@@ -103,7 +103,7 @@ class PomCheckerTest extends AssertionsForJUnit {
       Seq("plugin", "plugins", "build", "project")))
 
     // WHEN / THEN
-    TestHelper.assertException("maven-dependecy-plugin pre-build-validate-any has no config or outputFile contains slashes", classOf[PomChecker.ValidationException], () ⇒ PomChecker.check(deps))
+    TestHelper.assertException("maven-dependency-plugin pre-build-validate-any has no config or outputFile contains slashes", classOf[PomChecker.ValidationException], () ⇒ PomChecker.check(deps))
   }
 
   @Test
@@ -118,7 +118,7 @@ class PomCheckerTest extends AssertionsForJUnit {
       Seq("plugin", "plugins", "build", "project")))
 
     // WHEN / THEN
-    TestHelper.assertException("maven-dependecy-plugin goals tree, list must be executed on phase \"validate\"", classOf[PomChecker.ValidationException], () ⇒ PomChecker.check(deps))
+    TestHelper.assertException("maven-dependency-plugin goals tree, list must be executed on phase \"validate\"", classOf[PomChecker.ValidationException], () ⇒ PomChecker.check(deps))
   }
 
   @Test
@@ -132,7 +132,7 @@ class PomCheckerTest extends AssertionsForJUnit {
       Seq("plugin", "plugins", "build", "project")))
 
     // WHEN / THEN
-    TestHelper.assertException("maven-dependecy-plugin pre-build-validate-tree has no config or outputFile contains slashes", classOf[PomChecker.ValidationException], () ⇒ PomChecker.check(deps))
+    TestHelper.assertException("maven-dependency-plugin pre-build-validate-tree has no config or outputFile contains slashes", classOf[PomChecker.ValidationException], () ⇒ PomChecker.check(deps))
   }
 
   @Test
@@ -144,7 +144,7 @@ class PomCheckerTest extends AssertionsForJUnit {
       Seq("plugin", "plugins", "build", "project")))
 
     // WHEN / THEN
-    TestHelper.assertException("please add at least one execution to you maven-dependecy-plugin", classOf[PomChecker.ValidationException], () ⇒ PomChecker.check(deps))
+    TestHelper.assertException("please add at least one execution to you maven-dependency-plugin", classOf[PomChecker.ValidationException], () ⇒ PomChecker.check(deps))
   }
 
   @Test
