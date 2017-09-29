@@ -421,6 +421,9 @@ object Sgit {
     if (git.isEmpty) {
       // git lg --tags --date=short --simplify-by-decoration --pretty=format:'(%cd)%d'
       val result: Unit = sgit.gitNative(Seq("--version"), useWorkdir = false) match {
+        case v: String if v.startsWith("git version 1") ⇒
+          // (2014-12-17) - (tag: v1.9.5)
+          throw new IllegalStateException("git version 1.9.5 support ended at 2016-01-01")
         case v: String if v.startsWith("git version 2.8") ⇒
           // (2016-06-06) - (tag: v2.8.4)
           throw new IllegalStateException("git version 2.8 support ended at 2017-07-01")

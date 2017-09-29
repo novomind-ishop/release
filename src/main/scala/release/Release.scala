@@ -100,6 +100,24 @@ object Release {
     val releaseWitoutSnapshot = Term.removeSnapshot(release)
     val nextReleaseWithoutSnapshot = Term.readFrom(out, "Enter the next version without -SNAPSHOT", newMod.suggestNextRelease(release))
 
+    if (mod.hasNoShopPom) {
+      val coreMajor = mod.listDependecies
+        .filter(_.groupId.startsWith("com.novomind.ishop.core"))
+        .map(_.version)
+        .distinct
+        .map(in ⇒ in.replaceAll("\\..*", "").trim)
+        .distinct
+        .filter(_.nonEmpty)
+      if (coreMajor != Nil) {
+        out.println("W: You try to release major version: " + release.replaceAll("\\..*", "") + " (" + release +
+          ") but found following core version(s): " + coreMajor.mkString(", "))
+        val continue = Term.readFromOneOfYesNo(out, "Continue?")
+        if (continue == "n") {
+          System.exit(1)
+        }
+      }
+    }
+
     val nextSnapshot = nextReleaseWithoutSnapshot + "-SNAPSHOT"
     if (newMod.selfVersion != nextSnapshot) {
       newMod.changeVersion(nextSnapshot)
@@ -222,7 +240,6 @@ object Release {
       // TODO check if core needs this checks too
       PomChecker.check(plugins)
     }
-
 
     val snapsF = gitFiles.par
       .filterNot(in ⇒ in.endsWith(".list"))
