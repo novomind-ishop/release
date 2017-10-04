@@ -98,6 +98,10 @@ object Release {
       releaseRead
     }
     val releaseWitoutSnapshot = Term.removeSnapshot(release)
+    if (mod.hasNoShopPom && sgit.listTags().contains("v" + releaseWitoutSnapshot)) {
+      // TODO fetch remote and try to read new version again
+      throw new IllegalStateException("release " + releaseWitoutSnapshot + " already found; check your repository")
+    }
     val nextReleaseWithoutSnapshot = Term.readFrom(out, "Enter the next version without -SNAPSHOT", newMod.suggestNextRelease(release))
 
     if (mod.hasNoShopPom) {
