@@ -101,16 +101,22 @@ object Release {
     val nextReleaseWithoutSnapshot = Term.readFrom(out, "Enter the next version without -SNAPSHOT", newMod.suggestNextRelease(release))
 
     if (mod.hasNoShopPom) {
-      val coreMajor = mod.listDependecies
+      val coreVersions = mod.listDependecies
         .filter(_.groupId.startsWith("com.novomind.ishop.core"))
         .map(_.version)
         .distinct
+        .filter(_.nonEmpty)
+        .sorted
+      val coreMajorVersions = coreVersions
         .map(in ⇒ in.replaceAll("\\..*", "").trim)
         .distinct
         .filter(_.nonEmpty)
-      if (coreMajor != Nil) {
-        out.println("W: You try to release major version: " + release.replaceAll("\\..*", "") + " (" + release +
-          ") but found following core version(s): " + coreMajor.mkString(", "))
+        .sorted
+      val releaseMajorVersion = release.replaceAll("\\..*", "")
+      if (coreMajorVersions != Nil && coreMajorVersions != Seq(releaseMajorVersion) ) {
+        out.println("W: You try to release major version: " + releaseMajorVersion + " (" + release +
+          ") but found artifact version(s) in group com.novomind.ishop.core: " +
+          coreMajorVersions.mkString(", ") + " (" + coreVersions.mkString(", ") + ")")
         val continue = Term.readFromOneOfYesNo(out, "Continue?")
         if (continue == "n") {
           System.exit(1)
@@ -248,6 +254,7 @@ object Release {
       .filterNot(in ⇒ in.endsWith(".png"))
       .filterNot(in ⇒ in.endsWith(".potx"))
       .filterNot(in ⇒ in.endsWith(".jpg"))
+      .filterNot(in ⇒ in.matches(".*[/\\\\]src[/\\\\]test[/\\\\]resources[/\\\\]app\\-manifest.*"))
       .filterNot(in ⇒ in.endsWith("pom.xml"))
       .flatMap(findBadLines(Pattern.compile("-SNAPSHOT")))
       .seq
