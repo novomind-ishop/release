@@ -5,7 +5,7 @@ import java.nio.charset.MalformedInputException
 import java.nio.file.{InvalidPathException, Path, Paths}
 import java.util.regex.Pattern
 
-import release.PomMod.Gav
+import release.PomMod.{Dep, Gav}
 import release.Starter.{PreconditionsException, TermOs}
 
 object Release {
@@ -105,22 +105,23 @@ object Release {
     val nextReleaseWithoutSnapshot = Term.readFrom(out, "Enter the next version without -SNAPSHOT", newMod.suggestNextRelease(release))
 
     if (mod.hasNoShopPom) {
-      val coreVersions = mod.listDependecies
+      val coreVersions:Seq[(String, Dep)] = mod.listDependecies
         .filter(_.groupId.startsWith("com.novomind.ishop.core"))
-        .map(_.version)
+        .map(in ⇒ (in.version, in))
         .distinct
-        .filter(_.nonEmpty)
-        .sorted
-      val coreMajorVersions = coreVersions
-        .map(in ⇒ in.replaceAll("\\..*", "").trim)
+        .filter(_._1.nonEmpty)
+        .sortBy(_._1)
+      val coreMajorVersions:Seq[(String, Dep)]  = coreVersions
+        .map(in ⇒ (in._1.replaceAll("\\..*", "").trim, in._2))
         .distinct
-        .filter(_.nonEmpty)
-        .sorted
+        .filter(_._1.nonEmpty)
+        .sortBy(_._1)
       val releaseMajorVersion = release.replaceAll("\\..*", "")
-      if (coreMajorVersions != Nil && coreMajorVersions != Seq(releaseMajorVersion) ) {
-        out.println("W: You try to release major version: " + releaseMajorVersion + " (" + release +
-          ") but found artifact version(s) in group com.novomind.ishop.core: " +
-          coreMajorVersions.mkString(", ") + " (" + coreVersions.mkString(", ") + ")")
+      if (coreMajorVersions != Nil && coreMajorVersions.map(_._1).distinct.sorted != Seq(releaseMajorVersion) ) {
+
+        out.println("W: You are trying to release major version " + releaseMajorVersion + " (" + release +
+          ") but this artifact refers to:")
+        coreMajorVersions.foreach(in ⇒ out.println("  * " + Seq(in._2.groupId, in._2.artifactId, in._2.version).mkString(":")))
         val continue = Term.readFromOneOfYesNo(out, "Continue?")
         if (continue == "n") {
           System.exit(1)
