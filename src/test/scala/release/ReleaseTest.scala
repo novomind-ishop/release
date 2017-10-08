@@ -26,11 +26,15 @@ class ReleaseTest extends AssertionsForJUnit {
 
     val check = Release.formatVersionLines(Seq(
       "* com.novomind.ishop.core:ishop-core-projects:29.6.4-SNAPSHOT",
-      "* com.novomind.ishop.core:ishop-api:1.0.2.1"))
+      "* com.novomind.ishop.core:ishop-api:1.0.2.1",
+      "* any:1.0.2.1",
+      "* 1.0.2.1"))
 
     Assert.assertEquals(Seq(
       "* com.novomind.ishop.core:ishop-core-projects:  29.6.4-SNAPSHOT",
-      "* com.novomind.ishop.core:ishop-api:            1.0.2.1"), check)
+      "* com.novomind.ishop.core:ishop-api:            1.0.2.1",
+      "* any:                                          1.0.2.1",
+      "* 1.0.2.1"), check)
   }
 
 }
