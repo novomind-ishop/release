@@ -104,8 +104,9 @@ object Starter extends App with LazyLogging {
         } else {
           releaseToolPath
         }
-        out.println("Please update your release tool: (cd " + updatePath + " && git rebase && cd -)")
-        return 1
+        out.println("Please update your release tool:")
+        out.println("(cd " + updatePath + " && git rebase -q --autostash && cd -)")
+        return 99
       }
 
     }
