@@ -9,6 +9,15 @@ import release.PomMod.{Dep, Gav}
 import release.Starter.{PreconditionsException, TermOs}
 
 object Release {
+  def formatVersionLines(versionLines: Seq[String]): Seq[String] = {
+    val maxLenght = versionLines.map(_.replaceFirst("[^:]*$", "")).map(_.length).max + 2
+    versionLines.map(in ⇒ {
+      val baseLenght = in.replaceFirst("[^:]*$", "").length
+      val spaces = List.fill(maxLenght - baseLenght)(" ").mkString("")
+      in.replaceFirst("^(.*:)([^:]*$)", "$1" + spaces + "$2" )
+    })
+
+  }
 
   def findBadLines(regexp: Pattern)(aFileName: String): Seq[(Int, String, Path)] = {
     try {
@@ -105,23 +114,29 @@ object Release {
     val nextReleaseWithoutSnapshot = Term.readFrom(out, "Enter the next version without -SNAPSHOT", newMod.suggestNextRelease(release))
 
     if (mod.hasNoShopPom) {
-      val coreVersions:Seq[(String, Dep)] = mod.listDependecies
+      val coreVersions: Seq[(String, Dep)] = mod.listDependecies
         .filter(_.groupId.startsWith("com.novomind.ishop.core"))
         .map(in ⇒ (in.version, in))
         .distinct
         .filter(_._1.nonEmpty)
         .sortBy(_._1)
-      val coreMajorVersions:Seq[(String, Dep)]  = coreVersions
+      val coreMajorVersions: Seq[(String, Dep)] = coreVersions
         .map(in ⇒ (in._1.replaceAll("\\..*", "").trim, in._2))
         .distinct
         .filter(_._1.nonEmpty)
         .sortBy(_._1)
       val releaseMajorVersion = release.replaceAll("\\..*", "")
-      if (coreMajorVersions != Nil && coreMajorVersions.map(_._1).distinct.sorted != Seq(releaseMajorVersion) ) {
+      if (coreMajorVersions != Nil && coreMajorVersions.map(_._1).distinct.sorted != Seq(releaseMajorVersion)) {
 
         out.println("W: You are trying to release major version " + releaseMajorVersion + " (" + release +
           ") but this artifact refers to:")
-        coreMajorVersions.foreach(in ⇒ out.println("  * " + Seq(in._2.groupId, in._2.artifactId, in._2.version).mkString(":")))
+
+        val t = coreMajorVersions
+          .sortBy(a ⇒ a._2.version)
+          .map(in ⇒ "  * " + Seq(in._2.groupId, in._2.artifactId, in._2.version).mkString(":"))
+          .distinct
+
+        Release.formatVersionLines(t).foreach(out.println)
         val continue = Term.readFromOneOfYesNo(out, "Continue?")
         if (continue == "n") {
           System.exit(1)
