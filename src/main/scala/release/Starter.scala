@@ -313,7 +313,14 @@ object Starter extends App with LazyLogging {
     val upstream = sgit.findUpstreamBranch()
     if (upstream.isEmpty) {
       val newUpstream = Term.readChooseOneOfOrType(out, "No upstream found, please set", Seq("origin/master", "origin/" + branch).distinct)
-      sgit.setUpstream(newUpstream)
+      val remoteBranchNames = sgit.branchNamesRemote().map("origin/" + _)
+      if (remoteBranchNames.contains(newUpstream)) {
+        sgit.setUpstream(newUpstream)
+        return
+      } else {
+        out.println("W: unknown upstream branch; known are " + remoteBranchNames.mkString(", "))
+        chooseUpstreamIfUndef(out, sgit, branch)
+      }
     }
   }
 
