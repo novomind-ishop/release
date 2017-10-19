@@ -168,21 +168,27 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
       }).toList
   }
 
-  def branchNamesRemote(): Seq[String] = branchListRemote().map(_.branchName.replaceFirst("refs/remotes/origin/", "")).sorted
+  def branchNamesRemoteShort(): Seq[String] = branchNamesRemote().map(_.replaceFirst("origin/", "")).sorted
 
-  def branchNamesAll(): Seq[String] = (branchNamesRemote() ++ branchNamesLocal()).distinct.sorted
+  def branchNamesRemote(): Seq[String] = branchListRemoteRaw().map(_.branchName).sorted
 
-  def branchListRemote(): Seq[GitShaBranch] = {
+  def branchNamesAll(): Seq[String] = (branchNamesRemoteShort() ++ branchNamesLocal()).distinct.sorted
+
+  private[release] def branchListRemoteRaw(): Seq[GitShaBranch] = {
     gitNative(Seq("branch", "--list", "--verbose", "--no-abbrev", "--remote"))
       .lines.toSeq
       .flatMap(in ⇒ in match {
         case l: String if l.trim.startsWith("origin/HEAD") ⇒ None
         case l: String if l.trim.startsWith("origin/") ⇒ {
           val parts = l.replaceFirst("^\\*", "").trim.split("[ \t]+")
-          Some(GitShaBranch(parts(1), "refs/remotes/" + parts(0)))
+          Some(GitShaBranch(parts(1), parts(0)))
         }
         case _: String ⇒ None
       }).toList
+  }
+
+  def branchListRemoteRefRemotes(): Seq[GitShaBranch] = {
+    branchListRemoteRaw().map(in ⇒ in.copy(branchName = "refs/remotes/" + in.branchName))
   }
 
   def localPomChanges(): Seq[String] = {

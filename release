@@ -41,7 +41,7 @@ else
   java_exit=$?
   set -e
 fi
-if [[ ${java_exit} == 99 ]] && [[ "${os}" = "Darwin" ]]; then
+if [[ ${java_exit} == 99 ]] && [[ "${ISHOP_RELEASE_UPDATE_AUTO:-1}" = "1" ]]; then
   out=$(java -jar ${release_jar} "$(dirname $0)" "$(pwd)" "${os}" "${TERM}" "${terminal_cols}" ${argLine})
   last_line=$(echo "${out}" | tail -n1)
   echo "I: starting self update"
