@@ -42,10 +42,9 @@ else
   set -e
 fi
 if [[ ${java_exit} -eq 99 ]] && [[ ${ISHOP_RELEASE_UPDATE_AUTO:-0} -eq 1 ]]; then
-  out=$(java -jar ${release_jar} "$(dirname $0)" "$(pwd)" "${os}" "${TERM}" "${terminal_cols}" ${argLine})
-  last_line=$(echo "${out}" | tail -n1)
+  update_cmd=$(java -jar ${release_jar} "$(dirname $0)" "$(pwd)" "${os}" "${TERM}" "${terminal_cols}" --show-update-cmd)
   echo "I: starting self update"
-  eval "${last_line}"
+  eval "${update_cmd}"
   echo "I: self update completed, restart release"
 fi
 

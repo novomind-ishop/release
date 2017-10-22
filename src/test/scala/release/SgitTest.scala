@@ -339,6 +339,15 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(Seq(GitRemote("ubglu", "failfail", "(fetch)"), GitRemote("ubglu", "failfail", "(push)")),
       gitA.remoteList())
     gitA.remoteRemove("ubglu")
+    gitA.remoteAdd("ubglu", "ssh://git.example.org/ubglu")
+    TestHelper.assertException("Nonzero exit value: 1; git --no-pager fetch -q --all --tags; " +
+      "ssh: Could not resolve hostname git.example.org: Name or service not known fatal: " +
+      "Could not read from remote repository. " +
+      "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu",
+      classOf[RuntimeException], () ⇒ {
+        gitA.fetchAll()
+      })
+    gitA.remoteRemove("ubglu")
     Assert.assertEquals(Nil, gitA.branchListLocal())
     Assert.assertEquals(Nil, gitA.lsFiles())
     Assert.assertEquals(Nil, gitA.branchListRemoteRefRemotes())
@@ -463,15 +472,18 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(Seq("refs/heads/any", "refs/heads/master"), gitB.branchListLocal().map(_.branchName))
     gitB.remoteRemove("origin")
     gitB.remoteAdd("origin", "ssh://none@git-ishop.novomind.com:19418/ishop/user/tstock/sonar-demo")
+    val triedUnit = gitB.tryFetchAll()
+    if (triedUnit.isFailure && triedUnit.failed.get.getMessage.contains("publickey")) {
 
-    TestHelper.assertException("Nonzero exit value: 128; git --no-pager push -q -u origin master:refs/heads/master; " +
-      "git-err: 'Permission denied (publickey).' " +
-      "git-err: 'fatal: Could not read from remote repository.' " +
-      "git-err: 'Please make sure you have the correct access rights' " +
-      "git-err: 'and the repository exists.'",
-      classOf[RuntimeException], () ⇒ {
-        gitB.pushHeads("master", "master")
-      })
+      TestHelper.assertException("Nonzero exit value: 128; git --no-pager push -q -u origin master:refs/heads/master; " +
+        "git-err: 'Permission denied (publickey).' " +
+        "git-err: 'fatal: Could not read from remote repository.' " +
+        "git-err: 'Please make sure you have the correct access rights' " +
+        "git-err: 'and the repository exists.'",
+        classOf[RuntimeException], () ⇒ {
+          gitB.pushHeads("master", "master")
+        })
+    }
   }
 
 }

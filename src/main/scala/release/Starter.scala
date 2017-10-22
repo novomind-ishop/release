@@ -63,6 +63,7 @@ object Starter extends App with LazyLogging {
     val termOs: TermOs = TermOs.select(argSeq(3), argSeq(2), restArgs.contains("simpleChars"))
     val dependencyUpdates = restArgs.contains("depUp")
     val showHelp = restArgs.contains("help") || restArgs.contains("--help")
+    val showUpdateCmd = restArgs.contains("--show-update-cmd")
     val showGit = restArgs.contains("showGit")
     val createFeatureBranch = restArgs.contains("nothing-but-create-feature-branch")
     val noVerify = !restArgs.contains("noVerify")
@@ -92,20 +93,25 @@ object Starter extends App with LazyLogging {
 
     val releaseToolGit = Sgit(releaseToolDir, showGitCmd = showGit, doVerify = false, out, err)
 
-    if (!restArgs.contains("noUpdate")) {
-      releaseToolGit.fetchAll()
+    val updateCmd:String = {
+      val updatePath = if (termOs.isCygwin && !termOs.isMinGw) {
+        "$(cygpath -u \"" + releaseToolPath + "\")"
+      } else {
+        releaseToolPath
+      }
+      "(cd " + updatePath + " && git rebase -q --autostash && cd -)"
+    }
+    if (showUpdateCmd) {
+      out.println(updateCmd)
+      return 0
+    } else if (!restArgs.contains("noUpdate") && releaseToolGit.tryFetchAll().isSuccess) {
       val headVersion = releaseToolGit.commitIdHead()
       val remoteMasterVersion = releaseToolGit.commitId("origin/master")
       if (headVersion != remoteMasterVersion) {
         out.println("Production Version: " + remoteMasterVersion)
         out.println("Your Version:       " + headVersion)
-        val updatePath = if (termOs.isCygwin && !termOs.isMinGw) {
-          "$(cygpath -u \"" + releaseToolPath + "\")"
-        } else {
-          releaseToolPath
-        }
         out.println("Please update your release tool:")
-        out.println("(cd " + updatePath + " && git rebase -q --autostash && cd -)")
+        out.println(updateCmd)
         return 99
       }
 

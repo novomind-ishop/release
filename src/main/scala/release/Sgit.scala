@@ -139,6 +139,14 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
     gitNative(Seq("fetch", "-q", "--all", "--tags"), errMapper = Sgit.fetchFilter)
   }
 
+  def tryFetchAll():Try[Unit] = {
+    try {
+      Success(fetchAll())
+    } catch {
+      case any:Throwable ⇒ Failure(any)
+    }
+  }
+
   def remoteAdd(name: String, url: String): Unit = {
     gitNative(Seq("remote", "add", name, url))
   }

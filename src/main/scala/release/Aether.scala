@@ -11,6 +11,8 @@ import java.util.concurrent.ConcurrentHashMap
 import com.google.common.collect.{ImmutableList, ImmutableSet}
 import com.google.common.hash.Hashing
 import com.typesafe.scalalogging.LazyLogging
+import org.apache.http.client.methods.{CloseableHttpResponse, HttpGet}
+import org.apache.http.impl.client.HttpClients
 import org.apache.maven.repository.internal.MavenRepositorySystemUtils
 import org.eclipse.aether.artifact.DefaultArtifact
 import org.eclipse.aether.connector.basic.BasicRepositoryConnectorFactory
@@ -43,6 +45,27 @@ object Aether extends LazyLogging {
   }
 
   private def getVersionsOf(req: String) = getVersions(Booter.newRepositoriesNovomindIshop)(req)
+
+  def isReachable(): Boolean = {
+    val httpclient = HttpClients.createDefault
+    val ishop = Booter.newRepositoriesNovomindIshop
+    val httpGet = new HttpGet(ishop.getUrl)
+    var response: CloseableHttpResponse = null
+    val code:Int = try {
+
+      response = httpclient.execute(httpGet)
+      response.getStatusLine.getStatusCode
+    } catch {
+      case any: Throwable ⇒ any.printStackTrace(); return false
+    } finally {
+      if (response != null) {
+        response.close()
+      }
+
+    }
+    code != 0
+
+  }
 
   @throws[VersionRangeResolutionException]
   private def getVersions(repository: RemoteRepository)(request: String): Seq[Version] = {

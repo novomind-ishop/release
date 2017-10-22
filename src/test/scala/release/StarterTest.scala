@@ -5,6 +5,7 @@ import java.io.{ByteArrayOutputStream, PrintStream}
 import org.junit.rules.Timeout
 import org.junit.{Assert, Rule, Test}
 import org.scalatest.junit.AssertionsForJUnit
+import redis.clients.jedis.Jedis
 
 class StarterTest extends AssertionsForJUnit {
 
@@ -23,6 +24,20 @@ class StarterTest extends AssertionsForJUnit {
   }
 
   case class ExecReturn(out: String, err: String, exit: Int)
+
+  @Test
+  def testJedis(): Unit = {
+    try {
+      val jedis = new Jedis("localhost", 6379, 1, 1)
+      jedis.lpush("foor", "hello")
+      val long = jedis.llen("foor")
+      val value = jedis.lrange("foor", 0, long)
+      jedis.expire("foor", 1)
+      println(value)
+    } catch {
+      case e: Throwable ⇒ println(e.getMessage)
+    }
+  }
 
   @Test
   def test_nil_args(): Unit = {

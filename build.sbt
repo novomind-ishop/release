@@ -16,6 +16,8 @@ libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3"
 
 libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2"
 
+libraryDependencies += "redis.clients" % "jedis" % "2.9.0"
+
 libraryDependencies += "org.apache.httpcomponents" % "httpclient" % "4.5.3"
 
 libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-api" % "1.1.0"
