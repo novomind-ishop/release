@@ -286,7 +286,6 @@ object Release {
       snapsF.foreach(in ⇒ {
         println(in._3.toFile.getAbsolutePath + ":" + in._1)
         println("  " + in._2.trim())
-        println()
       })
       println()
     }
@@ -298,6 +297,8 @@ object Release {
     } else {
       _ ⇒ false
     }
+
+
     val snaps: Seq[Gav] = mod.listSnapshotsDistinct
       .map(_.gav())
       .filterNot(noShops) ++ plugins.map(_.gav())
@@ -314,10 +315,21 @@ object Release {
       }).seq
     aetherStateLine.finish()
 
-    if (snapState.nonEmpty) {
-      out.println("")
-      // TODO later autofix
-      out.println("Snapshots found for (fix manually):")
+    val snapshotProperties = mod.listProperties
+      .filter(_._2.contains("-SNAPSHOT"))
+      .filterNot(_._1 == "project.version")
+
+    if (snapState.nonEmpty || snapshotProperties.nonEmpty) {
+      if (snapshotProperties.nonEmpty) {
+        out.println("")
+        out.println("Snapshot properties found for (fix manually):")
+        snapshotProperties.map(in ⇒ "Property: " + in).foreach(println)
+      }
+      if (snapState.nonEmpty) {
+        out.println("")
+        // TODO later autofix
+        out.println("Snapshots found for (fix manually):")
+      }
 
       def info(rel: Boolean): String = if (rel) {
         "Release found for "

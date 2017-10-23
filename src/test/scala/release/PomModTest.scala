@@ -446,6 +446,16 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def suggestNextRelease_shop_stable(): Unit = {
+
+    // GIVEN/WHEN
+    val next = PomMod.suggestNextReleaseBy("31x-stable-SNAPSHOT", "31x-stable.1-SNAPSHOT")
+
+    // THEN
+    assert("31x-stable-RELEASE-DEMO-DELETE-ME" === next)
+  }
+
+  @Test
   def suggestNextRelease_any(): Unit = {
 
     // GIVEN/WHEN

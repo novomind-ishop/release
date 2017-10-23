@@ -689,9 +689,11 @@ object PomMod {
       currentVersion.replaceFirst("-SNAPSHOT$", "")
     } else {
       val shopPattern = "^(RC-)([0-9]{4})\\.([0-9]+)(?:\\.[0-9]+)?$".r
+      val stableShop = "^([0-9]+x)-stable.*$".r
 
       val snapped = releaseVersion.replaceFirst("-SNAPSHOT", "")
       snapped match {
+        case stableShop(pre) ⇒ pre + "-stable-RELEASE-DEMO-DELETE-ME"
         case semverPatternLowdash(ma, mi, b, low) ⇒ ma + "." + mi + "." + b + (low.toInt + 1)
         case semverPattern(ma, mi, b) ⇒ ma + "." + mi + "." + (b.toInt + 1)
         case semverPatternNoBugfix(ma, mi) ⇒ ma + "." + (mi.toInt + 1) + ".0"
