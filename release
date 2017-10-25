@@ -41,10 +41,14 @@ else
   java_exit=$?
   set -e
 fi
-if [[ ${java_exit} -eq 99 ]] && [[ ${ISHOP_RELEASE_UPDATE_AUTO:-0} -eq 1 ]]; then
-  update_cmd=$(java -jar ${release_jar} "$(dirname $0)" "$(pwd)" "${os}" "${TERM}" "${terminal_cols}" --show-update-cmd)
-  echo "I: starting self update"
-  eval "${update_cmd}"
-  echo "I: self update completed, restart release"
+if [[ ${java_exit} -eq 99 ]]; then
+  if [[ ${ISHOP_RELEASE_UPDATE_AUTO:-0} -eq 1 ]]; then
+    update_cmd=$(java -jar ${release_jar} "$(dirname $0)" "$(pwd)" "${os}" "${TERM}" "${terminal_cols}" --show-update-cmd)
+    echo "I: starting self update"
+    eval "${update_cmd}"
+    echo "I: self update completed, please restart release"
+  elif [[ ${ISHOP_RELEASE_UPDATE_AUTO:-0} -eq 0 ]]; then
+    echo "I: release supports self updates: add 'export ISHOP_RELEASE_UPDATE_AUTO=1' to your e.g. .bash_profile to test it"
+  fi
 fi
 
