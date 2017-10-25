@@ -14,7 +14,7 @@ object Release {
     versionLines.map(in ⇒ {
       val baseLenght = in.replaceFirst("[^:]*$", "").length
       val spaces = List.fill(maxLenght - baseLenght)(" ").mkString("")
-      in.replaceFirst("^(.*:)([^:]*$)", "$1" + spaces + "$2" )
+      in.replaceFirst("^(.*:)([^:]*$)", "$1" + spaces + "$2")
     })
 
   }
@@ -298,11 +298,15 @@ object Release {
       _ ⇒ false
     }
 
+    val boClientVersion = mod.listProperties
+      .filter(_._1 == "bo-client")
+      .filter(_._2.contains("-SNAPSHOT")).values
 
     val snaps: Seq[Gav] = mod.listSnapshotsDistinct
       .map(_.gav())
       .filterNot(noShops) ++ plugins.map(_.gav())
-      .filter(_.version.contains("SNAPSHOT"))
+      .filter(_.version.contains("SNAPSHOT")) ++
+      boClientVersion.map(in ⇒ Gav("com.novomind.ishop.backoffice", "bo-client", in, "war"))
 
     val aetherStateLine = StatusLine(snaps.size, shellWidth)
     val snapState: Seq[ReleaseInfo] = snaps
