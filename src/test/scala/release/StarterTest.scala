@@ -6,6 +6,7 @@ import org.junit.rules.Timeout
 import org.junit.{Assert, Rule, Test}
 import org.scalatest.junit.AssertionsForJUnit
 import redis.clients.jedis.Jedis
+import release.Sgit.GitRemote
 
 class StarterTest extends AssertionsForJUnit {
 
@@ -24,6 +25,14 @@ class StarterTest extends AssertionsForJUnit {
   }
 
   case class ExecReturn(out: String, err: String, exit: Int)
+
+  @Test
+  def testTransformRemoteToBuildUrl_paypal(): Unit = {
+    val result = Starter.transformRemoteToBuildUrl(
+      Seq(GitRemote("origin", "ishop/ext/ext-paypal.git", "remoteType")),
+      "https://build-ishop.novomind.com")
+    Assert.assertEquals("https://build-ishop.novomind.com/job/ishop-ext-ext-paypal-tag/", result.get)
+  }
 
   @Test
   def testJedis(): Unit = {

@@ -12,6 +12,7 @@ import com.typesafe.scalalogging.LazyLogging
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClients
 import org.eclipse.jgit.api.errors.RefAlreadyExistsException
+import release.Sgit.GitRemote
 import release.Xpath.InvalidPomXmlException
 
 import scala.concurrent.duration.Duration
@@ -93,7 +94,7 @@ object Starter extends App with LazyLogging {
 
     val releaseToolGit = Sgit(releaseToolDir, showGitCmd = showGit, doVerify = false, out, err)
 
-    val updateCmd:String = {
+    val updateCmd: String = {
       val updatePath = if (termOs.isCygwin && !termOs.isMinGw) {
         "$(cygpath -u \"" + releaseToolPath + "\")"
       } else {
@@ -265,16 +266,22 @@ object Starter extends App with LazyLogging {
 
   }
 
-  def tagBuildUrl(git: Sgit, jenkinsBase: String): Option[String] = {
-    // TODO write intial jenkins url to ${HOME}/.nm-release-config; else read
-    val remote = git.remoteList().find(_.name == "origin").map(_.position)
-    val path = remote
-      .map(_.replaceFirst("^[^/]+//", ""))
+  def transformRemoteToBuildUrl(list: Seq[Sgit.GitRemote], jenkinsBase: String): Option[String] = {
+    val origin = list.find(_.name == "origin")
+    val remote = origin.map(_.position)
+    remote.map(_.replaceFirst("^[^/]+//", ""))
       .map(_.replaceFirst("^[^/]+/", ""))
+      .map(_.replaceFirst(".git", ""))
+      .map("ishop-" + _)
       .map(_.replaceAll("[/]", "-"))
       .map(_.toLowerCase)
       .map(in ⇒ jenkinsBase + "/job/" + in + "-tag/")
-    // TODO vorher testen ob diese URl auch erreichbar wäre und fehler loggen
+  }
+
+  def tagBuildUrl(git: Sgit, jenkinsBase: String): Option[String] = {
+    // TODO write intial jenkins url to ${HOME}/.nm-release-config; else read
+    val list: Seq[GitRemote] = git.remoteList
+    val path = transformRemoteToBuildUrl(list, jenkinsBase)
     if (path.isDefined) {
       try {
         val httpclient = HttpClients.createDefault
@@ -285,7 +292,7 @@ object Starter extends App with LazyLogging {
           if (statusCode == 200) {
             path
           } else {
-            println("W: invalid response for (" + statusCode + ") " + path.get)
+            println("W: invalid response for (" + statusCode + ") " + path.get + " <- " + list)
             println("W: > please create an ISPS ticket")
             None
           }
