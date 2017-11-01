@@ -61,7 +61,6 @@
 
 
   <properties>
-    <subproject.property>true</subproject.property>
     <ishop-core-sub.version>27.1.2-SNAPSHOT</ishop-core-sub.version>
   </properties>
 

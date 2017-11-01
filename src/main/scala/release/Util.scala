@@ -14,10 +14,12 @@ object Util {
     case any ⇒ Some(any)
   }
 
+  def groupedFiltered[R](in:Seq[R]):Map[R, Seq[R]] = {
+    in.map(a ⇒ (a, in.filterNot(_ == a))).toMap
+  }
+
   def symmetricDiff[R](left: Seq[R], right: Seq[R]): Seq[R] = {
-    val s1 = left
-    val s2 = right
-    (s1 diff s2) union (s2 diff s1)
+    (left diff right) union (right diff left)
   }
 
   def onlyOpt[T](ts: Seq[T]): Option[T] = ts match {

@@ -445,6 +445,5 @@
     <ishop-plugin.version>27.3.0-SNAPSHOT</ishop-plugin.version>
     <bo-client>27.0.0-SNAPSHOT</bo-client>
     <allowedProjectDir>${project.basedir}/any</allowedProjectDir>
-    <subproject.property>true</subproject.property>
   </properties>
 </project>

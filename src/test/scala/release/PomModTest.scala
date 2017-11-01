@@ -1,13 +1,303 @@
 package release
 
+import java.io.File
 import java.time.{LocalDate, Month}
 
 import org.junit.{Assert, Test}
 import org.scalatest.junit.AssertionsForJUnit
-import org.w3c.dom.Node
+import org.w3c.dom._
+import release.PomChecker.ValidationException
 import release.PomMod.{Dep, PluginDep, PluginExec, PomRef}
 
+import scala.xml.Elem
+
 class PomModTest extends AssertionsForJUnit {
+
+  @Test
+  def testCheckRootFirstChildPropertiesVar_noChilds(): Unit = {
+
+    val root = document(<project>
+      <properties>
+        <a>b</a>
+      </properties>
+    </project>)
+
+    Assert.assertEquals(Map("a" → "b"), PomMod.createPropertyMap(root))
+    PomMod.checkRootFirstChildPropertiesVar(Seq(pomfile(root)))
+  }
+
+  @Test
+  def testCheckRootFirstChildPropertiesVar(): Unit = {
+
+    val root = document(<project>
+      <groupId>any</groupId>
+      <artifactId>a-parent</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+      <packaging>pom</packaging>
+
+      <modules>
+        <module>a</module>
+      </modules>
+      <properties>
+        <p>1</p>
+      </properties>
+    </project>)
+
+    val child = document(<project>
+      <parent>
+        <groupId>any</groupId>
+        <artifactId>a-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>..</relativePath>
+      </parent>
+      <groupId>any</groupId>
+      <artifactId>a</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+      <properties>
+        <p>1</p>
+      </properties>
+    </project>)
+
+    Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(root))
+    Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(child))
+
+    TestHelper.assertException("unnecessary property definition (move property to parent pom or remove from sub poms): " +
+      "List((p,1)) -> List(any:a-parent:1.0.0-SNAPSHOT, any:a:1.0.0-SNAPSHOT)",
+      classOf[ValidationException], () ⇒ {
+        PomMod.checkRootFirstChildPropertiesVar(Seq(pomfile(root), pomfile(child)))
+      })
+  }
+
+  @Test
+  def testCheckRootFirstChildNoParentProperties(): Unit = {
+
+    val root = document(<project>
+      <groupId>any</groupId>
+      <artifactId>a-parent</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+      <packaging>pom</packaging>
+
+      <modules>
+        <module>a</module>
+      </modules>
+      <properties>
+        <p>1</p>
+      </properties>
+    </project>)
+
+    val child = document(<project>
+      <groupId>any</groupId>
+      <artifactId>a</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+      <properties>
+        <p>1</p>
+      </properties>
+    </project>)
+
+    Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(root))
+    Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(child))
+
+    PomMod.checkRootFirstChildPropertiesVar(Seq(pomfile(root), pomfile(child)))
+
+  }
+
+  @Test
+  def testCheckRootFirstChildOneProperties(): Unit = {
+
+    val root = document(<project>
+      <groupId>any</groupId>
+      <artifactId>a-parent</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+      <packaging>pom</packaging>
+
+      <modules>
+        <module>a</module>
+        <module>b</module>
+      </modules>
+    </project>)
+
+    val child0 = document(<project>
+      <groupId>any</groupId>
+      <artifactId>a</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+      <properties>
+        <p>1</p>
+      </properties>
+    </project>)
+
+    val child1 = document(<project>
+      <groupId>any</groupId>
+      <artifactId>b</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+    </project>)
+
+    Assert.assertEquals(Map.empty, PomMod.createPropertyMap(root))
+    Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(child0))
+    Assert.assertEquals(Map.empty, PomMod.createPropertyMap(child1))
+
+    PomMod.checkRootFirstChildPropertiesVar(Seq(pomfile(root), pomfile(child0), pomfile(child1)))
+
+  }
+
+  @Test
+  def testCheckRootFirstChildOnePropertiesParent(): Unit = {
+
+    val root = document(<project>
+      <groupId>any</groupId>
+      <artifactId>a-parent</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+      <packaging>pom</packaging>
+
+      <modules>
+        <module>a</module>
+        <module>b</module>
+      </modules>
+    </project>)
+
+    val child0 = document(<project>
+      <parent>
+        <groupId>any</groupId>
+        <artifactId>a-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>..</relativePath>
+      </parent>
+      <groupId>any</groupId>
+      <artifactId>a</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+      <properties>
+        <p>1</p>
+      </properties>
+    </project>)
+
+    val child1 = document(<project>
+      <parent>
+        <groupId>any</groupId>
+        <artifactId>a-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>..</relativePath>
+      </parent>
+      <groupId>any</groupId>
+      <artifactId>b</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+    </project>)
+
+    Assert.assertEquals(Map.empty, PomMod.createPropertyMap(root))
+    Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(child0))
+    Assert.assertEquals(Map.empty, PomMod.createPropertyMap(child1))
+
+    PomMod.checkRootFirstChildPropertiesVar(Seq(pomfile(root), pomfile(child0), pomfile(child1)))
+
+  }
+
+  @Test
+  def testCheckRootFirstChildOnePropertiesParentTwo(): Unit = {
+
+    val root = document(<project>
+      <groupId>any</groupId>
+      <artifactId>a-parent</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+      <packaging>pom</packaging>
+      <properties>
+        <p>1</p>
+      </properties>
+      <modules>
+        <module>a</module>
+        <module>b</module>
+      </modules>
+    </project>)
+
+    val child0 = document(<project>
+      <parent>
+        <groupId>any</groupId>
+        <artifactId>a-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>..</relativePath>
+      </parent>
+      <groupId>any</groupId>
+      <artifactId>a</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+      <properties>
+        <p>1</p>
+      </properties>
+    </project>)
+
+    val child1 = document(<project>
+      <parent>
+        <groupId>any</groupId>
+        <artifactId>a-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>..</relativePath>
+      </parent>
+      <groupId>any</groupId>
+      <artifactId>b</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+    </project>)
+
+    Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(root))
+    Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(child0))
+    Assert.assertEquals(Map.empty, PomMod.createPropertyMap(child1))
+
+    TestHelper.assertException("unnecessary property definition (move property to parent pom or remove from sub poms): " +
+      "List((p,1)) -> List(any:a-parent:1.0.0-SNAPSHOT, any:a:1.0.0-SNAPSHOT, any:b:1.0.0-SNAPSHOT)",
+      classOf[ValidationException], () ⇒ {
+        PomMod.checkRootFirstChildPropertiesVar(Seq(pomfile(root), pomfile(child0), pomfile(child1)))
+      })
+  }
+
+  @Test
+  def testCheckRootFirstChildOnePropertiesParentRoot(): Unit = {
+
+    val root = document(<project>
+      <groupId>any</groupId>
+      <artifactId>a-parent</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+      <packaging>pom</packaging>
+      <modules>
+        <module>a</module>
+        <module>b</module>
+      </modules>
+    </project>)
+
+    val child0 = document(<project>
+      <parent>
+        <groupId>any</groupId>
+        <artifactId>a-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>..</relativePath>
+      </parent>
+      <groupId>any</groupId>
+      <artifactId>a</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+      <properties>
+        <p>1</p>
+      </properties>
+    </project>)
+
+    val child1 = document(<project>
+      <parent>
+        <groupId>any</groupId>
+        <artifactId>a-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>..</relativePath>
+      </parent>
+      <groupId>any</groupId>
+      <artifactId>b</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+      <properties>
+        <p>1</p>
+      </properties>
+    </project>)
+
+    Assert.assertEquals(Map.empty, PomMod.createPropertyMap(root))
+    Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(child0))
+    Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(child1))
+
+    TestHelper.assertException("unnecessary property definition (move property to parent pom or remove from sub poms): " +
+      "List((p,1)) -> List(any:a-parent:1.0.0-SNAPSHOT, any:a:1.0.0-SNAPSHOT, any:b:1.0.0-SNAPSHOT)",
+      classOf[ValidationException], () ⇒ {
+        PomMod.checkRootFirstChildPropertiesVar(Seq(pomfile(root), pomfile(child0), pomfile(child1)))
+      })
+  }
 
   @Test
   def defectSelfPom(): Unit = {
@@ -15,9 +305,10 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("defect-self-pom")
 
     // WHEN
-    TestHelper.assertException("More then one Version found in your pom.xmls (27.0.0-SNAPSHOT, 28.0.0-SNAPSHOT)", classOf[IllegalArgumentException], () ⇒ {
-          PomMod(srcPoms).selfVersion
-        })
+    TestHelper.assertException("More then one Version found in your pom.xmls (27.0.0-SNAPSHOT, 28.0.0-SNAPSHOT)",
+      classOf[IllegalArgumentException], () ⇒ {
+        PomMod(srcPoms).selfVersion
+      })
 
   }
 
@@ -794,7 +1085,6 @@ class PomModTest extends AssertionsForJUnit {
       "build.timestamp" → "skip",
       "zkm.skip" → "true",
       "bo-client" → "27.0.0-SNAPSHOT",
-      "subproject.property" -> "true",
       "allowedProjectDir" -> "skip/any",
       "project.reporting.outputEncoding" → "UTF-8",
       "java.version" → "1.8")
@@ -881,4 +1171,7 @@ class PomModTest extends AssertionsForJUnit {
     Assert.assertEquals(expected, actual)
   }
 
+  def document(elem: Elem): Document = Xpath.newDocument(elem.toString())
+
+  def pomfile(doc: Document) = RawPomFile(new File("f"), doc, new File("f"))
 }
