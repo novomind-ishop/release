@@ -29,9 +29,17 @@ class StarterTest extends AssertionsForJUnit {
   @Test
   def testTransformRemoteToBuildUrl_paypal(): Unit = {
     val result = Starter.transformRemoteToBuildUrl(
-      Seq(GitRemote("origin", "ishop/ext/ext-paypal.git", "remoteType")),
+      Seq(GitRemote("origin", "ssh://someone@git-ishop.novomind.com:19418/ishop/ext/ext-paypal.git", "remoteType")),
       "https://build-ishop.novomind.com")
     Assert.assertEquals("https://build-ishop.novomind.com/job/ishop-ext-ext-paypal-tag/", result.get)
+  }
+
+  @Test
+  def testTransformRemoteToBuildUrl_core(): Unit = {
+    val result = Starter.transformRemoteToBuildUrl(
+      Seq(GitRemote("origin", "ssh://someone@git-ishop.novomind.com:19418/ishop/core/ishop-core-projects", "(fetch)")),
+      "https://build-ishop.novomind.com")
+    Assert.assertEquals("https://build-ishop.novomind.com/job/ishop-core-ishop-core-projects-tag/", result.get)
   }
 
   @Test
