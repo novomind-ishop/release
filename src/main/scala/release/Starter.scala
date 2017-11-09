@@ -105,7 +105,7 @@ object Starter extends App with LazyLogging {
     if (showUpdateCmd) {
       out.println(updateCmd)
       return 0
-    } else if (!restArgs.contains("noUpdate") && releaseToolGit.tryFetchAll().isSuccess) {
+    } else if (!restArgs.contains("no-update") && releaseToolGit.tryFetchAll().isSuccess) {
       val headVersion = releaseToolGit.commitIdHead()
       val remoteMasterVersion = releaseToolGit.commitId("origin/master")
       if (headVersion != remoteMasterVersion) {

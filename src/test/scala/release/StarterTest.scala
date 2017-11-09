@@ -84,13 +84,13 @@ class StarterTest extends AssertionsForJUnit {
 
   @Test
   def test_help(): Unit = {
-    val result = doInit(Seq("self_dir", "workdir", "Cygwin", "cygwin", "80", "noUpdate", "help"))
+    val result = doInit(Seq("self_dir", "workdir", "Cygwin", "cygwin", "80", "no-update", "help"))
     assertMessage(helpMessage, result)
   }
 
   @Test
   def test_help_dash(): Unit = {
-    val result = doInit(Seq("self_dir", "workdir", "Cygwin", "cygwin", "80", "noUpdate", "--help"))
+    val result = doInit(Seq("self_dir", "workdir", "Cygwin", "cygwin", "80", "no-update", "--help"))
     assertMessage(helpMessage, result)
   }
 
