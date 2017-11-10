@@ -17,6 +17,7 @@ import release.Xpath.InvalidPomXmlException
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.util.Properties
 
 object Starter extends App with LazyLogging {
 
@@ -89,10 +90,13 @@ object Starter extends App with LazyLogging {
       out.println("versionSet newVersion                => changes version like maven")
       out.println("shopGASet newGroupIdAndAtifactId     => changes GroupId and ArtifactId for Shops")
       out.println("nothing-but-create-feature-branch    => creates a feature branch and changes pom.xmls")
+      out.println()
+      out.println("Possible environment variables:")
+      out.println("export RELEASE_GIT_BIN = $PATH_TO_GIT_BIN")
       return 0
     }
-
-    val releaseToolGit = Sgit(releaseToolDir, showGitCmd = showGit, doVerify = false, out, err)
+    val gitBinEnv = Properties.envOrNone("RELEASE_GIT_BIN")
+    val releaseToolGit = Sgit(file = releaseToolDir, gitBin = gitBinEnv, showGitCmd = showGit, doVerify = false, out = out, err = err)
 
     val updateCmd: String = {
       val updatePath = if (termOs.isCygwin && !termOs.isMinGw) {
@@ -121,7 +125,7 @@ object Starter extends App with LazyLogging {
     def fetchGitAndAskForBranch(): (Sgit, String) = {
 
       def fetchGit(file: File): Sgit = {
-        val git = Sgit(file, showGitCmd = showGit, doVerify = noVerify, out, err)
+        val git = Sgit(file = file, showGitCmd = showGit, doVerify = noVerify, out = out, err = err, gitBin = gitBinEnv)
         git.fetchAll()
         git
       }
@@ -136,7 +140,7 @@ object Starter extends App with LazyLogging {
 
       def askReleaseBranch(): String = {
         def suggestCurrentBranch(file: File): String = {
-          val git = Sgit(file, showGitCmd = showGit, doVerify = noVerify, out, err)
+          val git = Sgit(file = file, showGitCmd = showGit, doVerify = noVerify, out = out, err = err, gitBin = gitBinEnv)
           val latestCommit = git.commitIdHead()
           val selectedBraches = git.branchListLocal().filter(_.commitId == latestCommit)
           val found = selectedBraches.map(_.branchName.replaceFirst("refs/heads/", "")).filterNot(_ == "HEAD")

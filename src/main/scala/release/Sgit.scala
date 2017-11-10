@@ -11,7 +11,7 @@ import scala.sys.process.ProcessLogger
 import scala.util.{Failure, Success, Try}
 
 case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintStream, err: PrintStream,
-                checkExisting: Boolean = true) extends LazyLogging {
+                checkExisting: Boolean = true, gitBin: Option[String]) extends LazyLogging {
 
   private val gitRoot = Sgit.findGit(file.getAbsoluteFile, file.getAbsoluteFile, checkExisting)
 
@@ -119,7 +119,7 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
 
   }
 
-  Sgit.checkVersion(this, out, err)
+  Sgit.checkVersion(this, out, err, gitBin)
 
   if (doVerify) {
     verify()
@@ -127,7 +127,7 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
 
   def currentBranch: String = gitNative(Seq("rev-parse", "--abbrev-ref", "HEAD"))
 
-  def lsFiles():Seq[String] = gitNative(Seq("ls-files")).lines.toList.map(_.trim).map(in ⇒ if (in.startsWith("\"") && in.endsWith("\"")) {
+  def lsFiles(): Seq[String] = gitNative(Seq("ls-files")).lines.toList.map(_.trim).map(in ⇒ if (in.startsWith("\"") && in.endsWith("\"")) {
     println("W: missing standard c char unescaper. Provide a patch if you see this warning")
     // https://git-scm.com/docs/git-config#git-config-corequotePath
     in
@@ -139,11 +139,11 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
     gitNative(Seq("fetch", "-q", "--all", "--tags"), errMapper = Sgit.fetchFilter)
   }
 
-  def tryFetchAll():Try[Unit] = {
+  def tryFetchAll(): Try[Unit] = {
     try {
       Success(fetchAll())
     } catch {
-      case any:Throwable ⇒ Failure(any)
+      case any: Throwable ⇒ Failure(any)
     }
   }
 
@@ -271,7 +271,7 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
   }
 
   def commitIds(fromRef: String, toRef: String): Seq[String] = {
-    val changes = gitNative(Seq("log", fromRef + "..." + toRef, "--pretty=%H"))
+    val changes = gitNative(Seq("log", "--pretty=%H", fromRef + "..." + toRef))
     changes.lines.toList
   }
 
@@ -404,7 +404,7 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
     } else {
       Nil
     }
-    val gitCmdCall = Sgit.selectedGitCmd(err) ++ workdir ++ Seq("--no-pager") ++ args
+    val gitCmdCall = Sgit.selectedGitCmd(err, gitBin) ++ workdir ++ Seq("--no-pager") ++ args
     if (showGitCmd) {
       out.println(gitCmdCall.mkString(" "))
     }
@@ -429,8 +429,8 @@ object Sgit {
 
   private var gits = Map.empty[Seq[String], Unit]
 
-  private[release] def checkVersion(sgit: Sgit, out: PrintStream, err: PrintStream): Unit = synchronized {
-    val cmd: Seq[String] = selectedGitCmd(err)
+  private[release] def checkVersion(sgit: Sgit, out: PrintStream, err: PrintStream, gitBin: Option[String]): Unit = synchronized {
+    val cmd: Seq[String] = selectedGitCmd(err, gitBin)
     val git = gits.get(cmd)
     if (git.isEmpty) {
       // git lg --tags --date=short --simplify-by-decoration --pretty=format:'(%cd)%d'
@@ -452,7 +452,8 @@ object Sgit {
           out.println("W: please update your git version, \"" + v + "\" support ends at 2017-11-01");
         case v: String if v.startsWith("git version 2.12") ⇒ // do nothing (2017-03-20) - (tag: v2.12.1)
         case v: String if v.startsWith("git version 2.13") ⇒ // do nothing (2017-09-22) - (tag: v2.13.6)
-        case v: String if v.startsWith("git version 2.14") ⇒ // do nothing
+        case v: String if v.startsWith("git version 2.14") ⇒ // do nothing (2017-10-23) - (tag: v2.14.3)
+        case v: String if v.startsWith("git version 2.15") ⇒ // do nothing
         case v: String ⇒ out.println("W: unknown/untested git version: \"" + v + "\". Please create a ticket at ISPS.");
       }
       gits = gits ++ Map(cmd → result)
@@ -533,23 +534,27 @@ object Sgit {
 
   }
 
-  private[release] def selectedGitCmd(err: PrintStream): Seq[String] = {
-    val gitCygCmd: Try[Seq[String]] = try {
-      Success(Seq(native(Seq("cygpath", "-daw", "/usr/bin/git"), syserrErrors = false, _ ⇒ false, err, s ⇒ Some(s))))
-    } catch {
-      case e: Exception ⇒ Failure(e)
-    }
-    val gitCmd: Seq[String] = if (gitCygCmd.isSuccess) {
-      gitCygCmd.get
+  private[release] def selectedGitCmd(err: PrintStream, gitBin: Option[String]): Seq[String] = {
+    if (gitBin.isDefined) {
+      gitBin.toSeq
     } else {
-      val winGit = new File(new URI("file:///C:/Programme/Git/bin/git.exe"))
-      if (winGit.canExecute) {
-        Seq(winGit.getAbsolutePath)
-      } else {
-        Seq("git")
+      val gitCygCmd: Try[Seq[String]] = try {
+        Success(Seq(native(Seq("cygpath", "-daw", "/usr/bin/git"), syserrErrors = false, _ ⇒ false, err, s ⇒ Some(s))))
+      } catch {
+        case e: Exception ⇒ Failure(e)
       }
+      val gitCmd: Seq[String] = if (gitCygCmd.isSuccess) {
+        gitCygCmd.get
+      } else {
+        val winGit = new File(new URI("file:///C:/Programme/Git/bin/git.exe"))
+        if (winGit.canExecute) {
+          Seq(winGit.getAbsolutePath)
+        } else {
+          Seq("git")
+        }
+      }
+      gitCmd
     }
-    gitCmd
   }
 
   class MissigCommitHookException(msg: String) extends RuntimeException(msg)
@@ -558,7 +563,7 @@ object Sgit {
 
   class BranchAlreadyExistsException(msg: String) extends RuntimeException(msg)
 
-  private[release] def findGit(start: File, in: File, checkExisting:Boolean): File = {
+  private[release] def findGit(start: File, in: File, checkExisting: Boolean): File = {
     if (new File(in, ".git").exists()) {
       in
     } else if (checkExisting) {
@@ -569,13 +574,13 @@ object Sgit {
   }
 
   private[release] def clone(src: File, dest: File, showGitCmd: Boolean = false, verify: Boolean = true): Sgit = {
-    val o = Sgit(dest, showGitCmd, doVerify = verify, out = System.out, err = System.err, checkExisting = false)
+    val o = Sgit(dest, showGitCmd, doVerify = verify, out = System.out, err = System.err, checkExisting = false, None)
     o.clone(src, dest)
     o.copy(doVerify = false, checkExisting = true)
   }
 
   private[release] def init(f: File, showGitCmd: Boolean = false, verify: Boolean = true): Sgit = {
-    val sgit = Sgit(f, showGitCmd, doVerify = verify, out = System.out, err = System.err, checkExisting = false)
+    val sgit = Sgit(f, showGitCmd, doVerify = verify, out = System.out, err = System.err, checkExisting = false, None)
     sgit.init()
     sgit
   }

@@ -80,7 +80,10 @@ class StarterTest extends AssertionsForJUnit {
       |
       |versionSet newVersion                => changes version like maven
       |shopGASet newGroupIdAndAtifactId     => changes GroupId and ArtifactId for Shops
-      |nothing-but-create-feature-branch    => creates a feature branch and changes pom.xmls""".stripMargin
+      |nothing-but-create-feature-branch    => creates a feature branch and changes pom.xmls
+      |
+      |Possible environment variables:
+      |export RELEASE_GIT_BIN = $PATH_TO_GIT_BIN""".stripMargin
 
   @Test
   def test_help(): Unit = {

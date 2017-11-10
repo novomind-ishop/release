@@ -12,7 +12,7 @@ class SgitTest extends AssertionsForJUnit {
 
   @Test
   def testSelectGitCmd(): Unit = {
-    val git = Sgit.selectedGitCmd(System.err)
+    val git = Sgit.selectedGitCmd(System.err, None)
 
     System.getProperty("os.name") match {
       case "Windows 10" ⇒ {
@@ -35,7 +35,7 @@ class SgitTest extends AssertionsForJUnit {
       , classOf[MissigGitDirException], () ⇒ {
         val temp = Files.createTempDirectory("sgit-test-").toFile.getAbsoluteFile
         temp.deleteOnExit()
-        Sgit(temp, showGitCmd = false, doVerify = hasCommitMsg, System.out, System.err)
+        Sgit(file = temp, showGitCmd = false, doVerify = hasCommitMsg, out = System.out, err = System.err, gitBin = None)
       })
 
   }
@@ -492,5 +492,6 @@ object SgitTest {
   private[release] val commitMsg = Sgit.findGit(Util.localWork, Util.localWork, checkExisting = true).toPath.resolve(".git/hooks/commit-msg")
   private[release] val hasCommitMsg = Files.exists(commitMsg)
 
-  def workSgit(): Sgit = Sgit(Util.localWork, showGitCmd = false, doVerify = hasCommitMsg, System.out, System.err)
+  def workSgit(): Sgit = Sgit(file = Util.localWork, showGitCmd = false, doVerify = hasCommitMsg,
+    out = System.out, err = System.err, gitBin = None)
 }
