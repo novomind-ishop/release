@@ -7,6 +7,7 @@ import org.junit.{Assert, Assume, Test}
 import org.scalatest.junit.AssertionsForJUnit
 import release.Sgit.{GitRemote, MissigGitDirException}
 import release.SgitTest.hasCommitMsg
+import release.TestHelper.Os
 
 class SgitTest extends AssertionsForJUnit {
 
@@ -14,14 +15,14 @@ class SgitTest extends AssertionsForJUnit {
   def testSelectGitCmd(): Unit = {
     val git = Sgit.selectedGitCmd(System.err, None)
 
-    System.getProperty("os.name") match {
-      case "Windows 10" ⇒ {
+    TestHelper.getOs() match {
+      case Os.Windows ⇒ {
         Assert.assertEquals(Seq("C:\\Programme\\Git\\bin\\git.exe"), git)
       }
-      case "Linux" ⇒ {
+      case Os.Linux ⇒ {
         Assert.assertEquals(Seq("git"), git)
       }
-      case "Mac OS X" ⇒ {
+      case Os.Darwin ⇒ {
         Assert.assertEquals(Seq("git"), git)
       }
       case other ⇒ Assert.fail("unknown os: " + other + " => " + git)
@@ -340,13 +341,36 @@ class SgitTest extends AssertionsForJUnit {
       gitA.remoteList())
     gitA.remoteRemove("ubglu")
     gitA.remoteAdd("ubglu", "ssh://git.example.org/ubglu")
-    TestHelper.assertException("Nonzero exit value: 1; git --no-pager fetch -q --all --tags; " +
-      "ssh: Could not resolve hostname git.example.org: Name or service not known fatal: " +
-      "Could not read from remote repository. " +
-      "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu",
-      classOf[RuntimeException], () ⇒ {
-        gitA.fetchAll()
-      })
+
+    def failFetchAll(msg: String): Unit = {
+      TestHelper.assertException(msg,
+        classOf[RuntimeException], () ⇒ {
+          gitA.fetchAll()
+        })
+    }
+
+    TestHelper.getOs() match {
+      case Os.Windows ⇒ {
+        failFetchAll("Nonzero exit value: 1; git --no-pager fetch -q --all --tags; " +
+          "ssh: Could not resolve hostname git.example.org: Name or service not known fatal: " +
+          "Could not read from remote repository. " +
+          "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu")
+      }
+      case Os.Linux ⇒ {
+        failFetchAll("Nonzero exit value: 1; git --no-pager fetch -q --all --tags; " +
+          "ssh: Could not resolve hostname git.example.org: Name or service not known fatal: " +
+          "Could not read from remote repository. " +
+          "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu")
+      }
+      case Os.Darwin ⇒ {
+        failFetchAll("Nonzero exit value: 1; git --no-pager fetch -q --all --tags; " +
+          "ssh: Could not resolve hostname git.example.org: nodename nor servname provided, or not known fatal: " +
+          "Could not read from remote repository. " +
+          "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu")
+      }
+      case other ⇒ Assert.fail("unknown os: " + other)
+    }
+
     gitA.remoteRemove("ubglu")
     Assert.assertEquals(Nil, gitA.branchListLocal())
     Assert.assertEquals(Nil, gitA.lsFiles())
