@@ -45,14 +45,22 @@ class StarterTest extends AssertionsForJUnit {
   @Test
   def testJedis(): Unit = {
     try {
-      val jedis = new Jedis("localhost", 6379, 1, 1)
-      jedis.lpush("foor", "hello")
+      val jedis = new Jedis("deko-ishop.novomind.com", 50500, 2000, 2000)
+      val pass ="j348u3nhgij2njfu8§$3g§$F"
+     // jedis.configSet("requirepass", pass)
+      jedis.auth(pass)
+      def push(key:String, value:String): Unit = {
+        jedis.rpush(key, value)
+        jedis.expire(key, 2)
+      }
+
+      push("foor", "hallo")
       val long = jedis.llen("foor")
       val value = jedis.lrange("foor", 0, long)
-      jedis.expire("foor", 1)
+
       println(value)
     } catch {
-      case e: Throwable ⇒ println(e.getMessage)
+      case e: Throwable ⇒ println("E: " + e.getMessage)
     }
   }
 
