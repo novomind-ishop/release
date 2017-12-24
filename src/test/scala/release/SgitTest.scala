@@ -3,7 +3,7 @@ package release
 import java.io.File
 import java.nio.file.{Files, StandardCopyOption}
 
-import org.junit.{Assert, Assume, Test}
+import org.junit.{Assert, Assume, Ignore, Test}
 import org.scalatest.junit.AssertionsForJUnit
 import release.Sgit.{GitRemote, MissigGitDirException}
 import release.SgitTest.hasCommitMsg

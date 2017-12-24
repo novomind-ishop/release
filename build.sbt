@@ -50,3 +50,4 @@ assemblyMergeStrategy in assembly := {
 mainClass in assembly := Some("release.Starter")
 
 assemblyJarName in assembly := "release.jar"
+

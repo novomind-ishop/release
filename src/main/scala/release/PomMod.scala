@@ -74,7 +74,7 @@ case class PomMod(file: File) {
   }
 
   val listDependecies: Seq[Dep] = {
-    replacedVersionProperties(allPomsDocs.flatMap(f ⇒ deps(f))).distinct
+    replacedVersionProperties(allPomsDocs.flatMap(deps)).distinct
   }
 
   private[release] val listPluginDependecies: Seq[PluginDep] = {
@@ -388,6 +388,8 @@ case class PomMod(file: File) {
       listSelf.map(_.copy(scope = "test", classifier = "tests", packaging = "")) ++
       listSelf.map(_.copy(scope = "test", packaging = "")) ++
       listSelf.map(_.copy(classifier = "tests")) ++
+      listSelf.map(_.copy(classifier = "sources")) ++ // for bo-client
+      listSelf.map(_.copy(classifier = "", typeN = "war", scope = "runtime", packaging = "")) ++ // for bo-client
       listSelf.map(_.copy(packaging = ""))
     val pomMods = selfDeps.map(_.copy(typeN = "pom"))
     (pomMods ++ selfDeps)
@@ -407,7 +409,17 @@ case class PomMod(file: File) {
 
   private def replacedPropertyOf(string: String) = PomMod.replaceProperty(listProperties)(string)
 
-  private def replacedVersionProperties(deps: Seq[Dep]) = deps.map(dep ⇒ dep.copy(version = replacedPropertyOf(dep.version)))
+  private def replacedVersionProperties(deps: Seq[Dep]) = deps.map(dep ⇒ dep.copy(
+    version = replacedPropertyOf(dep.version),
+    packaging = replacedPropertyOf(dep.packaging),
+    typeN = replacedPropertyOf(dep.typeN),
+    scope = replacedPropertyOf(dep.scope))
+  ).map(in ⇒ {
+    if (in.toString.contains("$")) {
+      throw new IllegalStateException("missing var in " + in)
+    }
+    in
+  })
 
   private def replacedVersionProperty(dep: PluginDep) = dep.copy(version = replacedPropertyOf(dep.version))
 
@@ -418,7 +430,16 @@ case class PomMod(file: File) {
   def listSnapshots: Seq[Dep] = {
     val deps = listDependecies
     val selfMods = selfDepsMod
-    val filteredDeps = deps.filterNot(dep ⇒ selfMods.contains(dep.copy(pomRef = PomRef.undef)))
+    val filteredDeps = deps.filterNot(dep ⇒ {
+      val mod = dep.copy(pomRef = PomRef.undef)
+      //      if (mod.toString.contains("runtime")) {
+      //        println("chech dep: " + mod)
+      //        println("inn " + selfMods.filter(_.toString.contains("runtime")))
+      //      }
+      selfMods.contains(mod)
+    }
+
+    )
 
     val replacedParams = replacedVersionProperties(filteredDeps)
     val onlySnapshots = replacedParams.filter(_.version.contains("SNAPSHOT"))
@@ -861,8 +882,9 @@ object PomMod {
       }).filter(_._2 != Nil)
 
     if (depPropsMod != Map.empty) {
-      throw new ValidationException("unnecessary property definition (move property to parent pom or remove from sub poms): " +
-        depPropsMod.map(in ⇒ in._1 + " -> " + in._2.map(ga)).mkString(", "))
+      throw new ValidationException("unnecessary property definition (move property to parent pom or remove from sub poms):\n" +
+        depPropsMod.map(in ⇒ "  " + in._1.map(t ⇒ "(" + t._1 + " -> " + t._2 + ")").mkString(", ") +
+          "\n      -> " + in._2.map(ga).mkString("\n      -> ")).mkString("\n"))
     }
 
   }

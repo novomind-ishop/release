@@ -30,7 +30,7 @@ class PomModTest extends AssertionsForJUnit {
   def testCheckRootFirstChildPropertiesVar(): Unit = {
 
     val root = document(<project>
-      <groupId>any</groupId>
+      <groupId>very.long.groupid.any</groupId>
       <artifactId>a-parent</artifactId>
       <version>1.0.0-SNAPSHOT</version>
       <packaging>pom</packaging>
@@ -45,7 +45,7 @@ class PomModTest extends AssertionsForJUnit {
 
     val child = document(<project>
       <parent>
-        <groupId>any</groupId>
+        <groupId>very.long.groupid.any</groupId>
         <artifactId>a-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
         <relativePath>..</relativePath>
@@ -61,8 +61,10 @@ class PomModTest extends AssertionsForJUnit {
     Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(root))
     Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(child))
 
-    TestHelper.assertException("unnecessary property definition (move property to parent pom or remove from sub poms): " +
-      "List((p,1)) -> List(any:a-parent:1.0.0-SNAPSHOT, any:a:1.0.0-SNAPSHOT)",
+    TestHelper.assertException("unnecessary property definition (move property to parent pom or remove from sub poms):\n" +
+      "  (p -> 1)\n" +
+      "      -> very.long.groupid.any:a-parent:1.0.0-SNAPSHOT\n" +
+      "      -> any:a:1.0.0-SNAPSHOT",
       classOf[ValidationException], () ⇒ {
         PomMod.checkRootFirstChildPropertiesVar(Seq(pomfile(root), pomfile(child)))
       })
@@ -193,7 +195,7 @@ class PomModTest extends AssertionsForJUnit {
   def testCheckRootFirstChildOnePropertiesParentTwo(): Unit = {
 
     val root = document(<project>
-      <groupId>any</groupId>
+      <groupId>very.long.groupid.any</groupId>
       <artifactId>a-parent</artifactId>
       <version>1.0.0-SNAPSHOT</version>
       <packaging>pom</packaging>
@@ -208,7 +210,7 @@ class PomModTest extends AssertionsForJUnit {
 
     val child0 = document(<project>
       <parent>
-        <groupId>any</groupId>
+        <groupId>very.long.groupid.any</groupId>
         <artifactId>a-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
         <relativePath>..</relativePath>
@@ -223,12 +225,12 @@ class PomModTest extends AssertionsForJUnit {
 
     val child1 = document(<project>
       <parent>
-        <groupId>any</groupId>
+        <groupId>very.long.groupid.any</groupId>
         <artifactId>a-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
         <relativePath>..</relativePath>
       </parent>
-      <groupId>any</groupId>
+      <groupId>very.long.groupid.any</groupId>
       <artifactId>b</artifactId>
       <version>1.0.0-SNAPSHOT</version>
     </project>)
@@ -237,8 +239,11 @@ class PomModTest extends AssertionsForJUnit {
     Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(child0))
     Assert.assertEquals(Map.empty, PomMod.createPropertyMap(child1))
 
-    TestHelper.assertException("unnecessary property definition (move property to parent pom or remove from sub poms): " +
-      "List((p,1)) -> List(any:a-parent:1.0.0-SNAPSHOT, any:a:1.0.0-SNAPSHOT, any:b:1.0.0-SNAPSHOT)",
+    TestHelper.assertException("unnecessary property definition (move property to parent pom or remove from sub poms):\n" +
+      "  (p -> 1)\n" +
+      "      -> very.long.groupid.any:a-parent:1.0.0-SNAPSHOT\n" +
+      "      -> any:a:1.0.0-SNAPSHOT\n" +
+      "      -> very.long.groupid.any:b:1.0.0-SNAPSHOT",
       classOf[ValidationException], () ⇒ {
         PomMod.checkRootFirstChildPropertiesVar(Seq(pomfile(root), pomfile(child0), pomfile(child1)))
       })
@@ -292,8 +297,11 @@ class PomModTest extends AssertionsForJUnit {
     Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(child0))
     Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(child1))
 
-    TestHelper.assertException("unnecessary property definition (move property to parent pom or remove from sub poms): " +
-      "List((p,1)) -> List(any:a-parent:1.0.0-SNAPSHOT, any:a:1.0.0-SNAPSHOT, any:b:1.0.0-SNAPSHOT)",
+    TestHelper.assertException("unnecessary property definition (move property to parent pom or remove from sub poms):\n" +
+      "  (p -> 1)\n" +
+      "      -> any:a-parent:1.0.0-SNAPSHOT\n" +
+      "      -> any:a:1.0.0-SNAPSHOT\n" +
+      "      -> any:b:1.0.0-SNAPSHOT",
       classOf[ValidationException], () ⇒ {
         PomMod.checkRootFirstChildPropertiesVar(Seq(pomfile(root), pomfile(child0), pomfile(child1)))
       })
