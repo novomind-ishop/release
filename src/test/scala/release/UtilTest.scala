@@ -1,5 +1,7 @@
 package release
 
+import java.io.File
+
 import org.junit.{Assert, Test}
 import org.scalatest.junit.AssertionsForJUnit
 
@@ -24,5 +26,14 @@ class UtilTest extends AssertionsForJUnit {
       "b" → Seq("a", "c"),
       "c" → Seq("a", "b")),
       Util.groupedFiltered(Seq("a", "b", "c")))
+  }
+
+  @Test
+  def testReadLines(): Unit = {
+    TestHelper.assertExceptionWithCheck(msg ⇒
+      Assert.assertEquals("... is no regular file", msg.replaceFirst("^[^ ]+ ", "... ")), classOf[IllegalStateException],
+      () ⇒ Util.readLines(new File("fasdf")))
+
+    Assert.assertNotEquals(Nil, Util.readLines(new File(".gitattributes")))
   }
 }

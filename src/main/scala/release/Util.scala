@@ -61,9 +61,13 @@ object Util {
   }
 
   def readLines(f:File):Seq[String] = {
-    JavaConverters.asScalaBuffer(Files.readAllLines(f.toPath, StandardCharsets.UTF_8))
-  }
+    if (Files.isRegularFile(f.toPath)) {
+      JavaConverters.asScalaBuffer(Files.readAllLines(f.toPath, StandardCharsets.UTF_8))
+    } else {
+      throw new IllegalStateException(f.getAbsolutePath + " is no regular file")
+    }
 
+  }
   def delete(file: File): Unit = {
     def deleteFile(allFiles: Array[File]): Unit = {
       if (allFiles != null) {

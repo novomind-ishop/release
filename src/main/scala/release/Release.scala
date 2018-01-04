@@ -2,7 +2,7 @@ package release
 
 import java.io.{File, PrintStream}
 import java.nio.charset.MalformedInputException
-import java.nio.file.{InvalidPathException, Path, Paths}
+import java.nio.file.{Files, InvalidPathException, Path, Paths}
 import java.util.regex.Pattern
 
 import release.PomMod.{Dep, Gav}
@@ -22,7 +22,11 @@ object Release {
   def findBadLines(regexp: Pattern)(aFileName: String): Seq[(Int, String, Path)] = {
     try {
       val path = Paths.get(aFileName)
-      val lines = Util.readLines(path.toFile).zipWithIndex
+      val lines = if (Files.isRegularFile(path)) {
+        Util.readLines(path.toFile).zipWithIndex
+      } else {
+        Nil
+      }
 
       lines.par.flatMap(line ⇒ {
         val matcher = regexp.matcher("")
