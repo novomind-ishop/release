@@ -3,7 +3,7 @@ package release
 import java.io.File
 import java.nio.file.{Files, StandardCopyOption}
 
-import org.junit.{Assert, Assume, Ignore, Test}
+import org.junit.{Assert, Assume, Test}
 import org.scalatest.junit.AssertionsForJUnit
 import release.Sgit.{GitRemote, MissigGitDirException}
 import release.SgitTest.hasCommitMsg
@@ -465,7 +465,14 @@ class SgitTest extends AssertionsForJUnit {
     Util.write(subPomFile, Seq("b"))
     gitB.doCommitWithFilter("subset\n\ntest", Seq("pom.xml", "any.xml"))
     assertMsg(Seq("subset", "", "test"), gitB)
-
+    Assert.assertEquals(false, gitB.isDetached)
+    Assert.assertEquals(Some("master"), gitB.findUpstreamBranch())
+    gitB.checkout("HEAD~1")
+    Assert.assertEquals(None, gitB.findUpstreamBranch())
+    Assert.assertEquals(true, gitB.isDetached)
+    gitB.checkout("master")
+    Assert.assertEquals(false, gitB.isDetached)
+    Assert.assertEquals(true, gitB.isNotDetached)
     gitB.createBranch("feature/test")
     Assert.assertEquals(Seq("feature/test", "master"), gitB.branchNamesLocal())
     gitB.deleteBranch("feature/test")
@@ -508,6 +515,20 @@ class SgitTest extends AssertionsForJUnit {
           gitB.pushHeads("master", "master")
         })
     }
+  }
+
+  @Test
+  def testSplitLineOnBranchlist(): Unit = {
+
+    val master = Sgit.splitLineOnBranchlist("* master 915c1ce40ee979c3739e640e0a86ba68adea8681 Removed ...")
+    Assert.assertEquals(Seq("master", "915c1ce40ee979c3739e640e0a86ba68adea8681"), master.take(2))
+
+    val any = Sgit.splitLineOnBranchlist("  bla  74036668cf893e4762ab4ff24ab4de8e44b70e33 Hub: SEE ..")
+    Assert.assertEquals(Seq("bla", "74036668cf893e4762ab4ff24ab4de8e44b70e33"), any.take(2))
+
+    val detached = Sgit.splitLineOnBranchlist("* (HEAD detached at 97cbb59ea) 97cbb59ea40aacb4d8acad402bf90890741b0dbe Add ...")
+    Assert.assertEquals(Seq("97cbb59ea40aacb4d8acad402bf90890741b0dbe", "97cbb59ea40aacb4d8acad402bf90890741b0dbe"),
+      detached.take(2))
   }
 
 }

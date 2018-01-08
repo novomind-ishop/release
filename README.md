@@ -26,3 +26,11 @@ release
 ```
 
 If you want to learn more options of ```release``` try ```release --help```.
+
+## Features
+* pom.xml validation
+  * SNAPSHOT checks
+
+* release from:
+  * master
+  * detached HEAD

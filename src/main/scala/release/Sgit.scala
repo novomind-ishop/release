@@ -158,20 +158,18 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
   def remoteList(): Seq[GitRemote] = {
     val out = gitNative(Seq("remote", "-v"))
     out.lines.toList.map(in ⇒ {
-      val splitted = splitLineOnWhitespace(in)
+      val splitted = Sgit.splitLineOnWhitespace(in)
       GitRemote(splitted(0), splitted(1), splitted(2))
     })
   }
 
   def branchNamesLocal(): Seq[String] = branchListLocal().map(_.branchName.replaceFirst("refs/heads/", "")).sorted
 
-  private def splitLineOnWhitespace(in: String): Seq[String] = in.replaceFirst("^\\*", "").trim.split("[ \t]+")
-
   def branchListLocal(): Seq[GitShaBranch] = {
     gitNative(Seq("branch", "--list", "--verbose", "--no-abbrev"))
       .lines.toSeq
       .map(in ⇒ {
-        val parts = splitLineOnWhitespace(in)
+        val parts = Sgit.splitLineOnBranchlist(in)
         GitShaBranch(parts(1), "refs/heads/" + parts(0))
       }).toList
   }
@@ -276,16 +274,15 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
   }
 
   def hasChangesToPush: Boolean = {
-    val branchInfo = gitNative(Seq("status", "--branch", "--porcelain", currentBranch))
-    branchInfo.contains("ahead")
+    val status = gitNative(Seq("status", "--branch", "--porcelain", currentBranch))
+    status.contains("ahead")
   }
 
-  def stash(): Unit = {
-    gitNative(Seq("stash", "-u"))
-  }
+  def isNotDetached: Boolean = !isDetached
 
-  def stashPop(): Unit = {
-    gitNative(Seq("stash", "pop"))
+  def isDetached: Boolean = {
+    val status = gitNative(Seq("status", "--branch", "--porcelain"))
+    status.startsWith("## HEAD (no branch)")
   }
 
   def localChanges(): Seq[String] = {
@@ -295,6 +292,14 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
 
   def hasLocalChanges: Boolean = {
     localChanges() != Nil
+  }
+
+  def stash(): Unit = {
+    gitNative(Seq("stash", "-u"))
+  }
+
+  def stashPop(): Unit = {
+    gitNative(Seq("stash", "pop"))
   }
 
   def rebase(): Unit = {
@@ -414,6 +419,18 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
 }
 
 object Sgit {
+
+  private[release] def splitLineOnWhitespace(in: String): Seq[String] = in.replaceFirst("^\\*", "").trim.split("[ \t]+")
+
+  private[release] def splitLineOnBranchlist(in: String): Seq[String] = {
+    val trimmed = in.replaceFirst("^\\*", "").trim.replaceFirst("^\\([^\\)]+", "(branch_name_replaced")
+    val out = trimmed.split("[ \t]+").toList
+    out.flatMap(in ⇒ if (in == "(branch_name_replaced)") {
+      Seq(out(1))
+    } else {
+      Seq(in)
+    })
+  }
 
   case class GitShaBranch(commitId: String, branchName: String) {
     if (commitId.length != 40) {

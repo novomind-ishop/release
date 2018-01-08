@@ -176,15 +176,19 @@ object Starter extends App with LazyLogging {
       debug("ask for rebase")
       sgit.checkout(branch)
       chooseUpstreamIfUndef(out, sgit, branch)
-      val shouldRebase = sgit.commitIds("@{upstream}", branch)
-      if (shouldRebase != Nil) {
-        () ⇒ {
-          val update = Term.readFromOneOfYesNo(out, "Your branch is " + shouldRebase.size +
-            " commits behind or ahead defined upstream. Rebase local branch?")
-          if (update == "y") {
-            sgit.rebase()
-          }
+      if (sgit.isNotDetached) {
+        val shouldRebase = sgit.commitIds("@{upstream}", branch)
+        if (shouldRebase != Nil) {
+          () ⇒ {
+            val update = Term.readFromOneOfYesNo(out, "Your branch is " + shouldRebase.size +
+              " commits behind or ahead defined upstream. Rebase local branch?")
+            if (update == "y") {
+              sgit.rebase()
+            }
 
+          }
+        } else {
+          () ⇒ {}
         }
       } else {
         () ⇒ {}
@@ -327,7 +331,7 @@ object Starter extends App with LazyLogging {
 
   def chooseUpstreamIfUndef(out: PrintStream, sgit: Sgit, branch: String): Unit = {
     val upstream = sgit.findUpstreamBranch()
-    if (upstream.isEmpty) {
+    if (upstream.isEmpty && sgit.isNotDetached) {
       val newUpstream = Term.readChooseOneOfOrType(out, "No upstream found, please set", Seq("origin/master", "origin/" + branch).distinct)
       val remoteBranchNames = sgit.branchNamesRemote()
       if (remoteBranchNames.contains(newUpstream)) {
