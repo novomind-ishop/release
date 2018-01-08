@@ -55,13 +55,21 @@ object Release {
 
   }
 
-  def checkLocalChanges(sgit: Sgit, branch: String) = {
+  def localChangeMessage(sgit: Sgit): String = {
     if (sgit.hasLocalChanges) {
       val changes = sgit.localChanges().take(5)
-      val changesOut = changes match {
+      changes match {
         case c if c.size <= 5 ⇒ c.mkString("\n")
         case c ⇒ c.mkString("\n") + "\n..."
       }
+    } else {
+      ""
+    }
+  }
+
+  def checkLocalChanges(sgit: Sgit, branch: String) = {
+    if (sgit.hasLocalChanges) {
+      val changesOut = localChangeMessage(sgit)
       throw new PreconditionsException("Your branch: \"" + branch + "\" has local changes, please commit or reset\n" + changesOut)
     }
   }
@@ -78,7 +86,23 @@ object Release {
 
   def work(workDirFile: File, out: PrintStream, err: PrintStream, rebaseFn: () ⇒ Unit, branch: String, sgit: Sgit,
            dependencyUpdates: Boolean, termOs: TermOs, shellWidth: Int, releaseToolGitSha1: String): Seq[Unit] = {
-    checkLocalChanges(sgit, branch)
+
+    if (sgit.hasLocalChanges) {
+      val message = localChangeMessage(sgit)
+      out.println(message)
+      val changes = Term.readFromOneOfYesNo(out, "You have local changes. Add changes to stash?")
+      if (changes == "y") {
+        sgit.stash()
+        Starter.addExitFn("cleanup branches", () ⇒ {
+          sgit.stashPop()
+        })
+      } else if (changes == "n") {
+        checkLocalChanges(sgit, branch)
+      } else {
+        work(workDirFile, out, err, rebaseFn, branch, sgit, dependencyUpdates, termOs, shellWidth, releaseToolGitSha1)
+      }
+
+    }
     rebaseFn.apply()
     Starter.addExitFn("cleanup branches", () ⇒ {
       sgit.checkout(sgit.currentBranch)

@@ -2,12 +2,18 @@
 ### Synopsis
 We created ```release``` to simplify, standardize and to speed up creation of
 branches, tags, commit-messages and ```pom.xml``` modifications.
-It also checks your ```pom.xml``` for problems and suggests hints to fix them. e.g.
+It also checks your ```pom.xml``` for problems and suggests hints to fix them.
+
+### Features
 * no -SNAPSHOTS in releases
 * matching release major versions of ishop-core
 * create branches
 * modify GAV (GroupId ArtifactId Version)
+* suggest rebase
+* smart suggest of next/current version
+* handle local changes
 * ...
+* release from master/feature/detached HEAD/...
 
 ### Usage
 This projects contains an executable called ```release```. To use it, checkout this
@@ -26,11 +32,3 @@ release
 ```
 
 If you want to learn more options of ```release``` try ```release --help```.
-
-## Features
-* pom.xml validation
-  * SNAPSHOT checks
-
-* release from:
-  * master
-  * detached HEAD
