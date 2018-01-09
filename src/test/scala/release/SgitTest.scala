@@ -7,6 +7,7 @@ import org.junit.{Assert, Assume, Test}
 import org.scalatest.junit.AssertionsForJUnit
 import release.Sgit.{GitRemote, MissigGitDirException}
 import release.SgitTest.hasCommitMsg
+import release.Starter.PreconditionsException
 import release.TestHelper.Os
 
 class SgitTest extends AssertionsForJUnit {
@@ -32,7 +33,8 @@ class SgitTest extends AssertionsForJUnit {
   @Test
   def testMissingGitDir(): Unit = {
 
-    TestHelper.assertExceptionWithCheck(message ⇒ Assert.assertEquals("no .git dir in sgit-test was found", message.replaceFirst("[^ ]+sgit-test-[^ ]+", "sgit-test"))
+    TestHelper.assertExceptionWithCheck(message ⇒ Assert.assertEquals("no .git dir in sgit-test was found",
+      message.replaceFirst("[^ ]+sgit-test-[^ ]+", "sgit-test"))
       , classOf[MissigGitDirException], () ⇒ {
         val temp = Files.createTempDirectory("sgit-test-").toFile.getAbsoluteFile
         temp.deleteOnExit()
@@ -383,6 +385,7 @@ class SgitTest extends AssertionsForJUnit {
 
     Assert.assertEquals(Seq("A test"), gitA.localChanges())
     gitA.commitAll("add test")
+    Assert.assertEquals(Seq("Change-Id: I0000000000000000000000000000000000000000"), gitA.commitMessageBody("HEAD"))
     Assert.assertEquals(Nil, gitA.localChanges())
     Assert.assertEquals("master", gitA.currentBranch)
     Assert.assertEquals(Seq("refs/heads/master"), gitA.branchListLocal().map(_.branchName))
@@ -403,6 +406,18 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertFalse(gitB.hasChangesToPush)
 
     Assert.assertEquals(Some("master"), gitB.findUpstreamBranch())
+    val beforeReverts = gitB.commitId("HEAD")
+    gitB.revertHead()
+    Assert.assertEquals(Seq("This reverts commit ..."),
+      gitB.commitMessageBody("HEAD").map(_.replaceFirst("[0-9a-f]{40}.$", "...")))
+    gitB.revertHead()
+    TestHelper.assertExceptionWithCheck(message ⇒
+      Assert.assertEquals("The commits 000, 000 has no ChangeId lines. Please amend them manually.",
+        message.replaceAll("[0-9a-f]{40}", "000"))
+      , classOf[PreconditionsException], () ⇒ {
+        gitB.pushFor("master", "master")
+      })
+    gitB.resetHard(beforeReverts)
     gitB.pushFor("master", "master")
     Assert.assertEquals(Nil, gitA.listTags())
     Assert.assertEquals(Nil, gitB.listTags())
@@ -442,7 +457,8 @@ class SgitTest extends AssertionsForJUnit {
     gitB.add(otherFile)
     val subject = "add " + Seq(pomFile, anyFile, otherFile).map(_.getName).mkString(", ") + "-"
     gitB.commitAll(subject + "\r\n\r\n test")
-
+    Assert.assertEquals(Seq("test", "Change-Id: I..."),
+      gitB.commitMessageBody("HEAD").map(_.replaceFirst("[0-9a-f]{40}$", "...")))
     assertMsg(Seq(subject, "", " test"), gitB)
 
     Assert.assertTrue(gitB.hasChangesToPush)

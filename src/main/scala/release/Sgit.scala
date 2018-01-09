@@ -5,6 +5,7 @@ import java.net.URI
 
 import com.typesafe.scalalogging.LazyLogging
 import release.Sgit.{BranchAlreadyExistsException, GitRemote, GitShaBranch, MissigGitDirException}
+import release.Starter.PreconditionsException
 
 import scala.io.Source
 import scala.sys.process.ProcessLogger
@@ -47,11 +48,14 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
 
   private[release] def commitAll(message: String): Unit = {
     val lines = message.replaceAll("\r", "").lines.toList
-    val ms = if (lines.size == 1) {
+    val msx = if (lines.size == 1) {
       lines ++ Seq("")
     } else {
       lines
-    } ++ Seq("Change-Id:")
+    }
+
+    val ms = msx ++ Seq("Change-Id:")
+
     if (ms(1).nonEmpty) {
       throw new IllegalStateException("non empty line")
     }
@@ -72,12 +76,20 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
     //   _gen_ChangeIdInput |
     //     git hash-object -t commit --stdin
     // }
-    gitNative(Seq("commit", "--no-verify", "-m", ms.mkString("\n").trim))
+
+    def doCommit(id: String) =
+      gitNative(Seq("commit", "--no-verify", "-m",
+        ms.map(_.replaceFirst("^Change-Id:", "Change-Id: I" + id)).mkString("\n").trim))
+
     if (oldComitId.isDefined) {
+      gitNative(Seq("commit", "--no-verify", "-m", ms.mkString("\n").trim))
       val newCommitId = commitIdHead()
       gitNative(Seq("reset", oldComitId.get))
       gitNative(Seq("add", "-A"))
-      gitNative(Seq("commit", "--no-verify", "-m", ms.map(_.replaceFirst("^Change-Id:", "Change-Id: I" + newCommitId)).mkString("\n").trim))
+      doCommit(newCommitId)
+    } else {
+      doCommit("0000000000000000000000000000000000000000")
+      out.println("W: no old commit id")
     }
     config("core.safecrlf", "warn")
   }
@@ -379,6 +391,18 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
   }
 
   def pushFor(srcBranchName: String, targetBranchName: String): Seq[String] = {
+    if (findUpstreamBranch().isDefined) {
+      val commitsWithoutChangeId = commitIds("@{upstream}", currentBranch)
+        .map(in ⇒ (in, commitMessageBody(in)))
+        .filterNot(in ⇒ {
+          in._2.exists(iin ⇒ iin.matches("^Change-Id: I[a-f0-9]{40}"))
+        })
+
+      if (commitsWithoutChangeId.nonEmpty) {
+        throw new PreconditionsException("The commits " + commitsWithoutChangeId.map(_._1).mkString(", ") +
+          " has no ChangeId lines. Please amend them manually.")
+      }
+    }
     pushInner(srcBranchName, targetBranchName, "refs/for/")
   }
 
@@ -388,6 +412,18 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
 
   private[release] def pushInnerRaw(src: String): Seq[String] = {
     Seq(gitNative(Seq("push", "-q", "-u", "origin", src), errMapper = Sgit.gerritPushFilter))
+  }
+
+  private[release] def revertHead(): Seq[String] = {
+    Seq(gitNative(Seq("revert", "--no-edit", "HEAD")))
+  }
+
+  private[release] def commitMessageBody(commitId: String): Seq[String] = {
+    gitNative(Seq("log", "-n1", "--pretty=%b", commitId)).split("[\r\n]+").toList
+  }
+
+  private[release] def resetHard(commitId: String): Seq[String] = {
+    Seq(gitNative(Seq("reset", "--hard", commitId)))
   }
 
   private[release] def gitNativeOpt(args: Seq[String]): Option[String] = {
