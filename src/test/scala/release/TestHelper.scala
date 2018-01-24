@@ -85,22 +85,6 @@ object TestHelper {
     assertExceptionWithCheck(message ⇒ Assert.assertEquals(expectedMsg, message), clazz, fn)
   }
 
-  object Os {
-    val Windows = Os("win")
-    val Linux = Os("Linux")
-    val Darwin = Os("Darwin")
-  }
-
-  sealed case class Os(name: String)
-
-  def getOs(): Os = {
-    System.getProperty("os.name") match {
-      case "Windows 10" ⇒ Os.Windows
-      case "Linux" ⇒ Os.Linux
-      case "Mac OS X" ⇒ Os.Darwin
-      case other ⇒ throw new IllegalStateException("unknown os: " + other)
-    }
-  }
 
   private lazy val git = SgitTest.workSgit()
 

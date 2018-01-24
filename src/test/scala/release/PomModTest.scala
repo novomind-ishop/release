@@ -1,6 +1,6 @@
 package release
 
-import java.io.File
+import java.io.{BufferedWriter, File, FileWriter}
 import java.time.{LocalDate, Month}
 
 import org.junit.{Assert, Test}
@@ -1070,6 +1070,31 @@ class PomModTest extends AssertionsForJUnit {
 
     // WHEN / THEN
     Assert.assertTrue(PomMod(srcPoms).hasShopPom)
+  }
+
+  @Test
+  def testWrite(): Unit = {
+
+    val file = File.createTempFile("release", "test")
+    val writer: BufferedWriter = new BufferedWriter(new FileWriter(file))
+    writer.write("hello")
+    try {
+      Sgit.getOs() match {
+        case Sgit.Os.Windows ⇒ {
+          TestHelper.assertException("Windows tends to lock file handles." +
+            " Try to find handle or DLL that locks the file. e.g. with Sysinternals Process Explorer",
+            classOf[IllegalStateException], () ⇒ {
+              PomMod.writeContent(file, "asdf")
+            })
+        }
+        case _ ⇒ // do not test
+      }
+    } finally {
+      writer.close()
+      Assert.assertTrue("no testfile", file.exists())
+      Assert.assertTrue("delete of file failed", file.delete())
+    }
+
   }
 
   @Test

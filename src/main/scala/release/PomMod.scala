@@ -2,7 +2,7 @@ package release
 
 import java.io.{ByteArrayOutputStream, File, PrintStream}
 import java.nio.charset.StandardCharsets
-import java.nio.file.Files
+import java.nio.file.{FileSystemException, Files}
 import java.time.LocalDate
 import java.time.temporal.WeekFields
 import java.util.Locale
@@ -285,9 +285,9 @@ case class PomMod(file: File) {
       .foreach(fe ⇒ {
         val content = fe._2.content
         if (fe._1.getParentFile.getName == file.getName) {
-          writeContent(new File(targetFolder, fe._1.getName), content)
+          PomMod.writeContent(new File(targetFolder, fe._1.getName), content)
         } else {
-          writeContent(new File(new File(targetFolder, fe._1.getParentFile.getName), fe._1.getName), content)
+          PomMod.writeContent(new File(new File(targetFolder, fe._1.getParentFile.getName), fe._1.getName), content)
         }
       })
   }
@@ -470,22 +470,11 @@ case class PomMod(file: File) {
     PomMod.suggestNextReleaseBy(currentVersion.get, releaseVersion)
   }
 
-  private def writeContent(file: File, text: String): Unit = {
-    if (Files.exists(file.toPath)) {
-      Files.delete(file.toPath)
-    }
-    if (!Files.isDirectory(file.toPath.getParent)) {
-      Files.createDirectories(file.toPath.getParent)
-    }
-    Files.write(file.toPath, text.getBytes(StandardCharsets.UTF_8))
-  }
-
   private def writePom(file: File, document: Document): Unit = {
-    writeContent(file, PomMod.toString(document) + "\n")
+    PomMod.writeContent(file, PomMod.toString(document) + "\n")
   }
 
   private def toRawPom(pomFile: File): RawPomFile = {
-
     // TODO check if pom is sub sub module - parse
     RawPomFile(pomFile, Xpath.pomDoc(pomFile), file)
   }
@@ -898,6 +887,25 @@ object PomMod {
       throw new IllegalStateException("invalid property definition / multiple: " + diff)
     }
     result
+  }
+
+  private[release] def writeContent(file: File, text: String): Unit = {
+    try {
+      if (Files.exists(file.toPath)) {
+        Files.delete(file.toPath)
+      }
+      if (!Files.isDirectory(file.toPath.getParent)) {
+        Files.createDirectories(file.toPath.getParent)
+      }
+      Files.write(file.toPath, text.getBytes(StandardCharsets.UTF_8))
+    } catch {
+      case e: FileSystemException ⇒ Sgit.getOs() match {
+        case Sgit.Os.Windows ⇒ throw new IllegalStateException("Windows tends to lock file handles." +
+          " Try to find handle or DLL that locks the file. e.g. with Sysinternals Process Explorer", e)
+        case _ ⇒ throw e;
+      }
+      case o:Exception ⇒ throw o
+    }
   }
 
   @VisibleForTesting

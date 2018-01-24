@@ -5,10 +5,9 @@ import java.nio.file.{Files, StandardCopyOption}
 
 import org.junit.{Assert, Assume, Test}
 import org.scalatest.junit.AssertionsForJUnit
-import release.Sgit.{GitRemote, MissigGitDirException}
+import release.Sgit.{GitRemote, MissigGitDirException, Os}
 import release.SgitTest.hasCommitMsg
 import release.Starter.PreconditionsException
-import release.TestHelper.Os
 
 class SgitTest extends AssertionsForJUnit {
 
@@ -16,7 +15,7 @@ class SgitTest extends AssertionsForJUnit {
   def testSelectGitCmd(): Unit = {
     val git = Sgit.selectedGitCmd(System.err, None)
 
-    TestHelper.getOs() match {
+    Sgit.getOs() match {
       case Os.Windows ⇒ {
         Assert.assertEquals(Seq("C:\\Programme\\Git\\bin\\git.exe"), git)
       }
@@ -351,7 +350,7 @@ class SgitTest extends AssertionsForJUnit {
         })
     }
 
-    TestHelper.getOs() match {
+    Sgit.getOs() match {
       case Os.Windows ⇒ {
         failFetchAll("Nonzero exit value: 1; git --no-pager fetch -q --all --tags; " +
           "ssh: Could not resolve hostname git.example.org: Name or service not known fatal: " +
