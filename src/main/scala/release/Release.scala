@@ -74,16 +74,6 @@ object Release {
     }
   }
 
-  def checkNoSlashesNotEmpty(s: String): String = {
-    if (s.contains("/")) {
-      throw new IllegalArgumentException("no slashes are allowed in " + s)
-    } else if (s.trim.isEmpty) {
-      throw new IllegalArgumentException("empty is not allowed")
-    } else {
-      s
-    }
-  }
-
   def work(workDirFile: File, out: PrintStream, err: PrintStream, rebaseFn: () ⇒ Unit, branch: String, sgit: Sgit,
            dependencyUpdates: Boolean, termOs: TermOs, shellWidth: Int, releaseToolGitSha1: String): Seq[Unit] = {
 
@@ -128,18 +118,18 @@ object Release {
       out.println("---------")
     }
 
-    val releaseRead = checkNoSlashesNotEmpty(Term.readChooseOneOfOrType(out, "Enter the release version", newMod.suggestReleaseVersion(sgit.branchNamesAll())))
+    val releaseWithoutSnapshot = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readChooseOneOfOrType(out, "Enter the release version", newMod.suggestReleaseVersion(sgit.branchNamesAll())))
     val release = if (mod.hasShopPom) {
-      Term.removeSnapshot(releaseRead) + "-SNAPSHOT"
+      Term.removeSnapshot(releaseWithoutSnapshot) + "-SNAPSHOT"
     } else {
-      releaseRead
+      releaseWithoutSnapshot
     }
     val releaseWitoutSnapshot = Term.removeSnapshot(release)
     if (mod.hasNoShopPom && sgit.listTags().contains("v" + releaseWitoutSnapshot)) {
       // TODO fetch remote and try to read new version again
       throw new IllegalStateException("release " + releaseWitoutSnapshot + " already found; check your repository or change version.")
     }
-    val nextReleaseWithoutSnapshot = Term.readFrom(out, "Enter the next version without -SNAPSHOT", newMod.suggestNextRelease(release))
+    val nextReleaseWithoutSnapshot = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(out, "Enter the next version without -SNAPSHOT", newMod.suggestNextRelease(release)))
 
     if (mod.hasNoShopPom) {
       val coreVersions: Seq[(String, Dep)] = mod.listDependecies

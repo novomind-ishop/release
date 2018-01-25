@@ -10,7 +10,7 @@ object FeatureBranch {
 
     Starter.chooseUpstreamIfUndef(out, sgit, branch)
 
-    val featureName = Release.checkNoSlashesNotEmpty(Term.readFrom(out, "Enter the feature name", ""))
+    val featureName = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(out, "Enter the feature name", ""))
     val featureWitoutSnapshot = featureName.replaceFirst("-SNAPSHOT$", "")
     val featureSnapshot = featureWitoutSnapshot + "-SNAPSHOT"
 

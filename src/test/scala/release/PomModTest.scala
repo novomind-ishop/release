@@ -1073,6 +1073,38 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testCheckNoSlashesNotEmptyNoZeros(): Unit = {
+    Assert.assertEquals("s", PomMod.checkNoSlashesNotEmptyNoZeros("s"))
+    TestHelper.assertException("empty is not allowed", classOf[IllegalArgumentException],
+      () ⇒ PomMod.checkNoSlashesNotEmptyNoZeros(""))
+    TestHelper.assertException("no slashes are allowed in \"sdf/s/\"", classOf[IllegalArgumentException],
+      () ⇒ PomMod.checkNoSlashesNotEmptyNoZeros("sdf/s/"))
+    TestHelper.assertException("no slashes are allowed in \"sdf\\s\"", classOf[IllegalArgumentException],
+      () ⇒ PomMod.checkNoSlashesNotEmptyNoZeros("sdf\\s"))
+    TestHelper.assertException("no leading zeros are allowed in \"00.0.1\"", classOf[IllegalArgumentException],
+      () ⇒ PomMod.checkNoSlashesNotEmptyNoZeros("00.0.1"))
+    TestHelper.assertException("no leading zeros are allowed in \"0\"", classOf[IllegalArgumentException],
+      () ⇒ PomMod.checkNoSlashesNotEmptyNoZeros("0"))
+    TestHelper.assertException("no leading zeros are allowed in \"00\"", classOf[IllegalArgumentException],
+      () ⇒ PomMod.checkNoSlashesNotEmptyNoZeros("00"))
+    TestHelper.assertException("no leading zeros are allowed in \"0.0\"", classOf[IllegalArgumentException],
+      () ⇒ PomMod.checkNoSlashesNotEmptyNoZeros("0.0"))
+    TestHelper.assertException("no leading zeros are allowed in \"0.0.0\"", classOf[IllegalArgumentException],
+      () ⇒ PomMod.checkNoSlashesNotEmptyNoZeros("0.0.0"))
+    Assert.assertEquals("0.1.0", PomMod.checkNoSlashesNotEmptyNoZeros("0.1.0"))
+    Assert.assertEquals("0.0.1", PomMod.checkNoSlashesNotEmptyNoZeros("0.0.1"))
+    Assert.assertEquals("0.1", PomMod.checkNoSlashesNotEmptyNoZeros("0.1"))
+    Assert.assertEquals("0.100", PomMod.checkNoSlashesNotEmptyNoZeros("0.100"))
+    Assert.assertEquals("0.1000", PomMod.checkNoSlashesNotEmptyNoZeros("0.1000"))
+    TestHelper.assertException("no trailing zeros are allowed in \"0.0.1.00\"", classOf[IllegalArgumentException],
+      () ⇒ PomMod.checkNoSlashesNotEmptyNoZeros("0.0.1.00"))
+    TestHelper.assertException("no trailing zeros are allowed in \"0.0.1.000\"", classOf[IllegalArgumentException],
+      () ⇒ PomMod.checkNoSlashesNotEmptyNoZeros("0.0.1.000"))
+    TestHelper.assertException("no trailing zeros are allowed in \"0.0.1-000\"", classOf[IllegalArgumentException],
+      () ⇒ PomMod.checkNoSlashesNotEmptyNoZeros("0.0.1-000"))
+  }
+
+  @Test
   def testWrite(): Unit = {
 
     val file = File.createTempFile("release", "test")

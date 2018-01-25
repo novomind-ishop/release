@@ -889,6 +889,20 @@ object PomMod {
     result
   }
 
+  def checkNoSlashesNotEmptyNoZeros(s: String): String = {
+    if (s.contains("/") || s.contains("\\")) {
+      throw new IllegalArgumentException("no slashes are allowed in \"" + s + "\"")
+    } else if (s.trim.isEmpty) {
+      throw new IllegalArgumentException("empty is not allowed")
+    } else if (s.trim.startsWith("00") || s.trim == "0" || s.trim.replaceAll("[,.;:-]+", "").replaceAll("[0]+", "0") == "0") {
+      throw new IllegalArgumentException("no leading zeros are allowed in \"" + s + "\"")
+    } else if (s.trim.matches(".*[,.;:-]0[0]+$")) {
+      throw new IllegalArgumentException("no trailing zeros are allowed in \"" + s + "\"")
+    } else {
+      s
+    }
+  }
+
   private[release] def writeContent(file: File, text: String): Unit = {
     try {
       if (Files.exists(file.toPath)) {
@@ -904,7 +918,7 @@ object PomMod {
           " Try to find handle or DLL that locks the file. e.g. with Sysinternals Process Explorer", e)
         case _ ⇒ throw e;
       }
-      case o:Exception ⇒ throw o
+      case o: Exception ⇒ throw o
     }
   }
 
