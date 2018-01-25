@@ -239,13 +239,6 @@ class SgitTest extends AssertionsForJUnit {
           .replaceAll("[\r\n]+", " ")), err)
   }
 
-  private def unw(input: String) = {
-    input.trim match {
-      case in: String if in.startsWith("\"") && in.endsWith("\"") ⇒ in.replaceFirst("^[\"]+", "").replaceFirst("[\"]+$", "")
-      case in ⇒ in
-    }
-  }
-
   @Test
   def testUnw(): Unit = {
     Assert.assertEquals("a", unw("a"))
@@ -274,13 +267,6 @@ class SgitTest extends AssertionsForJUnit {
 
   @Test
   def testInitCloneCommitPoms(): Unit = {
-
-    def testFile(folder: File, name: String): File = {
-      val testFile = new File(folder, name)
-      testFile.createNewFile()
-      testFile
-    }
-
     // GIVEN
     val testRepoA = new File(Util.localWork, "target/a")
     if (testRepoA.isDirectory) {
@@ -290,25 +276,6 @@ class SgitTest extends AssertionsForJUnit {
     val testRepoB = new File(Util.localWork, "target/b")
     if (testRepoB.isDirectory) {
       Util.delete(testRepoB)
-    }
-
-    def copyMsgHook(to: File): Unit = {
-      if (SgitTest.hasCommitMsg) {
-        Files.copy(SgitTest.commitMsg, to.toPath.resolve(".git/hooks/commit-msg"), StandardCopyOption.REPLACE_EXISTING)
-      }
-    }
-
-    def assertMsg(expected: Seq[String], sgit: Sgit): Unit = {
-      val gitRawOut = sgit.gitNative(Seq("log", "-n1", "--pretty=\"%B\""))
-      val unwrapped = unw(gitRawOut)
-      val nativeLines = unwrapped.lines.toList
-      val body = nativeLines match {
-        case lines if lines.last.startsWith("Change-Id:") ⇒ lines.dropRight(1)
-        case lines ⇒ Assert.fail("invalid lines: " + lines.mkString("|"))
-      }
-      Assert.assertEquals(expected, body)
-      val hookLines = nativeLines.takeRight(1)
-      Assert.assertEquals("Change-Id:", hookLines.head.replaceFirst(" .*", "").trim)
     }
 
     // WHEN
@@ -520,15 +487,29 @@ class SgitTest extends AssertionsForJUnit {
     gitB.remoteAdd("origin", "ssh://none@git-ishop.novomind.com:19418/ishop/user/tstock/sonar-demo")
     val triedUnit = gitB.tryFetchAll()
     if (triedUnit.isFailure && triedUnit.failed.get.getMessage.contains("publickey")) {
+      Sgit.getOs() match {
+        case Os.Darwin ⇒ {
+          TestHelper.assertException("Nonzero exit value: 128; git --no-pager push -q -u origin master:refs/heads/master; " +
+            "git-err: 'none@git-ishop.novomind.com: Permission denied (publickey).' " +
+            "git-err: 'fatal: Could not read from remote repository.' " +
+            "git-err: 'Please make sure you have the correct access rights' " +
+            "git-err: 'and the repository exists.'",
+            classOf[RuntimeException], () ⇒ {
+              gitB.pushHeads("master", "master")
+            })
+        }
+        case _ ⇒ {
+          TestHelper.assertException("Nonzero exit value: 128; git --no-pager push -q -u origin master:refs/heads/master; " +
+            "git-err: 'Permission denied (publickey).' " +
+            "git-err: 'fatal: Could not read from remote repository.' " +
+            "git-err: 'Please make sure you have the correct access rights' " +
+            "git-err: 'and the repository exists.'",
+            classOf[RuntimeException], () ⇒ {
+              gitB.pushHeads("master", "master")
+            })
+        }
+      }
 
-      TestHelper.assertException("Nonzero exit value: 128; git --no-pager push -q -u origin master:refs/heads/master; " +
-        "git-err: 'Permission denied (publickey).' " +
-        "git-err: 'fatal: Could not read from remote repository.' " +
-        "git-err: 'Please make sure you have the correct access rights' " +
-        "git-err: 'and the repository exists.'",
-        classOf[RuntimeException], () ⇒ {
-          gitB.pushHeads("master", "master")
-        })
     }
   }
 
@@ -544,6 +525,38 @@ class SgitTest extends AssertionsForJUnit {
     val detached = Sgit.splitLineOnBranchlist("* (HEAD detached at 97cbb59ea) 97cbb59ea40aacb4d8acad402bf90890741b0dbe Add ...")
     Assert.assertEquals(Seq("97cbb59ea40aacb4d8acad402bf90890741b0dbe", "97cbb59ea40aacb4d8acad402bf90890741b0dbe"),
       detached.take(2))
+  }
+
+  private def testFile(folder: File, name: String): File = {
+    val testFile = new File(folder, name)
+    testFile.createNewFile()
+    testFile
+  }
+
+  private def copyMsgHook(to: File): Unit = {
+    if (SgitTest.hasCommitMsg) {
+      Files.copy(SgitTest.commitMsg, to.toPath.resolve(".git/hooks/commit-msg"), StandardCopyOption.REPLACE_EXISTING)
+    }
+  }
+
+  private def assertMsg(expected: Seq[String], sgit: Sgit): Unit = {
+    val gitRawOut = sgit.gitNative(Seq("log", "-n1", "--pretty=\"%B\""))
+    val unwrapped = unw(gitRawOut)
+    val nativeLines = unwrapped.lines.toList
+    val body = nativeLines match {
+      case lines if lines.last.startsWith("Change-Id:") ⇒ lines.dropRight(1)
+      case lines ⇒ Assert.fail("invalid lines: " + lines.mkString("|"))
+    }
+    Assert.assertEquals(expected, body)
+    val hookLines = nativeLines.takeRight(1)
+    Assert.assertEquals("Change-Id:", hookLines.head.replaceFirst(" .*", "").trim)
+  }
+
+  private def unw(input: String) = {
+    input.trim match {
+      case in: String if in.startsWith("\"") && in.endsWith("\"") ⇒ in.replaceFirst("^[\"]+", "").replaceFirst("[\"]+$", "")
+      case in ⇒ in
+    }
   }
 
 }

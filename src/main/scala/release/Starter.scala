@@ -11,7 +11,6 @@ import com.google.common.hash.Hashing
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClients
-import org.eclipse.jgit.api.errors.RefAlreadyExistsException
 import release.Sgit.GitRemote
 import release.Xpath.InvalidPomXmlException
 
@@ -197,7 +196,7 @@ object Starter extends App with LazyLogging {
 
     def handleException(t: Throwable): Int = {
       t match {
-        case x@(_: RefAlreadyExistsException | _: Sgit.MissigCommitHookException | _: Sgit.MissigGitDirException |
+        case x@(_: Sgit.MissigCommitHookException | _: Sgit.MissigGitDirException |
                 _: PomChecker.ValidationException | _: PreconditionsException | _: Sgit.BranchAlreadyExistsException) ⇒ {
           err.println()
           err.println("E: " + x.getMessage)
