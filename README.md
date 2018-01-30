@@ -12,6 +12,7 @@ It also checks your ```pom.xml``` for problems and suggests hints to fix them.
 * suggest rebase
 * smart suggest of next/current version
 * handle local changes
+* support different shell variants (gitbash, cygwin, linux, ...)
 * ...
 * release from master/feature/detached HEAD/...
 

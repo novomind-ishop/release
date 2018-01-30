@@ -222,36 +222,8 @@ object Release {
 
     val sendToGerrit = Term.readFromOneOfYesNo(out, "Push to Gerrit?")
     val selectedBranch = sgit.findUpstreamBranch().getOrElse(branch)
-    if (sendToGerrit == "y") {
 
-      if (sgit.hasChangesToPush) {
-        val result = sgit.pushFor(srcBranchName = branch, targetBranchName = selectedBranch)
-        if (Starter.isInNovomindNetwork) {
-          // TODO hier gerrit öffnen da man submit klicken muss
-          // TODO wenn man genau den change öffnen könnte wär noch cooler
-          Starter.openInDefaultBrowser("https://git-ishop.novomind.com:9091/#/q/status:open")
-        }
-        if (newMod.hasNoShopPom) {
-          sgit.pushTag(release)
-          if (Starter.isInNovomindNetwork) {
-            val jenkinsBase = "https://build-ishop.novomind.com"
-            val tagUrl = Starter.tagBuildUrl(sgit, jenkinsBase)
-            // TODO hier erstmal nur den browser auf machen damit man build tag klicken kann
-            Starter.openInDefaultBrowser(tagUrl.getOrElse(jenkinsBase + "/search/?q=-tag"))
-            // try to notify jenkins about tag builds
-            // TODO try to wait for successful tag builds ... subscribe to logs
-          }
-        }
-      }
-      if (newMod.hasShopPom) {
-        val result = sgit.pushHeads(srcBranchName = "release/" + releaseWitoutSnapshot,
-          targetBranchName = "release/" + releaseWitoutSnapshot)
-        // TODO try to trigger job updates for jenkins
-        // TODO try to trigger job execution in loop with abort
-      }
-      out.println("done.")
-
-    } else {
+    def showManual(): Unit = {
       val pushTagOrBranch = if (newMod.hasNoShopPom) {
         "git push origin tag v" + releaseWitoutSnapshot + "; "
       } else {
@@ -275,6 +247,45 @@ object Release {
           """
             |NOTE: the "send to remote" command pushes the HEAD via Gerrit Code Review, this might not be needed for branches != master""").stripMargin)
     }
+
+    if (sendToGerrit == "y") {
+      try {
+        if (sgit.hasChangesToPush) {
+          val result = sgit.pushFor(srcBranchName = branch, targetBranchName = selectedBranch)
+          if (Starter.isInNovomindNetwork) {
+            // TODO hier gerrit öffnen da man submit klicken muss
+            // TODO wenn man genau den change öffnen könnte wär noch cooler
+            Starter.openInDefaultBrowser("https://git-ishop.novomind.com:9091/#/q/status:open")
+          }
+          if (newMod.hasNoShopPom) {
+            sgit.pushTag(release)
+            if (Starter.isInNovomindNetwork) {
+              val jenkinsBase = "https://build-ishop.novomind.com"
+              val tagUrl = Starter.tagBuildUrl(sgit, jenkinsBase)
+              // TODO hier erstmal nur den browser auf machen damit man build tag klicken kann
+              Starter.openInDefaultBrowser(tagUrl.getOrElse(jenkinsBase + "/search/?q=-tag"))
+              // try to notify jenkins about tag builds
+              // TODO try to wait for successful tag builds ... subscribe to logs
+            }
+          }
+        }
+        if (newMod.hasShopPom) {
+          val result = sgit.pushHeads(srcBranchName = "release/" + releaseWitoutSnapshot,
+            targetBranchName = "release/" + releaseWitoutSnapshot)
+          // TODO try to trigger job updates for jenkins
+          // TODO try to trigger job execution in loop with abort
+        }
+        out.println("done.")
+      } catch {
+        case e: RuntimeException ⇒ {
+          err.println("E: Push failed - try manual - " + e.getMessage)
+          showManual()
+        }
+      }
+    } else {
+      showManual()
+    }
+
     Nil
   }
 
