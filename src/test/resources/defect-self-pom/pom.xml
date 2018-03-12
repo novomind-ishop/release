@@ -8,18 +8,13 @@
     <version>27.0.0-SNAPSHOT</version>
   </parent>
 
-  <groupId>com.novomind.ishop.shops.novosales</groupId>
-  <artifactId>novosales-projects</artifactId>
+  <groupId>com.novomind.ishop.shops.any</groupId>
+  <artifactId>any-projects</artifactId>
   <version>27.0.0-SNAPSHOT</version>
   <packaging>pom</packaging>
-  <name>Shopsystem:Novosales</name>
-
-  <scm>
-    <connection>scm:git:ssh://git-ishop.novomind.com:19418/ishop/shops/novosales</connection>
-  </scm>
 
   <modules>
-    <module>novosales-erp</module>
+    <module>any-erp</module>
   </modules>
 
 </project>

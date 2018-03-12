@@ -15,13 +15,6 @@
   <artifactId>novosales</artifactId>
   <name>novosales-shop</name>
 
-  <repositories>
-    <repository>
-      <id>ishop-nexus-releases</id>
-      <url>http://nexus-ishop.novomind.com:8881/nexus/content/repositories/releases/</url>
-    </repository>
-  </repositories>
-
   <build>
     <plugins>
       <plugin>

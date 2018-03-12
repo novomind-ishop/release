@@ -12,11 +12,6 @@
   <artifactId>novosales-projects</artifactId>
   <version>RC-2017.01-SNAPSHOT</version>
   <packaging>pom</packaging>
-  <name>Shopsystem:Novosales</name>
-
-  <scm>
-    <connection>scm:git:ssh://git-ishop.novomind.com:19418/ishop/shops/novosales</connection>
-  </scm>
 
   <modules>
     <module>novosales-erp</module>

@@ -1002,7 +1002,7 @@ class PomModTest extends AssertionsForJUnit {
     val deps = PomMod(srcPoms).listSnapshots
 
     // THEN
-    assertDeps(Seq(Dep(PomRef("com.novomind.ishop.deployment:deployment-planning:0.11-SNAPSHOT"),
+    assertDeps(Seq(Dep(PomRef("com.novomind.ishop.any:any:0.11-SNAPSHOT"),
       "org.springframework", "spring-other", "0.11-SNAPSHOT", "", "", "", "")), deps)
   }
 
