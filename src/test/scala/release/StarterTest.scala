@@ -5,7 +5,6 @@ import java.io.{ByteArrayOutputStream, PrintStream}
 import org.junit.rules.Timeout
 import org.junit.{Assert, Rule, Test}
 import org.scalatest.junit.AssertionsForJUnit
-import redis.clients.jedis.Jedis
 import release.Sgit.GitRemote
 
 class StarterTest extends AssertionsForJUnit {
@@ -40,28 +39,6 @@ class StarterTest extends AssertionsForJUnit {
       Seq(GitRemote("origin", "ssh://someone@git-ishop.novomind.com:19418/ishop/core/ishop-core-projects", "(fetch)")),
       "https://build-ishop.novomind.com")
     Assert.assertEquals("https://build-ishop.novomind.com/job/ishop-core-ishop-core-projects-tag/", result.get)
-  }
-
-  @Test
-  def testJedis(): Unit = {
-    try {
-      val jedis = new Jedis("deko-ishop.novomind.com", 50500, 2000, 2000)
-      val pass ="j348u3nhgij2njfu8§$3g§$F"
-     // jedis.configSet("requirepass", pass)
-      jedis.auth(pass)
-      def push(key:String, value:String): Unit = {
-        jedis.rpush(key, value)
-        jedis.expire(key, 2)
-      }
-
-      push("foor", "hallo")
-      val long = jedis.llen("foor")
-      val value = jedis.lrange("foor", 0, long)
-
-      println(value)
-    } catch {
-      case e: Throwable ⇒ println("E: " + e.getMessage)
-    }
   }
 
   @Test

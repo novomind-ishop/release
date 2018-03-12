@@ -44,14 +44,13 @@ object Aether extends LazyLogging {
     result
   }
 
-  private def getVersionsOf(req: String) = getVersions(Booter.newRepositoriesNovomindIshop)(req)
+  private def getVersionsOf(req: String) = getVersions(ArtifactRepos.workNexus)(req)
 
   def isReachable(): Boolean = {
     val httpclient = HttpClients.createDefault
-    val ishop = Booter.newRepositoriesNovomindIshop
-    val httpGet = new HttpGet(ishop.getUrl)
+    val httpGet = new HttpGet(ArtifactRepos.workNexus.getUrl)
     var response: CloseableHttpResponse = null
-    val code:Int = try {
+    val code: Int = try {
 
       response = httpclient.execute(httpGet)
       response.getStatusLine.getStatusCode
@@ -69,8 +68,8 @@ object Aether extends LazyLogging {
 
   @throws[VersionRangeResolutionException]
   private def getVersions(repository: RemoteRepository)(request: String): Seq[Version] = {
-    val system = Booter.newRepositorySystem
-    val session = Booter.newRepositorySystemSession(system)
+    val system = ArtifactRepos.newRepositorySystem
+    val session = ArtifactRepos.newRepositorySystemSession(system)
     val artifact = new DefaultArtifact(request)
     val rangeRequest = new VersionRangeRequest
     rangeRequest.setArtifact(artifact)
@@ -99,9 +98,9 @@ object Aether extends LazyLogging {
     }
   }
 
-  private class Booter {}
+  private class ArtifactRepos {}
 
-  private object Booter {
+  private object ArtifactRepos {
     def newRepositorySystem: RepositorySystem = ManualRepositorySystemFactory.newRepositorySystem
 
     def newRepositorySystemSession(system: RepositorySystem): DefaultRepositorySystemSession =
@@ -128,7 +127,7 @@ object Aether extends LazyLogging {
           @throws[IOException]
           def visitFileFailed(file: Path, exc: IOException): FileVisitResult = {
             if (!exc.toString.contains("local-repo")) {
-              System.out.println(classOf[Booter].getCanonicalName + " -> " + exc.toString)
+              System.out.println(classOf[ArtifactRepos].getCanonicalName + " -> " + exc.toString)
             }
             FileVisitResult.CONTINUE
           }
@@ -161,29 +160,35 @@ object Aether extends LazyLogging {
 
     lazy val newRepositoriesCentral: RemoteRepository = newDefaultRepository("http://central.maven.org/maven2/")
 
-    lazy val newRepositoriesNovomindPartner: RemoteRepository = newDefaultRepository("https://partner-nexus-ishop.novomind.com/content/groups/public/")
+    lazy val mirrorNexus: RemoteRepository = newDefaultRepository(ReleaseConfig.default().mirrorNexusUrl())
 
-    lazy val newRepositoriesNovomindIshop: RemoteRepository = newDefaultRepository("http://nexus-ishop.novomind.com:8881/nexus/content/repositories/public")
+    lazy val workNexus: RemoteRepository = newDefaultRepository(ReleaseConfig.default().workNexusUrl())
 
-    lazy val allRepos: Seq[RemoteRepository] = Seq(newRepositoriesNovomindIshop, newRepositoriesNovomindPartner)
+    lazy val allRepos: Seq[RemoteRepository] = Seq(workNexus, mirrorNexus)
   }
 
   private class ConsoleTransferListener(_out: PrintStream = null) extends AbstractTransferListener {
     private var out: PrintStream = null
-    this.out = if (_out != null) _out
-    else System.out
+    this.out = if (_out != null) {
+      _out
+    } else {
+      System.out
+    }
     private val downloads = new ConcurrentHashMap[TransferResource, Long]
     private var lastLength = 0
 
     override def transferInitiated(event: TransferEvent) {
-      val message = if (event.getRequestType eq TransferEvent.RequestType.PUT) "Uploading"
-      else "Downloading"
+      val message = if (event.getRequestType eq TransferEvent.RequestType.PUT) {
+        "Uploading"
+      } else {
+        "Downloading"
+      }
       out.println(message + ": " + event.getResource.getRepositoryUrl + event.getResource.getResourceName)
     }
 
     override def transferProgressed(event: TransferEvent) {
       val resource = event.getResource
-      downloads.put(resource, event.getTransferredBytes.toLong)
+      downloads.put(resource, event.getTransferredBytes)
       val buffer = new StringBuilder(64)
       import scala.collection.JavaConversions._
       for (entry <- downloads.entrySet) {
@@ -207,8 +212,11 @@ object Aether extends LazyLogging {
       val resource = event.getResource
       val contentLength = event.getTransferredBytes
       if (contentLength >= 0) {
-        val `type` = if ((event.getRequestType eq TransferEvent.RequestType.PUT)) "Uploaded"
-        else "Downloaded"
+        val action = if (event.getRequestType eq TransferEvent.RequestType.PUT) {
+          "Uploaded"
+        } else {
+          "Downloaded"
+        }
         val len = if (contentLength >= 1024) toKB(contentLength) + " KB"
         else contentLength + " B"
         var throughput = ""
@@ -219,13 +227,15 @@ object Aether extends LazyLogging {
           val kbPerSec = (bytes / 1024.0) / (duration / 1000.0)
           throughput = " at " + format.format(kbPerSec) + " KB/sec"
         }
-        out.println(`type` + ": " + resource.getRepositoryUrl + resource.getResourceName + " (" + len + throughput + ")")
+        out.println(action + ": " + resource.getRepositoryUrl + resource.getResourceName + " (" + len + throughput + ")")
       }
     }
 
     override def transferFailed(event: TransferEvent) {
       transferCompleted(event)
-      if (logStacktrace(event)) event.getException.printStackTrace(out)
+      if (logStacktrace(event)) {
+        event.getException.printStackTrace(out)
+      }
     }
 
     private def logStacktrace(event: TransferEvent) = {
@@ -258,7 +268,7 @@ object Aether extends LazyLogging {
     }
 
     protected def toKB(bytes: Long): Long = {
-      return (bytes + 1023) / 1024
+      (bytes + 1023) / 1024
     }
   }
 

@@ -19,7 +19,7 @@ object Term {
     out.print(text + " [%s]: ".format(defaultValue))
     val line = StdIn.readLine()
     val result = line match {
-      case null ⇒ System.exit(1); null
+      case null ⇒ System.exit(14); null
       case "" ⇒ defaultValue
       case any: String ⇒ Option(any.trim).getOrElse(defaultValue)
     }

@@ -42,6 +42,8 @@ object Starter extends App with LazyLogging {
       err.println("usage: $0 \"$(dirname $0)\" \"$(pwd)\" \"${os}\" \"${TERM}\" \"${terminal_cols}\" ${argLine}")
       return 1
     }
+
+    val config = ReleaseConfig.default()
     val releaseToolPath = argSeq.head
     val releaseToolDir = new File(releaseToolPath).getAbsoluteFile
     val workDir = argSeq(1)
@@ -246,9 +248,8 @@ object Starter extends App with LazyLogging {
         mod.writeTo(workDirFile)
         println("You have local changes")
       } else if (jenkinsTrigger) {
-        if (isInNovomindNetwork) {
-          val jenkinsBase = "https://build-ishop.novomind.com"
-          out.println(tagBuildUrl(git, jenkinsBase))
+        if (config.isInNovomindNetwork) {
+          out.println(tagBuildUrl(git, config.jenkinsBaseUrl()))
           out.println("WIP try to notify jenkins to create new jenkins jobs")
           out.println("WIP try to notify created release job")
           return 0
@@ -258,10 +259,10 @@ object Starter extends App with LazyLogging {
         }
 
       } else if (createFeatureBranch) {
-        FeatureBranch.work(workDirFile, out, err, git, startBranch, askForRebase, releaseToolGit.headStatusValue())
+        FeatureBranch.work(workDirFile, out, err, git, startBranch, askForRebase, releaseToolGit.headStatusValue(), config)
       } else {
         Release.work(workDirFile, out, err, askForRebase, startBranch,
-          git, dependencyUpdates, termOs, shellWidth, releaseToolGit.headStatusValue())
+          git, dependencyUpdates, termOs, shellWidth, releaseToolGit.headStatusValue(), config)
       }
 
       return 0
@@ -312,10 +313,6 @@ object Starter extends App with LazyLogging {
       None
     }
 
-  }
-
-  def isInNovomindNetwork: Boolean = {
-    System.getenv("USERDNSDOMAIN") == "NOVOMIND.COM"
   }
 
   def openInDefaultBrowser(url: String): Unit = {

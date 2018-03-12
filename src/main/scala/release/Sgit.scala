@@ -116,10 +116,13 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
           """
             |E: please download a commit-message hook and retry
             |E: The hook should be at: %s
-            |I: see https://git-ishop.novomind.com:9091/Documentation/user-changeid.html#creation
-            |# scp -p -P 19418 $USERNAME@git-ishop.novomind.com:hooks/commit-msg .git/hooks/
+            |I: see %s/Documentation/user-changeid.html#creation
+            |# scp -p -P %s $USERNAME@%s:hooks/commit-msg .git/hooks/
             |
-        """.stripMargin.format(commitMsgHook.getAbsolutePath))
+        """.stripMargin.format(commitMsgHook.getAbsolutePath,
+            ReleaseConfig.default().gerritBaseUrl(),
+            ReleaseConfig.default().gerritPort(),
+            ReleaseConfig.default().gerritHostname()))
       }
     }
 

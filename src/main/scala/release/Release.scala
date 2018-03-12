@@ -75,7 +75,7 @@ object Release {
   }
 
   def work(workDirFile: File, out: PrintStream, err: PrintStream, rebaseFn: () ⇒ Unit, branch: String, sgit: Sgit,
-           dependencyUpdates: Boolean, termOs: TermOs, shellWidth: Int, releaseToolGitSha1: String): Seq[Unit] = {
+           dependencyUpdates: Boolean, termOs: TermOs, shellWidth: Int, releaseToolGitSha1: String, config: ReleaseConfig): Seq[Unit] = {
 
     if (sgit.hasLocalChanges) {
       val message = localChangeMessage(sgit)
@@ -89,7 +89,7 @@ object Release {
       } else if (changes == "n") {
         checkLocalChanges(sgit, branch)
       } else {
-        work(workDirFile, out, err, rebaseFn, branch, sgit, dependencyUpdates, termOs, shellWidth, releaseToolGitSha1)
+        work(workDirFile, out, err, rebaseFn, branch, sgit, dependencyUpdates, termOs, shellWidth, releaseToolGitSha1, config)
       }
 
     }
@@ -178,13 +178,16 @@ object Release {
     if (sgit.hasNoLocalChanges) {
       out.println("skipped release commit on " + branch)
     } else {
+
       out.print("Committing pom changes ..")
       sgit.doCommitPomXmlsAnd(
-        """[ishop-release] prepare for next iteration - %s
+        """[%s] prepare for next iteration - %s
           |
-          |Signed-off-by: Ishop-Dev-Infra <ishop-dev-infra@novomind.com>
+          |Signed-off-by: %s
           |Releasetool-sign: %s
-          |Releasetool-sha1: %s""".stripMargin.format(nextReleaseWithoutSnapshot, Starter.sign(), toolSh1), releaseMod.depTreeFilenameList())
+          |Releasetool-sha1: %s""".stripMargin.format(config.releasPrefix(), nextReleaseWithoutSnapshot,
+          config.signedOfBy(), Starter.sign(), toolSh1),
+        releaseMod.depTreeFilenameList())
 
       out.println(". done")
     }
@@ -202,11 +205,12 @@ object Release {
     } else {
       out.print("Commiting pom changes ..")
       sgit.doCommitPomXmlsAnd(
-        """[ishop-release] perform to - %s
+        """[%s] perform to - %s
           |
-          |Signed-off-by: Ishop-Dev-Infra <ishop-dev-infra@novomind.com>
+          |Signed-off-by: %s
           |Releasetool-sign: %s
-          |Releasetool-sha1: %s""".stripMargin.format(release, Starter.sign(), toolSh1), releaseMod.depTreeFilenameList())
+          |Releasetool-sha1: %s""".stripMargin.format(config.releasPrefix(), release,
+          config.signedOfBy(), Starter.sign(), toolSh1), releaseMod.depTreeFilenameList())
       out.println(". done")
     }
     if (releaseMod.hasNoShopPom) {
@@ -252,15 +256,15 @@ object Release {
       try {
         if (sgit.hasChangesToPush) {
           val result = sgit.pushFor(srcBranchName = branch, targetBranchName = selectedBranch)
-          if (Starter.isInNovomindNetwork) {
+          if (config.isInNovomindNetwork) {
             // TODO hier gerrit öffnen da man submit klicken muss
             // TODO wenn man genau den change öffnen könnte wär noch cooler
-            Starter.openInDefaultBrowser("https://git-ishop.novomind.com:9091/#/q/status:open")
+            Starter.openInDefaultBrowser(config.gerritBaseUrl() + "#/q/status:open")
           }
           if (newMod.hasNoShopPom) {
             sgit.pushTag(release)
-            if (Starter.isInNovomindNetwork) {
-              val jenkinsBase = "https://build-ishop.novomind.com"
+            if (config.isInNovomindNetwork) {
+              val jenkinsBase = config.jenkinsBaseUrl()
               val tagUrl = Starter.tagBuildUrl(sgit, jenkinsBase)
               // TODO hier erstmal nur den browser auf machen damit man build tag klicken kann
               Starter.openInDefaultBrowser(tagUrl.getOrElse(jenkinsBase + "/search/?q=-tag"))

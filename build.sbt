@@ -4,10 +4,6 @@ version := "1.0"
 
 scalaVersion := "2.12.4" // 5000 k
 
-// libraryDependencies += "org.jdom" % "jdom2" % "2.0.6" // 297 K
-
-// libraryDependencies += "xerces" % "xercesImpl" % "2.11.0" // 1300 k
-
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3" // 283 k
 
 libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2" // 30 k

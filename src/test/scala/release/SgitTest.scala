@@ -187,13 +187,13 @@ class SgitTest extends AssertionsForJUnit {
     testee.err("remote: ")
     testee.err("remote: New Changes:")
     testee.err("remote: New Changes:        ")
-    testee.err("remote:   https://git-ishop.novomind.com:9091/72458 snap weg")
-    testee.err("remote:   https://git-ishop.novomind.com:9091/72459 [ishop-release] prepare for next iteration - 29.0.6")
+    testee.err("remote:   https://any-gerrit:8443/72458 snap weg")
+    testee.err("remote:   https://any-gerrit:8443/72459 [ishop-release] prepare for next iteration - 29.0.6")
     testee.err("remote: ")
 
     // THEN
-    Assert.assertEquals(List("See https://git-ishop.novomind.com:9091/72458 snap weg",
-      "See https://git-ishop.novomind.com:9091/72459 [ishop-release] prepare for next iteration - 29.0.6"), err)
+    Assert.assertEquals(List("See https://any-gerrit:8443/72458 snap weg",
+      "See https://any-gerrit:8443/72459 [ishop-release] prepare for next iteration - 29.0.6"), err)
   }
 
   @Test
@@ -214,14 +214,14 @@ class SgitTest extends AssertionsForJUnit {
     testee.err("remote: ")
     testee.err("remote: error: Line is too long. Reduce it to 72 chars please; " +
       "\"Eine wichtichte asfasd asdf asf sd fjrei eirgj eiogjeio jgirj ierjiogj iodfgj ioeiojgierge\"")
-    testee.err("To ssh://tstock@git-ishop.novomind.com:19418/ishop/user/tstock/sonar-demo")
+    testee.err("To ssh://anyone@any-gerrig:29418/ishop/user/anyone/sonar-demo")
     testee.err(" ! [remote rejected] master -> refs/for/master " +
       "(Commit Message Problem: Line is too long. Reduce it to 72 chars please; " +
       "\"Eine wichtichte asfasd asdf asf sd fjrei eirgj eiogjeio jgirj ierjiogj iodfgj ioeiojgierge\")")
     testee.err(" ! [remote rejected] v29.0.6 -> v29.0.6 " +
       "(Commit Message Problem: Line is too long. Reduce it to 72 chars please; " +
       "\"Eine wichtichte asfasd asdf asf sd fjrei eirgj eiogjeio jgirj ierjiogj iodfgj ioeiojgierge\")")
-    testee.err("error: failed to push some refs to 'ssh://tstock@git-ishop.novomind.com:19418/ishop/user/tstock/sonar-demo'")
+    testee.err("error: failed to push some refs to 'ssh://anyone@any-gerrig:29418/ishop/user/anyone/sonar-demo'")
 
     // THEN
     Assert.assertEquals(
@@ -235,7 +235,7 @@ class SgitTest extends AssertionsForJUnit {
           |"Eine wichtichte asfasd asdf asf sd fjrei eirgj eiogjeio jgirj ierjiogj iodfgj ioeiojgierge")""".stripMargin
           .replaceAll("[\r\n]+", " "),
         """git-err: 'error: failed to push some refs to
-          |'ssh://tstock@git-ishop.novomind.com:19418/ishop/user/tstock/sonar-demo''""".stripMargin
+          |'ssh://anyone@any-gerrig:29418/ishop/user/anyone/sonar-demo''""".stripMargin
           .replaceAll("[\r\n]+", " ")), err)
   }
 
@@ -435,13 +435,13 @@ class SgitTest extends AssertionsForJUnit {
 
     Assert.assertEquals(Seq("M pom.xml", "M sub/pom.xml"), gitB.localChanges())
     Assert.assertEquals(Seq("pom.xml", "sub/pom.xml"), gitB.localPomChanges())
-    gitB.doCommitPomXmls("update pom.xml\n\nSigned-off-by: Ishop-Dev-Infra <ishop-dev-infra@novomind.com>")
+    gitB.doCommitPomXmls("update pom.xml\n\nSigned-off-by: Signer <signer@example.org>")
     Assert.assertEquals(Nil, gitB.localChanges())
     gitB.doTag("1.0.0")
     gitB.doTag("1.0.1")
     Assert.assertEquals(Seq("any.xml", "pom.xml", "schoenes Ding", "sub/pom.xml", "test"), gitB.lsFiles())
     Assert.assertEquals(Seq("master"), gitB.branchNamesLocal())
-    assertMsg(Seq("update pom.xml", "", "Signed-off-by: Ishop-Dev-Infra <ishop-dev-infra@novomind.com>"), gitB)
+    assertMsg(Seq("update pom.xml", "", "Signed-off-by: Signer <signer@example.org>"), gitB)
 
     Util.write(pomFile, Seq("b"))
     Util.write(subPomFile, Seq("b"))
@@ -484,13 +484,13 @@ class SgitTest extends AssertionsForJUnit {
     gitB.createBranch("any")
     Assert.assertEquals(Seq("refs/heads/any", "refs/heads/master"), gitB.branchListLocal().map(_.branchName))
     gitB.remoteRemove("origin")
-    gitB.remoteAdd("origin", "ssh://none@git-ishop.novomind.com:19418/ishop/user/tstock/sonar-demo")
+    gitB.remoteAdd("origin", "ssh://none@any-gerrit:29418/ishop/user/anyone/sonar-demo")
     val triedUnit = gitB.tryFetchAll()
     if (triedUnit.isFailure && triedUnit.failed.get.getMessage.contains("publickey")) {
       Sgit.getOs() match {
         case Os.Darwin ⇒ {
           TestHelper.assertException("Nonzero exit value: 128; git --no-pager push -q -u origin master:refs/heads/master; " +
-            "git-err: 'none@git-ishop.novomind.com: Permission denied (publickey).' " +
+            "git-err: 'none@any-gerrit: Permission denied (publickey).' " +
             "git-err: 'fatal: Could not read from remote repository.' " +
             "git-err: 'Please make sure you have the correct access rights' " +
             "git-err: 'and the repository exists.'",

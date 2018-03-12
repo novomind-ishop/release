@@ -3,7 +3,8 @@ package release
 import java.io.{File, PrintStream}
 
 object FeatureBranch {
-  def work(workDirFile: File, out: PrintStream, err: PrintStream, sgit: Sgit, branch: String, rebaseFn: () ⇒ Unit, toolSh1: String): Unit = {
+  def work(workDirFile: File, out: PrintStream, err: PrintStream, sgit: Sgit, branch: String, rebaseFn: () ⇒ Unit,
+           toolSh1: String, config: ReleaseConfig): Unit = {
     Release.checkLocalChanges(sgit, branch)
     rebaseFn.apply()
     sgit.checkout(branch)
@@ -23,11 +24,12 @@ object FeatureBranch {
     mod.writeTo(workDirFile)
     out.print("Committing pom changes ..")
     sgit.doCommitPomXmlsAnd(
-      """[ishop-branch] prepare - %s
+      """[%s] prepare - %s
         |
-        |Signed-off-by: Ishop-Dev-Infra <ishop-dev-infra@novomind.com>
+        |Signed-off-by: %s
         |Releasetool-sign: %s
-        |Releasetool-sha1: %s""".stripMargin.format(featureWitoutSnapshot, Starter.sign(), toolSh1), mod.depTreeFilenameList())
+        |Releasetool-sha1: %s""".stripMargin.format(config.branchPrefix(), featureWitoutSnapshot,
+        config.signedOfBy(), Starter.sign(), toolSh1), mod.depTreeFilenameList())
 
     out.println(". done")
   }

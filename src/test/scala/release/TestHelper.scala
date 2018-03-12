@@ -74,7 +74,7 @@ object TestHelper {
           expection.apply(e.getMessage)
           Assert.assertEquals(clazz, e.getClass)
         } catch {
-          case t: Throwable ⇒ e.printStackTrace(); throw t
+          case t: Throwable ⇒ throw t
         }
       }
       case e: Throwable ⇒ throw e

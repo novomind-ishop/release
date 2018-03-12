@@ -66,8 +66,8 @@ object Util {
     } else {
       throw new IllegalStateException(f.getAbsolutePath + " is no regular file")
     }
-
   }
+
   def delete(file: File): Unit = {
     def deleteFile(allFiles: Array[File]): Unit = {
       if (allFiles != null) {
@@ -83,4 +83,7 @@ object Util {
     }
   }
 
+  def toSet[A](set:java.util.Set[A]):Set[A] = JavaConverters.asScalaSet(set).toSet
+
+  def toJavaMap[K,V](map: Map[K,V]):java.util.Map[K,V] = JavaConverters.mapAsJavaMap(map)
 }
