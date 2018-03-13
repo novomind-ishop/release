@@ -1,0 +1,153 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <packaging>war</packaging>
+
+  <parent>
+    <groupId>com.novomind.ishop.shops.anyshop</groupId>
+    <artifactId>anyshop-projects</artifactId>
+    <version>27.0.0-SNAPSHOT</version>
+    <relativePath>..</relativePath>
+  </parent>
+
+  <groupId>com.novomind.ishop.shops</groupId>
+  <artifactId>anyshop</artifactId>
+  <name>anyshop-shop</name>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <profile>
+      <id>local</id>
+      <activation>
+        <os>
+          <family>windows</family>
+        </os>
+      </activation>
+    </profile>
+    <profile>
+      <id>linux</id>
+      <activation>
+        <os>
+          <family>unix</family>
+        </os>
+        <file>
+          <exists>rootContext</exists>
+        </file>
+      </activation>
+    </profile>
+  </profiles>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>com.novomind.ishop.core</groupId>
+        <artifactId>ishop-core-projects</artifactId>
+        <version>${ishop-core.version}</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.novomind.ishop.shops.anyshop</groupId>
+      <artifactId>anyshop-commons</artifactId>
+      <version>27.0.0-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>com.novomind.ishop.shops.anyshop</groupId>
+      <artifactId>anyshop-commons</artifactId>
+      <version>27.0.0-SNAPSHOT</version>
+      <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.novomind.ishop.shops.anyshop</groupId>
+      <artifactId>anyshop-erp</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.novomind.ishop.shops.anyshop</groupId>
+      <artifactId>anyshop-erp</artifactId>
+      <version>27.0.0-SNAPSHOT</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.novomind.ishop.shops.anyshop</groupId>
+      <artifactId>anyshop-erp</artifactId>
+      <version>27.0.0-SNAPSHOT</version>
+      <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.novomind.ishop.shops.anyshop</groupId>
+      <artifactId>anyshop-erp</artifactId>
+      <version>27.0.0-SNAPSHOT</version>
+      <classifier>pom</classifier>
+    </dependency>
+    <dependency>
+      <groupId>com.novomind.ishop.shops.anyshop</groupId>
+      <artifactId>anyshop-erp</artifactId>
+      <version>27.0.0-SNAPSHOT</version>
+      <classifier>pom</classifier>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>com.novomind.ishop.core</groupId>
+      <artifactId>ishop-core-all</artifactId>
+      <type>pom</type>
+    </dependency>
+    <dependency>
+      <groupId>com.novomind.ishop.core</groupId>
+      <artifactId>ishop-core-all-tests</artifactId>
+      <type>pom</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.novomind.ishop.shops-ext</groupId>
+      <artifactId>ishop-shops-ext-shop-base</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.novomind.ishop.backoffice</groupId>
+      <artifactId>bo-services</artifactId>
+      <version>${ishop-core.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.novomind.ishop.backoffice</groupId>
+      <artifactId>bo-core</artifactId>
+      <version>${ishop-core.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>javax.servlet.jsp</groupId>
+      <artifactId>jsp-api</artifactId>
+      <version>2.2</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>javax.el</groupId>
+      <artifactId>javax.el-api</artifactId>
+      <version>3.0.0</version>
+      <scope>test</scope>
+    </dependency>
+
+  </dependencies>
+
+  <properties>
+    <ishop-plugin.version>27.3.0-SNAPSHOT</ishop-plugin.version>
+    <bo-client>27.0.0-SNAPSHOT</bo-client>
+    <allowedProjectDir>${project.basedir}/any</allowedProjectDir>
+  </properties>
+</project>
