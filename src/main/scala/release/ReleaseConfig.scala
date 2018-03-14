@@ -1,48 +1,173 @@
 package release
 
-class ReleaseConfig() {
+import java.io.{ByteArrayInputStream, File, FileOutputStream}
+import java.nio.charset.StandardCharsets
+import java.util.Map.Entry
+import java.util.Properties
+import java.util.concurrent.TimeUnit
+
+import com.typesafe.scalalogging.LazyLogging
+import org.apache.http.client.config.RequestConfig
+import org.apache.http.client.methods.HttpGet
+import org.apache.http.impl.client.HttpClientBuilder
+import org.apache.http.util.EntityUtils
+
+import scala.io.Source
+
+sealed class ReleaseConfig(map: Map[String, String]) {
 
   def workNexusUrl(): String = {
-    "http://nexus-ishop.novomind.com:8881/nexus/content/repositories/public"
+    map(ReleaseConfig.keyNexusWorkUrl)
   }
 
   def mirrorNexusUrl(): String = {
-    "https://partner-nexus-ishop.novomind.com/content/groups/public/"
+    map(ReleaseConfig.keyNexusMirrorUrl)
   }
 
   def branchPrefix(): String = {
-    "ishop-branch"
+    map(ReleaseConfig.keyBranchPrefix)
   }
 
   def releasPrefix(): String = {
-    "ishop-release"
+    map(ReleaseConfig.keyReleasePrefix)
   }
 
   def signedOfBy(): String = {
-    "Ishop-Dev-Infra <ishop-dev-infra@novomind.com>"
+    map(ReleaseConfig.keyGerritSignedOfBy)
   }
 
-  def gerritPort(): String = "19418"
+  def gerritPort(): String = {
+    map(ReleaseConfig.keyGerritPort)
+  }
 
   def gerritHostname(): String = {
-    "git-ishop.novomind.com"
+    map(ReleaseConfig.keyGerritHostname)
   }
 
   def gerritBaseUrl(): String = {
-    "https://git-ishop.novomind.com:9091/"
+    map(ReleaseConfig.keyGerritUrl)
+  }
+
+  def jenkinsBaseUrl(): String = {
+    map(ReleaseConfig.keyJenkinsBase)
   }
 
   def isInNovomindNetwork: Boolean = {
     System.getenv("USERDNSDOMAIN") == "NOVOMIND.COM"
   }
-
-  def jenkinsBaseUrl(): String = {
-    "https://build-ishop.novomind.com"
-  }
 }
 
-object ReleaseConfig {
+object ReleaseConfig extends LazyLogging {
 
-  def default(): ReleaseConfig = new ReleaseConfig()
+  private val home = new File(System.getProperty("user.home"))
+  private val defaultConfigFile: File = new File(home, ".ishop-release")
+  private val defaultUpdateFile: File = new File(home, ".ishop-release-remote-update")
+
+  private val keyJenkinsBase = "ishop-release.jenkins.base"
+  private val keyGerritUrl = "ishop-release.gerrit.url"
+  private val keyGerritHostname = "ishop-release.gerrit.hostname"
+  private val keyGerritPort = "ishop-release.gerrit.port"
+  private val keyGerritSignedOfBy = "ishop-release.gerrit.signedOfBy"
+  private val keyReleasePrefix = "ishop-release.release.prefix"
+  private val keyBranchPrefix = "ishop-release.branch.prefix"
+  private val keyNexusWorkUrl = "ishop-release.nexus.work.url"
+  private val keyNexusMirrorUrl = "ishop-release.nexus.mirror.url"
+
+  private val defaults: Map[String, String] = Map(
+    keyJenkinsBase → "https://jenkins",
+    keyGerritUrl → "https://gerrit/",
+    keyGerritHostname → "gerrit",
+    keyGerritPort → "29418",
+    keyGerritSignedOfBy → "Ishop Release <release@example.org>",
+    keyReleasePrefix → "release",
+    keyBranchPrefix → "branch",
+    keyNexusWorkUrl → "https://nexus-work/",
+    keyNexusMirrorUrl → "https://nexus-mirror/"
+  )
+
+  def parseConfig(str: String): Map[String, String] = {
+    try {
+      val properties = new Properties()
+      properties.load(new ByteArrayInputStream(str.getBytes(StandardCharsets.ISO_8859_1)))
+      val entries: Set[Entry[String, String]] = Util.toSet(properties.entrySet()).asInstanceOf[Set[Entry[String, String]]]
+      entries.foldLeft(Map.empty[String, String])((a, b) ⇒ a ++ Map(b.getKey → b.getValue))
+    } catch {
+      case e: Exception ⇒ {
+        logger.warn("invalid config")
+        Map.empty
+      }
+    }
+
+  }
+
+  private def writeConfig(file: File, map: Map[String, String]): Unit = {
+    try {
+      val properties = new Properties()
+      map.foreach(t ⇒ properties.put(t._1, t._2))
+      properties.store(new FileOutputStream(file), "")
+    } catch {
+      case e: Exception ⇒ {
+        logger.warn("invalid config")
+        Map.empty
+      }
+    }
+  }
+
+  private def fileConfig(file: File): Map[String, String] = {
+    try {
+      val configText = Source.fromFile(file).mkString
+      parseConfig(configText)
+    } catch {
+      case e: Exception ⇒ {
+        // TODO debug
+        Map.empty
+      }
+    }
+  }
+
+  private def remoteConfig(url: String): Map[String, String] = {
+    val timeout = 1
+    try {
+      val config = RequestConfig.custom()
+        .setConnectTimeout(timeout * 1000)
+        .setConnectionRequestTimeout(timeout * 1000)
+        .setSocketTimeout(timeout * 1000)
+        .build()
+      val client = HttpClientBuilder.create().setDefaultRequestConfig(config).build()
+      val response = client.execute(new HttpGet(url))
+      val remoteConfigText = EntityUtils.toString(response.getEntity)
+      parseConfig(remoteConfigText)
+    } catch {
+      case e: Exception ⇒ {
+        // TODO debug
+        Map.empty
+      }
+    }
+  }
+
+  def default(): ReleaseConfig = {
+    val removeConfigUrl = "https://release-ishop.novomind.com/ishop-release.conf"
+    val lc = fileConfig(defaultConfigFile)
+    val refresh = defaultUpdateFile.canRead && {
+      val millis = System.currentTimeMillis() - defaultUpdateFile.lastModified()
+      val update = millis > TimeUnit.MINUTES.toMillis(1)
+      update
+    }
+    val work = if (lc == Map.empty || refresh) {
+      val rc = remoteConfig(removeConfigUrl)
+      defaultUpdateFile.delete()
+      defaultUpdateFile.createNewFile()
+      writeConfig(defaultConfigFile, rc)
+      rc
+    } else {
+      lc
+    }
+    if (work == Map.empty) {
+      new ReleaseConfig(defaults)
+    } else {
+      new ReleaseConfig(work)
+    }
+
+  }
 
 }

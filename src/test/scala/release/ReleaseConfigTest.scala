@@ -27,6 +27,16 @@ class ReleaseConfigTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testParseConfig(): Unit = {
+    Assert.assertEquals(Map.empty, ReleaseConfig.parseConfig(""))
+    Assert.assertEquals(Map("e" → ""), ReleaseConfig.parseConfig("e"))
+    Assert.assertEquals(Map("a" → "b"), ReleaseConfig.parseConfig("""a=b"""))
+    Assert.assertEquals(Map("a" → "b "), ReleaseConfig.parseConfig(""" a = b """))
+    Assert.assertEquals(Map("a" → "\" b \""), ReleaseConfig.parseConfig(""" a =" b """"))
+    Assert.assertEquals(Map("a.b.c" → "Test <test-@ö> "), ReleaseConfig.parseConfig(""" a.b.c = Test <test-@ö> """))
+  }
+
+  @Test
   def testJedis(): Unit = {
     try {
       val jedis = new Jedis("localhost", 12345, 20, 20)
