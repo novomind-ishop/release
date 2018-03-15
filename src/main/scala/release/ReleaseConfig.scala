@@ -147,7 +147,11 @@ object ReleaseConfig extends LazyLogging {
 
   def default(): ReleaseConfig = {
     val removeConfigUrl = "https://release-ishop.novomind.com/ishop-release.conf"
-    val lc = fileConfig(defaultConfigFile)
+    val lc = if (defaultConfigFile.canRead) {
+      fileConfig(defaultConfigFile)
+    } else {
+      Map.empty[String, String]
+    }
     val refresh = defaultUpdateFile.canRead && {
       val millis = System.currentTimeMillis() - defaultUpdateFile.lastModified()
       val update = millis > TimeUnit.MINUTES.toMillis(1)
