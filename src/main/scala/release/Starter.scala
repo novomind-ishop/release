@@ -43,7 +43,6 @@ object Starter extends App with LazyLogging {
       return 1
     }
 
-
     val releaseToolPath = argSeq.head
     val releaseToolDir = new File(releaseToolPath).getAbsoluteFile
     val workDir = argSeq(1)
@@ -98,6 +97,8 @@ object Starter extends App with LazyLogging {
       out.println()
       out.println("Possible environment variables:")
       out.println("export RELEASE_GIT_BIN = $PATH_TO_GIT_BIN")
+      out.println()
+      out.println("Your home dir is: " + System.getProperty("user.home"))
       return 0
     }
     val gitBinEnv = Properties.envOrNone("RELEASE_GIT_BIN")

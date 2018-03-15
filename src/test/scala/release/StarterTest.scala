@@ -72,7 +72,9 @@ class StarterTest extends AssertionsForJUnit {
       |nothing-but-create-feature-branch    => creates a feature branch and changes pom.xmls
       |
       |Possible environment variables:
-      |export RELEASE_GIT_BIN = $PATH_TO_GIT_BIN""".stripMargin
+      |export RELEASE_GIT_BIN = $PATH_TO_GIT_BIN
+      |
+      |Your home dir is: test""".stripMargin
 
   @Test
   def test_help(): Unit = {
@@ -95,7 +97,7 @@ class StarterTest extends AssertionsForJUnit {
   def assertMessage(expected: String, result: ExecReturn): Unit = {
     Assert.assertEquals(0, result.exit)
     Assert.assertEquals("", result.err)
-    Assert.assertEquals(expected, result.out)
+    Assert.assertEquals(expected, result.out.replaceFirst("Your home dir is: .*", "Your home dir is: test"))
   }
 
 }
