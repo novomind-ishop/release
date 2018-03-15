@@ -310,7 +310,7 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
   }
 
   def stash(): Unit = {
-    gitNative(Seq("stash", "-u"))
+    gitNative(Seq("stash", "-u"), errMapper = Sgit.stashFilter)
   }
 
   def stashPop(): Unit = {
@@ -536,6 +536,11 @@ object Sgit {
 
       override def buffer[T](f: ⇒ T): T = f
     }
+  }
+
+  private[release] def stashFilter(line: String) = line match {
+    case l: String if l.endsWith("warning: command substitution: ignored null byte in input") ⇒ None
+    case l: String ⇒ Some(l)
   }
 
   private[release] def fetchFilter(line: String) = line match {

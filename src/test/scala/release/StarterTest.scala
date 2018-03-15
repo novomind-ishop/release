@@ -54,7 +54,11 @@ class StarterTest extends AssertionsForJUnit {
   }
 
   private val helpMessage =
-    """Possible args:
+    """Usage: release [OPTION]...
+      |Note: Calling release without any options creates a normal release.
+      |All options are non-mandatory.
+      |
+      |Possible args:
       |help/--help      => shows this and exits
       |depUp            => shows dependency updates from nexus option
       |simpleChars      => use no drawing chars

@@ -33,6 +33,8 @@ class ReleaseConfigTest extends AssertionsForJUnit {
     Assert.assertEquals(Map("a" → "b"), ReleaseConfig.parseConfig("""a=b"""))
     Assert.assertEquals(Map("a" → "b "), ReleaseConfig.parseConfig(""" a = b """))
     Assert.assertEquals(Map("a" → "\" b \""), ReleaseConfig.parseConfig(""" a =" b """"))
+    Assert.assertEquals(Map("a" → "a:b"), ReleaseConfig.parseConfig(""" a =a:b"""))
+    Assert.assertEquals(Map("a" → "a:b"), ReleaseConfig.parseConfig(""" a =a\:b"""))
     Assert.assertEquals(Map("a.b.c" → "Test <test-@ö> "), ReleaseConfig.parseConfig(""" a.b.c = Test <test-@ö> """))
   }
 

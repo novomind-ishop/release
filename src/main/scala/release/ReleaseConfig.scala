@@ -119,7 +119,7 @@ object ReleaseConfig extends LazyLogging {
       parseConfig(configText)
     } catch {
       case e: Exception ⇒ {
-        // TODO debug
+        logger.warn("invalid config from file")
         Map.empty
       }
     }
@@ -157,8 +157,12 @@ object ReleaseConfig extends LazyLogging {
       val rc = remoteConfig(removeConfigUrl)
       defaultUpdateFile.delete()
       defaultUpdateFile.createNewFile()
-      writeConfig(defaultConfigFile, rc)
-      rc
+      if (rc != Map.empty) {
+        writeConfig(defaultConfigFile, rc)
+        rc
+      } else {
+        lc
+      }
     } else {
       lc
     }

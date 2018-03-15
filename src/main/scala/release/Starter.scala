@@ -43,7 +43,7 @@ object Starter extends App with LazyLogging {
       return 1
     }
 
-    val config = ReleaseConfig.default()
+
     val releaseToolPath = argSeq.head
     val releaseToolDir = new File(releaseToolPath).getAbsoluteFile
     val workDir = argSeq(1)
@@ -61,7 +61,7 @@ object Starter extends App with LazyLogging {
         out.println("DEBUG: " + message.apply())
       }
     }
-
+    val config = ReleaseConfig.default()
     debug("init")
     val termOs: TermOs = TermOs.select(argSeq(3), argSeq(2), restArgs.contains("simpleChars"))
     val dependencyUpdates = restArgs.contains("depUp")
@@ -79,6 +79,10 @@ object Starter extends App with LazyLogging {
     // TODO --batch ## alles mit default wählen
 
     if (showHelp) {
+      out.println("Usage: release [OPTION]...")
+      out.println("Note: Calling release without any options creates a normal release.")
+      out.println("All options are non-mandatory.")
+      out.println()
       out.println("Possible args:")
       out.println("help/--help      => shows this and exits")
       out.println("depUp            => shows dependency updates from nexus option")

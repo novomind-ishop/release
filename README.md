@@ -32,4 +32,4 @@ cd the/project
 release
 ```
 
-If you want to learn more options of ```release``` try ```release --help```.
+If you want to learn other options of ```release``` try ```release --help```.
