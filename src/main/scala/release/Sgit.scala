@@ -502,14 +502,19 @@ object Sgit {
           throw new IllegalStateException("git version 2.9 support ended at 2017-08-01")
         case v: String if v.startsWith("git version 2.10") ⇒
           // (2016-10-28) - (tag: v2.10.2)
-          out.println("W: please update your git version, \"" + v + "\" support ends at 2017-11-01");
+          throw new IllegalStateException("git version 2.10 support ended at 2017-11-01")
         case v: String if v.startsWith("git version 2.11") ⇒
           // 2017-02-02) - (tag: v2.11.1)
-          out.println("W: please update your git version, \"" + v + "\" support ends at 2017-11-01");
-        case v: String if v.startsWith("git version 2.12") ⇒ // do nothing (2017-03-20) - (tag: v2.12.1)
-        case v: String if v.startsWith("git version 2.13") ⇒ // do nothing (2017-09-22) - (tag: v2.13.6)
+          throw new IllegalStateException("git version 2.11 support ended at 2017-11-01")
+        case v: String if v.startsWith("git version 2.12") ⇒
+        // (2017-03-20) - (tag: v2.12.1)
+          out.println("W: please update your git version, \"" + v + "\" support ends at 2018-04-02");
+        case v: String if v.startsWith("git version 2.13") ⇒
+        // (2017-09-22) - (tag: v2.13.6)
+          out.println("W: please update your git version, \"" + v + "\" support ends at 2018-05-02");
         case v: String if v.startsWith("git version 2.14") ⇒ // do nothing (2017-10-23) - (tag: v2.14.3)
-        case v: String if v.startsWith("git version 2.15") ⇒ // do nothing
+        case v: String if v.startsWith("git version 2.15") ⇒ // do nothing (2017-11-28) - (tag: v2.15.1)
+        case v: String if v.startsWith("git version 2.16") ⇒ // do nothing (2018-02-15) - (tag: v2.16.2)
         case v: String ⇒ out.println("W: unknown/untested git version: \"" + v + "\". Please create a ticket at ISPS.");
       }
       gits = gits ++ Map(cmd → result)
