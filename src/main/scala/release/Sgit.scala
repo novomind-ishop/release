@@ -195,6 +195,8 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
 
   def branchNamesAll(): Seq[String] = (branchNamesRemoteShort() ++ branchNamesLocal()).distinct.sorted
 
+  def branchNamesAllFull(): Seq[String] = (branchNamesRemote() ++ branchNamesLocal()).distinct.sorted
+
   private[release] def branchListRemoteRaw(): Seq[GitShaBranch] = {
     gitNative(Seq("branch", "--list", "--verbose", "--no-abbrev", "--remote"))
       .lines.toSeq

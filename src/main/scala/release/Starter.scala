@@ -145,8 +145,12 @@ object Starter extends App with LazyLogging {
       }
 
       def askReleaseBranch(): String = {
+        def workGit(file: File):Sgit = {
+          Sgit(file = file, showGitCmd = showGit, doVerify = noVerify, out = out, err = err, gitBin = gitBinEnv)
+        }
+
         def suggestCurrentBranch(file: File): String = {
-          val git = Sgit(file = file, showGitCmd = showGit, doVerify = noVerify, out = out, err = err, gitBin = gitBinEnv)
+          val git = workGit(file)
           val latestCommit = git.commitIdHead()
           val selectedBraches = git.branchListLocal().filter(_.commitId == latestCommit)
           val found = selectedBraches.map(_.branchName.replaceFirst("refs/heads/", "")).filterNot(_ == "HEAD")
@@ -159,7 +163,15 @@ object Starter extends App with LazyLogging {
 
         }
 
-        Term.readFrom(out, "Enter branch name where to start from", suggestCurrentBranch(workDirFile))
+        val branch = Term.readFrom(out, "Enter branch name where to start from", suggestCurrentBranch(workDirFile))
+        val git = workGit(workDirFile)
+        val allBranches = git.branchNamesAllFull()
+        if (!allBranches.contains(branch)) {
+          out.println("W: invalid branchname: " + branch + "; try one of: " + allBranches.mkString(", "))
+          askReleaseBranch()
+        } else {
+          branch
+        }
       }
 
       val startBranchF: Future[String] = Future {
