@@ -167,6 +167,19 @@ object Release {
       newMod.changeVersion(nextSnapshot)
     }
 
+    def checkReleaseBranch(): Unit = {
+      if (sgit.branchNamesLocal().contains("release")) {
+        val changes = Term.readFromOneOfYesNo(out, "You have a local branch with name 'release'. " +
+          "We use this name for branch creation. Delete this branch manually. Abort release?")
+        if (changes == "y") {
+          System.exit(1)
+        } else {
+          checkReleaseBranch()
+        }
+      }
+    }
+
+    checkReleaseBranch()
     val releaseBrachName = "release/" + releaseWitoutSnapshot
     sgit.createBranch(releaseBrachName)
     if (newMod.selfVersion != nextSnapshot) {
