@@ -167,6 +167,7 @@ object Starter extends App with LazyLogging {
         val git = workGit(workDirFile)
         val allBranches = git.branchNamesAllFull()
         if (!allBranches.contains(branch)) {
+          // XXX maybe problematic with "detatched heads" or relative position like "HEAD~2"
           out.println("W: invalid branchname: " + branch + "; try one of: " + allBranches.mkString(", "))
           askReleaseBranch()
         } else {
