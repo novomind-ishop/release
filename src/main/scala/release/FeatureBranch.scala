@@ -16,7 +16,7 @@ object FeatureBranch {
     val featureSnapshot = featureWitoutSnapshot + "-SNAPSHOT"
 
     def checkFeatureBranch(): Unit = {
-      if (sgit.branchNamesLocal().contains("feature")) {
+      if (sgit.listBranchNamesLocal().contains("feature")) {
         val changes = Term.readFromOneOfYesNo(out, "You have a local branch with name 'feature'. " +
           "We use this name for branch creation. Delete this branch manually. Abort release?")
         if (changes == "y") {

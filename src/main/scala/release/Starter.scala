@@ -145,14 +145,14 @@ object Starter extends App with LazyLogging {
       }
 
       def askReleaseBranch(): String = {
-        def workGit(file: File):Sgit = {
+        def workGit(file: File): Sgit = {
           Sgit(file = file, showGitCmd = showGit, doVerify = noVerify, out = out, err = err, gitBin = gitBinEnv)
         }
 
         def suggestCurrentBranch(file: File): String = {
           val git = workGit(file)
           val latestCommit = git.commitIdHead()
-          val selectedBraches = git.branchListLocal().filter(_.commitId == latestCommit)
+          val selectedBraches = git.listBranchesLocal().filter(_.commitId == latestCommit)
           val found = selectedBraches.map(_.branchName.replaceFirst("refs/heads/", "")).filterNot(_ == "HEAD")
           if (found.size != 1) {
             out.println("W: more than one branch found: " + found.mkString(", ") + "; using \"master\"")
@@ -165,7 +165,7 @@ object Starter extends App with LazyLogging {
 
         val branch = Term.readFrom(out, "Enter branch name where to start from", suggestCurrentBranch(workDirFile))
         val git = workGit(workDirFile)
-        val allBranches = git.branchNamesAllFull()
+        val allBranches = git.listBranchNamesAllFull()
         if (!allBranches.contains(branch)) {
           // XXX maybe problematic with "detatched heads" or relative position like "HEAD~2"
           out.println("W: invalid branchname: " + branch + "; try one of: " + allBranches.mkString(", "))
@@ -245,11 +245,26 @@ object Starter extends App with LazyLogging {
 
     try {
       val gitAndBranchname = fetchGitAndAskForBranch()
+
+      def suggestLocalNotesReviewRemoval(activeGit: Sgit): Unit = {
+        // git config --add remote.origin.fetch refs/notes/review:refs/notes/review
+        // git fetch
+        if (activeGit.listRefNames().contains("refs/notes/review")) {
+          val result = Term.readFromOneOfYesNo(out, "Ref: refs/notes/review found." +
+            " This ref leads to an unreadable local history. Do you want to remove them?")
+          if (result == "y") {
+            activeGit.configRemove("remote.origin.fetch", "refs/notes/review")
+            activeGit.deleteRef("refs/notes/review")
+          }
+        }
+      }
+
       val git = gitAndBranchname._1
+      suggestLocalNotesReviewRemoval(git)
       val startBranch = gitAndBranchname._2
       val askForRebase = suggestRebase(git, startBranch)
       debug("readFromPrompt")
-      debugFn(() ⇒ "local branches: " + git.branchNamesLocal())
+      debugFn(() ⇒ "local branches: " + git.listBranchNamesLocal())
       if (versionSetMode) {
         Release.checkLocalChanges(git, startBranch)
         val mod = PomMod(workDirFile)
@@ -305,7 +320,7 @@ object Starter extends App with LazyLogging {
 
   def tagBuildUrl(git: Sgit, jenkinsBase: String): Option[String] = {
     // TODO write intial jenkins url to ${HOME}/.nm-release-config; else read
-    val list: Seq[GitRemote] = git.remoteList
+    val list: Seq[GitRemote] = git.listRemotes
     val path = transformRemoteToBuildUrl(list, jenkinsBase)
     if (path.isDefined) {
       try {
@@ -347,7 +362,7 @@ object Starter extends App with LazyLogging {
     val upstream = sgit.findUpstreamBranch()
     if (upstream.isEmpty && sgit.isNotDetached) {
       val newUpstream = Term.readChooseOneOfOrType(out, "No upstream found, please set", Seq("origin/master", "origin/" + branch).distinct)
-      val remoteBranchNames = sgit.branchNamesRemote()
+      val remoteBranchNames = sgit.listBranchNamesRemote()
       if (remoteBranchNames.contains(newUpstream)) {
         sgit.setUpstream(newUpstream)
         return

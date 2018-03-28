@@ -26,20 +26,42 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
     gitNative(Seq("clone", "-q", src.getAbsolutePath, dest.getAbsolutePath), useWorkdir = false)
   }
 
-  private[release] def config(key: String, value: String): Unit = {
-    gitNative(Seq("config", key, value))
+  private def configRemoveAll(key: String, value: String): Unit = {
+    gitNative(Seq("config", "--local", "--unset-all", key, value))
+  }
+
+  private[release] def configRemove(key: String, value: String): Unit = {
+    val values = configGetAll(key)
+    values match {
+      case None ⇒ // do nothing
+      case s: Some[Seq[String]] if s.get.size == 1 ⇒ gitNative(Seq("config", "--local", "--unset", key, value))
+      case s: Some[Seq[String]] if s.get.size > 1 ⇒ configRemoveAll(key, value)
+    }
+
+  }
+
+  private[release] def configAdd(key: String, value: String): Unit = {
+    gitNative(Seq("config", "--local", "--add", key, value))
+  }
+
+  private[release] def configSet(key: String, value: String): Unit = {
+    gitNative(Seq("config", "--local", key, value))
+  }
+
+  private[release] def configGetAll(key: String): Option[Seq[String]] = {
+    gitNativeOpt(Seq("config", "--local", "--get-all", key)).map(_.lines.toList)
   }
 
   private[release] def addByString(f: String): Unit = {
-    config("core.safecrlf", "false")
+    configSet("core.safecrlf", "false")
     gitNative(Seq("add", f))
-    config("core.safecrlf", "warn")
+    configSet("core.safecrlf", "warn")
   }
 
   private[release] def addAll(f: Seq[String]): Unit = {
-    config("core.safecrlf", "false")
+    configSet("core.safecrlf", "false")
     gitNative(Seq("add") ++ f)
-    config("core.safecrlf", "warn")
+    configSet("core.safecrlf", "warn")
   }
 
   private[release] def add(f: File): Unit = {
@@ -59,7 +81,7 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
     if (ms(1).nonEmpty) {
       throw new IllegalStateException("non empty line")
     }
-    config("core.safecrlf", "false")
+    configSet("core.safecrlf", "false")
     val oldComitId = commitIdHeadOpt()
     // _gen_ChangeIdInput() {
     //   echo "tree `git write-tree`"
@@ -91,7 +113,7 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
       doCommit("0000000000000000000000000000000000000000")
       out.println("W: no old commit id")
     }
-    config("core.safecrlf", "warn")
+    configSet("core.safecrlf", "warn")
   }
 
   def verify(): Unit = {
@@ -162,15 +184,15 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
     }
   }
 
-  def remoteAdd(name: String, url: String): Unit = {
+  def addRemote(name: String, url: String): Unit = {
     gitNative(Seq("remote", "add", name, url))
   }
 
-  def remoteRemove(name: String): Unit = {
+  def removeRemote(name: String): Unit = {
     gitNative(Seq("remote", "remove", name))
   }
 
-  def remoteList(): Seq[GitRemote] = {
+  def listRemotes(): Seq[GitRemote] = {
     val out = gitNative(Seq("remote", "-v"))
     out.lines.toList.map(in ⇒ {
       val splitted = Sgit.splitLineOnWhitespace(in)
@@ -178,9 +200,9 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
     })
   }
 
-  def branchNamesLocal(): Seq[String] = branchListLocal().map(_.branchName.replaceFirst("refs/heads/", "")).sorted
+  def listBranchNamesLocal(): Seq[String] = listBranchesLocal().map(_.branchName.replaceFirst("refs/heads/", "")).sorted
 
-  def branchListLocal(): Seq[GitShaBranch] = {
+  def listBranchesLocal(): Seq[GitShaBranch] = {
     gitNative(Seq("branch", "--list", "--verbose", "--no-abbrev"))
       .lines.toSeq
       .map(in ⇒ {
@@ -189,15 +211,19 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
       }).toList
   }
 
-  def branchNamesRemoteShort(): Seq[String] = branchNamesRemote().map(_.replaceFirst("origin/", "")).sorted
+  def listBranchNamesRemoteShort(): Seq[String] = listBranchNamesRemote().map(_.replaceFirst("origin/", "")).sorted
 
-  def branchNamesRemote(): Seq[String] = branchListRemoteRaw().map(_.branchName).sorted
+  def listBranchNamesRemote(): Seq[String] = listBranchRemoteRaw().map(_.branchName).sorted
 
-  def branchNamesAll(): Seq[String] = (branchNamesRemoteShort() ++ branchNamesLocal()).distinct.sorted
+  def listBranchNamesAll(): Seq[String] = (listBranchNamesRemoteShort() ++ listBranchNamesLocal()).distinct.sorted
 
-  def branchNamesAllFull(): Seq[String] = (branchNamesRemote() ++ branchNamesLocal()).distinct.sorted
+  def listBranchNamesAllFull(): Seq[String] = (listBranchNamesRemote() ++ listBranchNamesLocal()).distinct.sorted
 
-  private[release] def branchListRemoteRaw(): Seq[GitShaBranch] = {
+  def listBranchRemoteRefRemotes(): Seq[GitShaBranch] = {
+    listBranchRemoteRaw().map(in ⇒ in.copy(branchName = "refs/remotes/" + in.branchName))
+  }
+
+  private[release] def listBranchRemoteRaw(): Seq[GitShaBranch] = {
     gitNative(Seq("branch", "--list", "--verbose", "--no-abbrev", "--remote"))
       .lines.toSeq
       .flatMap(in ⇒ in match {
@@ -210,8 +236,23 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
       }).toList
   }
 
-  def branchListRemoteRefRemotes(): Seq[GitShaBranch] = {
-    branchListRemoteRaw().map(in ⇒ in.copy(branchName = "refs/remotes/" + in.branchName))
+  def listRefNames(): Seq[String] = listRefs().map(_.branchName)
+
+  def listRefs(): Seq[GitShaBranch] = {
+    gitNative(Seq("show-ref"))
+      .lines.toSeq
+      .map(in ⇒ {
+        val parts = in.replaceFirst("^\\*", "").trim.split("[ \t]+")
+        GitShaBranch(parts(0), parts(1))
+      }).sortBy(_.branchName).toList
+  }
+
+  def deleteRef(refname: String): Unit = {
+    updateRef(Seq("-d", refname))
+  }
+
+  private def updateRef(args: Seq[String]): Unit = {
+    gitNative(Seq("update-ref") ++ args)
   }
 
   def localPomChanges(): Seq[String] = {
@@ -363,7 +404,7 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
   }
 
   def deleteBranch(branchName: String): Unit = {
-    if (branchNamesLocal().contains(branchName)) {
+    if (listBranchNamesLocal().contains(branchName)) {
       gitNative(Seq("branch", "-D", branchName))
     } else {
       throw new IllegalStateException("branch '" + branchName + "' not found.")
@@ -473,7 +514,7 @@ object Sgit {
     })
   }
 
-  case class GitShaBranch(commitId: String, branchName: String) {
+  sealed case class GitShaBranch(commitId: String, branchName: String) {
     if (commitId.length != 40) {
       throw new IllegalStateException("invalid commit id length: " + commitId.length + " (" + commitId + ")")
     }
@@ -527,10 +568,10 @@ object Sgit {
           // 2017-02-02) - (tag: v2.11.1)
           throw new IllegalStateException("git version 2.11 support ended at 2017-11-01")
         case v: String if v.startsWith("git version 2.12.") ⇒
-        // (2017-03-20) - (tag: v2.12.1)
+          // (2017-03-20) - (tag: v2.12.1)
           out.println("W: please update your git version, \"" + v + "\" support ends at 2018-04-02");
         case v: String if v.startsWith("git version 2.13.") ⇒
-        // (2017-09-22) - (tag: v2.13.6)
+          // (2017-09-22) - (tag: v2.13.6)
           out.println("W: please update your git version, \"" + v + "\" support ends at 2018-05-02");
         case v: String if v.startsWith("git version 2.14.") ⇒ // do nothing (2017-10-23) - (tag: v2.14.3)
         case v: String if v.startsWith("git version 2.15.") ⇒ // do nothing (2017-11-28) - (tag: v2.15.1)

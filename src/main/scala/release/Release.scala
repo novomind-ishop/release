@@ -118,7 +118,7 @@ object Release {
       out.println("---------")
     }
 
-    val releaseWithoutSnapshot = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readChooseOneOfOrType(out, "Enter the release version", newMod.suggestReleaseVersion(sgit.branchNamesAll())))
+    val releaseWithoutSnapshot = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readChooseOneOfOrType(out, "Enter the release version", newMod.suggestReleaseVersion(sgit.listBranchNamesAll())))
     val release = if (mod.hasShopPom) {
       Term.removeSnapshot(releaseWithoutSnapshot) + "-SNAPSHOT"
     } else {
@@ -168,7 +168,7 @@ object Release {
     }
 
     def checkReleaseBranch(): Unit = {
-      if (sgit.branchNamesLocal().contains("release")) {
+      if (sgit.listBranchNamesLocal().contains("release")) {
         val changes = Term.readFromOneOfYesNo(out, "You have a local branch with name 'release'. " +
           "We use this name for branch creation. Delete this branch manually. Abort release?")
         if (changes == "y") {
@@ -269,13 +269,15 @@ object Release {
       try {
         if (sgit.hasChangesToPush) {
           val result = sgit.pushFor(srcBranchName = branch, targetBranchName = selectedBranch)
+          // TODO handle push output
           if (config.isInNovomindNetwork) {
             // TODO hier gerrit öffnen da man submit klicken muss
             // TODO wenn man genau den change öffnen könnte wär noch cooler
             Starter.openInDefaultBrowser(config.gerritBaseUrl() + "#/q/status:open")
           }
           if (newMod.hasNoShopPom) {
-            sgit.pushTag(release)
+            val strings = sgit.pushTag(release)
+            // TODO handle push output
             if (config.isInNovomindNetwork) {
               val jenkinsBase = config.jenkinsBaseUrl()
               val tagUrl = Starter.tagBuildUrl(sgit, jenkinsBase)
@@ -289,6 +291,7 @@ object Release {
         if (newMod.hasShopPom) {
           val result = sgit.pushHeads(srcBranchName = "release/" + releaseWitoutSnapshot,
             targetBranchName = "release/" + releaseWitoutSnapshot)
+          // TODO handle push output
           // TODO try to trigger job updates for jenkins
           // TODO try to trigger job execution in loop with abort
         }

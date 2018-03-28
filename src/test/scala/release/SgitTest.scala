@@ -289,8 +289,8 @@ class SgitTest extends AssertionsForJUnit {
       })
 
     gitA.fetchAll()
-    Assert.assertEquals(Nil, gitA.remoteList())
-    gitA.remoteAdd("ubglu", "failfail")
+    Assert.assertEquals(Nil, gitA.listRemotes())
+    gitA.addRemote("ubglu", "failfail")
     TestHelper.assertException("Nonzero exit value: 1; " +
       "git --no-pager fetch -q --all --tags; fatal: 'failfail' does not appear to be a git repository " +
       "fatal: Could not read from remote repository. Please make sure you have the correct access rights " +
@@ -306,9 +306,9 @@ class SgitTest extends AssertionsForJUnit {
       })
 
     Assert.assertEquals(Seq(GitRemote("ubglu", "failfail", "(fetch)"), GitRemote("ubglu", "failfail", "(push)")),
-      gitA.remoteList())
-    gitA.remoteRemove("ubglu")
-    gitA.remoteAdd("ubglu", "ssh://git.example.org/ubglu")
+      gitA.listRemotes())
+    gitA.removeRemote("ubglu")
+    gitA.addRemote("ubglu", "ssh://git.example.org/ubglu")
 
     def failFetchAll(msg: String): Unit = {
       TestHelper.assertException(msg,
@@ -339,10 +339,10 @@ class SgitTest extends AssertionsForJUnit {
       case other ⇒ Assert.fail("unknown os: " + other)
     }
 
-    gitA.remoteRemove("ubglu")
-    Assert.assertEquals(Nil, gitA.branchListLocal())
+    gitA.removeRemote("ubglu")
+    Assert.assertEquals(Nil, gitA.listBranchesLocal())
     Assert.assertEquals(Nil, gitA.lsFiles())
-    Assert.assertEquals(Nil, gitA.branchListRemoteRefRemotes())
+    Assert.assertEquals(Nil, gitA.listBranchRemoteRefRemotes())
     Assert.assertEquals(None, gitA.findUpstreamBranch())
     copyMsgHook(testRepoA)
 
@@ -354,19 +354,35 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(Seq("Change-Id: I0000000000000000000000000000000000000000"), gitA.commitMessageBody("HEAD"))
     Assert.assertEquals(Nil, gitA.localChanges())
     Assert.assertEquals("master", gitA.currentBranch)
-    Assert.assertEquals(Seq("refs/heads/master"), gitA.branchListLocal().map(_.branchName))
+    Assert.assertEquals(Seq("refs/heads/master"), gitA.listBranchesLocal().map(_.branchName))
     Assert.assertEquals(None, gitA.findUpstreamBranch())
     val gitB = Sgit.clone(testRepoA, testRepoB, showGitCmd = false, SgitTest.hasCommitMsg)
     copyMsgHook(testRepoB)
-    gitA.config("receive.denyCurrentBranch", "warn")
+    Assert.assertEquals(None, gitA.configGetAll("receive.denyCurrentBranch"))
+    gitA.configSet("receive.denyCurrentBranch", "warn")
+    Assert.assertEquals(Seq("warn"), gitA.configGetAll("receive.denyCurrentBranch").get)
+    gitA.configAdd("core.bert", "bert")
+    Assert.assertEquals(Seq("bert"), gitA.configGetAll("core.bert").get)
+    gitA.configSet("core.bert", "blub")
+    gitA.configAdd("core.bert", "blub-blub")
+    Assert.assertEquals(Seq("blub", "blub-blub"), gitA.configGetAll("core.bert").get)
+    gitA.configRemove("core.bert", "blub-blub")
+    Assert.assertEquals(Seq("blub"), gitA.configGetAll("core.bert").get)
+    gitA.configRemove("core.bert", "blub")
+    Assert.assertEquals(None, gitA.configGetAll("core.bert"))
+    gitA.configSet("core.bert", "blub")
+    gitA.configAdd("core.bert", "blub-blub")
+    gitA.configRemove("core.bert", "blub") // feels like stats with
+    Assert.assertEquals(None, gitA.configGetAll("core.bert"))
+
     gitA.add(testFile(testRepoA, "test2"))
     gitA.commitAll("add test2")
     gitB.fetchAll()
-    Assert.assertEquals(Seq("origin/master"), gitB.branchListRemoteRaw().map(_.branchName))
-    Assert.assertEquals(Seq("origin/master"), gitB.branchNamesRemote())
-    Assert.assertEquals(Seq("refs/remotes/origin/master"), gitB.branchListRemoteRefRemotes().map(_.branchName))
-    Assert.assertEquals(Seq("master"), gitB.branchNamesRemoteShort())
-    Assert.assertEquals(Seq("master"), gitB.branchNamesAll())
+    Assert.assertEquals(Seq("origin/master"), gitB.listBranchRemoteRaw().map(_.branchName))
+    Assert.assertEquals(Seq("origin/master"), gitB.listBranchNamesRemote())
+    Assert.assertEquals(Seq("refs/remotes/origin/master"), gitB.listBranchRemoteRefRemotes().map(_.branchName))
+    Assert.assertEquals(Seq("master"), gitB.listBranchNamesRemoteShort())
+    Assert.assertEquals(Seq("master"), gitB.listBranchNamesAll())
     Assert.assertEquals("master", gitB.currentBranch)
     Assert.assertEquals("master", gitB.findUpstreamBranch().get)
     Assert.assertFalse(gitB.hasChangesToPush)
@@ -437,10 +453,21 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(Seq("pom.xml", "sub/pom.xml"), gitB.localPomChanges())
     gitB.doCommitPomXmls("update pom.xml\n\nSigned-off-by: Signer <signer@example.org>")
     Assert.assertEquals(Nil, gitB.localChanges())
+
+    Assert.assertEquals(Seq("refs/heads/master", "refs/remotes/origin/HEAD",
+      "refs/remotes/origin/master", "refs/tags/v0.0.9"), gitB.listRefNames())
+    gitB.doTag("1.0.0")
+    Assert.assertEquals(Seq("refs/heads/master", "refs/remotes/origin/HEAD",
+      "refs/remotes/origin/master", "refs/tags/v0.0.9", "refs/tags/v1.0.0"), gitB.listRefNames())
+    Assert.assertEquals(Seq("v0.0.9", "v1.0.0"), gitB.listTags())
+    gitB.deleteRef("refs/tags/v1.0.0")
+    Assert.assertEquals(Seq("v0.0.9"), gitB.listTags())
+    Assert.assertEquals(Seq("refs/heads/master", "refs/remotes/origin/HEAD",
+      "refs/remotes/origin/master", "refs/tags/v0.0.9"), gitB.listRefNames())
     gitB.doTag("1.0.0")
     gitB.doTag("1.0.1")
     Assert.assertEquals(Seq("any.xml", "pom.xml", "schoenes Ding", "sub/pom.xml", "test"), gitB.lsFiles())
-    Assert.assertEquals(Seq("master"), gitB.branchNamesLocal())
+    Assert.assertEquals(Seq("master"), gitB.listBranchNamesLocal())
     assertMsg(Seq("update pom.xml", "", "Signed-off-by: Signer <signer@example.org>"), gitB)
 
     Util.write(pomFile, Seq("b"))
@@ -456,12 +483,12 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(false, gitB.isDetached)
     Assert.assertEquals(true, gitB.isNotDetached)
     gitB.createBranch("feature/test")
-    Assert.assertEquals(Seq("feature/test", "master"), gitB.branchNamesLocal())
+    Assert.assertEquals(Seq("feature/test", "master"), gitB.listBranchNamesLocal())
     gitB.deleteBranch("feature/test")
     testFailIllegal("branch 'test' not found.", () ⇒ {
       gitB.deleteBranch("test")
     })
-    Assert.assertEquals(Seq("master"), gitB.branchNamesLocal())
+    Assert.assertEquals(Seq("master"), gitB.listBranchNamesLocal())
     Util.write(anyFile, Seq("a"))
     try {
       gitB.doCommitPomXmls("update pom.xml")
@@ -479,12 +506,12 @@ class SgitTest extends AssertionsForJUnit {
       gitB.doTag("1.0.0")
     })
     Assert.assertFalse(gitB.hasLocalChanges)
-    Assert.assertEquals(Seq("refs/heads/master"), gitB.branchListLocal().map(_.branchName))
+    Assert.assertEquals(Seq("refs/heads/master"), gitB.listBranchesLocal().map(_.branchName))
 
     gitB.createBranch("any")
-    Assert.assertEquals(Seq("refs/heads/any", "refs/heads/master"), gitB.branchListLocal().map(_.branchName))
-    gitB.remoteRemove("origin")
-    gitB.remoteAdd("origin", "ssh://none@any-gerrit:29418/ishop/user/anyone/sonar-demo")
+    Assert.assertEquals(Seq("refs/heads/any", "refs/heads/master"), gitB.listBranchesLocal().map(_.branchName))
+    gitB.removeRemote("origin")
+    gitB.addRemote("origin", "ssh://none@any-gerrit:29418/ishop/user/anyone/sonar-demo")
     val triedUnit = gitB.tryFetchAll()
     if (triedUnit.isFailure && triedUnit.failed.get.getMessage.contains("publickey")) {
       Sgit.getOs() match {
