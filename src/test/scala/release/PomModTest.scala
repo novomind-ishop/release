@@ -3,7 +3,8 @@ package release
 import java.io.{BufferedWriter, File, FileWriter}
 import java.time.{LocalDate, Month}
 
-import org.junit.{Assert, Test}
+import org.junit.rules.TemporaryFolder
+import org.junit.{Assert, Rule, Test}
 import org.scalatest.junit.AssertionsForJUnit
 import org.w3c.dom._
 import release.PomChecker.ValidationException
@@ -12,6 +13,10 @@ import release.PomMod.{Dep, PluginDep, PluginExec, PomRef}
 import scala.xml.Elem
 
 class PomModTest extends AssertionsForJUnit {
+
+  val _temporarayFolder = new TemporaryFolder()
+
+  @Rule def temp = _temporarayFolder
 
   @Test
   def testCheckRootFirstChildPropertiesVar_noChilds(): Unit = {
@@ -309,8 +314,31 @@ class PomModTest extends AssertionsForJUnit {
 
   @Test
   def defectSelfPom(): Unit = {
-    // GIVEN
-    val srcPoms = TestHelper.testResources("defect-self-pom")
+    val srcPoms: File = pomTestFile(document(<project>
+      <modelVersion>4.0.0</modelVersion>
+      <groupId>com.novomind.ishop.shops.any</groupId>
+      <artifactId>any-projects</artifactId>
+      <version>27.0.0-SNAPSHOT</version>
+      <packaging>pom</packaging>
+
+      <modules>
+        <module>any-erp</module>
+      </modules>
+    </project>
+    )).sub("any-erp", document(<project>
+      <modelVersion>4.0.0</modelVersion>
+
+      <parent>
+        <groupId>com.novomind.ishop.shops.any</groupId>
+        <artifactId>any-projects</artifactId>
+        <version>28.0.0-SNAPSHOT</version>
+        <relativePath>..</relativePath>
+      </parent>
+
+      <artifactId>any-erp</artifactId>
+      <name>any-erp</name>
+    </project>
+    )).create()
 
     // WHEN
     TestHelper.assertException("More then one Version found in your pom.xmls (27.0.0-SNAPSHOT, 28.0.0-SNAPSHOT)",
@@ -1240,4 +1268,28 @@ class PomModTest extends AssertionsForJUnit {
   def document(elem: Elem): Document = Xpath.newDocument(elem.toString())
 
   def pomfile(doc: Document) = RawPomFile(new File("f"), doc, new File("f"))
+
+  sealed case class TestFileBuilder(root: Document, subs: Seq[(String, Document)]) {
+    def sub(foldername: String, sub: Document): TestFileBuilder = {
+      this.copy(subs = subs ++ Seq((foldername, sub)))
+    }
+
+    def create(): File = {
+      val rootDir = temp.newFolder("release-pom-mod-test")
+      val file = new File(rootDir, "pom.xml")
+      PomMod.writePom(file, root)
+      subs.foreach(in ⇒ {
+        // TODO sub sub not supported
+        // use release.PomMod.writeTo later
+        val sub = new File(rootDir, in._1)
+        sub.mkdir()
+        PomMod.writePom(new File(sub, "pom.xml"), in._2)
+      })
+      rootDir
+    }
+  }
+
+  def pomTestFile(root: Document): TestFileBuilder = {
+    TestFileBuilder(root, Nil)
+  }
 }

@@ -278,7 +278,7 @@ case class PomMod(file: File) {
   def writeTo(targetFolder: File): Unit = {
     raws.par.foreach(sub ⇒ {
       val path = file.toPath.relativize(sub.pomFile.toPath)
-      writePom(targetFolder.toPath.resolve(path).toFile, sub.document)
+      PomMod.writePom(targetFolder.toPath.resolve(path).toFile, sub.document)
     })
 
     depTreeFileContents
@@ -468,10 +468,6 @@ case class PomMod(file: File) {
   def suggestNextRelease(releaseVersion: String): String = {
     checkCurrentVersion(currentVersion)
     PomMod.suggestNextReleaseBy(currentVersion.get, releaseVersion)
-  }
-
-  private def writePom(file: File, document: Document): Unit = {
-    PomMod.writeContent(file, PomMod.toString(document) + "\n")
   }
 
   private def toRawPom(pomFile: File): RawPomFile = {
@@ -758,6 +754,10 @@ object PomMod {
     })
 
     toString(doc)
+  }
+
+  private[release] def writePom(file: File, document: Document): Unit = {
+    PomMod.writeContent(file, PomMod.toString(document) + "\n")
   }
 
   private def toString(doc: Document): String = {
