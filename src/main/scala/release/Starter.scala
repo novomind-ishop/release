@@ -60,6 +60,7 @@ object Starter extends App with LazyLogging {
         out.println("DEBUG: " + message.apply())
       }
     }
+
     val config = ReleaseConfig.default()
     debug("init")
     val termOs: TermOs = TermOs.select(argSeq(3), argSeq(2), restArgs.contains("simpleChars"))
@@ -248,15 +249,20 @@ object Starter extends App with LazyLogging {
 
       def suggestLocalNotesReviewRemoval(activeGit: Sgit): Unit = {
         // git config --add remote.origin.fetch refs/notes/review:refs/notes/review
+        // git config --add remote.origin.fetch refs/notes/*:refs/notes/*
         // git fetch
         if (activeGit.listRefNames().contains("refs/notes/review")) {
-          val result = Term.readFromOneOfYesNo(out, "Ref: refs/notes/review found." +
+          val result = Term.readFromOneOfYesNo(out, "Ref: " + "refs/notes/review" + " found." +
             " This ref leads to an unreadable local history. Do you want to remove them?")
           if (result == "y") {
-            activeGit.configRemove("remote.origin.fetch", "refs/notes/review")
-            activeGit.deleteRef("refs/notes/review")
+            val configRefs = activeGit.configGetAll("remote.origin.fetch").getOrElse(Nil)
+            configRefs.filter(_.startsWith("refs/notes/"))
+              .map(_.replaceAll("\\*", "\\\\*"))
+              .foreach(in ⇒ activeGit.configRemove("remote.origin.fetch", in))
           }
+          activeGit.deleteRef("refs/notes/review")
         }
+
       }
 
       val git = gitAndBranchname._1
