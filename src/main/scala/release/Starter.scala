@@ -65,7 +65,7 @@ object Starter extends App with LazyLogging {
     debug("init")
     val termOs: TermOs = TermOs.select(argSeq(3), argSeq(2), restArgs.contains("simpleChars"))
     val dependencyUpdates = restArgs.contains("depUp")
-    val showHelp = restArgs.contains("help") || restArgs.contains("--help")
+    val showHelp = restArgs.contains("help") || restArgs.contains("--help") || restArgs.contains("-h") || restArgs.contains("-?")
     val showUpdateCmd = restArgs.contains("--show-update-cmd")
     val showGit = restArgs.contains("showGit")
     val createFeatureBranch = restArgs.contains("nothing-but-create-feature-branch")
