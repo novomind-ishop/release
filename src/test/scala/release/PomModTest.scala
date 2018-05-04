@@ -744,6 +744,16 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def suggestNextRelease_shop_patch_sub(): Unit = {
+
+    // GIVEN/WHEN
+    val release = PomMod.suggestNextReleaseBy("RC-2018.17.5.1-SNAPSHOT")
+
+    // THEN
+    assert("RC-2018.18" === release)
+  }
+
+  @Test
   def suggestNextRelease_shop_next_year(): Unit = {
 
     // GIVEN/WHEN

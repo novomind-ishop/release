@@ -691,7 +691,7 @@ object PomMod {
     } else if (currentVersion.matches("^[0-9]+x-SNAPSHOT")) {
       currentVersion.replaceFirst("-SNAPSHOT$", "")
     } else {
-      val shopPattern = "^(RC-)([0-9]{4})\\.([0-9]+)(?:\\.[0-9]+)?$".r
+      val shopPattern = "^(RC-)([0-9]{4})\\.([0-9]+)(?:\\.[0-9]+[0-9\\.]*)?$".r
       val stableShop = "^([0-9]+x)-stable.*$".r
 
       val snapped = releaseVersion.replaceFirst("-SNAPSHOT", "")
