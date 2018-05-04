@@ -111,7 +111,7 @@ object Starter extends App with LazyLogging {
       } else {
         releaseToolPath
       }
-      "(cd " + updatePath + " && git rebase -q --autostash && cd -)"
+      "(cd " + updatePath + " && git rebase -q --autostash || git reset --hard @{upstream} && cd -)"
     }
     if (showUpdateCmd) {
       out.println(updateCmd)
