@@ -270,12 +270,12 @@ class SgitTest extends AssertionsForJUnit {
     // GIVEN
     val testRepoA = new File(Util.localWork, "target/a")
     if (testRepoA.isDirectory) {
-      Util.delete(testRepoA)
+      Util.deleteRecursiv(testRepoA)
     }
 
     val testRepoB = new File(Util.localWork, "target/b")
     if (testRepoB.isDirectory) {
-      Util.delete(testRepoB)
+      Util.deleteRecursiv(testRepoB)
     }
 
     // WHEN

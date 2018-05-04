@@ -2,15 +2,15 @@ package release
 
 import java.io.{ByteArrayOutputStream, File, PrintStream}
 import java.nio.charset.StandardCharsets
-import java.nio.file.{FileSystemException, Files}
+import java.nio.file.Files
 import java.time.LocalDate
 import java.time.temporal.WeekFields
 import java.util.Locale
+
+import com.google.common.annotations.VisibleForTesting
 import javax.xml.transform.dom.DOMSource
 import javax.xml.transform.stream.StreamResult
 import javax.xml.transform.{OutputKeys, TransformerFactory}
-
-import com.google.common.annotations.VisibleForTesting
 import org.w3c.dom.{Document, Node}
 import release.PomChecker.ValidationException
 import release.PomMod.{Dep, PluginDep, PluginExec, PomRef}
@@ -871,7 +871,7 @@ object PomMod {
       }).filter(_._2 != Nil)
 
     if (depPropsMod != Map.empty) {
-      throw new ValidationException("unnecessary property definition (move property to parent pom or remove from sub poms):\n" +
+      throw new ValidationException("unnecessary/multiple property definition (move property to parent pom or remove from sub poms):\n" +
         depPropsMod.map(in ⇒ "  " + in._1.map(t ⇒ "(" + t._1 + " -> " + t._2 + ")").mkString(", ") +
           "\n      -> " + in._2.map(ga).mkString("\n      -> ")).mkString("\n"))
     }
@@ -904,7 +904,7 @@ object PomMod {
   }
 
   private[release] def writeContent(file: File, text: String): Unit = {
-    try {
+    Util.handleWindowsFilesystem { _ ⇒
       if (Files.exists(file.toPath)) {
         Files.delete(file.toPath)
       }
@@ -912,13 +912,6 @@ object PomMod {
         Files.createDirectories(file.toPath.getParent)
       }
       Files.write(file.toPath, text.getBytes(StandardCharsets.UTF_8))
-    } catch {
-      case e: FileSystemException ⇒ Sgit.getOs() match {
-        case Sgit.Os.Windows ⇒ throw new IllegalStateException("Windows tends to lock file handles." +
-          " Try to find handle or DLL that locks the file. e.g. with Sysinternals Process Explorer", e)
-        case _ ⇒ throw e;
-      }
-      case o: Exception ⇒ throw o
     }
   }
 

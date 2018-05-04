@@ -2,19 +2,19 @@ package release
 
 import java.io.File
 import java.nio.charset.StandardCharsets
-import java.nio.file.Files
+import java.nio.file.{FileSystemException, Files}
 
 import scala.collection.{JavaConverters, mutable}
 
 object Util {
 
-  def emptyToNone(in:String):Option[String] = in match {
+  def emptyToNone(in: String): Option[String] = in match {
     case "" ⇒ None
     case any if any.trim == "" ⇒ None
     case any ⇒ Some(any)
   }
 
-  def groupedFiltered[R](in:Seq[R]):Map[R, Seq[R]] = {
+  def groupedFiltered[R](in: Seq[R]): Map[R, Seq[R]] = {
     in.map(a ⇒ (a, in.filterNot(_ == a))).toMap
   }
 
@@ -56,11 +56,11 @@ object Util {
     Files.write(f.toPath, JavaConverters.bufferAsJavaList(content.toBuffer))
   }
 
-  def read(f:File): String = {
+  def read(f: File): String = {
     readLines(f).mkString("\n") + "\n"
   }
 
-  def readLines(f:File):Seq[String] = {
+  def readLines(f: File): Seq[String] = {
     if (Files.isRegularFile(f.toPath)) {
       JavaConverters.asScalaBuffer(Files.readAllLines(f.toPath, StandardCharsets.UTF_8))
     } else {
@@ -68,10 +68,10 @@ object Util {
     }
   }
 
-  def delete(file: File): Unit = {
+  def deleteRecursiv(file: File): Unit = {
     def deleteFile(allFiles: Array[File]): Unit = {
       if (allFiles != null) {
-        allFiles.foreach(delete)
+        allFiles.foreach(deleteRecursiv)
       }
     }
 
@@ -83,7 +83,20 @@ object Util {
     }
   }
 
-  def toSet[A](set:java.util.Set[A]):Set[A] = JavaConverters.asScalaSet(set).toSet
+  def handleWindowsFilesystem(fn: Unit => Unit) {
+    try {
+      fn.apply(Unit)
+    } catch {
+      case e: FileSystemException ⇒ Sgit.getOs() match {
+        case Sgit.Os.Windows ⇒ throw new IllegalStateException("Windows tends to lock file handles." +
+          " Try to find handle or DLL that locks the file. e.g. with Sysinternals Process Explorer", e)
+        case _ ⇒ throw e;
+      }
+      case o: Exception ⇒ throw o
+    }
+  }
 
-  def toJavaMap[K,V](map: Map[K,V]):java.util.Map[K,V] = JavaConverters.mapAsJavaMap(map)
+  def toSet[A](set: java.util.Set[A]): Set[A] = JavaConverters.asScalaSet(set).toSet
+
+  def toJavaMap[K, V](map: Map[K, V]): java.util.Map[K, V] = JavaConverters.mapAsJavaMap(map)
 }

@@ -1,7 +1,7 @@
 ## Release
 ### Synopsis
 We created ```release``` to simplify, standardize and to speed up creation of
-branches, tags, commit-messages and ```pom.xml``` modifications.
+branches, tags, commit-messages and ```pom.xml``` modifications with and without [Gerrit](https://www.gerritcodereview.com).
 It also checks your ```pom.xml``` for problems and suggests hints to fix them.
 
 ### Features
@@ -31,5 +31,21 @@ to add ```release``` to your ```PATH``` and call it without an absolute path.
 cd the/project
 release
 ```
-
 If you want to learn other options of ```release``` try ```release --help```.
+
+### Config
+The default config is located in ```${HOME}/.ishop-release```. ```${HOME}``` should be equal with
+```System.getProperty("user.home")```; to check this see ```release --help``` where the path to your home directory is shown.
+
+The config file looks like the following:
+```
+ishop-release.gerrit.hostname=your-gerrit.example.org
+ishop-release.gerrit.signedOfBy=Signer Name <signer@example.org>
+ishop-release.gerrit.port=29418
+ishop-release.jenkins.base=https://your-jenkins.example.org
+ishop-release.branch.prefix=your-branch-prefix
+ishop-release.release.prefix=your-release-prefix
+ishop-release.gerrit.url=https://your-gerrit.example.org/
+ishop-release.nexus.mirror.url=https://your-nexus-mirror.example.org/content/groups/public/
+ishop-release.nexus.work.url=http://your-nexus/nexus/content/repositories/public
+```

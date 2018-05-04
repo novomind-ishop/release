@@ -159,8 +159,10 @@ object ReleaseConfig extends LazyLogging {
     }
     val work = if (lc == Map.empty || refresh) {
       val rc = remoteConfig(removeConfigUrl)
-      defaultUpdateFile.delete()
-      defaultUpdateFile.createNewFile()
+      Util.handleWindowsFilesystem { _ ⇒
+        defaultUpdateFile.delete()
+        defaultUpdateFile.createNewFile()
+      }
       if (rc != Map.empty) {
         writeConfig(defaultConfigFile, rc)
         rc

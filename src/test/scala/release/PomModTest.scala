@@ -66,7 +66,7 @@ class PomModTest extends AssertionsForJUnit {
     Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(root))
     Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(child))
 
-    TestHelper.assertException("unnecessary property definition (move property to parent pom or remove from sub poms):\n" +
+    TestHelper.assertException("unnecessary/multiple property definition (move property to parent pom or remove from sub poms):\n" +
       "  (p -> 1)\n" +
       "      -> very.long.groupid.any:a-parent:1.0.0-SNAPSHOT\n" +
       "      -> any:a:1.0.0-SNAPSHOT",
@@ -244,7 +244,7 @@ class PomModTest extends AssertionsForJUnit {
     Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(child0))
     Assert.assertEquals(Map.empty, PomMod.createPropertyMap(child1))
 
-    TestHelper.assertException("unnecessary property definition (move property to parent pom or remove from sub poms):\n" +
+    TestHelper.assertException("unnecessary/multiple property definition (move property to parent pom or remove from sub poms):\n" +
       "  (p -> 1)\n" +
       "      -> very.long.groupid.any:a-parent:1.0.0-SNAPSHOT\n" +
       "      -> any:a:1.0.0-SNAPSHOT\n" +
@@ -302,7 +302,7 @@ class PomModTest extends AssertionsForJUnit {
     Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(child0))
     Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(child1))
 
-    TestHelper.assertException("unnecessary property definition (move property to parent pom or remove from sub poms):\n" +
+    TestHelper.assertException("unnecessary/multiple property definition (move property to parent pom or remove from sub poms):\n" +
       "  (p -> 1)\n" +
       "      -> any:a-parent:1.0.0-SNAPSHOT\n" +
       "      -> any:a:1.0.0-SNAPSHOT\n" +
