@@ -13,7 +13,7 @@ import javax.xml.transform.stream.StreamResult
 import javax.xml.transform.{OutputKeys, TransformerFactory}
 import org.w3c.dom.{Document, Node}
 import release.PomChecker.ValidationException
-import release.PomMod.{Dep, PluginDep, PluginExec, PomRef}
+import release.PomMod._
 import release.Starter.{PreconditionsException, TermOs}
 
 case class PomMod(file: File) {
@@ -33,7 +33,8 @@ case class PomMod(file: File) {
   private val allRawPomFiles = allRawModulePomsFiles(Seq(file))
 
   private val raws: Seq[RawPomFile] = toRawPoms(allRawPomFiles)
-  private val allPomsDocs: Seq[Document] = raws.map(_.document)
+  private val rootPomGav: Gav = selfDep(in ⇒ in)(raws.find(rp ⇒ rp.pomFile == rootPom).get.document).gav()
+  private[release] val allPomsDocs: Seq[Document] = raws.map(_.document).toList
 
   case class DepTree(content: String)
 
@@ -42,7 +43,8 @@ case class PomMod(file: File) {
   }
 
   val selfVersion: String = {
-    Util.only(listSelf.map(_.version).distinct, "More then one Version found in your pom.xmls")
+    val v = listSelf.map(_.version).distinct
+    Util.only(v, "More then one Version found in your pom.xmls")
   }
 
   private val currentVersion: Option[String] = {
@@ -226,7 +228,9 @@ case class PomMod(file: File) {
         PomMod.applyValueOfXpathTo(d, PomMod.xPathToProjectVersion, newVersion)
         PomMod.applyVersionTo(d, listSelf, newVersion)
       } else {
-        PomMod.applyValueOfXpathTo(d, PomMod.xPathToProjectParentVersion, newVersion)
+        if (d.parentDep.gav() == rootPomGav.copy(packageing = "")) {
+          PomMod.applyValueOfXpathTo(d, PomMod.xPathToProjectParentVersion, newVersion)
+        }
         PomMod.applyValueOfXpathTo(d, PomMod.xPathToProjectVersion, newVersion)
         PomMod.applyVersionTo(d, listSelf, newVersion)
       }
@@ -685,7 +689,7 @@ object PomMod {
     suggestNextReleaseBy(currentVersion, currentVersion)
   }
 
-  def isUnknownReleasePattern(in:String):Boolean = {
+  def isUnknownReleasePattern(in: String): Boolean = {
     suggestNextReleaseBy(in, in).endsWith("-UNDEF")
   }
 
@@ -766,7 +770,7 @@ object PomMod {
     PomMod.writeContent(file, PomMod.toString(document) + "\n")
   }
 
-  private def toString(doc: Document): String = {
+  private[release] def toString(doc: Document): String = {
     val transformerFactory = TransformerFactory.newInstance()
     val transformer = transformerFactory.newTransformer()
     transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes")
