@@ -76,6 +76,43 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testCheckRootFirstChildPropertiesVar_different_values(): Unit = {
+
+    val root = document(<project>
+      <groupId>very.long.groupid.any</groupId>
+      <artifactId>a-parent</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+      <packaging>pom</packaging>
+
+      <modules>
+        <module>a</module>
+      </modules>
+      <properties>
+        <p>1</p>
+      </properties>
+    </project>)
+
+    val child = document(<project>
+      <parent>
+        <groupId>very.long.groupid.any</groupId>
+        <artifactId>a-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>..</relativePath>
+      </parent>
+      <groupId>any</groupId>
+      <artifactId>a</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+      <properties>
+        <p>2</p>
+      </properties>
+    </project>)
+
+    Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(root))
+    Assert.assertEquals(Map("p" → "2"), PomMod.createPropertyMap(child))
+    PomMod.checkRootFirstChildPropertiesVar(Seq(pomfile(root), pomfile(child)))
+  }
+
+  @Test
   def testCheckRootFirstChildNoParentProperties(): Unit = {
 
     val root = document(<project>
@@ -964,6 +1001,25 @@ class PomModTest extends AssertionsForJUnit {
 
     // THEN
     assert(Seq("29.1.2-SNAPSHOT", "29.2.0-SNAPSHOT") === release)
+  }
+
+  @Test
+  def testIsUnknownReleasePattern(): Unit = {
+    Assert.assertFalse(PomMod.isUnknownReleasePattern("RC-2018.08-SNAPSHOT"))
+    Assert.assertFalse(PomMod.isUnknownReleasePattern("RC-2018.08.1-SNAPSHOT"))
+    Assert.assertFalse(PomMod.isUnknownReleasePattern("RC-2018.08"))
+    Assert.assertFalse(PomMod.isUnknownReleasePattern("1"))
+    Assert.assertFalse(PomMod.isUnknownReleasePattern("1.0"))
+    Assert.assertFalse(PomMod.isUnknownReleasePattern("1.0.0"))
+    Assert.assertFalse(PomMod.isUnknownReleasePattern("1.0.0_1"))
+    Assert.assertFalse(PomMod.isUnknownReleasePattern("1.0.0-SNAPSHOT"))
+    Assert.assertFalse(PomMod.isUnknownReleasePattern("RC-2018.08.1"))
+    Assert.assertTrue(PomMod.isUnknownReleasePattern("RC.2018.08.1"))
+    Assert.assertTrue(PomMod.isUnknownReleasePattern("1."))
+    Assert.assertTrue(PomMod.isUnknownReleasePattern("RC-2018-08.1"))
+    Assert.assertTrue(PomMod.isUnknownReleasePattern("RC-2018.08-1"))
+    Assert.assertFalse(PomMod.isUnknownReleasePattern("master-SNAPSHOT"))
+    Assert.assertFalse(PomMod.isUnknownReleasePattern("master"))
   }
 
   @Test

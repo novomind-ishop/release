@@ -205,9 +205,9 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
   def listBranchesLocal(): Seq[GitShaBranch] = {
     gitNative(Seq("branch", "--list", "--verbose", "--no-abbrev"))
       .lines.toSeq
-      .map(in ⇒ {
-        val parts = Sgit.splitLineOnBranchlist(in)
-        GitShaBranch(parts(1), "refs/heads/" + parts(0))
+      .flatMap(Sgit.splitLineOnBranchlistErr(err))
+      .map(parts ⇒ {
+        GitShaBranch(parts._2, "refs/heads/" + parts._1)
       }).toList
   }
 
@@ -504,14 +504,24 @@ object Sgit {
 
   private[release] def splitLineOnWhitespace(in: String): Seq[String] = in.replaceFirst("^\\*", "").trim.split("[ \t]+")
 
-  private[release] def splitLineOnBranchlist(in: String): Seq[String] = {
+  private[release] def splitLineOnBranchlist(in: String): Option[(String, String)] = {
+    splitLineOnBranchlistErr(System.err)(in)
+  }
+
+  private[release] def splitLineOnBranchlistErr(err: PrintStream)(in: String): Option[(String, String)] = {
     val trimmed = in.replaceFirst("^\\*", "").trim.replaceFirst("^\\([^\\)]+", "(branch_name_replaced")
     val out = trimmed.split("[ \t]+").toList
-    out.flatMap(in ⇒ if (in == "(branch_name_replaced)") {
+    val result = out.flatMap(in ⇒ if (in == "(branch_name_replaced)") {
       Seq(out(1))
     } else {
       Seq(in)
     })
+    if (result.size >= 2 && GitShaBranch.matchesGitSha(result(1))) {
+      Some(result.head, result(1))
+    } else {
+      err.println("W: Unknown branch definition (check commit messages for second line empty, first line char limit): \"" + in + "\"")
+      None
+    }
   }
 
   sealed case class GitShaBranch(commitId: String, branchName: String) {
@@ -519,9 +529,13 @@ object Sgit {
       throw new IllegalStateException("invalid commit id length: " + commitId.length + " (" + commitId + ")")
     }
 
-    if (!commitId.matches("[0-9a-f]{40}")) {
+    if (!GitShaBranch.matchesGitSha(commitId)) {
       throw new IllegalStateException("invalid commit id: " + commitId + "")
     }
+  }
+
+  object GitShaBranch {
+    def matchesGitSha(in: String): Boolean = in.matches("[0-9a-f]{40}")
   }
 
   case class GitRemote(name: String, position: String, remoteType: String)
@@ -574,7 +588,7 @@ object Sgit {
           // (2017-09-22) - (tag: v2.13.6)
           throw new IllegalStateException("git version 2.13 support ended at 2018-05-02")
         case v: String if v.startsWith("git version 2.14.") ⇒
-        // (2017-10-23) - (tag: v2.14.3)
+          // (2017-10-23) - (tag: v2.14.3)
           out.println("W: please update your git version, \"" + v + "\" support ends at 2018-07-02");
         case v: String if v.startsWith("git version 2.15.") ⇒ // do nothing (2017-11-28) - (tag: v2.15.1)
         case v: String if v.startsWith("git version 2.16.") ⇒ // do nothing (2018-02-15) - (tag: v2.16.2)

@@ -685,8 +685,14 @@ object PomMod {
     suggestNextReleaseBy(currentVersion, currentVersion)
   }
 
+  def isUnknownReleasePattern(in:String):Boolean = {
+    suggestNextReleaseBy(in, in).endsWith("-UNDEF")
+  }
+
   def suggestNextReleaseBy(currentVersion: String, releaseVersion: String): String = {
     if (currentVersion == "master-SNAPSHOT") {
+      "master"
+    } else if (currentVersion == "master") {
       "master"
     } else if (currentVersion.matches("^[0-9]+x-SNAPSHOT")) {
       currentVersion.replaceFirst("-SNAPSHOT$", "")

@@ -118,7 +118,24 @@ object Release {
       out.println("---------")
     }
 
-    val releaseWithoutSnapshot = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readChooseOneOfOrType(out, "Enter the release version", newMod.suggestReleaseVersion(sgit.listBranchNamesAll())))
+    val suggestedVersions = newMod.suggestReleaseVersion(sgit.listBranchNamesAll())
+
+    def readReleaseVersions: String = {
+      val result = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readChooseOneOfOrType(out, "Enter the release version", suggestedVersions))
+      if (PomMod.isUnknownReleasePattern(result)) {
+        val retryVersionEnter = Term.readFromOneOfYesNo(out, "Unknown release version \"" + result + "\". Are you sure to continue?")
+        if (retryVersionEnter == "n") {
+          readReleaseVersions
+        } else {
+          result
+        }
+      } else {
+        result
+      }
+    }
+
+    val releaseWithoutSnapshot = readReleaseVersions
+
     val release = if (mod.hasShopPom) {
       Term.removeSnapshot(releaseWithoutSnapshot) + "-SNAPSHOT"
     } else {
@@ -129,7 +146,22 @@ object Release {
       // TODO fetch remote and try to read new version again
       throw new IllegalStateException("release " + releaseWitoutSnapshot + " already found; check your repository or change version.")
     }
-    val nextReleaseWithoutSnapshot = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(out, "Enter the next version without -SNAPSHOT", newMod.suggestNextRelease(release)))
+
+    def readNextReleaseVersions: String = {
+      val result = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(out, "Enter the next version without -SNAPSHOT", newMod.suggestNextRelease(release)))
+      if (PomMod.isUnknownReleasePattern(result)) {
+        val retryVersionEnter = Term.readFromOneOfYesNo(out, "Unknown next release version \"" + result + "\". Are you sure to continue?")
+        if (retryVersionEnter == "n") {
+          readNextReleaseVersions
+        } else {
+          result
+        }
+      } else {
+        result
+      }
+    }
+
+    val nextReleaseWithoutSnapshot = readNextReleaseVersions
 
     if (mod.hasNoShopPom) {
       val coreVersions: Seq[(String, Dep)] = mod.listDependecies

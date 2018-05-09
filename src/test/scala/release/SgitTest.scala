@@ -544,14 +544,16 @@ class SgitTest extends AssertionsForJUnit {
   def testSplitLineOnBranchlist(): Unit = {
 
     val master = Sgit.splitLineOnBranchlist("* master 915c1ce40ee979c3739e640e0a86ba68adea8681 Removed ...")
-    Assert.assertEquals(Seq("master", "915c1ce40ee979c3739e640e0a86ba68adea8681"), master.take(2))
+    Assert.assertEquals(("master", "915c1ce40ee979c3739e640e0a86ba68adea8681"), master.get)
 
     val any = Sgit.splitLineOnBranchlist("  bla  74036668cf893e4762ab4ff24ab4de8e44b70e33 Hub: SEE ..")
-    Assert.assertEquals(Seq("bla", "74036668cf893e4762ab4ff24ab4de8e44b70e33"), any.take(2))
+    Assert.assertEquals(("bla", "74036668cf893e4762ab4ff24ab4de8e44b70e33"), any.get)
 
     val detached = Sgit.splitLineOnBranchlist("* (HEAD detached at 97cbb59ea) 97cbb59ea40aacb4d8acad402bf90890741b0dbe Add ...")
-    Assert.assertEquals(Seq("97cbb59ea40aacb4d8acad402bf90890741b0dbe", "97cbb59ea40aacb4d8acad402bf90890741b0dbe"),
-      detached.take(2))
+    Assert.assertEquals(("97cbb59ea40aacb4d8acad402bf90890741b0dbe", "97cbb59ea40aacb4d8acad402bf90890741b0dbe"), detached.get)
+
+    val some = Sgit.splitLineOnBranchlist(" See merge request !380est          a5b54bf93f5a6b84f5f0833d315f9c6c3dfc1875 [gone] Merge branch '904_inxmail_api' into 'sprint/2017.07'")
+    Assert.assertEquals(None, some)
   }
 
   private def testFile(folder: File, name: String): File = {
