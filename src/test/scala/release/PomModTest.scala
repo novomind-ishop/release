@@ -9,6 +9,7 @@ import org.scalatest.junit.AssertionsForJUnit
 import org.w3c.dom._
 import release.PomChecker.ValidationException
 import release.PomMod.{Dep, PluginDep, PluginExec, PomRef}
+import release.PomModTest.{assertDeps, document, pomfile, _}
 
 import scala.xml.{Elem, XML}
 
@@ -351,7 +352,7 @@ class PomModTest extends AssertionsForJUnit {
 
   @Test
   def defectSelfPom(): Unit = {
-    val srcPoms: File = pomTestFile(document(<project>
+    val srcPoms: File = pomTestFile(temp, document(<project>
       <modelVersion>4.0.0</modelVersion>
       <groupId>com.novomind.ishop.shops.any</groupId>
       <artifactId>any-projects</artifactId>
@@ -383,108 +384,6 @@ class PomModTest extends AssertionsForJUnit {
         PomMod(srcPoms).selfVersion
       })
 
-  }
-
-  @Test
-  def ubglu(): Unit = {
-    val srcPoms: File = pomTestFile(document(<project>
-      <modelVersion>4.0.0</modelVersion>
-      <groupId>com.novomind.ishop.shops.any</groupId>
-      <artifactId>any-projects</artifactId>
-      <version>28.0.0-SNAPSHOT</version>
-      <packaging>pom</packaging>
-      <modules>
-        <module>any-erp</module>
-        <module>any</module>
-      </modules>
-    </project>
-    ), "com.novomind.ishop.shops:any-projects:pom:28.0.0-SNAPSHOT")
-      .sub("any-erp", document(<project>
-      <modelVersion>4.0.0</modelVersion>
-      <parent>
-        <groupId>com.novomind.ishop.shops.any</groupId>
-        <artifactId>any-projects</artifactId>
-        <version>28.0.0-SNAPSHOT</version>
-        <relativePath>..</relativePath>
-      </parent>
-      <artifactId>any-erp</artifactId>
-      <name>any-erp</name>
-    </project>
-    ), "com.novomind.ishop.shops:any-erp:jar:28.0.0-SNAPSHOT")
-      .sub("any", document(<project>
-        <modelVersion>4.0.0</modelVersion>
-        <parent>
-          <groupId>com.novomind.any</groupId>
-          <artifactId>any-projects</artifactId>
-          <version>27.0.0</version>
-        </parent>
-        <artifactId>any</artifactId>
-        <name>any</name>
-        <version>28.0.0-SNAPSHOT</version>
-      </project>
-      ), "com.novomind.any:any:jar:28.0.0-SNAPSHOT").create()
-
-    // WHEN
-    val newpom = PomMod(srcPoms)
-    assertDeps(Seq(Dep(PomRef("com.novomind.ishop.shops.any:any-projects:28.0.0-SNAPSHOT"),
-      "", "", "", "", "", "", ""),
-      Dep(PomRef("com.novomind.ishop.shops.any:any-erp:28.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.any", "any-projects", "28.0.0-SNAPSHOT", "", "", "", ""),
-      Dep(PomRef("com.novomind.any:any:28.0.0-SNAPSHOT"),
-        "com.novomind.any", "any-projects", "27.0.0", "", "", "", "")), newpom.listDependecies)
-
-    Assert.assertEquals(Map.empty, depTreeMap(newpom))
-
-    newpom.changeVersion("12.12")
-    newpom.writeTo(srcPoms)
-    assertDeps(Seq(Dep(PomRef("com.novomind.ishop.shops.any:any-projects:12.12"),
-      "", "", "", "", "", "", ""),
-      Dep(PomRef("com.novomind.ishop.shops.any:any-erp:12.12"),
-        "com.novomind.ishop.shops.any", "any-projects", "12.12", "", "", "", ""),
-      Dep(PomRef("com.novomind.any:any:12.12"),
-        "com.novomind.any", "any-projects", "27.0.0", "", "", "", "")), PomMod(srcPoms).listDependecies)
-    Assert.assertEquals(3, newpom.allPomsDocs.size)
-    val result = newpom.allPomsDocs.map(toElement)
-
-    def assertElems(expected: Seq[Elem], actual: Seq[Elem]): Unit = {
-      def toStr(in: Elem) = PomMod.toString(document(in)).lines.map(in ⇒ in.trim)
-
-      Assert.assertEquals(expected.toList.map(toStr).toString(), actual.toList.map(toStr).toString())
-    }
-
-    assertElems(Seq(<project>
-      <modelVersion>4.0.0</modelVersion>
-      <groupId>com.novomind.ishop.shops.any</groupId>
-      <artifactId>any-projects</artifactId>
-      <version>12.12</version>
-      <packaging>pom</packaging>
-      <modules>
-        <module>any-erp</module>
-        <module>any</module>
-      </modules>
-    </project>,
-      <project>
-        <modelVersion>4.0.0</modelVersion>
-        <parent>
-          <groupId>com.novomind.ishop.shops.any</groupId>
-          <artifactId>any-projects</artifactId>
-          <version>12.12</version>
-          <relativePath>..</relativePath>
-        </parent>
-        <artifactId>any-erp</artifactId>
-        <name>any-erp</name>
-      </project>,
-      <project>
-        <modelVersion>4.0.0</modelVersion>
-        <parent>
-          <groupId>com.novomind.any</groupId>
-          <artifactId>any-projects</artifactId>
-          <version>27.0.0</version>
-        </parent>
-        <artifactId>any</artifactId>
-        <name>any</name>
-        <version>12.12</version>
-      </project>), result)
   }
 
   @Test
@@ -1142,7 +1041,7 @@ class PomModTest extends AssertionsForJUnit {
   @Test
   def writeOthers(): Unit = {
     // GIVEN
-    val srcPoms: File = pomTestFile(Anyshop1Deps.rootPom, Anyshop1Deps.rootTree)
+    val srcPoms: File = pomTestFile(temp, Anyshop1Deps.rootPom, Anyshop1Deps.rootTree)
       .sub("anyshop-erp", Anyshop1Deps.anyshopErpPom, Anyshop1Deps.anyshopErpTree)
       .sub("anyshop-shop", Anyshop1Deps.anyshopPom, Anyshop1Deps.anyshopTree)
       .create()
@@ -1329,7 +1228,7 @@ class PomModTest extends AssertionsForJUnit {
       "ishop-core.version" → "27.1.2-SNAPSHOT",
       "project.build.sourceEncoding" → "UTF-8",
       "ishop-plugin.version" → "27.3.0-SNAPSHOT",
-      "project.version" -> "27.0.0-SNAPSHOT",
+      "project.version" → "27.0.0-SNAPSHOT",
       "webappDirectory" → "skip/skip",
       "aspectj.version" → "1.8.8",
       "aspectj-maven-plugin.version" → "1.8",
@@ -1337,7 +1236,7 @@ class PomModTest extends AssertionsForJUnit {
       "build.timestamp" → "skip",
       "zkm.skip" → "true",
       "bo-client" → "27.0.0-SNAPSHOT",
-      "allowedProjectDir" -> "skip/any",
+      "allowedProjectDir" → "skip/any",
       "project.reporting.outputEncoding" → "UTF-8",
       "java.version" → "1.8")
     Assert.assertEquals(expected, props)
@@ -1408,7 +1307,14 @@ class PomModTest extends AssertionsForJUnit {
     assertBy(expected, actual, defstr)
   }
 
-  private def assertDeps(expected: Seq[Dep], actual: Seq[Dep]) = {
+}
+
+object PomModTest {
+  def pomTestFile(temp: TemporaryFolder, root: Document, treeFileContent: String = ""): TestFileBuilder = {
+    TestFileBuilder(temp, root, treeFileContent, Nil)
+  }
+
+  def assertDeps(expected: Seq[Dep], actual: Seq[Dep]) = {
     def defstr(dep: Dep): String = {
       "Dep(PomRef(\"" + dep.pomRef.id + "\"),\n \"" + dep.groupId + "\", \"" +
         dep.artifactId + "\", \"" + dep.version + "\", \"" + dep.typeN + "\", \"" +
@@ -1441,10 +1347,13 @@ class PomModTest extends AssertionsForJUnit {
 
   def pomfile(doc: Document) = RawPomFile(new File("f"), doc, new File("f"))
 
-  sealed case class TestFileBuilder(root: Document, treeFileContent: String = "", subs: Seq[(String, Document, String)]) {
+  sealed case class TestFileBuilder(temp: TemporaryFolder, root: Document, treeFileContent: String = "",
+                                    subs: Seq[(String, Document, String, Seq[(String, Document, String)])]) {
 
-    def sub(foldername: String, sub: Document, treeFileContent: String = ""): TestFileBuilder = {
-      this.copy(subs = subs ++ Seq((foldername, sub, treeFileContent)))
+    def sub(foldername: String, document: Document, treeFileContent: String = "",
+            subsub: Seq[(String, Document, String)] = Nil): TestFileBuilder = {
+      // TODO create readable signature for subsub
+      this.copy(subs = subs ++ Seq((foldername, document, treeFileContent, subsub)))
     }
 
     def create(): File = {
@@ -1454,20 +1363,33 @@ class PomModTest extends AssertionsForJUnit {
         PomMod.writeContent(new File(rootDir, "dep.tree"), treeFileContent)
       }
       subs.foreach(in ⇒ {
-        // TODO sub sub not supported
-        // use release.PomMod.writeTo later
         val sub = new File(rootDir, in._1)
         sub.mkdir()
         PomMod.writePom(new File(sub, "pom.xml"), in._2)
         if (treeFileContent != "") {
           PomMod.writeContent(new File(sub, "dep.tree"), in._3)
         }
+
+        if (in._4 != Nil) {
+          in._4.foreach(in ⇒ {
+            val subsub = new File(sub, in._1)
+            subsub.mkdir()
+            PomMod.writePom(new File(subsub, "pom.xml"), in._2)
+            if (treeFileContent != "") {
+              PomMod.writeContent(new File(subsub, "dep.tree"), in._3)
+            }
+          })
+
+        }
       })
       rootDir
     }
   }
 
-  def pomTestFile(root: Document, treeFileContent: String = ""): TestFileBuilder = {
-    TestFileBuilder(root, treeFileContent, Nil)
+  def assertElems(expected: Seq[Elem], actual: Seq[Elem]): Unit = {
+    def toStr(in: Elem) = PomMod.toString(document(in)).lines.map(in ⇒ in.trim).toList.mkString("\n")
+
+    Assert.assertEquals(expected.toList.map(toStr).mkString("\n---\n"), actual.toList.map(toStr).mkString("\n---\n"))
   }
+
 }

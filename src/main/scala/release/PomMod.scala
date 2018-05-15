@@ -33,7 +33,6 @@ case class PomMod(file: File) {
   private val allRawPomFiles = allRawModulePomsFiles(Seq(file))
 
   private val raws: Seq[RawPomFile] = toRawPoms(allRawPomFiles)
-  private val rootPomGav: Gav = selfDep(in ⇒ in)(raws.find(rp ⇒ rp.pomFile == rootPom).get.document).gav()
   private[release] val allPomsDocs: Seq[Document] = raws.map(_.document).toList
 
   case class DepTree(content: String)
@@ -41,6 +40,8 @@ case class PomMod(file: File) {
   private[release] val listSelf: Seq[Dep] = {
     allPomsDocs.map(PomMod.selfDep(depU))
   }
+
+  private val rootPomGav: Seq[Gav] =  selfDepsMod.map(_.gav().copy(packageing = "")).distinct
 
   val selfVersion: String = {
     val v = listSelf.map(_.version).distinct
@@ -228,7 +229,7 @@ case class PomMod(file: File) {
         PomMod.applyValueOfXpathTo(d, PomMod.xPathToProjectVersion, newVersion)
         PomMod.applyVersionTo(d, listSelf, newVersion)
       } else {
-        if (d.parentDep.gav() == rootPomGav.copy(packageing = "")) {
+        if (rootPomGav.contains(d.parentDep.gav())) {
           PomMod.applyValueOfXpathTo(d, PomMod.xPathToProjectParentVersion, newVersion)
         }
         PomMod.applyValueOfXpathTo(d, PomMod.xPathToProjectVersion, newVersion)

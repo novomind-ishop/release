@@ -12,7 +12,9 @@ import org.xml.sax.SAXParseException
 object Xpath {
 
   def pomDoc(file: File): Document = {
-    if (!file.isFile) {
+    if (!file.exists()) {
+      throw new IllegalArgumentException("file does not exist; you passed: " + file.getAbsolutePath)
+    } else if (!file.isFile) {
       throw new IllegalArgumentException("only files are allowed; you passed: " + file.getAbsolutePath)
     }
     try {
