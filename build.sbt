@@ -2,7 +2,9 @@ name := "release"
 
 version := "1.0"
 
-scalaVersion := "2.12.5" // 5000 k
+scalaVersion := "2.12.6" // 5000 k
+
+logLevel := Level.Warn
 
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3" // 283 k
 
@@ -18,6 +20,10 @@ libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-transport-h
 
 libraryDependencies += "org.apache.maven" % "maven-resolver-provider" % "3.5.2" // 66 k
 
+libraryDependencies += "org.jline" % "jline-terminal" % "3.8.0"
+
+libraryDependencies += "org.jline" % "jline-reader" % "3.8.0"
+
 libraryDependencies += "org.scalatest" % "scalatest_2.12" % "3.0.4" % "test"
 
 libraryDependencies += "com.novocode" % "junit-interface" % "0.11" % "test"
@@ -29,7 +35,11 @@ assemblyMergeStrategy in assembly := {
   case x => MergeStrategy.first
 }
 
+logLevel in assembly := Level.Warn
+
 mainClass in assembly := Some("release.Starter")
 
 assemblyJarName in assembly := "release.jar"
+
+scalacOptions := Seq("-unchecked", "-deprecation")
 

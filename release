@@ -1,11 +1,14 @@
 #!/bin/bash
 # Released sowohl Shop- als auch sonstige Artefakte mit Hilfe des CI Servers
-# TODO sollte auch verlinkt funktionieren $ ln -s ${this_file} ${HOME}/bin/release
 set -eu
-
+trace_setup() {
+  echo "$(date '+%H:%M:%S.000') shell-script - $1" >> ${HOME}/.release.log
+}
+trace_setup "init scripting"
+echo -n "I: Starting release vm .."
 argLine="${*:-}"
 
-if [[ -n $(echo "${argLine}" | egrep "replace") ]]; then
+if [[ -n $(echo "${argLine}" | egrep -- "--replace") ]]; then
   pushd .  > /dev/null
   cd $(dirname $0)
   release_jar=$(dirname $0)/target/scala-2.12/release.jar
@@ -30,6 +33,7 @@ if $(uname | egrep -iq "cygwin"); then
 else
   os="$(uname)"
 fi
+trace_setup "start vm"
 if [[ "${os}" = "Cygwin" ]]; then
   set +e
   java -jar $(cygpath -aw ${release_jar}) "$(cygpath -aw $(dirname $0))" "$(cygpath -aw $(pwd))" "${os}" "${TERM}" "${terminal_cols}" ${argLine}

@@ -1,17 +1,21 @@
 package release
 
 import java.io.{File, PrintStream}
+import java.math.BigInteger
 import java.net.URI
+import java.nio.ByteBuffer
+import java.nio.charset.StandardCharsets
 
 import com.typesafe.scalalogging.LazyLogging
-import release.Sgit.{BranchAlreadyExistsException, GitRemote, GitShaBranch, MissigGitDirException}
+import release.Conf.Tracer
+import release.Sgit.{BranchAlreadyExistsException, GitRemote, GitShaBranch, MissingGitDirException}
 import release.Starter.PreconditionsException
 
 import scala.io.Source
 import scala.sys.process.ProcessLogger
 import scala.util.{Failure, Success, Try}
 
-case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintStream, err: PrintStream,
+case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStream,
                 checkExisting: Boolean = true, gitBin: Option[String]) extends LazyLogging {
 
   private val gitRoot = Sgit.findGit(file.getAbsoluteFile, file.getAbsoluteFile, checkExisting)
@@ -130,11 +134,11 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
         val realGitDir = new File(workTreeDef)
         new File(new File(realGitDir, "hooks"), "commit-msg")
       } else {
-        throw new MissigGitDirException("invalid git folder")
+        throw new MissingGitDirException("invalid git folder")
       }
 
       if (!(commitMsgHook.canRead && commitMsgHook.canExecute)) {
-        throw new Sgit.MissigCommitHookException(
+        throw new Sgit.MissingCommitHookException(
           """
             |E: please download a commit-message hook and retry
             |E: The hook should be at: %s
@@ -151,13 +155,12 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
     if (dotGit.exists() && checkExisting) {
       checkCommitMessageHook(dotGit)
     } else if (checkExisting) {
-      throw new MissigGitDirException("no .git dir in " + file.getAbsolutePath + " was found (2)")
+      throw new MissingGitDirException("no .git dir in " + file.getAbsolutePath + " was found (2)")
     }
 
   }
 
   Sgit.checkVersion(this, out, err, gitBin)
-
   if (doVerify) {
     verify()
   }
@@ -165,9 +168,7 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
   def currentBranch: String = gitNative(Seq("rev-parse", "--abbrev-ref", "HEAD"))
 
   def lsFiles(): Seq[String] = gitNative(Seq("ls-files")).lines.toList.map(_.trim).map(in ⇒ if (in.startsWith("\"") && in.endsWith("\"")) {
-    println("W: missing standard c char unescaper. Provide a patch if you see this warning")
-    // https://git-scm.com/docs/git-config#git-config-corequotePath
-    in
+    Sgit.unescape(in.substring(1).dropRight(1))
   } else {
     in
   })
@@ -492,10 +493,10 @@ case class Sgit(file: File, showGitCmd: Boolean, doVerify: Boolean, out: PrintSt
       Nil
     }
     val gitCmdCall = Sgit.selectedGitCmd(err, gitBin) ++ workdir ++ Seq("--no-pager") ++ args
-    if (showGitCmd) {
-      out.println(gitCmdCall.mkString(" "))
-    }
-    val ff = Sgit.native(gitCmdCall, syserrErrors = showErrors, cmdFilter, err, errMapper)
+
+
+    val ff = Tracer.msgAround[String](gitCmdCall.mkString(" "), logger,
+      () ⇒ Sgit.native(gitCmdCall, syserrErrors = showErrors, cmdFilter, err, errMapper))
     ff
   }
 }
@@ -701,9 +702,28 @@ object Sgit {
     }
   }
 
-  class MissigCommitHookException(msg: String) extends RuntimeException(msg)
+  def unescape(str: String): String = {
+    def cate(in: Seq[Char]): Seq[Byte] = {
+      in match {
+        case '\\' :: c0 :: c1 :: c2 :: tail ⇒ {
+          val b = new BigInteger(new String(Array(c0, c1, c2)), 8).byteValue()
+          b +: cate(tail)
+        }
+        case c :: tail ⇒ c.toByte +: cate(tail)
+        case Nil ⇒ Nil
+      }
+    }
 
-  class MissigGitDirException(msg: String) extends RuntimeException(msg)
+    if (str.matches(".*\\\\[0-9]{3}.*")) {
+      StandardCharsets.UTF_8.decode(ByteBuffer.wrap(cate(str.toList).toArray)).toString
+    } else {
+      str
+    }
+  }
+
+  class MissingCommitHookException(msg: String) extends RuntimeException(msg)
+
+  class MissingGitDirException(msg: String) extends RuntimeException(msg)
 
   class BranchAlreadyExistsException(msg: String) extends RuntimeException(msg)
 
@@ -711,20 +731,20 @@ object Sgit {
     if (new File(in, ".git").exists()) {
       in
     } else if (checkExisting) {
-      throw new MissigGitDirException("no .git dir in " + start.getAbsolutePath + " was found")
+      throw new MissingGitDirException("no .git dir in " + start.getAbsolutePath + " was found")
     } else {
       in
     }
   }
 
-  private[release] def clone(src: File, dest: File, showGitCmd: Boolean = false, verify: Boolean = true): Sgit = {
-    val o = Sgit(dest, showGitCmd, doVerify = verify, out = System.out, err = System.err, checkExisting = false, None)
+  private[release] def clone(src: File, dest: File, verify: Boolean = true): Sgit = {
+    val o = Sgit(dest, doVerify = verify, out = System.out, err = System.err, checkExisting = false, None)
     o.clone(src, dest)
     o.copy(doVerify = false, checkExisting = true)
   }
 
-  private[release] def init(f: File, showGitCmd: Boolean = false, verify: Boolean = true): Sgit = {
-    val sgit = Sgit(f, showGitCmd, doVerify = verify, out = System.out, err = System.err, checkExisting = false, None)
+  private[release] def init(f: File, verify: Boolean = true): Sgit = {
+    val sgit = Sgit(f, doVerify = verify, out = System.out, err = System.err, checkExisting = false, None)
     sgit.init()
     sgit
   }

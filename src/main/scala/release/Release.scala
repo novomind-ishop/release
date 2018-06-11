@@ -75,7 +75,7 @@ object Release {
   }
 
   def work(workDirFile: File, out: PrintStream, err: PrintStream, rebaseFn: () ⇒ Unit, branch: String, sgit: Sgit,
-           dependencyUpdates: Boolean, termOs: TermOs, shellWidth: Int, releaseToolGitSha1: String, config: ReleaseConfig): Seq[Unit] = {
+           showDependencyUpdates: Boolean, termOs: TermOs, shellWidth: Int, releaseToolGitSha1: String, config: ReleaseConfig): Seq[Unit] = {
 
     if (sgit.hasLocalChanges) {
       val message = localChangeMessage(sgit)
@@ -89,7 +89,7 @@ object Release {
       } else if (changes == "n") {
         checkLocalChanges(sgit, branch)
       } else {
-        work(workDirFile, out, err, rebaseFn, branch, sgit, dependencyUpdates, termOs, shellWidth, releaseToolGitSha1, config)
+        work(workDirFile, out, err, rebaseFn, branch, sgit, showDependencyUpdates, termOs, shellWidth, releaseToolGitSha1, config)
       }
 
     }
@@ -99,16 +99,15 @@ object Release {
     })
     sgit.checkout(branch)
     Starter.chooseUpstreamIfUndef(out, sgit, branch)
-    val mod = PomMod(workDirFile)
-
-    if (dependencyUpdates) {
-      val showUpdates = Term.readFromYes(out, "Show dependency updates?")
-      if (showUpdates == "y") {
-        mod.showDependecyUpdates(shellWidth, termOs, out)
-      }
+    out.print("I: Reading pom.xmls ..")
+    val mod = PomMod.of(workDirFile, err)
+    out.println(". done")
+    if (showDependencyUpdates) {
+      mod.showDependencyUpdates(shellWidth, termOs, out)
+      System.exit(0)
     }
 
-    val newMod = offerAutoFixForReleaseSnapshots(out, mod, sgit.lsFiles(), shellWidth)
+    val newMod = offerAutoFixForReleaseSnapshots(out, mod, sgit.lsFiles(), shellWidth, err)
     if (newMod.hasNoShopPom) {
       out.println("---------")
       out.println("1. MAJOR version when you make incompatible API changes,")
@@ -176,10 +175,11 @@ object Release {
         .filter(_._1.nonEmpty)
         .sortBy(_._1)
       val releaseMajorVersion = release.replaceAll("\\..*", "")
-      if (coreMajorVersions != Nil && coreMajorVersions.map(_._1).distinct.sorted != Seq(releaseMajorVersion)) {
+      val sortedMajors = coreMajorVersions.map(_._1).distinct.sorted
+      if (coreMajorVersions != Nil && sortedMajors != Seq(releaseMajorVersion)) {
 
         out.println("W: You are trying to release major version " + releaseMajorVersion + " (" + release +
-          ") but this artifact refers to:")
+          ") but this artifact refers to: " + sortedMajors.mkString(" and "))
 
         val t = coreMajorVersions
           .sortBy(a ⇒ a._2.version)
@@ -219,7 +219,7 @@ object Release {
     }
     val toolSh1 = releaseToolGitSha1
     val headCommitId = sgit.commitIdHead()
-    val releaseMod = PomMod(workDirFile)
+    val releaseMod = PomMod.of(workDirFile, err)
     if (sgit.hasNoLocalChanges) {
       out.println("skipped release commit on " + branch)
     } else {
@@ -302,7 +302,7 @@ object Release {
         if (sgit.hasChangesToPush) {
           val result = sgit.pushFor(srcBranchName = branch, targetBranchName = selectedBranch)
           // TODO handle push output
-          if (config.isInNovomindNetwork) {
+          if (config.openGerritInBrowser) {
             // TODO hier gerrit öffnen da man submit klicken muss
             // TODO wenn man genau den change öffnen könnte wär noch cooler
             Starter.openInDefaultBrowser(config.gerritBaseUrl() + "#/q/status:open")
@@ -310,7 +310,7 @@ object Release {
           if (newMod.hasNoShopPom) {
             val strings = sgit.pushTag(release)
             // TODO handle push output
-            if (config.isInNovomindNetwork) {
+            if (config.openJenkinsInBrowser) {
               val jenkinsBase = config.jenkinsBaseUrl()
               val tagUrl = Starter.tagBuildUrl(sgit, jenkinsBase)
               // TODO hier erstmal nur den browser auf machen damit man build tag klicken kann
@@ -341,7 +341,7 @@ object Release {
     Nil
   }
 
-  def offerAutoFixForReleaseSnapshots(out: PrintStream, mod: PomMod, gitFiles: Seq[String], shellWidth: Int): PomMod = {
+  def offerAutoFixForReleaseSnapshots(out: PrintStream, mod: PomMod, gitFiles: Seq[String], shellWidth: Int, err: PrintStream): PomMod = {
     val plugins = mod.listPluginDependecies
     if (mod.hasShopPom) {
       // TODO check if core needs this checks too
@@ -432,7 +432,7 @@ object Release {
       if (again == "n") {
         System.exit(1)
       } else {
-        offerAutoFixForReleaseSnapshots(out, PomMod(mod.file), gitFiles, shellWidth)
+        offerAutoFixForReleaseSnapshots(out, PomMod.of(mod.file, err), gitFiles, shellWidth, err)
       }
     }
     mod

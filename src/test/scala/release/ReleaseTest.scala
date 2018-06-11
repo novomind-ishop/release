@@ -12,7 +12,7 @@ class ReleaseTest extends AssertionsForJUnit {
   def testLines(): Unit = {
     val testFile = new File(Util.localWork, "target/grep1.txt")
     if (testFile.isFile) {
-      Util.deleteRecursiv(testFile)
+      Util.deleteRecursive(testFile)
     }
     Util.write(testFile, Seq("", "a", "bert-SNAPSHOT", "bert-SNAP", "otto-SNAPSHOT"))
 

@@ -52,8 +52,20 @@ sealed class ReleaseConfig(map: Map[String, String]) {
     map(ReleaseConfig.keyJenkinsBase)
   }
 
-  def isInNovomindNetwork: Boolean = {
-    System.getenv("USERDNSDOMAIN") == "NOVOMIND.COM"
+  def openJenkinsInBrowser: Boolean = {
+    jenkinsBaseUrl() != ReleaseConfig.defaults(ReleaseConfig.keyJenkinsBase)
+  }
+
+  def openGerritInBrowser: Boolean = {
+    gerritBaseUrl() != ReleaseConfig.defaults(ReleaseConfig.keyGerritUrl)
+  }
+
+  def gitBinEnv(): Option[String] = {
+    scala.util.Properties.envOrNone("RELEASE_GIT_BIN")
+  }
+
+  def getUserNome(): String = {
+    System.getProperty("user.home")
   }
 }
 
@@ -147,7 +159,7 @@ object ReleaseConfig extends LazyLogging {
 
   def default(): ReleaseConfig = {
     val removeConfigUrl = "https://release-ishop.novomind.com/ishop-release.conf"
-    val lc = if (defaultConfigFile.canRead) {
+    val localConfig = if (defaultConfigFile.canRead) {
       fileConfig(defaultConfigFile)
     } else {
       Map.empty[String, String]
@@ -157,7 +169,7 @@ object ReleaseConfig extends LazyLogging {
       val update = millis > TimeUnit.MINUTES.toMillis(1)
       update
     }
-    val work = if (lc == Map.empty || refresh) {
+    val work = if (localConfig == Map.empty || refresh) {
       val rc = remoteConfig(removeConfigUrl)
       Util.handleWindowsFilesystem { _ ⇒
         defaultUpdateFile.delete()
@@ -167,10 +179,10 @@ object ReleaseConfig extends LazyLogging {
         writeConfig(defaultConfigFile, rc)
         rc
       } else {
-        lc
+        localConfig
       }
     } else {
-      lc
+      localConfig
     }
     if (work == Map.empty) {
       new ReleaseConfig(defaults)

@@ -71,7 +71,8 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
       Dep(PomRef("com.novomind.ishop.shops.any:any-erp:12.12"),
         "com.novomind.ishop.shops.any", "any-projects", "12.12", "", "", "", ""),
       Dep(PomRef("com.novomind.any:any:12.12"),
-        "com.novomind.any", "any-projects", "27.0.0", "", "", "", "")), PomMod(srcPoms).listDependecies)
+        "com.novomind.any", "any-projects", "27.0.0", "", "", "", "")),
+      PomMod(srcPoms).listDependecies)
     Assert.assertEquals(3, newpom.allPomsDocs.size)
     val result = newpom.allPomsDocs.map(toElement)
 
@@ -190,7 +191,8 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
       Dep(PomRef("com.novomind.ishop.shops.any:any-parent:12.12"),
         "com.novomind.ishop.shops.any", "any-projects", "12.12", "", "", "", ""),
       Dep(PomRef("com.novomind.ishop.shops.any:any:12.12"),
-        "com.novomind.ishop.shops.any", "any-parent", "12.12", "", "", "", "")), PomMod(srcPoms).listDependecies)
+        "com.novomind.ishop.shops.any", "any-parent", "12.12", "", "", "", "")),
+      PomMod(srcPoms).listDependecies)
     Assert.assertEquals(4, newpom.allPomsDocs.size)
     val result = newpom.allPomsDocs.map(toElement)
 

@@ -1,11 +1,14 @@
 package release
 
 import java.io.File
+import java.math.BigInteger
+import java.nio.ByteBuffer
+import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, StandardCopyOption}
 
 import org.junit.{Assert, Assume, Test}
 import org.scalatest.junit.AssertionsForJUnit
-import release.Sgit.{GitRemote, MissigGitDirException, Os}
+import release.Sgit.{GitRemote, MissingGitDirException, Os}
 import release.SgitTest.hasCommitMsg
 import release.Starter.PreconditionsException
 
@@ -34,10 +37,10 @@ class SgitTest extends AssertionsForJUnit {
 
     TestHelper.assertExceptionWithCheck(message ⇒ Assert.assertEquals("no .git dir in sgit-test was found",
       message.replaceFirst("[^ ]+sgit-test-[^ ]+", "sgit-test"))
-      , classOf[MissigGitDirException], () ⇒ {
+      , classOf[MissingGitDirException], () ⇒ {
         val temp = Files.createTempDirectory("sgit-test-").toFile.getAbsoluteFile
         temp.deleteOnExit()
-        Sgit(file = temp, showGitCmd = false, doVerify = hasCommitMsg, out = System.out, err = System.err, gitBin = None)
+        Sgit(file = temp, doVerify = hasCommitMsg, out = System.out, err = System.err, gitBin = None)
       })
 
   }
@@ -268,18 +271,11 @@ class SgitTest extends AssertionsForJUnit {
   @Test
   def testInitCloneCommitPoms(): Unit = {
     // GIVEN
-    val testRepoA = new File(Util.localWork, "target/a")
-    if (testRepoA.isDirectory) {
-      Util.deleteRecursiv(testRepoA)
-    }
-
-    val testRepoB = new File(Util.localWork, "target/b")
-    if (testRepoB.isDirectory) {
-      Util.deleteRecursiv(testRepoB)
-    }
+    val testRepoA = SgitTest.ensureAbsent("a")
+    val testRepoB = SgitTest.ensureAbsent("b")
 
     // WHEN
-    val gitA = Sgit.init(testRepoA, showGitCmd = false, SgitTest.hasCommitMsg)
+    val gitA = Sgit.init(testRepoA, SgitTest.hasCommitMsg)
 
     TestHelper.assertException("Nonzero exit value: 1; git --no-pager push -q -u origin master:refs/for/master; " +
       "git-err: 'error: src refspec master does not match any.' " +
@@ -344,10 +340,10 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(Nil, gitA.lsFiles())
     Assert.assertEquals(Nil, gitA.listBranchRemoteRefRemotes())
     Assert.assertEquals(None, gitA.findUpstreamBranch())
-    copyMsgHook(testRepoA)
+    SgitTest.copyMsgHook(testRepoA)
 
     Assert.assertEquals(Nil, gitA.localChanges())
-    gitA.add(testFile(testRepoA, "test"))
+    gitA.add(SgitTest.testFile(testRepoA, "test"))
 
     Assert.assertEquals(Seq("A test"), gitA.localChanges())
     gitA.commitAll("add test")
@@ -356,8 +352,8 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals("master", gitA.currentBranch)
     Assert.assertEquals(Seq("refs/heads/master"), gitA.listBranchesLocal().map(_.branchName))
     Assert.assertEquals(None, gitA.findUpstreamBranch())
-    val gitB = Sgit.clone(testRepoA, testRepoB, showGitCmd = false, SgitTest.hasCommitMsg)
-    copyMsgHook(testRepoB)
+    val gitB = Sgit.clone(testRepoA, testRepoB, SgitTest.hasCommitMsg)
+    SgitTest.copyMsgHook(testRepoB)
     Assert.assertEquals(None, gitA.configGetAll("receive.denyCurrentBranch"))
     gitA.configSet("receive.denyCurrentBranch", "warn")
     Assert.assertEquals(Seq("warn"), gitA.configGetAll("receive.denyCurrentBranch").get)
@@ -375,7 +371,7 @@ class SgitTest extends AssertionsForJUnit {
     gitA.configRemove("core.bert", "blub") // feels like stats with
     Assert.assertEquals(None, gitA.configGetAll("core.bert"))
 
-    gitA.add(testFile(testRepoA, "test2"))
+    gitA.add(SgitTest.testFile(testRepoA, "test2"))
     gitA.commitAll("add test2")
     gitB.fetchAll()
     Assert.assertEquals(Seq("origin/master"), gitB.listBranchRemoteRaw().map(_.branchName))
@@ -408,10 +404,10 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(Nil, gitA.listTags())
     gitB.pushTag("0.0.9")
     Assert.assertEquals(Seq("v0.0.9"), gitA.listTags())
-    val pomFile = testFile(testRepoB, "pom.xml")
+    val pomFile = SgitTest.testFile(testRepoB, "pom.xml")
     val sub = new File(testRepoB, "sub")
     sub.mkdir()
-    val subPomFile = testFile(sub, "pom.xml")
+    val subPomFile = SgitTest.testFile(sub, "pom.xml")
     Assert.assertEquals(Seq("?? pom.xml", "?? sub/"), gitB.localChanges())
     gitB.stash()
     Assert.assertEquals(Nil, gitB.localChanges())
@@ -422,7 +418,7 @@ class SgitTest extends AssertionsForJUnit {
     testFailIllegal("only (pom.xml) changes are allowed => A pom.xml, ?? sub/ => sub/ <= pom.xml, sub/", () ⇒ {
       gitB.localPomChanges()
     })
-    val anyFile = testFile(testRepoB, "any.xml")
+    val anyFile = SgitTest.testFile(testRepoB, "any.xml")
 
     Assert.assertEquals(Seq("A pom.xml", "?? any.xml", "?? sub/"), gitB.localChanges())
 
@@ -435,7 +431,7 @@ class SgitTest extends AssertionsForJUnit {
     })
 
     gitB.add(anyFile)
-    val otherFile = testFile(testRepoB, "schoenes Ding") // TODO change "oe" to "ö"
+    val otherFile = SgitTest.testFile(testRepoB, "sch\uD843\uDC78nes Ding")
     gitB.add(otherFile)
     val subject = "add " + Seq(pomFile, anyFile, otherFile).map(_.getName).mkString(", ") + "-"
     gitB.commitAll(subject + "\r\n\r\n test")
@@ -466,7 +462,7 @@ class SgitTest extends AssertionsForJUnit {
       "refs/remotes/origin/master", "refs/tags/v0.0.9"), gitB.listRefNames())
     gitB.doTag("1.0.0")
     gitB.doTag("1.0.1")
-    Assert.assertEquals(Seq("any.xml", "pom.xml", "schoenes Ding", "sub/pom.xml", "test"), gitB.lsFiles())
+    Assert.assertEquals(Seq("any.xml", "pom.xml", "sch\uD843\uDC78nes Ding", "sub/pom.xml", "test"), gitB.lsFiles())
     Assert.assertEquals(Seq("master"), gitB.listBranchNamesLocal())
     assertMsg(Seq("update pom.xml", "", "Signed-off-by: Signer <signer@example.org>"), gitB)
 
@@ -541,6 +537,12 @@ class SgitTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testUnescape(): Unit = {
+    Assert.assertEquals("test", Sgit.unescape("test"))
+    Assert.assertEquals("Präsentation", Sgit.unescape("Pr\\303\\244sentation"))
+  }
+
+  @Test
   def testSplitLineOnBranchlist(): Unit = {
 
     val master = Sgit.splitLineOnBranchlist("* master 915c1ce40ee979c3739e640e0a86ba68adea8681 Removed ...")
@@ -554,18 +556,6 @@ class SgitTest extends AssertionsForJUnit {
 
     val some = Sgit.splitLineOnBranchlist(" See merge request !380est          a5b54bf93f5a6b84f5f0833d315f9c6c3dfc1875 [gone] Merge branch '904_inxmail_api' into 'sprint/2017.07'")
     Assert.assertEquals(None, some)
-  }
-
-  private def testFile(folder: File, name: String): File = {
-    val testFile = new File(folder, name)
-    testFile.createNewFile()
-    testFile
-  }
-
-  private def copyMsgHook(to: File): Unit = {
-    if (SgitTest.hasCommitMsg) {
-      Files.copy(SgitTest.commitMsg, to.toPath.resolve(".git/hooks/commit-msg"), StandardCopyOption.REPLACE_EXISTING)
-    }
   }
 
   private def assertMsg(expected: Seq[String], sgit: Sgit): Unit = {
@@ -591,9 +581,34 @@ class SgitTest extends AssertionsForJUnit {
 }
 
 object SgitTest {
+  private var testFolders: Set[String] = Set.empty
   private[release] val commitMsg = Sgit.findGit(Util.localWork, Util.localWork, checkExisting = true).toPath.resolve(".git/hooks/commit-msg")
   private[release] val hasCommitMsg = Files.exists(commitMsg)
 
-  def workSgit(): Sgit = Sgit(file = Util.localWork, showGitCmd = false, doVerify = hasCommitMsg,
-    out = System.out, err = System.err, gitBin = None)
+  def copyMsgHook(to: File): Unit = {
+    if (hasCommitMsg) {
+      Files.copy(commitMsg, to.toPath.resolve(".git/hooks/commit-msg"), StandardCopyOption.REPLACE_EXISTING)
+    }
+  }
+
+  def workSgit(): Sgit = Sgit(file = Util.localWork, doVerify = hasCommitMsg, out = System.out, err = System.err, gitBin = None)
+
+  def testFile(folder: File, name: String): File = {
+    val testFile = new File(folder, name)
+    testFile.createNewFile()
+    testFile
+  }
+
+  def ensureAbsent(gitTestFolderName: String): File = {
+    if (testFolders.contains(gitTestFolderName)) {
+      throw new IllegalStateException(gitTestFolderName + " already in use")
+    } else {
+      testFolders = testFolders + gitTestFolderName
+      val repoFolder = new File(Util.localWork, "target/" + gitTestFolderName)
+      if (repoFolder.isDirectory) {
+        Util.deleteRecursive(repoFolder)
+      }
+      repoFolder
+    }
+  }
 }

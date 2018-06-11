@@ -8,21 +8,19 @@ import java.time.temporal.WeekFields
 import java.util.Locale
 
 import com.google.common.annotations.VisibleForTesting
+import com.typesafe.scalalogging.LazyLogging
 import javax.xml.transform.dom.DOMSource
 import javax.xml.transform.stream.StreamResult
 import javax.xml.transform.{OutputKeys, TransformerFactory}
 import org.w3c.dom.{Document, Node}
+import release.Conf.Tracer
 import release.PomChecker.ValidationException
 import release.PomMod._
 import release.Starter.{PreconditionsException, TermOs}
 
-case class PomMod(file: File) {
-
+case class PomMod(file: File) extends LazyLogging {
+  logger.trace("init pomMod")
   private var depMap: Map[Dep, Node] = Map.empty
-
-  private def depU(d: Map[Dep, Node]): Unit = {
-    depMap = depMap ++ d
-  }
 
   private val xPathToDependecies = "//dependencies/dependency"
 
@@ -30,18 +28,22 @@ case class PomMod(file: File) {
   if (!rootPom.canRead) {
     throw new PreconditionsException(file.toString + " seems to be no maven project")
   }
-  private val allRawPomFiles = allRawModulePomsFiles(Seq(file))
+  private val allRawPomFiles = Tracer.msgAround("read all poms", logger, () ⇒ allRawModulePomsFiles(Seq(file)))
 
   private val raws: Seq[RawPomFile] = toRawPoms(allRawPomFiles)
   private[release] val allPomsDocs: Seq[Document] = raws.map(_.document).toList
 
   case class DepTree(content: String)
 
+  private def depU(d: Map[Dep, Node]): Unit = {
+    depMap = depMap ++ d
+  }
+
   private[release] val listSelf: Seq[Dep] = {
     allPomsDocs.map(PomMod.selfDep(depU))
   }
 
-  private val rootPomGav: Seq[Gav] =  selfDepsMod.map(_.gav().copy(packageing = "")).distinct
+  private val rootPomGav: Seq[Gav] = selfDepsMod.map(_.gav().copy(packageing = "")).distinct
 
   val selfVersion: String = {
     val v = listSelf.map(_.version).distinct
@@ -102,6 +104,8 @@ case class PomMod(file: File) {
     .filterNot(in ⇒ in._1.getParentFile.getName == ".")
     .foldLeft(Map.empty[File, DepTree])(_ + _)
 
+  logger.trace("pomMod val/var init")
+
   private def nodePath(node: Node): Seq[String] = {
     def nodePathOther(node: Node): Seq[String] = {
       val parent = node.getParentNode
@@ -135,7 +139,7 @@ case class PomMod(file: File) {
     replacedVersionProperty(PluginDep(PomRef(id), groupId, artifactId, version, execs, nodePath(node)))
   }
 
-  private def mavenDependecyPluginConfigsByGoal(goalname: String): Seq[(String, String)] = {
+  private def mavenDependencyPluginConfigsByGoal(goalname: String): Seq[(String, String)] = {
     mavenDependecyPlugins.flatMap(_.execs).filter(_.goals == Seq(goalname)).flatMap(_.config)
   }
 
@@ -267,7 +271,7 @@ case class PomMod(file: File) {
   }
 
   def depTreeFilename(): Option[String] = {
-    val depPluginConfigs: Seq[(String, String)] = mavenDependecyPluginConfigsByGoal("tree")
+    val depPluginConfigs: Seq[(String, String)] = mavenDependencyPluginConfigsByGoal("tree")
     if (depPluginConfigs != Nil) {
       val treeOutputFileName: String = Util.only(depPluginConfigs.filter(_._1 == "outputFile"), "not only tree file")._2
       Some(treeOutputFileName)
@@ -297,8 +301,8 @@ case class PomMod(file: File) {
       })
   }
 
-  def showDependecyUpdates(shellWidth: Int, termOs: TermOs, out: PrintStream): Unit = {
-    out.println("checking dependecies agains nexus - please wait")
+  def showDependencyUpdates(shellWidth: Int, termOs: TermOs, out: PrintStream): Unit = {
+    out.println("I: checking dependecies against nexus - please wait")
     val rootDeps = listDependeciesReplaces()
 
     def normalizeUnwanted(in: Seq[String]): Seq[String] = {
@@ -368,15 +372,25 @@ case class PomMod(file: File) {
       mods.sortBy(_._1.toString).foreach((subElement: (PomMod.Dep, Seq[String])) ⇒ {
         out.println(ch("╠═╦═ ", "+-+- ") + subElement._1.gavWithDetailsFormatted)
         val o: Seq[String] = subElement._2
-        val majorVers: Seq[(String, Seq[String])] = o.groupBy(ver ⇒ ver.replaceFirst("\\..*", "")).toSeq
+
+        def majorGrouping(in: String): String = {
+          val major = in.replaceFirst("\\..*", "")
+          if (in == major) {
+            "_"
+          } else {
+            major
+          }
+        }
+
+        val majorVersions: Seq[(String, Seq[String])] = o.groupBy(majorGrouping).toSeq
           .sortBy(_._1).reverse
-        if (majorVers.size == 1) {
-          out.println(ch("║ ╚═══ ", "| +--- ") + majorVers.head._2.mkString(", "))
+        if (majorVersions.size == 1) {
+          out.println(ch("║ ╚═══ ", "| +--- ") + majorVersions.head._2.mkString(", "))
         } else {
-          majorVers.tail.reverse.foreach(el ⇒ {
+          majorVersions.tail.reverse.foreach(el ⇒ {
             out.println(ch("║ ╠═══ ", "| +--- ") + "(" + el._1 + ") " + el._2.mkString(", "))
           })
-          out.println(ch("║ ╚═══ ", "| +--- ") + "(" + majorVers.head._1 + ") " + majorVers.head._2.mkString(", "))
+          out.println(ch("║ ╚═══ ", "| +--- ") + "(" + majorVersions.head._1 + ") " + majorVersions.head._2.mkString(", "))
         }
 
       })
@@ -537,6 +551,10 @@ case class RawPomFile(pomFile: File, document: Document, file: File) {
 }
 
 object PomMod {
+
+  def of(file: File, unnused: PrintStream): PomMod = {
+    PomMod(file)
+  }
 
   private val xPathToProjectGroupId = "//project/groupId"
   private val xPathToProjectArtifactId = "//project/artifactId"

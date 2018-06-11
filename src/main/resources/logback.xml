@@ -6,6 +6,26 @@
       <pattern>%d{"HH:mm:ss.SSS"} %-5level %-120location - %m%n</pattern>
     </encoder>
   </appender>
+  <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${user.home}/.release.log</file>
+
+    <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+      <fileNamePattern>${user.home}/.release.%i.log.gz</fileNamePattern>
+      <minIndex>1</minIndex>
+      <maxIndex>3</maxIndex>
+    </rollingPolicy>
+
+    <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+      <maxFileSize>4MB</maxFileSize>
+    </triggeringPolicy>
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} %logger{35} - %msg - [%thread - %{relative}ms since init]%rEx%n</pattern>
+    </encoder>
+  </appender>
+
+  <logger level="trace" name="release" additivity="false" >
+    <appender-ref ref="FILE" />
+  </logger>
 
   <root>
     <level value="warn" />

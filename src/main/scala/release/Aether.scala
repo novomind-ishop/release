@@ -190,10 +190,9 @@ object Aether extends LazyLogging {
       val resource = event.getResource
       downloads.put(resource, event.getTransferredBytes)
       val buffer = new StringBuilder(64)
-      import scala.collection.JavaConversions._
-      for (entry <- downloads.entrySet) {
-        val total = entry.getKey.getContentLength
-        val complete = entry.getValue.longValue
+      for (entry <- JavaConverters.mapAsScalaMap(downloads)) {
+        val total = entry._1.getContentLength
+        val complete = entry._2.longValue
         buffer.append(getStatus(complete, total)).append("  ")
       }
       val padV = lastLength - buffer.length

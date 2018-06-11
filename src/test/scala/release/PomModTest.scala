@@ -710,7 +710,8 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("shop1/anyshop-erp")
 
     // WHEN / THEN
-    TestHelper.assertException("anyshop-erp as no version, please define", classOf[IllegalStateException], () ⇒ PomMod(srcPoms).suggestReleaseVersion())
+    TestHelper.assertException("anyshop-erp as no version, please define", classOf[IllegalStateException],
+      () ⇒ PomMod(srcPoms).suggestReleaseVersion())
 
   }
 

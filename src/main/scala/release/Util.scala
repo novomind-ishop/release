@@ -68,10 +68,10 @@ object Util {
     }
   }
 
-  def deleteRecursiv(file: File): Unit = {
+  def deleteRecursive(file: File): Unit = {
     def deleteFile(allFiles: Array[File]): Unit = {
       if (allFiles != null) {
-        allFiles.foreach(deleteRecursiv)
+        allFiles.foreach(deleteRecursive)
       }
     }
 
