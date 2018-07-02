@@ -21,7 +21,12 @@ object Term {
     try {
       reader.readLine(prompt)
     } catch {
+      case _: EndOfFileException ⇒ {
+        System.exit(28)
+        "EndOfFileException"
+      }
       case _: UserInterruptException ⇒ {
+        System.exit(28)
         "UserInterruptException"
       }
     }

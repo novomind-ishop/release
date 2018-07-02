@@ -92,7 +92,6 @@ object Starter extends App with LazyLogging {
       git
     }
 
-
     def askReleaseBranch(): String = {
       def workGit(file: File): Sgit = {
         Sgit(file = file, doVerify = noVerify, out = out, err = err, gitBin = gitBinEnv)
@@ -256,13 +255,13 @@ object Starter extends App with LazyLogging {
     if (opts.jlineDemo) {
       out.println("jline demo .. ")
       val a = Term.readLine("text a: ")
-      out.println("a: " + a)
+      out.println("a: \"" + a + "\"")
 
       val b = Term.readLine("text b: ")
-      println("b: " + b)
+      println("b: \"" + b + "\"")
 
       val c = Term.readLine("text c: ")
-      println("c: " + c)
+      println("c: \"" + c + "\"")
       System.exit(28)
     }
 

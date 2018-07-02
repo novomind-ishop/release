@@ -3,7 +3,6 @@ package release
 import java.io.{File, PrintStream}
 import java.math.BigInteger
 import java.net.URI
-import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
 
 import com.typesafe.scalalogging.LazyLogging
@@ -715,7 +714,7 @@ object Sgit {
     }
 
     if (str.matches(".*\\\\[0-9]{3}.*")) {
-      StandardCharsets.UTF_8.decode(ByteBuffer.wrap(cate(str.toList).toArray)).toString
+      new String(cate(str.toList).toArray, StandardCharsets.UTF_8)
     } else {
       str
     }

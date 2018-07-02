@@ -1,9 +1,6 @@
 package release
 
 import java.io.File
-import java.math.BigInteger
-import java.nio.ByteBuffer
-import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, StandardCopyOption}
 
 import org.junit.{Assert, Assume, Test}
@@ -431,7 +428,7 @@ class SgitTest extends AssertionsForJUnit {
     })
 
     gitB.add(anyFile)
-    val otherFile = SgitTest.testFile(testRepoB, "sch\uD843\uDC78nes Ding")
+    val otherFile = SgitTest.testFile(testRepoB, "schönes Ding")
     gitB.add(otherFile)
     val subject = "add " + Seq(pomFile, anyFile, otherFile).map(_.getName).mkString(", ") + "-"
     gitB.commitAll(subject + "\r\n\r\n test")
@@ -462,7 +459,7 @@ class SgitTest extends AssertionsForJUnit {
       "refs/remotes/origin/master", "refs/tags/v0.0.9"), gitB.listRefNames())
     gitB.doTag("1.0.0")
     gitB.doTag("1.0.1")
-    Assert.assertEquals(Seq("any.xml", "pom.xml", "sch\uD843\uDC78nes Ding", "sub/pom.xml", "test"), gitB.lsFiles())
+    Assert.assertEquals(Seq("any.xml", "pom.xml", "schönes Ding", "sub/pom.xml", "test"), gitB.lsFiles())
     Assert.assertEquals(Seq("master"), gitB.listBranchNamesLocal())
     assertMsg(Seq("update pom.xml", "", "Signed-off-by: Signer <signer@example.org>"), gitB)
 
@@ -538,8 +535,12 @@ class SgitTest extends AssertionsForJUnit {
 
   @Test
   def testUnescape(): Unit = {
+    Assert.assertEquals("On Windows try JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8 sbt assembly",
+      "UTF-8", System.getProperty("file.encoding"))
     Assert.assertEquals("test", Sgit.unescape("test"))
     Assert.assertEquals("Präsentation", Sgit.unescape("Pr\\303\\244sentation"))
+    Assert.assertEquals("\uA64A", Sgit.unescape("\\352\\231\\212"))
+    Assert.assertEquals("\uD802\uDD25", Sgit.unescape("\\360\\220\\244\\245"))
   }
 
   @Test

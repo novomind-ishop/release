@@ -4,6 +4,8 @@ version := "1.0"
 
 scalaVersion := "2.12.6" // 5000 k
 
+scalacOptions := Seq("-unchecked", "-deprecation")
+
 logLevel := Level.Warn
 
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3" // 283 k
@@ -40,6 +42,4 @@ logLevel in assembly := Level.Warn
 mainClass in assembly := Some("release.Starter")
 
 assemblyJarName in assembly := "release.jar"
-
-scalacOptions := Seq("-unchecked", "-deprecation")
 
