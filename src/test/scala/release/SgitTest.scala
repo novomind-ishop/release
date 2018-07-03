@@ -46,7 +46,8 @@ class SgitTest extends AssertionsForJUnit {
   def testCommitId(): Unit = {
     // GIVEN
     val status = SgitTest.workSgit()
-
+    val isShallowClone = status.listBranchNamesLocal().contains("grafted")
+    Assume.assumeFalse(isShallowClone)
     // WHEN
     val commitId = status.commitId("606411c")
 
