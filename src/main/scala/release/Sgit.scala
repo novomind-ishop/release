@@ -519,7 +519,8 @@ object Sgit {
     if (result.size >= 2 && GitShaBranch.matchesGitSha(result(1))) {
       Some(result.head, result(1))
     } else {
-      err.println("W: Unknown branch definition (check commit messages for second line empty, first line char limit): \"" + in + "\"")
+      err.println("W: Unknown branch definition (check commit messages for second line empty, first line char limit):" +
+        " \"" + in + "\". See: git branch --list --verbose --no-abbrev")
       None
     }
   }

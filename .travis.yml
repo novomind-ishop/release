@@ -2,5 +2,7 @@ sudo: false
 language: scala
 scala:
    - 2.12.6
+script:
+  - sbt clean coverage test coverageReport
 jdk:
   - oraclejdk8

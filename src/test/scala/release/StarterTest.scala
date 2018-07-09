@@ -5,7 +5,7 @@ import java.nio.charset.StandardCharsets
 import java.util.concurrent.{TimeUnit, TimeoutException}
 
 import org.junit.rules.Timeout
-import org.junit.{Assert, Rule, Test}
+import org.junit.{Assert, Assume, Rule, Test}
 import org.scalatest.junit.AssertionsForJUnit
 import release.Sgit.GitRemote
 import release.Starter.{FutureEither, FutureError, Opts}
@@ -19,29 +19,13 @@ class StarterTest extends AssertionsForJUnit {
 
   @Rule def globalTimeout = _globalTimeout
 
-  def normalize(in: ByteArrayOutputStream): String = in.toString.trim.replaceAll("\r\n", "\n")
-
-  def withOutErr[T](fn: (PrintStream, PrintStream) ⇒ T): OutErr[T] = {
-    val out: ByteArrayOutputStream = new ByteArrayOutputStream
-    val err: ByteArrayOutputStream = new ByteArrayOutputStream
-    val x = fn.apply(new PrintStream(out), new PrintStream(err))
-    OutErr(normalize(out), normalize(err), x)
-  }
-
-  case class OutErr[T](out: String, err: String, value: T)
-
   def doInit(params: Seq[String]): ExecReturn = {
 
-    val result = withOutErr[Int]((out, err) ⇒ Starter.init(params, out, err))
+    val result = StarterTest.withOutErr[Int]((out, err) ⇒ Starter.init(params, out, err))
     ExecReturn(result.out, result.err, result.value)
   }
 
   case class ExecReturn(out: String, err: String, exit: Int)
-
-  def willReadFrom(in: String): BufferedReader = {
-    val stream = new ByteArrayInputStream(in.getBytes(StandardCharsets.UTF_8))
-    new BufferedReader(new InputStreamReader(stream))
-  }
 
   @Test
   def testTransformRemoteToBuildUrl_paypal(): Unit = {
@@ -124,11 +108,11 @@ class StarterTest extends AssertionsForJUnit {
     val testRepoD = testRepo(SgitTest.ensureAbsent("c"), SgitTest.ensureAbsent("d"))
 
     // WHEN
-    val in = willReadFrom("master\n")
+    val in = StarterTest.willReadFrom("master\n")
     TestHelper.assertExceptionWithCheck(in ⇒ Assert.assertEquals("E: please download a commit-message hook and retry",
       in.lines.toSeq(1)),
       classOf[Sgit.MissingCommitHookException], () ⇒ {
-      withOutErr[Unit]((out, err) ⇒ Starter.fetchGitAndAskForBranch(out, err, noVerify = true, None, testRepoD, in))
+        StarterTest.withOutErr[Unit]((out, err) ⇒ Starter.fetchGitAndAskForBranch(out, err, noVerify = true, None, testRepoD, in))
     })
   }
 
@@ -137,8 +121,8 @@ class StarterTest extends AssertionsForJUnit {
     val testRepoD = testRepo(SgitTest.ensureAbsent("e"), SgitTest.ensureAbsent("f"))
     SgitTest.copyMsgHook(testRepoD)
     // WHEN
-    val in = willReadFrom("master\n")
-    val result = withOutErr[Unit]((out, err) ⇒ Starter.fetchGitAndAskForBranch(out, err, noVerify = SgitTest.hasCommitMsg, None, testRepoD, in))
+    val in = StarterTest.willReadFrom("master\n")
+    val result = StarterTest.withOutErr[Unit]((out, err) ⇒ Starter.fetchGitAndAskForBranch(out, err, noVerify = SgitTest.hasCommitMsg, None, testRepoD, in))
 
     // THEN
     Assert.assertEquals("Enter branch name where to start from [master]:", result.out)
@@ -149,8 +133,8 @@ class StarterTest extends AssertionsForJUnit {
   def testFetchGitAndAskForBranch_noVerify(): Unit = {
     val testRepoD = testRepo(SgitTest.ensureAbsent("g"), SgitTest.ensureAbsent("h"))
     // WHEN
-    val in = willReadFrom("master\n")
-    val result = withOutErr[Unit]((out, err) ⇒ Starter.fetchGitAndAskForBranch(out, err, noVerify = false, None, testRepoD, in))
+    val in = StarterTest.willReadFrom("master\n")
+    val result = StarterTest.withOutErr[Unit]((out, err) ⇒ Starter.fetchGitAndAskForBranch(out, err, noVerify = false, None, testRepoD, in))
 
     // THEN
     Assert.assertEquals("Enter branch name where to start from [master]:", result.out)
@@ -247,12 +231,10 @@ class StarterTest extends AssertionsForJUnit {
 
     val s: FutureEither[FutureError, Int] = new FutureEither(Future {
       Right(7)
-      // Left(FutureError("doof"))
     })
 
     val s2: FutureEither[FutureError, Boolean] = new FutureEither(Future {
       Right(true)
-      //Left(FutureError("some doof"))
     })
 
     def toResult(implicit ec: ExecutionContext): FutureEither[FutureError, (Int, Boolean)] = {
@@ -284,4 +266,24 @@ class StarterTest extends AssertionsForJUnit {
     Assert.assertEquals(expected, result.out.replaceFirst("Your home dir is: .*", "Your home dir is: test"))
   }
 
+}
+
+
+object StarterTest {
+
+  def willReadFrom(in: String): BufferedReader = {
+    val stream = new ByteArrayInputStream(in.getBytes(StandardCharsets.UTF_8))
+    new BufferedReader(new InputStreamReader(stream))
+  }
+
+  def normalize(in: ByteArrayOutputStream): String = in.toString.trim.replaceAll("\r\n", "\n")
+
+  def withOutErr[T](fn: (PrintStream, PrintStream) ⇒ T): OutErr[T] = {
+    val out: ByteArrayOutputStream = new ByteArrayOutputStream
+    val err: ByteArrayOutputStream = new ByteArrayOutputStream
+    val x = fn.apply(new PrintStream(out), new PrintStream(err))
+    OutErr(normalize(out), normalize(err), x)
+  }
+
+  case class OutErr[T](out: String, err: String, value: T)
 }

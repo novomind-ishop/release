@@ -45,11 +45,10 @@ class SgitTest extends AssertionsForJUnit {
   @Test
   def testCommitId(): Unit = {
     // GIVEN
-    val status = SgitTest.workSgit()
-    val isShallowClone = status.listBranchNamesLocal().contains("grafted")
-    Assume.assumeFalse(isShallowClone)
+    val git = SgitTest.workSgit()
+    SgitTest.assumeNoShallowClone(git)
     // WHEN
-    val commitId = status.commitId("606411c")
+    val commitId = git.commitId("606411c")
 
     // THEN
     Assert.assertEquals("606411c1e4d62030144e9351fe0567cf3a5e5046", commitId)
@@ -96,10 +95,11 @@ class SgitTest extends AssertionsForJUnit {
   @Test
   def testCommitIds(): Unit = {
     // GIVEN
-    val status = SgitTest.workSgit()
+    val git = SgitTest.workSgit()
+    SgitTest.assumeNoShallowClone(git)
 
     // WHEN
-    val commitIds = status.commitIds("21a1a3f", "606411c").map(_.substring(0, 7))
+    val commitIds = git.commitIds("21a1a3f", "606411c").map(_.substring(0, 7))
 
     // THEN
     Assert.assertTrue(commitIds.isInstanceOf[List[String]])
@@ -556,8 +556,17 @@ class SgitTest extends AssertionsForJUnit {
     val detached = Sgit.splitLineOnBranchlist("* (HEAD detached at 97cbb59ea) 97cbb59ea40aacb4d8acad402bf90890741b0dbe Add ...")
     Assert.assertEquals(("97cbb59ea40aacb4d8acad402bf90890741b0dbe", "97cbb59ea40aacb4d8acad402bf90890741b0dbe"), detached.get)
 
-    val some = Sgit.splitLineOnBranchlist(" See merge request !380est          a5b54bf93f5a6b84f5f0833d315f9c6c3dfc1875 [gone] Merge branch '904_inxmail_api' into 'sprint/2017.07'")
-    Assert.assertEquals(None, some)
+    val some = StarterTest.withOutErr[Option[(String, String)]]((_, err) ⇒
+      Sgit.splitLineOnBranchlistErr(err)(" See merge request !380est          a5b54bf93f5a6b84f5f0833d315f9c6c3dfc1875 [gone] " +
+        "Merge branch '904_inxmail_api' into 'sprint/2017.07'"))
+    Assert.assertEquals(None, some.value)
+
+    val some1 = StarterTest.withOutErr[Option[(String, String)]]((_, err) ⇒
+      Sgit.splitLineOnBranchlistErr(err)("bla\r\nbl"))
+
+    Assert.assertEquals(None, some1.value)
+    Assert.assertEquals("W: Unknown branch definition (check commit messages for second line empty, first line char limit): \"bla\nbl\". " +
+      "See: git branch --list --verbose --no-abbrev", some1.err)
   }
 
   private def assertMsg(expected: Seq[String], sgit: Sgit): Unit = {
@@ -599,6 +608,11 @@ object SgitTest {
     val testFile = new File(folder, name)
     testFile.createNewFile()
     testFile
+  }
+
+  def assumeNoShallowClone(git: Sgit): Unit = {
+    val isShallowClone = git.listBranchNamesLocal().contains("grafted")
+    Assume.assumeFalse(isShallowClone)
   }
 
   def ensureAbsent(gitTestFolderName: String): File = {
