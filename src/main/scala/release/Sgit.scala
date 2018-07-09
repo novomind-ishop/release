@@ -29,6 +29,10 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     gitNative(Seq("clone", "-q", src.getAbsolutePath, dest.getAbsolutePath), useWorkdir = false)
   }
 
+  private[release] def isShallowClone: Boolean = {
+    gitNative(Seq("rev-parse", "--is-shallow-repository")).toBoolean
+  }
+
   private def configRemoveAll(key: String, value: String): Unit = {
     gitNative(Seq("config", "--local", "--unset-all", key, value))
   }
@@ -492,7 +496,6 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
       Nil
     }
     val gitCmdCall = Sgit.selectedGitCmd(err, gitBin) ++ workdir ++ Seq("--no-pager") ++ args
-
 
     val ff = Tracer.msgAround[String](gitCmdCall.mkString(" "), logger,
       () ⇒ Sgit.native(gitCmdCall, syserrErrors = showErrors, cmdFilter, err, errMapper))

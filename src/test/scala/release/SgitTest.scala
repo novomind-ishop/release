@@ -611,7 +611,7 @@ object SgitTest {
   }
 
   def assumeNoShallowClone(git: Sgit): Unit = {
-    val isShallowClone = git.listBranchNamesLocal().contains("grafted")
+    val isShallowClone = git.isShallowClone
     Assume.assumeFalse(isShallowClone)
   }
 
