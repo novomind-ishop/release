@@ -7,7 +7,7 @@ import org.junit.{Assert, Assume, Test}
 import org.scalatest.junit.AssertionsForJUnit
 import release.Sgit.{GitRemote, MissingGitDirException, Os}
 import release.SgitTest.hasCommitMsg
-import release.Starter.PreconditionsException
+import release.Starter.{Opts, PreconditionsException}
 
 class SgitTest extends AssertionsForJUnit {
 
@@ -15,7 +15,7 @@ class SgitTest extends AssertionsForJUnit {
   def testSelectGitCmd(): Unit = {
     val git = Sgit.selectedGitCmd(System.err, None)
 
-    Sgit.getOs() match {
+    Sgit.getOs match {
       case Os.Windows ⇒ {
         Assert.assertEquals(Seq("C:\\Programme\\Git\\bin\\git.exe"), git)
       }
@@ -37,7 +37,7 @@ class SgitTest extends AssertionsForJUnit {
       , classOf[MissingGitDirException], () ⇒ {
         val temp = Files.createTempDirectory("sgit-test-").toFile.getAbsoluteFile
         temp.deleteOnExit()
-        Sgit(file = temp, doVerify = hasCommitMsg, out = System.out, err = System.err, gitBin = None)
+        Sgit(file = temp, doVerify = hasCommitMsg, out = System.out, err = System.err, gitBin = None, opts = Opts())
       })
 
   }
@@ -311,7 +311,7 @@ class SgitTest extends AssertionsForJUnit {
         })
     }
 
-    Sgit.getOs() match {
+    Sgit.getOs match {
       case Os.Windows ⇒ {
         failFetchAll("Nonzero exit value: 1; git --no-pager fetch -q --all --tags; " +
           "ssh: Could not resolve hostname git.example.org: Name or service not known fatal: " +
@@ -508,7 +508,7 @@ class SgitTest extends AssertionsForJUnit {
     gitB.addRemote("origin", "ssh://none@any-gerrit:29418/ishop/user/anyone/sonar-demo")
     val triedUnit = gitB.tryFetchAll()
     if (triedUnit.isFailure && triedUnit.failed.get.getMessage.contains("publickey")) {
-      Sgit.getOs() match {
+      Sgit.getOs match {
         case Os.Darwin ⇒ {
           TestHelper.assertException("Nonzero exit value: 128; git --no-pager push -q -u origin master:refs/heads/master; " +
             "git-err: 'none@any-gerrit: Permission denied (publickey).' " +
@@ -602,7 +602,8 @@ object SgitTest {
     }
   }
 
-  def workSgit(): Sgit = Sgit(file = Util.localWork, doVerify = hasCommitMsg, out = System.out, err = System.err, gitBin = None)
+  def workSgit(): Sgit = Sgit(file = Util.localWork, doVerify = hasCommitMsg, out = System.out, err = System.err,
+    gitBin = None, opts = Opts())
 
   def testFile(folder: File, name: String): File = {
     val testFile = new File(folder, name)

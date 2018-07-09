@@ -8,14 +8,14 @@ import java.nio.charset.StandardCharsets
 import com.typesafe.scalalogging.LazyLogging
 import release.Conf.Tracer
 import release.Sgit.{BranchAlreadyExistsException, GitRemote, GitShaBranch, MissingGitDirException}
-import release.Starter.PreconditionsException
+import release.Starter.{Opts, PreconditionsException}
 
 import scala.io.Source
 import scala.sys.process.ProcessLogger
 import scala.util.{Failure, Success, Try}
 
 case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStream,
-                checkExisting: Boolean = true, gitBin: Option[String]) extends LazyLogging {
+                checkExisting: Boolean = true, gitBin: Option[String], opts: Starter.Opts) extends LazyLogging {
 
   private val gitRoot = Sgit.findGit(file.getAbsoluteFile, file.getAbsoluteFile, checkExisting)
 
@@ -149,9 +149,9 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
             |# scp -p -P %s $USERNAME@%s:hooks/commit-msg .git/hooks/
             |
         """.stripMargin.format(commitMsgHook.getAbsolutePath,
-            ReleaseConfig.default().gerritBaseUrl(),
-            ReleaseConfig.default().gerritPort(),
-            ReleaseConfig.default().gerritHostname()))
+            ReleaseConfig.default(opts.useDefaults).gerritBaseUrl(),
+            ReleaseConfig.default(opts.useDefaults).gerritPort(),
+            ReleaseConfig.default(opts.useDefaults).gerritHostname()))
       }
     }
 
@@ -595,7 +595,7 @@ object Sgit {
           // (2017-10-23) - (tag: v2.14.3)
           throw new IllegalStateException("git version 2.13 support ended at 2018-07-02")
         case v: String if v.startsWith("git version 2.15.") ⇒
-          // do nothing (2017-11-28) - (tag: v2.15.1)
+          // (2017-11-28) - (tag: v2.15.1)
           out.println("W: please update your git version, \"" + v + "\" support ends at 2018-11-02");
         case v: String if v.startsWith("git version 2.16.") ⇒ // do nothing (2018-02-15) - (tag: v2.16.2)
         case v: String if v.startsWith("git version 2.17.") ⇒ // do nothing (2018-04-02) - (tag: v2.17.0)
@@ -709,6 +709,7 @@ object Sgit {
   }
 
   def unescape(str: String): String = {
+    // TODO @tailrec
     def cate(in: Seq[Char]): Seq[Byte] = {
       in match {
         case '\\' :: c0 :: c1 :: c2 :: tail ⇒ {
@@ -744,13 +745,13 @@ object Sgit {
   }
 
   private[release] def clone(src: File, dest: File, verify: Boolean = true): Sgit = {
-    val o = Sgit(dest, doVerify = verify, out = System.out, err = System.err, checkExisting = false, None)
+    val o = Sgit(dest, doVerify = verify, out = System.out, err = System.err, checkExisting = false, None, Opts())
     o.clone(src, dest)
     o.copy(doVerify = false, checkExisting = true)
   }
 
   private[release] def init(f: File, verify: Boolean = true): Sgit = {
-    val sgit = Sgit(f, doVerify = verify, out = System.out, err = System.err, checkExisting = false, None)
+    val sgit = Sgit(f, doVerify = verify, out = System.out, err = System.err, checkExisting = false, None, Opts())
     sgit.init()
     sgit
   }
@@ -763,7 +764,7 @@ object Sgit {
 
   sealed case class Os(name: String)
 
-  def getOs(): Os = {
+  lazy val getOs: Os = {
     System.getProperty("os.name") match {
       case "Windows 10" ⇒ Os.Windows
       case "Linux" ⇒ Os.Linux

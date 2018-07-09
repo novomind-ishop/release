@@ -5,13 +5,13 @@ import java.nio.charset.StandardCharsets
 import java.util.concurrent.{TimeUnit, TimeoutException}
 
 import org.junit.rules.Timeout
-import org.junit.{Assert, Assume, Rule, Test}
+import org.junit.{Assert, Rule, Test}
 import org.scalatest.junit.AssertionsForJUnit
 import release.Sgit.GitRemote
 import release.Starter.{FutureEither, FutureError, Opts}
 
-import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 class StarterTest extends AssertionsForJUnit {
 
@@ -112,8 +112,8 @@ class StarterTest extends AssertionsForJUnit {
     TestHelper.assertExceptionWithCheck(in ⇒ Assert.assertEquals("E: please download a commit-message hook and retry",
       in.lines.toSeq(1)),
       classOf[Sgit.MissingCommitHookException], () ⇒ {
-        StarterTest.withOutErr[Unit]((out, err) ⇒ Starter.fetchGitAndAskForBranch(out, err, noVerify = true, None, testRepoD, in))
-    })
+        StarterTest.withOutErr[Unit]((out, err) ⇒ Starter.fetchGitAndAskForBranch(out, err, noVerify = true, None, testRepoD, in, Opts()))
+      })
   }
 
   @Test
@@ -122,7 +122,8 @@ class StarterTest extends AssertionsForJUnit {
     SgitTest.copyMsgHook(testRepoD)
     // WHEN
     val in = StarterTest.willReadFrom("master\n")
-    val result = StarterTest.withOutErr[Unit]((out, err) ⇒ Starter.fetchGitAndAskForBranch(out, err, noVerify = SgitTest.hasCommitMsg, None, testRepoD, in))
+    val result = StarterTest.withOutErr[Unit]((out, err) ⇒ Starter.fetchGitAndAskForBranch(out, err,
+      noVerify = SgitTest.hasCommitMsg, None, testRepoD, in, Opts()))
 
     // THEN
     Assert.assertEquals("Enter branch name where to start from [master]:", result.out)
@@ -134,7 +135,8 @@ class StarterTest extends AssertionsForJUnit {
     val testRepoD = testRepo(SgitTest.ensureAbsent("g"), SgitTest.ensureAbsent("h"))
     // WHEN
     val in = StarterTest.willReadFrom("master\n")
-    val result = StarterTest.withOutErr[Unit]((out, err) ⇒ Starter.fetchGitAndAskForBranch(out, err, noVerify = false, None, testRepoD, in))
+    val result = StarterTest.withOutErr[Unit]((out, err) ⇒ Starter.fetchGitAndAskForBranch(out, err, noVerify = false,
+      None, testRepoD, in, Opts()))
 
     // THEN
     Assert.assertEquals("Enter branch name where to start from [master]:", result.out)
@@ -172,6 +174,12 @@ class StarterTest extends AssertionsForJUnit {
   @Test
   def testArgRead_noGerrit(): Unit = {
     Assert.assertEquals(Opts(verifyGerrit = false), Starter.argsRead(Seq("--no-gerrit"), Opts()))
+  }
+
+  @Test
+  def testArgRead_noGerrit_skip_property(): Unit = {
+    Assert.assertEquals(Opts(verifyGerrit = false, skipProperties = Seq("a", "b")),
+      Starter.argsRead(Seq("--no-gerrit", "--skip-property", "a", "--skip-property", "b"), Opts()))
   }
 
   @Test
@@ -216,7 +224,6 @@ class StarterTest extends AssertionsForJUnit {
   def testFutures(): Unit = {
     implicit val global = ExecutionContext.global
 
-
     def aString(in: String, fail: Boolean)(): String = {
       if (fail) {
         throw new IllegalStateException("doof")
@@ -227,7 +234,6 @@ class StarterTest extends AssertionsForJUnit {
 
     val sF = Starter.futureOf(global, aString("one", false))
     val s1F = Starter.futureOf(global, aString("two", true))
-
 
     val s: FutureEither[FutureError, Int] = new FutureEither(Future {
       Right(7)
@@ -268,7 +274,6 @@ class StarterTest extends AssertionsForJUnit {
 
 }
 
-
 object StarterTest {
 
   def willReadFrom(in: String): BufferedReader = {
@@ -286,4 +291,5 @@ object StarterTest {
   }
 
   case class OutErr[T](out: String, err: String, value: T)
+
 }

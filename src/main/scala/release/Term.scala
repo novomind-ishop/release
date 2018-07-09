@@ -5,6 +5,8 @@ import java.io.{BufferedReader, PrintStream}
 import org.jline.reader._
 import org.jline.terminal.TerminalBuilder
 
+import scala.annotation.tailrec
+
 object Term {
 
   def readLine(prompt: String): String = {
@@ -37,6 +39,7 @@ object Term {
     in.readLine()
   }
 
+  @tailrec
   def removeSnapshot(str: String): String = {
     val out = str.replaceFirst("-SNAPSHOT$", "").trim
     if (out.contains("-SNAPSHOT")) {
@@ -63,6 +66,7 @@ object Term {
 
   def readFromOneOfYesNo(out: PrintStream, text: String, in: BufferedReader = Console.in) = readFromOneOf(out, text, Seq("y", "n"), in)
 
+  @tailrec
   def readFromOneOf(out: PrintStream, text: String, possibleValues: Seq[String], in: BufferedReader = Console.in): String = {
     val line = readLineWithPrompt(in, out, text + " [%s]: ".format(possibleValues.mkString("/")))
     line match {

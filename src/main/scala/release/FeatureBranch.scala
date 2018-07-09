@@ -2,9 +2,13 @@ package release
 
 import java.io.{File, PrintStream}
 
+import release.Starter.Opts
+
+import scala.annotation.tailrec
+
 object FeatureBranch {
   def work(workDirFile: File, out: PrintStream, err: PrintStream, sgit: Sgit, branch: String, rebaseFn: () ⇒ Unit,
-           toolSh1: String, config: ReleaseConfig): Unit = {
+           toolSh1: String, config: ReleaseConfig, opts: Opts): Unit = {
     Release.checkLocalChanges(sgit, branch)
     rebaseFn.apply()
     sgit.checkout(branch)
@@ -15,6 +19,7 @@ object FeatureBranch {
     val featureWitoutSnapshot = featureName.replaceFirst("-SNAPSHOT$", "")
     val featureSnapshot = featureWitoutSnapshot + "-SNAPSHOT"
 
+    @tailrec
     def checkFeatureBranch(): Unit = {
       if (sgit.listBranchNamesLocal().contains("feature")) {
         val changes = Term.readFromOneOfYesNo(out, "You have a local branch with name 'feature'. " +
@@ -31,7 +36,7 @@ object FeatureBranch {
     sgit.createBranch(featureBranchName)
     sgit.checkout(featureBranchName)
 
-    val mod = PomMod.of(workDirFile, err)
+    val mod = PomMod.of(workDirFile, err, opts)
     mod.changeVersion(featureSnapshot)
     mod.writeTo(workDirFile)
     out.print("Committing pom changes ..")

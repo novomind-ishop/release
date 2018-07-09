@@ -26,29 +26,26 @@ import org.eclipse.aether.transport.file.FileTransporterFactory
 import org.eclipse.aether.transport.http.HttpTransporterFactory
 import org.eclipse.aether.version.Version
 import org.eclipse.aether.{DefaultRepositorySystemSession, RepositorySystem}
+import release.Aether.getVersions
+import release.Starter.Opts
 
 import scala.collection.JavaConverters
 import scala.util.Random
 
-object Aether extends LazyLogging {
-  logger.debug("init aether to suppress replayed slf4j logging - See also http://www.slf4j.org/codes.html#replay")
+class Aether(opts: Opts) extends LazyLogging {
+  lazy val newRepositoriesCentral: RemoteRepository = Aether.newDefaultRepository("http://central.maven.org/maven2/")
 
-  def existsGav(groupID: String, artifactId: String, version: String): Boolean = {
-    val versions = getVersionsOf(Seq(groupID, artifactId, "[" + version + "," + version + "]").mkString(":"))
-    versions.nonEmpty
-  }
+  lazy val mirrorNexus: RemoteRepository = Aether.newDefaultRepository(ReleaseConfig.default(opts.useDefaults).mirrorNexusUrl())
 
-  def newerVersionsOf(groupID: String, artifactId: String, version: String): Seq[String] = {
-    val request = Seq(groupID, artifactId, "(" + version + "," + ")").mkString(":")
-    val result = getVersionsOf(request).map(_.toString)
-    result
-  }
+  lazy val workNexus: RemoteRepository = Aether.newDefaultRepository(ReleaseConfig.default(opts.useDefaults).workNexusUrl())
 
-  private def getVersionsOf(req: String) = getVersions(ArtifactRepos.workNexus)(req)
+  lazy val allRepos: Seq[RemoteRepository] = Seq(workNexus, mirrorNexus)
 
-  def isReachable(): Boolean = {
+  private def getVersionsOf(req: String) = getVersions(workNexus)(req)
+
+  private[release] def isReachable: Boolean = {
     val httpclient = HttpClients.createDefault
-    val httpGet = new HttpGet(ArtifactRepos.workNexus.getUrl)
+    val httpGet = new HttpGet(workNexus.getUrl)
     var response: CloseableHttpResponse = null
     val code: Int = try {
 
@@ -65,6 +62,25 @@ object Aether extends LazyLogging {
     code != 0
 
   }
+
+  def existsGav(groupID: String, artifactId: String, version: String): Boolean = {
+    val versions = getVersionsOf(Seq(groupID, artifactId, "[" + version + "," + version + "]").mkString(":"))
+    versions.nonEmpty
+  }
+
+  def newerVersionsOf(groupID: String, artifactId: String, version: String): Seq[String] = {
+    val request = Seq(groupID, artifactId, "(" + version + "," + ")").mkString(":")
+    val result = getVersionsOf(request).map(_.toString)
+    result
+  }
+
+
+}
+
+object Aether extends LazyLogging {
+  logger.debug("init aether to suppress replayed slf4j logging - See also http://www.slf4j.org/codes.html#replay")
+
+  def newDefaultRepository(url: String) = new RemoteRepository.Builder("central", "default", url).build
 
   @throws[VersionRangeResolutionException]
   private def getVersions(repository: RemoteRepository)(request: String): Seq[Version] = {
@@ -156,15 +172,6 @@ object Aether extends LazyLogging {
       session
     }
 
-    private def newDefaultRepository(url: String) = new RemoteRepository.Builder("central", "default", url).build
-
-    lazy val newRepositoriesCentral: RemoteRepository = newDefaultRepository("http://central.maven.org/maven2/")
-
-    lazy val mirrorNexus: RemoteRepository = newDefaultRepository(ReleaseConfig.default().mirrorNexusUrl())
-
-    lazy val workNexus: RemoteRepository = newDefaultRepository(ReleaseConfig.default().workNexusUrl())
-
-    lazy val allRepos: Seq[RemoteRepository] = Seq(workNexus, mirrorNexus)
   }
 
   private class ConsoleTransferListener(_out: PrintStream = null) extends AbstractTransferListener {
@@ -272,3 +279,4 @@ object Aether extends LazyLogging {
   }
 
 }
+

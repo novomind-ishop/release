@@ -8,6 +8,8 @@ import java.util.regex.Pattern
 import release.PomMod.{Dep, Gav}
 import release.Starter.{PreconditionsException, TermOs}
 
+import scala.annotation.tailrec
+
 object Release {
   def formatVersionLines(versionLines: Seq[String]): Seq[String] = {
     val maxLenght = versionLines.map(_.replaceFirst("[^:]*$", "")).map(_.length).max + 2
@@ -74,9 +76,10 @@ object Release {
     }
   }
 
+  // TODO @tailrec
   def work(workDirFile: File, out: PrintStream, err: PrintStream, rebaseFn: () ⇒ Unit, branch: String, sgit: Sgit,
-           showDependencyUpdates: Boolean, termOs: TermOs, shellWidth: Int, releaseToolGitSha1: String, config: ReleaseConfig): Seq[Unit] = {
-
+           showDependencyUpdates: Boolean, termOs: TermOs, shellWidth: Int, releaseToolGitSha1: String, config: ReleaseConfig,
+           aether: Aether): Seq[Unit] = {
     if (sgit.hasLocalChanges) {
       val message = localChangeMessage(sgit)
       out.println(message)
@@ -89,7 +92,7 @@ object Release {
       } else if (changes == "n") {
         checkLocalChanges(sgit, branch)
       } else {
-        work(workDirFile, out, err, rebaseFn, branch, sgit, showDependencyUpdates, termOs, shellWidth, releaseToolGitSha1, config)
+        work(workDirFile, out, err, rebaseFn, branch, sgit, showDependencyUpdates, termOs, shellWidth, releaseToolGitSha1, config, aether)
       }
 
     }
@@ -100,14 +103,14 @@ object Release {
     sgit.checkout(branch)
     Starter.chooseUpstreamIfUndef(out, sgit, branch)
     out.print("I: Reading pom.xmls ..")
-    val mod = PomMod.of(workDirFile, err)
+    val mod = PomMod.ofAether(workDirFile, err, aether)
     out.println(". done")
     if (showDependencyUpdates) {
       mod.showDependencyUpdates(shellWidth, termOs, out)
       System.exit(0)
     }
 
-    val newMod = offerAutoFixForReleaseSnapshots(out, mod, sgit.lsFiles(), shellWidth, err)
+    val newMod = offerAutoFixForReleaseSnapshots(out, mod, sgit.lsFiles(), shellWidth, err, aether)
     if (newMod.hasNoShopPom) {
       out.println("---------")
       out.println("1. MAJOR version when you make incompatible API changes,")
@@ -119,6 +122,7 @@ object Release {
 
     val suggestedVersions = newMod.suggestReleaseVersion(sgit.listBranchNamesAll())
 
+    @tailrec
     def readReleaseVersions: String = {
       val result = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readChooseOneOfOrType(out, "Enter the release version", suggestedVersions))
       if (PomMod.isUnknownReleasePattern(result)) {
@@ -146,6 +150,7 @@ object Release {
       throw new IllegalStateException("release " + releaseWitoutSnapshot + " already found; check your repository or change version.")
     }
 
+    @tailrec
     def readNextReleaseVersions: String = {
       val result = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(out, "Enter the next version without -SNAPSHOT", newMod.suggestNextRelease(release)))
       if (PomMod.isUnknownReleasePattern(result)) {
@@ -171,18 +176,18 @@ object Release {
       relevantDeps.map(_.version).max.replaceAll("\\..*", "")
     }
     val coreVersions: Seq[(String, Dep)] = relevantDeps
-      .map(in ⇒ (in.version, in))
-      .distinct
-      .filter(_._1.nonEmpty)
-      .sortBy(_._1)
-    val coreMajorVersions: Seq[(String, Dep)] = coreVersions
-      .map(in ⇒ (in._1.replaceAll("\\..*", "").trim, in._2))
-      .distinct
-      .filter(_._1.nonEmpty)
-      .sortBy(_._1)
+        .map(in ⇒ (in.version, in))
+        .distinct
+        .filter(_._1.nonEmpty)
+        .sortBy(_._1)
+      val coreMajorVersions: Seq[(String, Dep)] = coreVersions
+        .map(in ⇒ (in._1.replaceAll("\\..*", "").trim, in._2))
+        .distinct
+        .filter(_._1.nonEmpty)
+        .sortBy(_._1)
 
-    val sortedMajors = coreMajorVersions.map(_._1).distinct.sorted
-    if (coreMajorVersions != Nil && sortedMajors != Seq(releaseMajorVersion)) {
+      val sortedMajors = coreMajorVersions.map(_._1).distinct.sorted
+      if (coreMajorVersions != Nil && sortedMajors != Seq(releaseMajorVersion)) {
 
       if (mod.hasNoShopPom) {
         out.println("W: You are trying to release major version " + releaseMajorVersion + " (" + release +
@@ -191,23 +196,24 @@ object Release {
         out.println("W: You are trying to use major version " + releaseMajorVersion +
           " but this artifact refers to: " + sortedMajors.mkString(" and "))
       }
-      val t = coreMajorVersions
-        .sortBy(a ⇒ a._2.version)
-        .map(in ⇒ "  * " + Seq(in._2.groupId, in._2.artifactId, in._2.version).mkString(":"))
-        .distinct
+        val t = coreMajorVersions
+          .sortBy(a ⇒ a._2.version)
+          .map(in ⇒ "  * " + Seq(in._2.groupId, in._2.artifactId, in._2.version).mkString(":"))
+          .distinct
 
-      Release.formatVersionLines(t).foreach(out.println)
-      val continue = Term.readFromOneOfYesNo(out, "Continue?")
-      if (continue == "n") {
-        System.exit(1)
+        Release.formatVersionLines(t).foreach(out.println)
+        val continue = Term.readFromOneOfYesNo(out, "Continue?")
+        if (continue == "n") {
+          System.exit(1)
+        }
       }
-    }
 
     val nextSnapshot = nextReleaseWithoutSnapshot + "-SNAPSHOT"
     if (newMod.selfVersion != nextSnapshot) {
       newMod.changeVersion(nextSnapshot)
     }
 
+    @tailrec
     def checkReleaseBranch(): Unit = {
       if (sgit.listBranchNamesLocal().contains("release")) {
         val changes = Term.readFromOneOfYesNo(out, "You have a local branch with name 'release'. " +
@@ -228,7 +234,7 @@ object Release {
     }
     val toolSh1 = releaseToolGitSha1
     val headCommitId = sgit.commitIdHead()
-    val releaseMod = PomMod.of(workDirFile, err)
+    val releaseMod = PomMod.ofAether(workDirFile, err, aether)
     if (sgit.hasNoLocalChanges) {
       out.println("skipped release commit on " + branch)
     } else {
@@ -350,7 +356,9 @@ object Release {
     Nil
   }
 
-  def offerAutoFixForReleaseSnapshots(out: PrintStream, mod: PomMod, gitFiles: Seq[String], shellWidth: Int, err: PrintStream): PomMod = {
+  // TODO @tailrec
+  def offerAutoFixForReleaseSnapshots(out: PrintStream, mod: PomMod, gitFiles: Seq[String], shellWidth: Int, err: PrintStream,
+                                      aether: Aether): PomMod = {
     val plugins = mod.listPluginDependencies
     if (mod.hasShopPom) {
       // TODO check if core needs this checks too
@@ -403,7 +411,7 @@ object Release {
       .par
       .map(in ⇒ {
         aetherStateLine.start()
-        val released = Aether.existsGav(in.groupId, in.artifactId, in.version.replace("-SNAPSHOT", ""))
+        val released = aether.existsGav(in.groupId, in.artifactId, in.version.replace("-SNAPSHOT", ""))
         aetherStateLine.end()
         ReleaseInfo(in.formatted, released)
       }).seq
@@ -441,7 +449,7 @@ object Release {
       if (again == "n") {
         System.exit(1)
       } else {
-        offerAutoFixForReleaseSnapshots(out, PomMod.of(mod.file, err), gitFiles, shellWidth, err)
+        offerAutoFixForReleaseSnapshots(out, PomMod.ofAether(mod.file, err, aether), gitFiles, shellWidth, err, aether)
       }
     }
     mod

@@ -16,9 +16,11 @@ import org.w3c.dom.{Document, Node}
 import release.Conf.Tracer
 import release.PomChecker.ValidationException
 import release.PomMod._
-import release.Starter.{PreconditionsException, TermOs}
+import release.Starter.{Opts, PreconditionsException, TermOs}
 
-case class PomMod(file: File) extends LazyLogging {
+import scala.annotation.tailrec
+
+case class PomMod(file: File, aether: Aether) extends LazyLogging {
   logger.trace("init pomMod")
   private var depMap: Map[Dep, Node] = Map.empty
 
@@ -107,6 +109,7 @@ case class PomMod(file: File) extends LazyLogging {
   logger.trace("pomMod val/var init")
 
   private def nodePath(node: Node): Seq[String] = {
+    // TODO @tailrec
     def nodePathOther(node: Node): Seq[String] = {
       val parent = node.getParentNode
       if ("#document" == parent.getNodeName) {
@@ -346,7 +349,7 @@ case class PomMod(file: File) extends LazyLogging {
     val updates = relevant.par
       .map(dep ⇒ (dep, {
         aetherFetch.start()
-        val result = Aether.newerVersionsOf(dep.groupId, dep.artifactId, dep.version)
+        val result = aether.newerVersionsOf(dep.groupId, dep.artifactId, dep.version)
         aetherFetch.end()
         result
       }))
@@ -502,6 +505,7 @@ case class PomMod(file: File) extends LazyLogging {
     Xpath.toSeq(document, "//project/modules/module").map(_.getTextContent)
   }
 
+  // TODO @tailrec
   private def allRawModulePomsFiles(rootFolders: Seq[File]): Seq[File] = {
     def isPomPacked(document: Document): Boolean = {
       Seq("pom") == Xpath.toSeq(document, PomMod.xPathToProjectPackaging).map(_.getTextContent)
@@ -552,8 +556,13 @@ case class RawPomFile(pomFile: File, document: Document, file: File) {
 
 object PomMod {
 
-  def of(file: File, unnused: PrintStream): PomMod = {
-    PomMod(file)
+  def of(file: File, unnused: PrintStream, opts: Opts): PomMod = {
+    lazy val aether = new Aether(opts)
+    ofAether(file, unnused, aether)
+  }
+
+  def ofAether(file: File, unnused: PrintStream, aether: Aether): PomMod = {
+    PomMod(file, aether)
   }
 
   private val xPathToProjectGroupId = "//project/groupId"
@@ -648,6 +657,7 @@ object PomMod {
     if (hasShopPom) {
       val releaseBranchNames = branchNames.filter(_.startsWith("release/")).map(_.replaceFirst("^release/", ""))
 
+      @tailrec
       def nextReleaseIfExisting(known: Seq[String], name: String, suffix: Int): String = {
         val finalName = if (suffix == 0) {
           name
@@ -683,6 +693,7 @@ object PomMod {
 
         val versionTupels = branchNames.map(_.replace("release/", "")).map(toInts).filterNot(_._1 <= -1)
 
+        // TODO @tailrec
         def nextNumberedReleaseIfExisting(known: Seq[(Int, Int, Int, Int)], name: (Int, Int, Int, Int)): Seq[String] = {
 
           if (known.contains(name)) {
@@ -869,7 +880,7 @@ object PomMod {
     }
   }
 
-  private[release] def checkRootFirstChildPropertiesVar(childs: Seq[RawPomFile]): Unit = {
+  private[release] def checkRootFirstChildPropertiesVar(childs: Seq[RawPomFile], excludedNames: Seq[String] = Nil): Unit = {
     case class DepProps(dep: Dep, pdep: Dep, properties: Map[String, String])
 
     val allP: Seq[DepProps] = childs.map(in ⇒ {

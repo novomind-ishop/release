@@ -68,6 +68,7 @@ object Util {
     }
   }
 
+  // TODO @tailrec
   def deleteRecursive(file: File): Unit = {
     def deleteFile(allFiles: Array[File]): Unit = {
       if (allFiles != null) {
@@ -87,7 +88,7 @@ object Util {
     try {
       fn.apply(Unit)
     } catch {
-      case e: FileSystemException ⇒ Sgit.getOs() match {
+      case e: FileSystemException ⇒ Sgit.getOs match {
         case Sgit.Os.Windows ⇒ throw new IllegalStateException("Windows tends to lock file handles." +
           " Try to find handle or DLL that locks the file. e.g. with Sysinternals Process Explorer", e)
         case _ ⇒ throw e;

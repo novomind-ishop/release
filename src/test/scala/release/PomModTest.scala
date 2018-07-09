@@ -10,6 +10,7 @@ import org.w3c.dom._
 import release.PomChecker.ValidationException
 import release.PomMod.{Dep, PluginDep, PluginExec, PomRef}
 import release.PomModTest.{assertDeps, document, pomfile, _}
+import release.Starter.Opts
 
 import scala.xml.{Elem, XML}
 
@@ -18,6 +19,8 @@ class PomModTest extends AssertionsForJUnit {
   val _temporarayFolder = new TemporaryFolder()
 
   @Rule def temp = _temporarayFolder
+
+  lazy val aether = new Aether(Opts())
 
   @Test
   def testCheckRootFirstChildPropertiesVar_noChilds(): Unit = {
@@ -381,7 +384,7 @@ class PomModTest extends AssertionsForJUnit {
     // WHEN
     TestHelper.assertException("More then one Version found in your pom.xmls (27.0.0-SNAPSHOT, 28.0.0-SNAPSHOT)",
       classOf[IllegalArgumentException], () ⇒ {
-        PomMod(srcPoms).selfVersion
+        PomMod(srcPoms, aether).selfVersion
       })
 
   }
@@ -393,7 +396,7 @@ class PomModTest extends AssertionsForJUnit {
     val targetPoms = TestHelper.testResources("shop1")
 
     // WHEN
-    PomMod(srcPoms)
+    PomMod(srcPoms, aether)
       .writeTo(targetPoms)
 
     // THEN
@@ -406,7 +409,7 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("shop1")
 
     // WHEN
-    val releaseVersion = PomMod(srcPoms).suggestReleaseVersion()
+    val releaseVersion = PomMod(srcPoms, aether).suggestReleaseVersion()
 
     // THEN
     assert(Seq("27.0.0-SNAPSHOT") === releaseVersion)
@@ -417,7 +420,7 @@ class PomModTest extends AssertionsForJUnit {
     // GIVEN
     val srcPoms = TestHelper.testResources("shop1")
 
-    val pomMod = PomMod(srcPoms)
+    val pomMod = PomMod(srcPoms, aether)
     // WHEN
     val nodes: Seq[Node] = pomMod.findNodes("com.novomind.ishop.shops.anyshop", "anyshop-erp", "27.0.0-SNAPSHOT")
 
@@ -461,7 +464,7 @@ class PomModTest extends AssertionsForJUnit {
   def depTreeFilename(): Unit = {
     // GIVEN
     val srcPoms = TestHelper.testResources("shop1")
-    val pomMod = PomMod(srcPoms)
+    val pomMod = PomMod(srcPoms, aether)
 
     // WHEN
     val treeFile: Option[String] = pomMod.depTreeFilename()
@@ -475,7 +478,7 @@ class PomModTest extends AssertionsForJUnit {
   def depTreeFilename_defect(): Unit = {
     // GIVEN
     val srcPoms = TestHelper.testResources("defect-dep-tree")
-    val pomMod = PomMod(srcPoms)
+    val pomMod = PomMod(srcPoms, aether)
 
     // WHEN
     val treeFile: Option[String] = pomMod.depTreeFilename()
@@ -489,7 +492,7 @@ class PomModTest extends AssertionsForJUnit {
   def pluginDeps(): Unit = {
     // GIVEN
     val srcPoms = TestHelper.testResources("shop1")
-    val pomMod = PomMod(srcPoms)
+    val pomMod = PomMod(srcPoms, aether)
 
     // WHEN
     val deps: Seq[PluginDep] = pomMod.listPluginDependencies
@@ -502,7 +505,7 @@ class PomModTest extends AssertionsForJUnit {
   def mavenDependecyPlugin(): Unit = {
     // GIVEN
     val srcPoms = TestHelper.testResources("shop1")
-    val pomMod = PomMod(srcPoms)
+    val pomMod = PomMod(srcPoms, aether)
 
     // WHEN
     val dep: Seq[PluginDep] = pomMod.mavenDependencyPlugins
@@ -520,13 +523,13 @@ class PomModTest extends AssertionsForJUnit {
   def findNodesAndSetVersion(): Unit = {
     // GIVEN
     val orgPoms = TestHelper.testResources("shop1")
-    val orgMod = PomMod(orgPoms)
+    val orgMod = PomMod(orgPoms, aether)
     Assert.assertEquals("27.0.0-SNAPSHOT", orgMod.selfVersion)
     assertDeps(Anyshop1Deps.ownDeps(), orgMod.listDependecies.filter(_.artifactId.contains("anyshop")))
 
     val targetPoms = TestHelper.testResources("shop4")
     orgMod.writeTo(targetPoms)
-    val targetMod = PomMod(targetPoms)
+    val targetMod = PomMod(targetPoms, aether)
     val newVersion = "any-SNAPSHOT"
     // WHEN
     Assert.assertEquals(Map("dep.tree" -> Nil,
@@ -544,7 +547,7 @@ class PomModTest extends AssertionsForJUnit {
     targetMod.writeTo(targetPoms)
 
     // THEN
-    val newTargetMod = PomMod(targetPoms)
+    val newTargetMod = PomMod(targetPoms, aether)
     Assert.assertEquals("27.0.0-SNAPSHOT", newTargetMod.selfVersion)
     val erpVersionChanged = Anyshop1Deps.ownDeps().map(in ⇒ if (in.artifactId.contains("anyshop-erp") && in.version.nonEmpty) {
       in.copy(version = newVersion)
@@ -559,7 +562,7 @@ class PomModTest extends AssertionsForJUnit {
   def changeVersionSub(): Unit = {
     // GIVEN
     val orgPoms = TestHelper.testResources("pom-packed-sub-sub")
-    val orgMod = PomMod(orgPoms)
+    val orgMod = PomMod(orgPoms, aether)
 
     assertDeps(Seq(
       Dep(PomRef("any:a-parent:1.0.0-SNAPSHOT"),
@@ -584,7 +587,7 @@ class PomModTest extends AssertionsForJUnit {
     assertDeps(Seq(Dep(PomRef("c:1.0.0-SNAPSHOT"), "any", "other", "1.0.0-SNAPSHOT", "", "", "", "")), orgMod.listSnapshots)
     orgMod.changeVersion("master-SNAPSHOT")
     orgMod.writeTo(orgPoms)
-    val orgMod1 = PomMod(orgPoms)
+    val orgMod1 = PomMod(orgPoms, aether)
     orgMod1.changeVersion("1.0.0-SNAPSHOT")
     orgMod1.writeTo(orgPoms)
   }
@@ -593,12 +596,12 @@ class PomModTest extends AssertionsForJUnit {
   def changeVersion(): Unit = {
     // GIVEN
     val orgPoms = TestHelper.testResources("shop1")
-    val orgMod = PomMod(orgPoms)
+    val orgMod = PomMod(orgPoms, aether)
     val srcPoms = TestHelper.testResources("shop3")
     orgMod.writeTo(srcPoms)
 
     // WHEN
-    val mod = PomMod(srcPoms)
+    val mod = PomMod(srcPoms, aether)
     assertDeps(Anyshop1Deps.selfVersion("27.0.0-SNAPSHOT"), mod.listSelf)
     assert("27.0.0-SNAPSHOT" === mod.getVersionFromDocs())
     assertDeps(Anyshop1Deps.all(), mod.listDependecies)
@@ -618,7 +621,7 @@ class PomModTest extends AssertionsForJUnit {
     )
 
     // THEN
-    val newMod = PomMod(srcPoms)
+    val newMod = PomMod(srcPoms, aether)
     assertDeps(allMod, newMod.listDependecies)
   }
 
@@ -655,12 +658,12 @@ class PomModTest extends AssertionsForJUnit {
   def changeGA(): Unit = {
     // GIVEN
     val orgPoms = TestHelper.testResources("shop1")
-    val orgMod = PomMod(orgPoms)
+    val orgMod = PomMod(orgPoms, aether)
     val srcPoms = TestHelper.testResources("shop5")
     orgMod.writeTo(srcPoms)
 
     // WHEN
-    val mod = PomMod(srcPoms)
+    val mod = PomMod(srcPoms, aether)
     assertDeps(Anyshop1Deps.selfVersion("27.0.0-SNAPSHOT"), mod.listSelf)
     assert("27.0.0-SNAPSHOT" === mod.getVersionFromDocs())
     assertDeps(Anyshop1Deps.all(), mod.listDependecies)
@@ -686,7 +689,7 @@ class PomModTest extends AssertionsForJUnit {
       Dep(PomRef("com.novomind.ishop.shops:anyshop"),
         "com.novomind.ishop.shops", "anyshop", "27.0.0-SNAPSHOT", "", "", "war", "")
     )
-    val newMod = PomMod(srcPoms)
+    val newMod = PomMod(srcPoms, aether)
     assertDeps(s, newMod.listSelf)
     assertDeps(allMod, newMod.listDependecies)
 
@@ -698,7 +701,7 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("mini")
 
     // WHEN
-    val releaseVersion = PomMod(srcPoms).suggestReleaseVersion()
+    val releaseVersion = PomMod(srcPoms, aether).suggestReleaseVersion()
 
     // THEN
     assert(Seq("0.11") === releaseVersion)
@@ -711,7 +714,7 @@ class PomModTest extends AssertionsForJUnit {
 
     // WHEN / THEN
     TestHelper.assertException("anyshop-erp as no version, please define", classOf[IllegalStateException],
-      () ⇒ PomMod(srcPoms).suggestReleaseVersion())
+      () ⇒ PomMod(srcPoms, aether).suggestReleaseVersion())
 
   }
 
@@ -721,7 +724,7 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("shop1")
 
     // WHEN
-    val next = PomMod(srcPoms).suggestNextRelease("27.0.0")
+    val next = PomMod(srcPoms, aether).suggestNextRelease("27.0.0")
 
     // THEN
     assert("27.0.1" === next)
@@ -733,7 +736,7 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("shop1")
 
     // WHEN
-    val next = PomMod(srcPoms).suggestNextRelease("28.0.0")
+    val next = PomMod(srcPoms, aether).suggestNextRelease("28.0.0")
 
     // THEN
     assert("28.0.1" === next)
@@ -1017,7 +1020,7 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("shop1/anyshop-erp")
 
     // WHEN / THEN
-    Assert.assertFalse(PomMod(srcPoms).hasShopPom)
+    Assert.assertFalse(PomMod(srcPoms, aether).hasShopPom)
   }
 
   @Test
@@ -1026,8 +1029,8 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("mini")
 
     // WHEN / THEN
-    Assert.assertFalse(PomMod(srcPoms).hasShopPom)
-    Assert.assertTrue(PomMod(srcPoms).hasNoShopPom)
+    Assert.assertFalse(PomMod(srcPoms, aether).hasShopPom)
+    Assert.assertTrue(PomMod(srcPoms, aether).hasNoShopPom)
   }
 
   @Test
@@ -1036,7 +1039,7 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("shop1")
 
     // WHEN / THEN
-    Assert.assertTrue(PomMod(srcPoms).hasShopPom)
+    Assert.assertTrue(PomMod(srcPoms, aether).hasShopPom)
   }
 
   @Test
@@ -1049,7 +1052,7 @@ class PomModTest extends AssertionsForJUnit {
     val targetPoms = TestHelper.testResources("shop2")
 
     // WHEN
-    PomMod(srcPoms)
+    PomMod(srcPoms, aether)
       .writeTo(targetPoms)
 
     // THEN
@@ -1062,7 +1065,7 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("shop1")
 
     // WHEN
-    val deps = PomMod(srcPoms).listDependecies
+    val deps = PomMod(srcPoms, aether).listDependecies
 
     // THEN
     assertDeps(Anyshop1Deps.all(), deps)
@@ -1074,7 +1077,7 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("shop1")
 
     // WHEN
-    val deps = PomMod(srcPoms).listSnapshots
+    val deps = PomMod(srcPoms, aether).listSnapshots
 
     // THEN
     assertDeps(Anyshop1Deps.snapshots(), deps)
@@ -1086,7 +1089,7 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("mini")
 
     // WHEN
-    val deps = PomMod(srcPoms).listSnapshots
+    val deps = PomMod(srcPoms, aether).listSnapshots
 
     // THEN
     assertDeps(Seq(Dep(PomRef("com.novomind.ishop.any:any:0.11-SNAPSHOT"),
@@ -1098,7 +1101,7 @@ class PomModTest extends AssertionsForJUnit {
     // GIVEN
     val srcPoms = TestHelper.testResources("pom-packaged")
 
-    val deps = PomMod(srcPoms).listSnapshots
+    val deps = PomMod(srcPoms, aether).listSnapshots
 
     // THEN
     assertDeps(Seq(Dep(PomRef("com.novomind.ishop.core:ishop-core-parent"),
@@ -1111,7 +1114,7 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("shop1")
 
     // WHEN
-    val deps = PomMod(srcPoms).selfDepsMod
+    val deps = PomMod(srcPoms, aether).selfDepsMod
 
     // THEN
     assertDeps(Anyshop1Deps.selfMod(), deps)
@@ -1123,7 +1126,7 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("shop1")
 
     // WHEN
-    val deps = PomMod(srcPoms).listSelf
+    val deps = PomMod(srcPoms, aether).listSelf
 
     // THEN
     assertDeps(Anyshop1Deps.self(), deps)
@@ -1135,7 +1138,7 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("pom-packaged")
 
     // WHEN
-    val deps = PomMod(srcPoms).listSelf
+    val deps = PomMod(srcPoms, aether).listSelf
 
     // THEN
     assertDeps(PomPackagedDeps.self(), deps)
@@ -1147,7 +1150,7 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("pom-packaged")
 
     // WHEN / THEN
-    Assert.assertTrue(PomMod(srcPoms).hasNoShopPom)
+    Assert.assertTrue(PomMod(srcPoms, aether).hasNoShopPom)
   }
 
   @Test
@@ -1156,7 +1159,7 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("shop1")
 
     // WHEN / THEN
-    Assert.assertTrue(PomMod(srcPoms).hasShopPom)
+    Assert.assertTrue(PomMod(srcPoms, aether).hasShopPom)
   }
 
   @Test
@@ -1198,7 +1201,7 @@ class PomModTest extends AssertionsForJUnit {
     val writer: BufferedWriter = new BufferedWriter(new FileWriter(file))
     writer.write("hello")
     try {
-      Sgit.getOs() match {
+      Sgit.getOs match {
         case Sgit.Os.Windows ⇒ {
           TestHelper.assertException("Windows tends to lock file handles." +
             " Try to find handle or DLL that locks the file. e.g. with Sysinternals Process Explorer",
@@ -1222,7 +1225,7 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("shop1")
 
     // WHEN
-    val props = PomMod(srcPoms).listProperties
+    val props = PomMod(srcPoms, aether).listProperties
 
     // THEN
     val expected = Map(

@@ -16,6 +16,7 @@ import release.Conf.Tracer
 import release.Sgit.GitRemote
 import release.Xpath.InvalidPomXmlException
 
+import scala.annotation.tailrec
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 
@@ -83,18 +84,19 @@ object Starter extends App with LazyLogging {
   }
 
   def fetchGitAndAskForBranch(out: PrintStream, err: PrintStream, noVerify: Boolean,
-                              gitBinEnv: Option[String], workDirFile: File, in: BufferedReader): (Sgit, String) = {
+                              gitBinEnv: Option[String], workDirFile: File, in: BufferedReader, opts:Opts): (Sgit, String) = {
     val global = ExecutionContext.global
 
     def fetchGit(file: File): Sgit = {
-      val git = Sgit(file = file, doVerify = noVerify, out = out, err = err, gitBin = gitBinEnv)
+      val git = Sgit(file = file, doVerify = noVerify, out = out, err = err, gitBin = gitBinEnv, opts = opts)
       git.fetchAll()
       git
     }
 
+    @tailrec
     def askReleaseBranch(): String = {
       def workGit(file: File): Sgit = {
-        Sgit(file = file, doVerify = noVerify, out = out, err = err, gitBin = gitBinEnv)
+        Sgit(file = file, doVerify = noVerify, out = out, err = err, gitBin = gitBinEnv, opts = opts)
       }
 
       def suggestCurrentBranch(file: File): String = {
@@ -172,8 +174,10 @@ object Starter extends App with LazyLogging {
   case class Opts(simpleChars: Boolean = false, invalids: Seq[String] = Nil, showHelp: Boolean = false,
                   showUpdateCmd: Boolean = false, versionSet: Option[String] = None, shopGA: Option[String] = None,
                   createFeature: Boolean = false, verifyGerrit: Boolean = true, doUpdate: Boolean = true,
-                  showDependencyUpdates: Boolean = false, jlineDemo: Boolean = false)
+                  showDependencyUpdates: Boolean = false, jlineDemo: Boolean = false, skipProperties: Seq[String] = Nil,
+                  useDefaults:Boolean = false)
 
+  @tailrec
   def argsRead(params: Seq[String], inOpt: Opts): Opts = {
     params.filter(in ⇒ in.trim.nonEmpty) match {
       case Nil ⇒ inOpt
@@ -184,6 +188,8 @@ object Starter extends App with LazyLogging {
       case "--show-update-cmd" :: tail ⇒ argsRead(tail, inOpt.copy(showUpdateCmd = true))
       case "--no-gerrit" :: tail ⇒ argsRead(tail, inOpt.copy(verifyGerrit = false))
       case "--no-update" :: tail ⇒ argsRead(tail, inOpt.copy(doUpdate = false))
+      case "--defaults" :: tail ⇒ argsRead(tail, inOpt.copy(useDefaults = true))
+      case "--skip-property" :: value :: tail ⇒ argsRead(tail, inOpt.copy(skipProperties = inOpt.skipProperties ++ Seq(value)))
       // CMDs
       case "versionSet" :: value :: tail ⇒ argsRead(tail, inOpt.copy(versionSet = Some(value)))
       case "shopGASet" :: value :: tail ⇒ argsRead(tail, inOpt.copy(shopGA = Some(value)))
@@ -213,8 +219,8 @@ object Starter extends App with LazyLogging {
     val shellWidth = argSeq(4).toInt
     val otherArgs = argSeq.drop(5).filter(_ != null).map(_.trim).toList
 
-    val config = ReleaseConfig.default()
     val opts = argsRead(otherArgs, Opts())
+    val config = ReleaseConfig.default(opts.useDefaults)
     val termOs: TermOs = TermOs.select(argSeq(3), argSeq(2), opts.simpleChars)
     val showHelp = opts.showHelp
     val showUpdateCmd = opts.showUpdateCmd
@@ -266,7 +272,7 @@ object Starter extends App with LazyLogging {
     }
 
     val gitBinEnv = config.gitBinEnv()
-    lazy val releaseToolGit = Sgit(file = releaseToolDir, gitBin = gitBinEnv, doVerify = false, out = out, err = err)
+    lazy val releaseToolGit = Sgit(file = releaseToolDir, gitBin = gitBinEnv, doVerify = false, out = out, err = err, opts = opts)
 
     val updateCmd: String = {
       val updatePath = if (termOs.isCygwin && !termOs.isMinGw) {
@@ -322,7 +328,7 @@ object Starter extends App with LazyLogging {
     }
 
     try {
-      val gitAndBranchname = fetchGitAndAskForBranch(out, err, verifyGerrit, gitBinEnv, workDirFile, Console.in)
+      val gitAndBranchname = fetchGitAndAskForBranch(out, err, verifyGerrit, gitBinEnv, workDirFile, Console.in, opts)
 
       def suggestLocalNotesReviewRemoval(activeGit: Sgit): Unit = {
         // git config --add remote.origin.fetch refs/notes/review:refs/notes/review
@@ -350,7 +356,7 @@ object Starter extends App with LazyLogging {
       Tracer.withFn(logger, () ⇒ "local branches: " + git.listBranchNamesLocal())
       if (versionSetMode) {
         Release.checkLocalChanges(git, startBranch)
-        val mod = PomMod.of(workDirFile, err)
+        val mod = PomMod.of(workDirFile, err, opts)
         val version = opts.versionSet.get
         val versionWithoutSnapshot = Term.removeSnapshot(version)
         mod.changeVersion(versionWithoutSnapshot + "-SNAPSHOT")
@@ -358,16 +364,17 @@ object Starter extends App with LazyLogging {
         out.println("You have local changes")
       } else if (shopGASetMode) {
         Release.checkLocalChanges(git, startBranch)
-        val mod = PomMod.of(workDirFile, err)
+        val mod = PomMod.of(workDirFile, err, opts)
         val groupIdArtifactIdLine = opts.shopGA.get
         mod.changeShopGroupArtifact(groupIdArtifactIdLine)
         mod.writeTo(workDirFile)
         out.println("You have local changes")
       } else if (createFeatureBranch) {
-        FeatureBranch.work(workDirFile, out, err, git, startBranch, askForRebase, releaseToolGit.headStatusValue(), config)
+        FeatureBranch.work(workDirFile, out, err, git, startBranch, askForRebase, releaseToolGit.headStatusValue(), config, opts)
       } else {
+        lazy val aether = new Aether(opts)
         Release.work(workDirFile, out, err, askForRebase, startBranch,
-          git, opts.showDependencyUpdates, termOs, shellWidth, releaseToolGit.headStatusValue(), config)
+          git, opts.showDependencyUpdates, termOs, shellWidth, releaseToolGit.headStatusValue(), config, aether)
       }
 
       return 0
@@ -430,6 +437,7 @@ object Starter extends App with LazyLogging {
     }
   }
 
+  @tailrec
   def chooseUpstreamIfUndef(out: PrintStream, sgit: Sgit, branch: String): Unit = {
     val upstream = sgit.findUpstreamBranch()
     if (upstream.isEmpty && sgit.isNotDetached) {

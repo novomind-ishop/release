@@ -157,37 +157,41 @@ object ReleaseConfig extends LazyLogging {
     }
   }
 
-  def default(): ReleaseConfig = {
-    val removeConfigUrl = "https://release-ishop.novomind.com/ishop-release.conf"
-    val localConfig = if (defaultConfigFile.canRead) {
-      fileConfig(defaultConfigFile)
+  def default(useDefaults: Boolean): ReleaseConfig = {
+    if (useDefaults) {
+      new ReleaseConfig(defaults)
     } else {
-      Map.empty[String, String]
-    }
-    val refresh = defaultUpdateFile.canRead && {
-      val millis = System.currentTimeMillis() - defaultUpdateFile.lastModified()
-      val update = millis > TimeUnit.MINUTES.toMillis(1)
-      update
-    }
-    val work = if (localConfig == Map.empty || refresh) {
-      val rc = remoteConfig(removeConfigUrl)
-      Util.handleWindowsFilesystem { _ ⇒
-        defaultUpdateFile.delete()
-        defaultUpdateFile.createNewFile()
+      val removeConfigUrl = "https://release-ishop.novomind.com/ishop-release.conf"
+      val localConfig = if (defaultConfigFile.canRead) {
+        fileConfig(defaultConfigFile)
+      } else {
+        Map.empty[String, String]
       }
-      if (rc != Map.empty) {
-        writeConfig(defaultConfigFile, rc)
-        rc
+      val refresh = defaultUpdateFile.canRead && {
+        val millis = System.currentTimeMillis() - defaultUpdateFile.lastModified()
+        val update = millis > TimeUnit.MINUTES.toMillis(1)
+        update
+      }
+      val work = if (localConfig == Map.empty || refresh) {
+        val rc = remoteConfig(removeConfigUrl)
+        Util.handleWindowsFilesystem { _ ⇒
+          defaultUpdateFile.delete()
+          defaultUpdateFile.createNewFile()
+        }
+        if (rc != Map.empty) {
+          writeConfig(defaultConfigFile, rc)
+          rc
+        } else {
+          localConfig
+        }
       } else {
         localConfig
       }
-    } else {
-      localConfig
-    }
-    if (work == Map.empty) {
-      new ReleaseConfig(defaults)
-    } else {
-      new ReleaseConfig(work)
+      if (work == Map.empty) {
+        new ReleaseConfig(defaults)
+      } else {
+        new ReleaseConfig(work)
+      }
     }
 
   }

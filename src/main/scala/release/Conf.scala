@@ -4,13 +4,15 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import com.typesafe.scalalogging.Logger
 
+import scala.annotation.tailrec
+import scala.collection.concurrent.TrieMap
+
 object Conf {
 
   object Tracer {
 
-    var tracerIndex = Map.empty[String, Int]
+    val tracerIndex: TrieMap[String, Int] = TrieMap.empty
     val idxCounter = new AtomicInteger()
-
 
     def withFn(logger: Logger, fn: () ⇒ String): Unit = {
       if (logger.underlying.isTraceEnabled) {
@@ -18,18 +20,15 @@ object Conf {
       }
     }
 
+    @tailrec
     private def index(str: String): Int = {
       val idx = tracerIndex.get(str)
       idx match {
         case None ⇒ {
-          synchronized {
-            tracerIndex = tracerIndex + (str → idxCounter.getAndIncrement())
-            index(str)
-          }
+          tracerIndex.put(str, idxCounter.getAndIncrement())
+          index(str)
         }
-        case in ⇒ {
-          in.get
-        }
+        case in ⇒ in.get
       }
     }
 
