@@ -82,7 +82,7 @@ case class PomMod(file: File) extends LazyLogging {
     replacedVersionProperties(allPomsDocs.flatMap(deps)).distinct
   }
 
-  private[release] val listPluginDependecies: Seq[PluginDep] = {
+  private[release] val listPluginDependencies: Seq[PluginDep] = {
     val allP: Seq[PluginDep] = allPomsDocs.map(in ⇒ {
       val gav = PomMod.selfDep(depU)(in).gavWithDetailsFormatted
       val nodes = Xpath.toSeqTuples(in, "//plugins/plugin")
@@ -95,8 +95,8 @@ case class PomMod(file: File) extends LazyLogging {
     allP.toList
   }
 
-  private[release] val mavenDependecyPlugins: Seq[PluginDep] = {
-    PomMod.dependecyPlugins(listPluginDependecies)
+  private[release] val mavenDependencyPlugins: Seq[PluginDep] = {
+    PomMod.dependecyPlugins(listPluginDependencies)
   }
 
   private[release] var depTreeFileContents: Map[File, DepTree] = depTreeFiles()
@@ -140,7 +140,7 @@ case class PomMod(file: File) extends LazyLogging {
   }
 
   private def mavenDependencyPluginConfigsByGoal(goalname: String): Seq[(String, String)] = {
-    mavenDependecyPlugins.flatMap(_.execs).filter(_.goals == Seq(goalname)).flatMap(_.config)
+    mavenDependencyPlugins.flatMap(_.execs).filter(_.goals == Seq(goalname)).flatMap(_.config)
   }
 
   def findNodesAndChangeVersion(groupId: String, artifactId: String, version: String, newVersion: String): Unit = {

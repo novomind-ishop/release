@@ -492,7 +492,7 @@ class PomModTest extends AssertionsForJUnit {
     val pomMod = PomMod(srcPoms)
 
     // WHEN
-    val deps: Seq[PluginDep] = pomMod.listPluginDependecies
+    val deps: Seq[PluginDep] = pomMod.listPluginDependencies
 
     // THEN
     assertPluginDeps(Anyshop1Deps.plugins(), deps)
@@ -505,7 +505,7 @@ class PomModTest extends AssertionsForJUnit {
     val pomMod = PomMod(srcPoms)
 
     // WHEN
-    val dep: Seq[PluginDep] = pomMod.mavenDependecyPlugins
+    val dep: Seq[PluginDep] = pomMod.mavenDependencyPlugins
 
     // THEN
     assertPluginDeps(Seq(PluginDep(PomRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),

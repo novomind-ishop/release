@@ -162,35 +162,44 @@ object Release {
 
     val nextReleaseWithoutSnapshot = readNextReleaseVersions
 
-    if (mod.hasNoShopPom) {
-      val coreVersions: Seq[(String, Dep)] = mod.listDependecies
-        .filter(_.groupId.startsWith("com.novomind.ishop.core"))
-        .map(in ⇒ (in.version, in))
-        .distinct
-        .filter(_._1.nonEmpty)
-        .sortBy(_._1)
-      val coreMajorVersions: Seq[(String, Dep)] = coreVersions
-        .map(in ⇒ (in._1.replaceAll("\\..*", "").trim, in._2))
-        .distinct
-        .filter(_._1.nonEmpty)
-        .sortBy(_._1)
-      val releaseMajorVersion = release.replaceAll("\\..*", "")
-      val sortedMajors = coreMajorVersions.map(_._1).distinct.sorted
-      if (coreMajorVersions != Nil && sortedMajors != Seq(releaseMajorVersion)) {
+    val relevantDeps = mod.listDependecies
+      .filter(in ⇒ in.groupId.startsWith("com.novomind.ishop.core") ||
+        (in.groupId == "com.novomind.ishop.shops" && in.artifactId == "ishop-shop-parent"))
+    val releaseMajorVersion = if (mod.hasNoShopPom) {
+      release.replaceAll("\\..*", "")
+    } else {
+      relevantDeps.map(_.version).max.replaceAll("\\..*", "")
+    }
+    val coreVersions: Seq[(String, Dep)] = relevantDeps
+      .map(in ⇒ (in.version, in))
+      .distinct
+      .filter(_._1.nonEmpty)
+      .sortBy(_._1)
+    val coreMajorVersions: Seq[(String, Dep)] = coreVersions
+      .map(in ⇒ (in._1.replaceAll("\\..*", "").trim, in._2))
+      .distinct
+      .filter(_._1.nonEmpty)
+      .sortBy(_._1)
 
+    val sortedMajors = coreMajorVersions.map(_._1).distinct.sorted
+    if (coreMajorVersions != Nil && sortedMajors != Seq(releaseMajorVersion)) {
+
+      if (mod.hasNoShopPom) {
         out.println("W: You are trying to release major version " + releaseMajorVersion + " (" + release +
           ") but this artifact refers to: " + sortedMajors.mkString(" and "))
+      } else {
+        out.println("W: You are trying to use major version " + releaseMajorVersion +
+          " but this artifact refers to: " + sortedMajors.mkString(" and "))
+      }
+      val t = coreMajorVersions
+        .sortBy(a ⇒ a._2.version)
+        .map(in ⇒ "  * " + Seq(in._2.groupId, in._2.artifactId, in._2.version).mkString(":"))
+        .distinct
 
-        val t = coreMajorVersions
-          .sortBy(a ⇒ a._2.version)
-          .map(in ⇒ "  * " + Seq(in._2.groupId, in._2.artifactId, in._2.version).mkString(":"))
-          .distinct
-
-        Release.formatVersionLines(t).foreach(out.println)
-        val continue = Term.readFromOneOfYesNo(out, "Continue?")
-        if (continue == "n") {
-          System.exit(1)
-        }
+      Release.formatVersionLines(t).foreach(out.println)
+      val continue = Term.readFromOneOfYesNo(out, "Continue?")
+      if (continue == "n") {
+        System.exit(1)
       }
     }
 
@@ -342,7 +351,7 @@ object Release {
   }
 
   def offerAutoFixForReleaseSnapshots(out: PrintStream, mod: PomMod, gitFiles: Seq[String], shellWidth: Int, err: PrintStream): PomMod = {
-    val plugins = mod.listPluginDependecies
+    val plugins = mod.listPluginDependencies
     if (mod.hasShopPom) {
       // TODO check if core needs this checks too
       PomChecker.check(plugins)
