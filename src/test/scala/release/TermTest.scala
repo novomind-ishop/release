@@ -6,6 +6,7 @@ import java.security.Permission
 import com.typesafe.scalalogging.LazyLogging
 import org.junit._
 import org.scalatest.junit.AssertionsForJUnit
+import release.Starter.Opts
 
 class TermTest extends AssertionsForJUnit {
 
@@ -48,7 +49,7 @@ class TermTest extends AssertionsForJUnit {
     val value = "My string"
 
     TermTest.testSys(Seq(value), Seq("enter some [word]: "), Nil)((in, out, err) ⇒ {
-      val result = Term.readFrom(new PrintStream(out), "enter some", "word")
+      val result = Term.readFrom(new PrintStream(out), "enter some", "word", Opts())
       Assert.assertEquals(value, result)
     })
 
@@ -58,7 +59,7 @@ class TermTest extends AssertionsForJUnit {
   @Ignore
   def testReadNull(): Unit = {
     TermTest.testSys(Nil, Seq("enter some [word]: "), Nil, 14)((in, out, err) ⇒ {
-      Term.readFrom(new PrintStream(out), "enter some", "word")
+      Term.readFrom(new PrintStream(out), "enter some", "word", Opts())
     })
 
   }

@@ -6,7 +6,7 @@ import java.nio.file.{Files, InvalidPathException, Path, Paths}
 import java.util.regex.Pattern
 
 import release.PomMod.{Dep, Gav}
-import release.Starter.{PreconditionsException, TermOs}
+import release.Starter.{Opts, PreconditionsException, TermOs}
 
 import scala.annotation.tailrec
 
@@ -79,11 +79,11 @@ object Release {
   // TODO @tailrec
   def work(workDirFile: File, out: PrintStream, err: PrintStream, rebaseFn: () ⇒ Unit, branch: String, sgit: Sgit,
            showDependencyUpdates: Boolean, termOs: TermOs, shellWidth: Int, releaseToolGitSha1: String, config: ReleaseConfig,
-           aether: Aether): Seq[Unit] = {
+           aether: Aether, opts: Opts): Seq[Unit] = {
     if (sgit.hasLocalChanges) {
       val message = localChangeMessage(sgit)
       out.println(message)
-      val changes = Term.readFromOneOfYesNo(out, "You have local changes. Add changes to stash?")
+      val changes = Term.readFromOneOfYesNo(out, "You have local changes. Add changes to stash?", opts)
       if (changes == "y") {
         sgit.stash()
         Starter.addExitFn("cleanup branches", () ⇒ {
@@ -92,7 +92,7 @@ object Release {
       } else if (changes == "n") {
         checkLocalChanges(sgit, branch)
       } else {
-        work(workDirFile, out, err, rebaseFn, branch, sgit, showDependencyUpdates, termOs, shellWidth, releaseToolGitSha1, config, aether)
+        work(workDirFile, out, err, rebaseFn, branch, sgit, showDependencyUpdates, termOs, shellWidth, releaseToolGitSha1, config, aether, opts)
       }
 
     }
@@ -101,7 +101,7 @@ object Release {
       sgit.checkout(sgit.currentBranch)
     })
     sgit.checkout(branch)
-    Starter.chooseUpstreamIfUndef(out, sgit, branch)
+    Starter.chooseUpstreamIfUndef(out, sgit, branch, opts)
     out.print("I: Reading pom.xmls ..")
     val mod = PomMod.ofAether(workDirFile, err, aether)
     out.println(". done")
@@ -110,7 +110,7 @@ object Release {
       System.exit(0)
     }
 
-    val newMod = offerAutoFixForReleaseSnapshots(out, mod, sgit.lsFiles(), shellWidth, err, aether)
+    val newMod = offerAutoFixForReleaseSnapshots(out, mod, sgit.lsFiles(), shellWidth, err, aether, opts)
     if (newMod.hasNoShopPom) {
       out.println("---------")
       out.println("1. MAJOR version when you make incompatible API changes,")
@@ -124,9 +124,9 @@ object Release {
 
     @tailrec
     def readReleaseVersions: String = {
-      val result = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readChooseOneOfOrType(out, "Enter the release version", suggestedVersions))
+      val result = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readChooseOneOfOrType(out, "Enter the release version", suggestedVersions, opts))
       if (PomMod.isUnknownReleasePattern(result)) {
-        val retryVersionEnter = Term.readFromOneOfYesNo(out, "Unknown release version \"" + result + "\". Are you sure to continue?")
+        val retryVersionEnter = Term.readFromOneOfYesNo(out, "Unknown release version \"" + result + "\". Are you sure to continue?", opts)
         if (retryVersionEnter == "n") {
           readReleaseVersions
         } else {
@@ -152,9 +152,9 @@ object Release {
 
     @tailrec
     def readNextReleaseVersions: String = {
-      val result = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(out, "Enter the next version without -SNAPSHOT", newMod.suggestNextRelease(release)))
+      val result = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(out, "Enter the next version without -SNAPSHOT", newMod.suggestNextRelease(release), opts))
       if (PomMod.isUnknownReleasePattern(result)) {
-        val retryVersionEnter = Term.readFromOneOfYesNo(out, "Unknown next release version \"" + result + "\". Are you sure to continue?")
+        val retryVersionEnter = Term.readFromOneOfYesNo(out, "Unknown next release version \"" + result + "\". Are you sure to continue?", opts)
         if (retryVersionEnter == "n") {
           readNextReleaseVersions
         } else {
@@ -202,7 +202,7 @@ object Release {
           .distinct
 
         Release.formatVersionLines(t).foreach(out.println)
-        val continue = Term.readFromOneOfYesNo(out, "Continue?")
+        val continue = Term.readFromOneOfYesNo(out, "Continue?", opts)
         if (continue == "n") {
           System.exit(1)
         }
@@ -217,7 +217,7 @@ object Release {
     def checkReleaseBranch(): Unit = {
       if (sgit.listBranchNamesLocal().contains("release")) {
         val changes = Term.readFromOneOfYesNo(out, "You have a local branch with name 'release'. " +
-          "We use this name for branch creation. Delete this branch manually. Abort release?")
+          "We use this name for branch creation. Delete this branch manually. Abort release?", opts)
         if (changes == "y") {
           System.exit(1)
         } else {
@@ -284,7 +284,7 @@ object Release {
     }
     out.println(sgit.graph())
 
-    val sendToGerrit = Term.readFromOneOfYesNo(out, "Push to Gerrit?")
+    val sendToGerrit = Term.readFromOneOfYesNo(out, "Push to Gerrit?", opts)
     val selectedBranch = sgit.findUpstreamBranch().getOrElse(branch)
 
     def showManual(): Unit = {
@@ -358,7 +358,7 @@ object Release {
 
   // TODO @tailrec
   def offerAutoFixForReleaseSnapshots(out: PrintStream, mod: PomMod, gitFiles: Seq[String], shellWidth: Int, err: PrintStream,
-                                      aether: Aether): PomMod = {
+                                      aether: Aether, opts: Opts): PomMod = {
     val plugins = mod.listPluginDependencies
     if (mod.hasShopPom) {
       // TODO check if core needs this checks too
@@ -445,11 +445,11 @@ object Release {
         .foreach(println)
       out.println("")
 
-      val again = Term.readFromOneOfYesNo(out, "Try again?")
+      val again = Term.readFromOneOfYesNo(out, "Try again?", opts)
       if (again == "n") {
         System.exit(1)
       } else {
-        offerAutoFixForReleaseSnapshots(out, PomMod.ofAether(mod.file, err, aether), gitFiles, shellWidth, err, aether)
+        offerAutoFixForReleaseSnapshots(out, PomMod.ofAether(mod.file, err, aether), gitFiles, shellWidth, err, aether, opts)
       }
     }
     mod

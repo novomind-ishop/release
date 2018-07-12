@@ -66,6 +66,7 @@ class StarterTest extends AssertionsForJUnit {
       |--simple-chars      => use no drawing chars
       |--replace           => replaces release jar / only required for development
       |--no-gerrit         => use this toggle for non gerrit projects
+      |--no-jline          => if you have problems with terminal inputs, try this to read from Stdin
       |
       |showDependencyUpdates                => shows dependency updates from nexus option
       |versionSet newVersion                => changes version like maven
@@ -123,7 +124,7 @@ class StarterTest extends AssertionsForJUnit {
     // WHEN
     val in = StarterTest.willReadFrom("master\n")
     val result = StarterTest.withOutErr[Unit]((out, err) ⇒ Starter.fetchGitAndAskForBranch(out, err,
-      noVerify = SgitTest.hasCommitMsg, None, testRepoD, in, Opts()))
+      noVerify = SgitTest.hasCommitMsg, None, testRepoD, in, Opts(useJlineInput = false)))
 
     // THEN
     Assert.assertEquals("Enter branch name where to start from [master]:", result.out)
@@ -136,7 +137,7 @@ class StarterTest extends AssertionsForJUnit {
     // WHEN
     val in = StarterTest.willReadFrom("master\n")
     val result = StarterTest.withOutErr[Unit]((out, err) ⇒ Starter.fetchGitAndAskForBranch(out, err, noVerify = false,
-      None, testRepoD, in, Opts()))
+      None, testRepoD, in, Opts(useJlineInput = false)))
 
     // THEN
     Assert.assertEquals("Enter branch name where to start from [master]:", result.out)
@@ -180,6 +181,11 @@ class StarterTest extends AssertionsForJUnit {
   def testArgRead_noGerrit_skip_property(): Unit = {
     Assert.assertEquals(Opts(verifyGerrit = false, skipProperties = Seq("a", "b")),
       Starter.argsRead(Seq("--no-gerrit", "--skip-property", "a", "--skip-property", "b"), Opts()))
+  }
+
+  @Test
+  def testArgRead_noJline(): Unit = {
+    Assert.assertEquals(Opts(useJlineInput = false), Starter.argsRead(Seq("--no-jline"), Opts()))
   }
 
   @Test

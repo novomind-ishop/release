@@ -60,16 +60,16 @@ object Starter extends App with LazyLogging {
     }(ec))(ec)
   }
 
-  def suggestRebase(out: PrintStream, sgit: Sgit, branch: String): () ⇒ Unit = {
+  def suggestRebase(out: PrintStream, sgit: Sgit, branch: String, opts: Opts): () ⇒ Unit = {
     logger.trace("ask for rebase")
     sgit.checkout(branch)
-    chooseUpstreamIfUndef(out, sgit, branch)
+    chooseUpstreamIfUndef(out, sgit, branch, opts)
     if (sgit.isNotDetached) {
       val shouldRebase = sgit.commitIds("@{upstream}", branch)
       if (shouldRebase != Nil) {
         () ⇒ {
           val update = Term.readFromOneOfYesNo(out, "Your branch is " + shouldRebase.size +
-            " commits behind or ahead defined upstream. Rebase local branch?")
+            " commits behind or ahead defined upstream. Rebase local branch?", opts)
           if (update == "y") {
             sgit.rebase()
           }
@@ -113,7 +113,7 @@ object Starter extends App with LazyLogging {
 
       }
 
-      val branch = Term.readFrom(out, "Enter branch name where to start from", suggestCurrentBranch(workDirFile), in)
+      val branch = Term.readFrom(out, "Enter branch name where to start from", suggestCurrentBranch(workDirFile), opts, in)
       val git = workGit(workDirFile)
       val allBranches = git.listBranchNamesAllFull()
       if (!allBranches.contains(branch)) {
@@ -174,7 +174,7 @@ object Starter extends App with LazyLogging {
   case class Opts(simpleChars: Boolean = false, invalids: Seq[String] = Nil, showHelp: Boolean = false,
                   showUpdateCmd: Boolean = false, versionSet: Option[String] = None, shopGA: Option[String] = None,
                   createFeature: Boolean = false, verifyGerrit: Boolean = true, doUpdate: Boolean = true,
-                  showDependencyUpdates: Boolean = false, jlineDemo: Boolean = false, skipProperties: Seq[String] = Nil,
+                  showDependencyUpdates: Boolean = false, useJlineInput: Boolean = true, skipProperties: Seq[String] = Nil,
                   useDefaults:Boolean = false)
 
   @tailrec
@@ -189,13 +189,13 @@ object Starter extends App with LazyLogging {
       case "--no-gerrit" :: tail ⇒ argsRead(tail, inOpt.copy(verifyGerrit = false))
       case "--no-update" :: tail ⇒ argsRead(tail, inOpt.copy(doUpdate = false))
       case "--defaults" :: tail ⇒ argsRead(tail, inOpt.copy(useDefaults = true))
+      case "--no-jline" :: tail ⇒ argsRead(tail, inOpt.copy(useJlineInput = false))
       case "--skip-property" :: value :: tail ⇒ argsRead(tail, inOpt.copy(skipProperties = inOpt.skipProperties ++ Seq(value)))
       // CMDs
       case "versionSet" :: value :: tail ⇒ argsRead(tail, inOpt.copy(versionSet = Some(value)))
       case "shopGASet" :: value :: tail ⇒ argsRead(tail, inOpt.copy(shopGA = Some(value)))
       case "nothing-but-create-feature-branch" :: tail ⇒ argsRead(tail, inOpt.copy(createFeature = true))
       case "showDependencyUpdates" :: tail ⇒ argsRead(tail, inOpt.copy(showDependencyUpdates = true))
-      case "jline" :: tail ⇒ argsRead(tail, inOpt.copy(jlineDemo = true))
 
       // --
       case string :: Nil ⇒ argsRead(Nil, inOpt.copy(invalids = inOpt.invalids :+ string))
@@ -246,6 +246,7 @@ object Starter extends App with LazyLogging {
       out.println("--simple-chars      => use no drawing chars")
       out.println("--replace           => replaces release jar / only required for development")
       out.println("--no-gerrit         => use this toggle for non gerrit projects")
+      out.println("--no-jline          => if you have problems with terminal inputs, try this to read from Stdin")
       out.println()
       out.println("showDependencyUpdates                => shows dependency updates from nexus option")
       out.println("versionSet newVersion                => changes version like maven")
@@ -257,18 +258,6 @@ object Starter extends App with LazyLogging {
       out.println()
       out.println("Your home dir is: " + config.getUserNome())
       return 0
-    }
-    if (opts.jlineDemo) {
-      out.println("jline demo .. ")
-      val a = Term.readLine("text a: ")
-      out.println("a: \"" + a + "\"")
-
-      val b = Term.readLine("text b: ")
-      println("b: \"" + b + "\"")
-
-      val c = Term.readLine("text c: ")
-      println("c: \"" + c + "\"")
-      System.exit(28)
     }
 
     val gitBinEnv = config.gitBinEnv()
@@ -336,7 +325,7 @@ object Starter extends App with LazyLogging {
         // git fetch
         if (activeGit.listRefNames().contains("refs/notes/review")) {
           val result = Term.readFromOneOfYesNo(out, "Ref: " + "refs/notes/review" + " found." +
-            " This ref leads to an unreadable local history. Do you want to remove them?")
+            " This ref leads to an unreadable local history. Do you want to remove them?", opts)
           if (result == "y") {
             val configRefs = activeGit.configGetAll("remote.origin.fetch").getOrElse(Nil)
             configRefs.filter(_.startsWith("refs/notes/"))
@@ -351,7 +340,7 @@ object Starter extends App with LazyLogging {
       val git = gitAndBranchname._1
       suggestLocalNotesReviewRemoval(git)
       val startBranch = gitAndBranchname._2
-      val askForRebase = suggestRebase(out, git, startBranch)
+      val askForRebase = suggestRebase(out, git, startBranch, opts)
       logger.trace("readFromPrompt")
       Tracer.withFn(logger, () ⇒ "local branches: " + git.listBranchNamesLocal())
       if (versionSetMode) {
@@ -374,7 +363,7 @@ object Starter extends App with LazyLogging {
       } else {
         lazy val aether = new Aether(opts)
         Release.work(workDirFile, out, err, askForRebase, startBranch,
-          git, opts.showDependencyUpdates, termOs, shellWidth, releaseToolGit.headStatusValue(), config, aether)
+          git, opts.showDependencyUpdates, termOs, shellWidth, releaseToolGit.headStatusValue(), config, aether, opts)
       }
 
       return 0
@@ -438,17 +427,17 @@ object Starter extends App with LazyLogging {
   }
 
   @tailrec
-  def chooseUpstreamIfUndef(out: PrintStream, sgit: Sgit, branch: String): Unit = {
+  def chooseUpstreamIfUndef(out: PrintStream, sgit: Sgit, branch: String, opts: Opts): Unit = {
     val upstream = sgit.findUpstreamBranch()
     if (upstream.isEmpty && sgit.isNotDetached) {
-      val newUpstream = Term.readChooseOneOfOrType(out, "No upstream found, please set", Seq("origin/master", "origin/" + branch).distinct)
+      val newUpstream = Term.readChooseOneOfOrType(out, "No upstream found, please set", Seq("origin/master", "origin/" + branch).distinct, opts)
       val remoteBranchNames = sgit.listBranchNamesRemote()
       if (remoteBranchNames.contains(newUpstream)) {
         sgit.setUpstream(newUpstream)
         return
       } else {
         out.println("W: unknown upstream branch; known are " + remoteBranchNames.mkString(", "))
-        chooseUpstreamIfUndef(out, sgit, branch)
+        chooseUpstreamIfUndef(out, sgit, branch, opts)
       }
     }
   }

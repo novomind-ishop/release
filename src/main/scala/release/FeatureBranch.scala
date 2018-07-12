@@ -13,9 +13,9 @@ object FeatureBranch {
     rebaseFn.apply()
     sgit.checkout(branch)
 
-    Starter.chooseUpstreamIfUndef(out, sgit, branch)
+    Starter.chooseUpstreamIfUndef(out, sgit, branch, opts)
 
-    val featureName = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(out, "Enter the feature name", ""))
+    val featureName = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(out, "Enter the feature name", "", opts))
     val featureWitoutSnapshot = featureName.replaceFirst("-SNAPSHOT$", "")
     val featureSnapshot = featureWitoutSnapshot + "-SNAPSHOT"
 
@@ -23,7 +23,7 @@ object FeatureBranch {
     def checkFeatureBranch(): Unit = {
       if (sgit.listBranchNamesLocal().contains("feature")) {
         val changes = Term.readFromOneOfYesNo(out, "You have a local branch with name 'feature'. " +
-          "We use this name for branch creation. Delete this branch manually. Abort release?")
+          "We use this name for branch creation. Delete this branch manually. Abort release?", opts)
         if (changes == "y") {
           System.exit(1)
         } else {
