@@ -593,10 +593,13 @@ object Sgit {
           throw new IllegalStateException("git version 2.13 support ended at 2018-05-02")
         case v: String if v.startsWith("git version 2.14.") ⇒
           // (2017-10-23) - (tag: v2.14.3)
-          out.println("W: please update your git version, \"" + v + "\" support ends at 2018-07-02");
-        case v: String if v.startsWith("git version 2.15.") ⇒ // do nothing (2017-11-28) - (tag: v2.15.1)
+          throw new IllegalStateException("git version 2.13 support ended at 2018-07-02")
+        case v: String if v.startsWith("git version 2.15.") ⇒
+          // do nothing (2017-11-28) - (tag: v2.15.1)
+          out.println("W: please update your git version, \"" + v + "\" support ends at 2018-11-02");
         case v: String if v.startsWith("git version 2.16.") ⇒ // do nothing (2018-02-15) - (tag: v2.16.2)
         case v: String if v.startsWith("git version 2.17.") ⇒ // do nothing (2018-04-02) - (tag: v2.17.0)
+        case v: String if v.startsWith("git version 2.18.") ⇒ // do nothing (2018-06-21) - (tag: v2.18.0)
         case v: String ⇒ out.println("W: unknown/untested git version: \"" + v + "\". Please create a ticket at ISPS.");
       }
       gits = gits ++ Map(cmd → result)
