@@ -174,12 +174,12 @@ class StarterTest extends AssertionsForJUnit {
 
   @Test
   def testArgRead_noGerrit(): Unit = {
-    Assert.assertEquals(Opts(verifyGerrit = false), Starter.argsRead(Seq("--no-gerrit"), Opts()))
+    Assert.assertEquals(Opts(useGerrit = false), Starter.argsRead(Seq("--no-gerrit"), Opts()))
   }
 
   @Test
   def testArgRead_noGerrit_skip_property(): Unit = {
-    Assert.assertEquals(Opts(verifyGerrit = false, skipProperties = Seq("a", "b")),
+    Assert.assertEquals(Opts(useGerrit = false, skipProperties = Seq("a", "b")),
       Starter.argsRead(Seq("--no-gerrit", "--skip-property", "a", "--skip-property", "b"), Opts()))
   }
 
@@ -222,7 +222,7 @@ class StarterTest extends AssertionsForJUnit {
 
   @Test
   def testArgRead_mixed(): Unit = {
-    val opts = Opts(showDependencyUpdates = true, showHelp = true, verifyGerrit = false)
+    val opts = Opts(showDependencyUpdates = true, showHelp = true, useGerrit = false)
     Assert.assertEquals(opts, Starter.argsRead(Seq("showDependencyUpdates", "--help", "--no-gerrit", "", " ", "\t"), Opts()))
   }
 

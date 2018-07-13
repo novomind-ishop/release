@@ -173,7 +173,7 @@ object Starter extends App with LazyLogging {
 
   case class Opts(simpleChars: Boolean = false, invalids: Seq[String] = Nil, showHelp: Boolean = false,
                   showUpdateCmd: Boolean = false, versionSet: Option[String] = None, shopGA: Option[String] = None,
-                  createFeature: Boolean = false, verifyGerrit: Boolean = true, doUpdate: Boolean = true,
+                  createFeature: Boolean = false, useGerrit: Boolean = true, doUpdate: Boolean = true,
                   showDependencyUpdates: Boolean = false, useJlineInput: Boolean = true, skipProperties: Seq[String] = Nil,
                   useDefaults:Boolean = false)
 
@@ -186,7 +186,7 @@ object Starter extends App with LazyLogging {
       case "-h" :: tail ⇒ argsRead(tail, inOpt.copy(showHelp = true))
       case "--replace" :: tail ⇒ argsRead(tail, inOpt) // handled by shell
       case "--show-update-cmd" :: tail ⇒ argsRead(tail, inOpt.copy(showUpdateCmd = true))
-      case "--no-gerrit" :: tail ⇒ argsRead(tail, inOpt.copy(verifyGerrit = false))
+      case "--no-gerrit" :: tail ⇒ argsRead(tail, inOpt.copy(useGerrit = false))
       case "--no-update" :: tail ⇒ argsRead(tail, inOpt.copy(doUpdate = false))
       case "--defaults" :: tail ⇒ argsRead(tail, inOpt.copy(useDefaults = true))
       case "--no-jline" :: tail ⇒ argsRead(tail, inOpt.copy(useJlineInput = false))
@@ -225,7 +225,7 @@ object Starter extends App with LazyLogging {
     val showHelp = opts.showHelp
     val showUpdateCmd = opts.showUpdateCmd
     val createFeatureBranch = opts.createFeature
-    val verifyGerrit = opts.verifyGerrit
+    val verifyGerrit = opts.useGerrit
     val versionSetMode = opts.versionSet.isDefined
     val shopGASetMode = opts.shopGA.isDefined
 

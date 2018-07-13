@@ -126,6 +126,11 @@ object Release {
     def readReleaseVersions: String = {
       val result = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readChooseOneOfOrType(out, "Enter the release version", suggestedVersions, opts))
       if (PomMod.isUnknownReleasePattern(result)) {
+        if (mod.hasShopPom) {
+          out.println("I: We prefer:")
+          out.println("I: RC-{YEAR}.{WEEK OF YEAR} for common releases")
+          out.println("I: RC-{YEAR}.{WEEK OF YEAR}.{NUMBER} for intermediate releases")
+        }
         val retryVersionEnter = Term.readFromOneOfYesNo(out, "Unknown release version \"" + result + "\". Are you sure to continue?", opts)
         if (retryVersionEnter == "n") {
           readReleaseVersions
@@ -167,27 +172,43 @@ object Release {
 
     val nextReleaseWithoutSnapshot = readNextReleaseVersions
 
-    val relevantDeps = mod.listDependecies
-      .filter(in ⇒ in.groupId.startsWith("com.novomind.ishop.core") ||
-        (in.groupId == "com.novomind.ishop.shops" && in.artifactId == "ishop-shop-parent"))
+    val relevantDeps = if (mod.hasNoShopPom) {
+      mod.listDependecies.filter(in ⇒ in.groupId.startsWith("com.novomind.ishop.core"))
+    } else {
+      val selfGavs = mod.selfDepsMod.map(_.gav())
+      mod.listDependecies
+        .filter(in ⇒ in.groupId.startsWith("com.novomind.ishop"))
+        .filterNot(in ⇒ selfGavs.contains(in.gav()))
+    }
     val releaseMajorVersion = if (mod.hasNoShopPom) {
       release.replaceAll("\\..*", "")
     } else {
       relevantDeps.map(_.version).max.replaceAll("\\..*", "")
     }
-    val coreVersions: Seq[(String, Dep)] = relevantDeps
-        .map(in ⇒ (in.version, in))
-        .distinct
-        .filter(_._1.nonEmpty)
-        .sortBy(_._1)
-      val coreMajorVersions: Seq[(String, Dep)] = coreVersions
-        .map(in ⇒ (in._1.replaceAll("\\..*", "").trim, in._2))
-        .distinct
-        .filter(_._1.nonEmpty)
-        .sortBy(_._1)
+    val relevantFilteredDeps = if (releaseMajorVersion.matches("[0-9]+")) {
+      if (releaseMajorVersion.toInt >= 32) {
+        relevantDeps
+      } else {
+        relevantDeps
+          .filter(in ⇒ in.groupId == "com.novomind.ishop.exi" && in.artifactId == "ishop-ext-authentication")
+      }
+    } else {
+      relevantDeps
+    }
 
-      val sortedMajors = coreMajorVersions.map(_._1).distinct.sorted
-      if (coreMajorVersions != Nil && sortedMajors != Seq(releaseMajorVersion)) {
+    val coreVersions: Seq[(String, Dep)] = relevantFilteredDeps
+      .map(in ⇒ (in.version, in))
+      .distinct
+      .filter(_._1.nonEmpty)
+      .sortBy(_._1)
+    val coreMajorVersions: Seq[(String, Dep)] = coreVersions
+      .map(in ⇒ (in._1.replaceAll("\\..*", "").trim, in._2))
+      .distinct
+      .filter(_._1.nonEmpty)
+      .sortBy(_._1)
+
+    val sortedMajors = coreMajorVersions.map(_._1).distinct.sorted
+    if (coreMajorVersions != Nil && sortedMajors != Seq(releaseMajorVersion)) {
 
       if (mod.hasNoShopPom) {
         out.println("W: You are trying to release major version " + releaseMajorVersion + " (" + release +
@@ -196,17 +217,17 @@ object Release {
         out.println("W: You are trying to use major version " + releaseMajorVersion +
           " but this artifact refers to: " + sortedMajors.mkString(" and "))
       }
-        val t = coreMajorVersions
-          .sortBy(a ⇒ a._2.version)
-          .map(in ⇒ "  * " + Seq(in._2.groupId, in._2.artifactId, in._2.version).mkString(":"))
-          .distinct
+      val t = coreMajorVersions
+        .sortBy(a ⇒ a._2.version)
+        .map(in ⇒ "  * " + Seq(in._2.groupId, in._2.artifactId, in._2.version).mkString(":"))
+        .distinct
 
-        Release.formatVersionLines(t).foreach(out.println)
-        val continue = Term.readFromOneOfYesNo(out, "Continue?", opts)
-        if (continue == "n") {
-          System.exit(1)
-        }
+      Release.formatVersionLines(t).foreach(out.println)
+      val continue = Term.readFromOneOfYesNo(out, "Continue?", opts)
+      if (continue == "n") {
+        System.exit(1)
       }
+    }
 
     val nextSnapshot = nextReleaseWithoutSnapshot + "-SNAPSHOT"
     if (newMod.selfVersion != nextSnapshot) {
@@ -240,14 +261,24 @@ object Release {
     } else {
 
       out.print("Committing pom changes ..")
-      sgit.doCommitPomXmlsAnd(
-        """[%s] prepare for next iteration - %s
-          |
-          |Signed-off-by: %s
-          |Releasetool-sign: %s
-          |Releasetool-sha1: %s""".stripMargin.format(config.releasPrefix(), nextReleaseWithoutSnapshot,
-          config.signedOfBy(), Starter.sign(), toolSh1),
-        releaseMod.depTreeFilenameList())
+      if (opts.useGerrit) {
+        sgit.doCommitPomXmlsAnd(
+          """[%s] prepare for next iteration - %s
+            |
+            |Signed-off-by: %s
+            |Releasetool-sign: %s
+            |Releasetool-sha1: %s""".stripMargin.format(config.releasPrefix(), nextReleaseWithoutSnapshot,
+            config.signedOfBy(), Starter.sign(), toolSh1),
+          releaseMod.depTreeFilenameList())
+      } else {
+        sgit.doCommitPomXmlsAnd(
+          """[%s] prepare for next iteration - %s
+            |
+            |Releasetool-sign: %s
+            |Releasetool-sha1: %s""".stripMargin.format(config.releasPrefix(), nextReleaseWithoutSnapshot,
+            Starter.sign(), toolSh1),
+          releaseMod.depTreeFilenameList())
+      }
 
       out.println(". done")
     }
@@ -264,13 +295,22 @@ object Release {
       out.println("skipped release commit on " + releaseBrachName)
     } else {
       out.print("Commiting pom changes ..")
-      sgit.doCommitPomXmlsAnd(
-        """[%s] perform to - %s
-          |
-          |Signed-off-by: %s
-          |Releasetool-sign: %s
-          |Releasetool-sha1: %s""".stripMargin.format(config.releasPrefix(), release,
-          config.signedOfBy(), Starter.sign(), toolSh1), releaseMod.depTreeFilenameList())
+      if (opts.useGerrit) {
+        sgit.doCommitPomXmlsAnd(
+          """[%s] perform to - %s
+            |
+            |Signed-off-by: %s
+            |Releasetool-sign: %s
+            |Releasetool-sha1: %s""".stripMargin.format(config.releasPrefix(), release,
+            config.signedOfBy(), Starter.sign(), toolSh1), releaseMod.depTreeFilenameList())
+      } else {
+        sgit.doCommitPomXmlsAnd(
+          """[%s] perform to - %s
+            |
+            |Releasetool-sign: %s
+            |Releasetool-sha1: %s""".stripMargin.format(config.releasPrefix(), release,
+            Starter.sign(), toolSh1), releaseMod.depTreeFilenameList())
+      }
       out.println(". done")
     }
     if (releaseMod.hasNoShopPom) {
@@ -284,7 +324,6 @@ object Release {
     }
     out.println(sgit.graph())
 
-    val sendToGerrit = Term.readFromOneOfYesNo(out, "Push to Gerrit?", opts)
     val selectedBranch = sgit.findUpstreamBranch().getOrElse(branch)
 
     def showManual(): Unit = {
@@ -312,45 +351,50 @@ object Release {
             |NOTE: the "send to remote" command pushes the HEAD via Gerrit Code Review, this might not be needed for branches != master""").stripMargin)
     }
 
-    if (sendToGerrit == "y") {
-      try {
-        if (sgit.hasChangesToPush) {
-          val result = sgit.pushFor(srcBranchName = branch, targetBranchName = selectedBranch)
-          // TODO handle push output
-          if (config.openGerritInBrowser) {
-            // TODO hier gerrit öffnen da man submit klicken muss
-            // TODO wenn man genau den change öffnen könnte wär noch cooler
-            Starter.openInDefaultBrowser(config.gerritBaseUrl() + "#/q/status:open")
-          }
-          if (newMod.hasNoShopPom) {
-            val strings = sgit.pushTag(release)
+    if (opts.useGerrit) {
+      val sendToGerrit = Term.readFromOneOfYesNo(out, "Push to Gerrit?", opts)
+      if (sendToGerrit == "y") {
+        try {
+          if (sgit.hasChangesToPush) {
+            val result = sgit.pushFor(srcBranchName = branch, targetBranchName = selectedBranch)
             // TODO handle push output
-            if (config.openJenkinsInBrowser) {
-              val jenkinsBase = config.jenkinsBaseUrl()
-              val tagUrl = Starter.tagBuildUrl(sgit, jenkinsBase)
-              // TODO hier erstmal nur den browser auf machen damit man build tag klicken kann
-              Starter.openInDefaultBrowser(tagUrl.getOrElse(jenkinsBase + "/search/?q=-tag"))
-              // try to notify jenkins about tag builds
-              // TODO try to wait for successful tag builds ... subscribe to logs
+            if (config.openGerritInBrowser) {
+              // TODO hier gerrit öffnen da man submit klicken muss
+              // TODO wenn man genau den change öffnen könnte wär noch cooler
+              Starter.openInDefaultBrowser(config.gerritBaseUrl() + "#/q/status:open")
+            }
+            if (newMod.hasNoShopPom) {
+              val strings = sgit.pushTag(release)
+              // TODO handle push output
+              if (config.openJenkinsInBrowser) {
+                val jenkinsBase = config.jenkinsBaseUrl()
+                val tagUrl = Starter.tagBuildUrl(sgit, jenkinsBase)
+                // TODO hier erstmal nur den browser auf machen damit man build tag klicken kann
+                Starter.openInDefaultBrowser(tagUrl.getOrElse(jenkinsBase + "/search/?q=-tag"))
+                // try to notify jenkins about tag builds
+                // TODO try to wait for successful tag builds ... subscribe to logs
+              }
             }
           }
+          if (newMod.hasShopPom) {
+            val result = sgit.pushHeads(srcBranchName = "release/" + releaseWitoutSnapshot,
+              targetBranchName = "release/" + releaseWitoutSnapshot)
+            // TODO handle push output
+            // TODO try to trigger job updates for jenkins
+            // TODO try to trigger job execution in loop with abort
+          }
+          out.println("done.")
+        } catch {
+          case e: RuntimeException ⇒ {
+            err.println("E: Push failed - try manual - " + e.getMessage)
+            showManual()
+          }
         }
-        if (newMod.hasShopPom) {
-          val result = sgit.pushHeads(srcBranchName = "release/" + releaseWitoutSnapshot,
-            targetBranchName = "release/" + releaseWitoutSnapshot)
-          // TODO handle push output
-          // TODO try to trigger job updates for jenkins
-          // TODO try to trigger job execution in loop with abort
-        }
-        out.println("done.")
-      } catch {
-        case e: RuntimeException ⇒ {
-          err.println("E: Push failed - try manual - " + e.getMessage)
-          showManual()
-        }
+      } else {
+        showManual()
       }
     } else {
-      showManual()
+      err.println("W: No gerrit push is not implemented")
     }
 
     Nil
