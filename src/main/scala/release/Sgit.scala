@@ -33,42 +33,54 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     gitNative(Seq("rev-parse", "--is-shallow-repository")).toBoolean
   }
 
-  private def configRemoveAll(key: String, value: String): Unit = {
+  private def configRemoveLocalAll(key: String, value: String): Unit = {
     gitNative(Seq("config", "--local", "--unset-all", key, value))
   }
 
-  private[release] def configRemove(key: String, value: String): Unit = {
-    val values = configGetAll(key)
+  private[release] def configRemoveLocal(key: String, value: String): Unit = {
+    val values = configGetLocalAll(key)
     values match {
       case None ⇒ // do nothing
       case s: Some[Seq[String]] if s.get.size == 1 ⇒ gitNative(Seq("config", "--local", "--unset", key, value))
-      case s: Some[Seq[String]] if s.get.size > 1 ⇒ configRemoveAll(key, value)
+      case s: Some[Seq[String]] if s.get.size > 1 ⇒ configRemoveLocalAll(key, value)
     }
 
   }
 
-  private[release] def configAdd(key: String, value: String): Unit = {
+  private[release] def configAddLocal(key: String, value: String): Unit = {
     gitNative(Seq("config", "--local", "--add", key, value))
   }
 
-  private[release] def configSet(key: String, value: String): Unit = {
+  private[release] def configSetLocal(key: String, value: String): Unit = {
     gitNative(Seq("config", "--local", key, value))
   }
 
-  private[release] def configGetAll(key: String): Option[Seq[String]] = {
+  private[release] def configGetLocalAll(key: String): Option[Seq[String]] = {
     gitNativeOpt(Seq("config", "--local", "--get-all", key)).map(_.lines.toList)
   }
 
+  private[release] def configGetLocalAllSeq(key: String): Seq[String] = {
+    configGetLocalAll(key).getOrElse(Nil).toList
+  }
+
+  private[release] def configGetGlobalAll(key: String): Option[Seq[String]] = {
+    gitNativeOpt(Seq("config", "--global", "--get-all", key)).map(_.lines.toList)
+  }
+
+  private[release] def configGetGlobalAllSeq(key: String): Seq[String] = {
+    configGetGlobalAll(key).getOrElse(Nil).toList
+  }
+
   private[release] def addByString(f: String): Unit = {
-    configSet("core.safecrlf", "false")
+    configSetLocal("core.safecrlf", "false")
     gitNative(Seq("add", f))
-    configSet("core.safecrlf", "warn")
+    configSetLocal("core.safecrlf", "warn")
   }
 
   private[release] def addAll(f: Seq[String]): Unit = {
-    configSet("core.safecrlf", "false")
+    configSetLocal("core.safecrlf", "false")
     gitNative(Seq("add") ++ f)
-    configSet("core.safecrlf", "warn")
+    configSetLocal("core.safecrlf", "warn")
   }
 
   private[release] def add(f: File): Unit = {
@@ -88,7 +100,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     if (ms(1).nonEmpty) {
       throw new IllegalStateException("non empty line")
     }
-    configSet("core.safecrlf", "false")
+    configSetLocal("core.safecrlf", "false")
     val oldComitId = commitIdHeadOpt()
     // _gen_ChangeIdInput() {
     //   echo "tree `git write-tree`"
@@ -120,7 +132,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
       doCommit("0000000000000000000000000000000000000000")
       out.println("W: no old commit id")
     }
-    configSet("core.safecrlf", "warn")
+    configSetLocal("core.safecrlf", "warn")
   }
 
   def verify(): Unit = {

@@ -84,7 +84,7 @@ object Starter extends App with LazyLogging {
   }
 
   def fetchGitAndAskForBranch(out: PrintStream, err: PrintStream, noVerify: Boolean,
-                              gitBinEnv: Option[String], workDirFile: File, in: BufferedReader, opts:Opts): (Sgit, String) = {
+                              gitBinEnv: Option[String], workDirFile: File, in: BufferedReader, opts: Opts): (Sgit, String) = {
     val global = ExecutionContext.global
 
     def fetchGit(file: File): Sgit = {
@@ -175,7 +175,7 @@ object Starter extends App with LazyLogging {
                   showUpdateCmd: Boolean = false, versionSet: Option[String] = None, shopGA: Option[String] = None,
                   createFeature: Boolean = false, useGerrit: Boolean = true, doUpdate: Boolean = true,
                   showDependencyUpdates: Boolean = false, useJlineInput: Boolean = true, skipProperties: Seq[String] = Nil,
-                  useDefaults:Boolean = false)
+                  useDefaults: Boolean = false)
 
   @tailrec
   def argsRead(params: Seq[String], inOpt: Opts): Opts = {
@@ -327,12 +327,21 @@ object Starter extends App with LazyLogging {
           val result = Term.readFromOneOfYesNo(out, "Ref: " + "refs/notes/review" + " found." +
             " This ref leads to an unreadable local history. Do you want to remove them?", opts)
           if (result == "y") {
-            val configRefs = activeGit.configGetAll("remote.origin.fetch").getOrElse(Nil)
+            val configRefs = activeGit.configGetLocalAllSeq("remote.origin.fetch")
             configRefs.filter(_.startsWith("refs/notes/"))
               .map(_.replaceAll("\\*", "\\\\*"))
-              .foreach(in ⇒ activeGit.configRemove("remote.origin.fetch", in))
+              .foreach(in ⇒ activeGit.configRemoveLocal("remote.origin.fetch", in))
           }
           activeGit.deleteRef("refs/notes/review")
+        }
+        val autoCrlf = activeGit.configGetGlobalAllSeq("core.autocrlf")
+        if (autoCrlf != Seq("input")) {
+          val result = Term.readFromOneOfYesNo(out, "You have an unespected core.autocrlf setting (%s) in your global .gitconfig. ".format(autoCrlf.mkString(", ")) +
+            "Please set to '$ git config --global core.autocrlf input'. Continue?", opts)
+          // XXX do not change global settings via script
+          if (result == "n") {
+            System.exit(1)
+          }
         }
 
       }
