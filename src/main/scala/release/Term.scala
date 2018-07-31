@@ -63,13 +63,13 @@ object Term {
     }
 
     result match {
-      case in if in.contains("-UNDEF") ⇒ throw new IllegalArgumentException("\"-UNDEF\" is not allowed")
-      case in if in.trim.isEmpty ⇒ throw new IllegalArgumentException("blank is not allowed")
+      case value if value.contains("-UNDEF") ⇒ throw new IllegalArgumentException("\"-UNDEF\" is not allowed")
+      case value if value.trim.isEmpty ⇒ throw new IllegalArgumentException("blank is not allowed")
       case other ⇒ other
     }
   }
 
-  def readFromOneOfYesNo(out: PrintStream, text: String, opts: Opts, in: BufferedReader = Console.in) = readFromOneOf(out, text, Seq("y", "n"), opts, in)
+  def readFromOneOfYesNo(out: PrintStream, text: String, opts: Opts, in: BufferedReader = Console.in): String = readFromOneOf(out, text, Seq("y", "n"), opts, in)
 
   @tailrec
   def readFromOneOf(out: PrintStream, text: String, possibleValues: Seq[String], opts: Opts, in: BufferedReader = Console.in): String = {
@@ -81,7 +81,7 @@ object Term {
     }
   }
 
-  def readFromYes(out: PrintStream, text: String, opts: Opts) = readFrom(out, text, "y", opts)
+  def readFromYes(out: PrintStream, text: String, opts: Opts): String = readFrom(out, text, "y", opts)
 
   private def printOptions(out: PrintStream, possibleValues: Seq[String]): Map[String, String] = {
     possibleValues.zip(Stream.from(1))

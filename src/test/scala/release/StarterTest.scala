@@ -8,7 +8,7 @@ import org.junit.rules.Timeout
 import org.junit.{Assert, Rule, Test}
 import org.scalatest.junit.AssertionsForJUnit
 import release.Sgit.GitRemote
-import release.Starter.{FutureEither, FutureError, Opts}
+import release.Starter.{FutureEither, FutureError, Opts, OptsDepUp}
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -217,13 +217,14 @@ class StarterTest extends AssertionsForJUnit {
 
   @Test
   def testArgRead_showDependencyUpdates(): Unit = {
-    Assert.assertEquals(Opts(showDependencyUpdates = true), Starter.argsRead(Seq("showDependencyUpdates"), Opts()))
+    Assert.assertEquals(Opts(depUpOpts = OptsDepUp().copy(showDependencyUpdates = true)),
+      Starter.argsRead(Seq("showDependencyUpdates"), Opts()))
   }
 
   @Test
   def testArgRead_mixed(): Unit = {
-    val opts = Opts(showDependencyUpdates = true, showHelp = true, useGerrit = false)
-    Assert.assertEquals(opts, Starter.argsRead(Seq("showDependencyUpdates", "--help", "--no-gerrit", "", " ", "\t"), Opts()))
+    val opts = Opts(depUpOpts = OptsDepUp().copy(showDependencyUpdates = true, showHelp = true), useGerrit = false)
+    Assert.assertEquals(opts, Starter.argsRead(Seq("--no-gerrit", "showDependencyUpdates", "--help", "", " ", "\t"), Opts()))
   }
 
   @Test

@@ -171,10 +171,25 @@ object Starter extends App with LazyLogging {
     }
   }
 
+  case class OptsDepUp(showDependencyUpdates: Boolean = false, showHelp: Boolean = false, invalids: Seq[String] = Nil)
+
+  @tailrec
+  def argsDepRead(params: Seq[String], inOpt: Opts): Opts = {
+    params.filter(in ⇒ in.trim.nonEmpty) match {
+      case Nil ⇒ inOpt
+      case "--help" :: tail ⇒ argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(showHelp = true)))
+      case "-h" :: tail ⇒ argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(showHelp = true)))
+
+      // --
+      case string :: Nil ⇒ argsDepRead(Nil, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(invalids = inOpt.depUpOpts.invalids :+ string)))
+      case string :: tail ⇒ argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(invalids = inOpt.depUpOpts.invalids :+ string)))
+    }
+  }
+
   case class Opts(simpleChars: Boolean = false, invalids: Seq[String] = Nil, showHelp: Boolean = false,
                   showUpdateCmd: Boolean = false, versionSet: Option[String] = None, shopGA: Option[String] = None,
                   createFeature: Boolean = false, useGerrit: Boolean = true, doUpdate: Boolean = true,
-                  showDependencyUpdates: Boolean = false, useJlineInput: Boolean = true, skipProperties: Seq[String] = Nil,
+                  depUpOpts: OptsDepUp = OptsDepUp(), useJlineInput: Boolean = true, skipProperties: Seq[String] = Nil,
                   useDefaults: Boolean = false)
 
   @tailrec
@@ -192,10 +207,10 @@ object Starter extends App with LazyLogging {
       case "--no-jline" :: tail ⇒ argsRead(tail, inOpt.copy(useJlineInput = false))
       case "--skip-property" :: value :: tail ⇒ argsRead(tail, inOpt.copy(skipProperties = inOpt.skipProperties ++ Seq(value)))
       // CMDs
-      case "versionSet" :: value :: tail ⇒ argsRead(tail, inOpt.copy(versionSet = Some(value)))
-      case "shopGASet" :: value :: tail ⇒ argsRead(tail, inOpt.copy(shopGA = Some(value)))
-      case "nothing-but-create-feature-branch" :: tail ⇒ argsRead(tail, inOpt.copy(createFeature = true))
-      case "showDependencyUpdates" :: tail ⇒ argsRead(tail, inOpt.copy(showDependencyUpdates = true))
+      case "versionSet" :: value :: _ ⇒ argsRead(Nil, inOpt.copy(versionSet = Some(value)))
+      case "shopGASet" :: value :: _ ⇒ argsRead(Nil, inOpt.copy(shopGA = Some(value)))
+      case "nothing-but-create-feature-branch" :: _ ⇒ argsRead(Nil, inOpt.copy(createFeature = true))
+      case "showDependencyUpdates" :: tail ⇒ argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(showDependencyUpdates = true)))
 
       // --
       case string :: Nil ⇒ argsRead(Nil, inOpt.copy(invalids = inOpt.invalids :+ string))
@@ -339,6 +354,7 @@ object Starter extends App with LazyLogging {
           val msg = "You have an unespected core.autocrlf setting (%s) in your global .gitconfig. ".format(autoCrlf.mkString(", ")) +
             "Please set to '$ git config --global core.autocrlf input'."
           val options = Seq("Change core.autocrlf globaly to 'input'", "Abort release", "Continue")
+
           def autoCrlfCheck(): Unit = {
             val result = Term.readChooseOneOf(out, msg, options, opts)
             if (result == options(1)) {
@@ -351,6 +367,7 @@ object Starter extends App with LazyLogging {
               autoCrlfCheck()
             }
           }
+
           autoCrlfCheck()
 
         }
@@ -383,7 +400,7 @@ object Starter extends App with LazyLogging {
       } else {
         lazy val aether = new Aether(opts)
         Release.work(workDirFile, out, err, askForRebase, startBranch,
-          git, opts.showDependencyUpdates, termOs, shellWidth, releaseToolGit.headStatusValue(), config, aether, opts)
+          git, opts.depUpOpts.showDependencyUpdates, termOs, shellWidth, releaseToolGit.headStatusValue(), config, aether, opts)
       }
 
       return 0
