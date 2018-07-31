@@ -51,6 +51,10 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     gitNative(Seq("config", "--local", "--add", key, value))
   }
 
+  private[release] def configSetGlobal(key: String, value: String): Unit = {
+    gitNative(Seq("config", "--global", key, value))
+  }
+
   private[release] def configSetLocal(key: String, value: String): Unit = {
     gitNative(Seq("config", "--local", key, value))
   }

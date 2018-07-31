@@ -83,15 +83,38 @@ object Term {
 
   def readFromYes(out: PrintStream, text: String, opts: Opts) = readFrom(out, text, "y", opts)
 
+  private def printOptions(out: PrintStream, possibleValues: Seq[String]): Map[String, String] = {
+    possibleValues.zip(Stream.from(1))
+      .map(in ⇒ (in._2, in._1)).foreach(p ⇒ out.println("[" + p._1 + "] " + p._2))
+    possibleValues.zip(Stream.from(1))
+      .map(in ⇒ (in._2.toString, in._1)).foldLeft(Map.empty[String, String])(_ + _)
+  }
+
+  def readChooseOneOf(out: PrintStream, text: String, possibleValues: Seq[String], opts: Opts, in: BufferedReader = Console.in): String = {
+    possibleValues match {
+      case Nil ⇒ throw new IllegalArgumentException("possible value size must not be empty")
+      case values if values.size == 1 ⇒ throw new IllegalArgumentException("possible value size must not be one")
+      case _ ⇒ {
+        out.println(text)
+        val mapped: Map[String, String] = printOptions(out, possibleValues)
+        val line = readLineWithPrompt(in, out, "Enter option [" + mapped.head._1 + "]: ", opts)
+        line match {
+          case null ⇒ System.exit(1); null
+          case "" ⇒ mapped.head._2
+          case any: String if mapped.contains(any) ⇒ mapped(any)
+          case other: String ⇒ other.trim
+        }
+      }
+    }
+  }
+
   def readChooseOneOfOrType(out: PrintStream, text: String, possibleValues: Seq[String], opts: Opts, in: BufferedReader = Console.in): String = {
     possibleValues match {
+      case Nil ⇒ throw new IllegalArgumentException("possible value size must not be empty")
       case values if values.size == 1 ⇒ readFrom(out, text, possibleValues.head, opts, in)
       case _ ⇒ {
         out.println(text)
-        val mapped: Map[String, String] = possibleValues.zip(Stream.from(1))
-          .map(in ⇒ (in._2.toString, in._1)).foldLeft(Map.empty[String, String])(_ + _)
-        possibleValues.zip(Stream.from(1))
-          .map(in ⇒ (in._2, in._1)).foreach(p ⇒ out.println("[" + p._1 + "] " + p._2))
+        val mapped: Map[String, String] = printOptions(out, possibleValues)
         val line = readLineWithPrompt(in, out, "Enter option or type [" + possibleValues.head + "]: ", opts)
         line match {
           case null ⇒ System.exit(1); null
