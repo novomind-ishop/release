@@ -185,12 +185,13 @@ object Release {
     } else {
       relevantDeps.map(_.version).max.replaceAll("\\..*", "")
     }
+
     val relevantFilteredDeps = if (releaseMajorVersion.matches("[0-9]+")) {
       if (releaseMajorVersion.toInt >= 32) {
         relevantDeps
       } else {
         relevantDeps
-          .filter(in ⇒ in.groupId == "com.novomind.ishop.exi" && in.artifactId == "ishop-ext-authentication")
+          .filterNot(in ⇒ in.groupId == "com.novomind.ishop.exi" && in.artifactId == "ishop-ext-authentication")
       }
     } else {
       relevantDeps
