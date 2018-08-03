@@ -40,12 +40,14 @@ object FeatureBranch {
     mod.changeVersion(featureSnapshot)
     mod.writeTo(workDirFile)
     out.print("Committing pom changes ..")
+    val msgs = ""
     sgit.doCommitPomXmlsAnd(
       """[%s] prepare - %s
-        |
+        |%s
         |Signed-off-by: %s
         |Releasetool-sign: %s
         |Releasetool-sha1: %s""".stripMargin.format(config.branchPrefix(), featureWitoutSnapshot,
+        msgs,
         config.signedOfBy(), Starter.sign(), toolSh1), mod.depTreeFilenameList())
 
     out.println(". done")

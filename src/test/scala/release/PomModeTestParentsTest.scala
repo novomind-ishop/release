@@ -57,7 +57,7 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
       ), "com.novomind.any:any:jar:28.0.0-SNAPSHOT").create()
 
     // WHEN
-    val newpom = PomMod(srcPoms, aether)
+    val newpom = PomMod.ofAetherForTests(srcPoms, aether)
     assertDeps(Seq(Dep(PomRef("com.novomind.ishop.shops.any:any-projects:28.0.0-SNAPSHOT"),
       "", "", "", "", "", "", ""),
       Dep(PomRef("com.novomind.ishop.shops.any:any-erp:28.0.0-SNAPSHOT"),
@@ -75,7 +75,7 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
         "com.novomind.ishop.shops.any", "any-projects", "12.12", "", "", "", ""),
       Dep(PomRef("com.novomind.any:any:12.12"),
         "com.novomind.any", "any-projects", "27.0.0", "", "", "", "")),
-      PomMod(srcPoms, aether).listDependecies)
+      PomMod.ofAetherForTests(srcPoms, aether).listDependecies)
     Assert.assertEquals(3, newpom.allPomsDocs.size)
     val result = newpom.allPomsDocs.map(toElement)
 
@@ -172,7 +172,7 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
       .create()
 
     // WHEN
-    val newpom = PomMod(srcPoms, aether)
+    val newpom = PomMod.ofAetherForTests(srcPoms, aether)
     assertDeps(Seq(Dep(PomRef("com.novomind.ishop.shops.any:any-projects:28.0.0-SNAPSHOT"),
       "", "", "", "", "", "", ""),
       Dep(PomRef("com.novomind.ishop.shops.any:any-erp:28.0.0-SNAPSHOT"),
@@ -195,7 +195,7 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
         "com.novomind.ishop.shops.any", "any-projects", "12.12", "", "", "", ""),
       Dep(PomRef("com.novomind.ishop.shops.any:any:12.12"),
         "com.novomind.ishop.shops.any", "any-parent", "12.12", "", "", "", "")),
-      PomMod(srcPoms, aether).listDependecies)
+      PomMod.ofAetherForTests(srcPoms, aether).listDependecies)
     Assert.assertEquals(4, newpom.allPomsDocs.size)
     val result = newpom.allPomsDocs.map(toElement)
 

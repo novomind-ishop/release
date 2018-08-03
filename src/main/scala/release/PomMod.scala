@@ -20,7 +20,7 @@ import release.Starter.{Opts, PreconditionsException, TermOs}
 
 import scala.annotation.tailrec
 
-case class PomMod(file: File, aether: Aether) extends LazyLogging {
+case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
   logger.trace("init pomMod")
   private var depMap: Map[Dep, Node] = Map.empty
 
@@ -57,7 +57,7 @@ case class PomMod(file: File, aether: Aether) extends LazyLogging {
   }
 
   private def checkRootFirstChildProperties(): Unit = {
-    PomMod.checkRootFirstChildPropertiesVar(raws)
+    PomMod.checkRootFirstChildPropertiesVar(opts, raws)
   }
 
   private[release] val listProperties: Map[String, String] = {
@@ -558,11 +558,15 @@ object PomMod {
 
   def of(file: File, unnused: PrintStream, opts: Opts): PomMod = {
     lazy val aether = new Aether(opts)
-    ofAether(file, unnused, aether)
+    ofAether(file, opts, aether)
   }
 
-  def ofAether(file: File, unnused: PrintStream, aether: Aether): PomMod = {
-    PomMod(file, aether)
+  def ofAetherForTests(file: File,  aether: Aether): PomMod = {
+    PomMod(file, aether, Opts())
+  }
+
+  def ofAether(file: File, opts: Opts, aether: Aether): PomMod = {
+    PomMod(file, aether, opts)
   }
 
   private val xPathToProjectGroupId = "//project/groupId"
@@ -880,11 +884,11 @@ object PomMod {
     }
   }
 
-  private[release] def checkRootFirstChildPropertiesVar(childs: Seq[RawPomFile], excludedNames: Seq[String] = Nil): Unit = {
-    case class DepProps(dep: Dep, pdep: Dep, properties: Map[String, String])
+  private[release] def checkRootFirstChildPropertiesVar(opts:Opts, childPomFiles: Seq[RawPomFile]): Unit = {
+    case class DepProps(dep: Dep, parentDep: Dep, properties: Map[String, String])
 
-    val allP: Seq[DepProps] = childs.map(in ⇒ {
-      DepProps(in.selfDep, in.parentDep, createPropertyMap(in.document))
+    val allP: Seq[DepProps] = childPomFiles.map(in ⇒ {
+      DepProps(in.selfDep, in.parentDep, createPropertyMap(in.document).filterKeys(key ⇒ !opts.skipProperties.contains(key)))
     })
 
     def ga(gav: Gav): String = Gav.format(Seq(gav.groupId, gav.artifactId, gav.version))
@@ -892,7 +896,7 @@ object PomMod {
     val depProps = Util.groupedFiltered(allP)
     val depPropsMod = depProps.map(in ⇒ {
       val inner = in._2.filter(o ⇒ {
-        val a = ga(o.pdep.gav()) // TODO ob dieser ga wert gut ist?
+        val a = ga(o.parentDep.gav())
         val b = ga(in._1.dep.gav())
         a == b
       })

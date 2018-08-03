@@ -103,7 +103,7 @@ object Release {
     sgit.checkout(branch)
     Starter.chooseUpstreamIfUndef(out, sgit, branch, opts)
     out.print("I: Reading pom.xmls ..")
-    val mod = PomMod.ofAether(workDirFile, err, aether)
+    val mod = PomMod.ofAether(workDirFile, opts, aether)
     out.println(". done")
     if (showDependencyUpdates) {
       mod.showDependencyUpdates(shellWidth, termOs, out)
@@ -256,7 +256,11 @@ object Release {
     }
     val toolSh1 = releaseToolGitSha1
     val headCommitId = sgit.commitIdHead()
-    val releaseMod = PomMod.ofAether(workDirFile, err, aether)
+    val releaseMod = PomMod.ofAether(workDirFile, opts, aether)
+    val msgs = opts.skipProperties match {
+      case Nil ⇒ ""
+      case found ⇒ "\nReleasetool-Prop-Skip: " + found.mkString(", ")
+    }
     if (sgit.hasNoLocalChanges) {
       out.println("skipped release commit on " + branch)
     } else {
@@ -265,19 +269,19 @@ object Release {
       if (opts.useGerrit) {
         sgit.doCommitPomXmlsAnd(
           """[%s] prepare for next iteration - %s
-            |
+            |%s
             |Signed-off-by: %s
             |Releasetool-sign: %s
             |Releasetool-sha1: %s""".stripMargin.format(config.releasPrefix(), nextReleaseWithoutSnapshot,
-            config.signedOfBy(), Starter.sign(), toolSh1),
+            msgs, config.signedOfBy(), Starter.sign(), toolSh1),
           releaseMod.depTreeFilenameList())
       } else {
         sgit.doCommitPomXmlsAnd(
           """[%s] prepare for next iteration - %s
-            |
+            |%s
             |Releasetool-sign: %s
             |Releasetool-sha1: %s""".stripMargin.format(config.releasPrefix(), nextReleaseWithoutSnapshot,
-            Starter.sign(), toolSh1),
+            msgs, Starter.sign(), toolSh1),
           releaseMod.depTreeFilenameList())
       }
 
@@ -299,18 +303,18 @@ object Release {
       if (opts.useGerrit) {
         sgit.doCommitPomXmlsAnd(
           """[%s] perform to - %s
-            |
+            |%s
             |Signed-off-by: %s
             |Releasetool-sign: %s
             |Releasetool-sha1: %s""".stripMargin.format(config.releasPrefix(), release,
-            config.signedOfBy(), Starter.sign(), toolSh1), releaseMod.depTreeFilenameList())
+            msgs, config.signedOfBy(), Starter.sign(), toolSh1), releaseMod.depTreeFilenameList())
       } else {
         sgit.doCommitPomXmlsAnd(
           """[%s] perform to - %s
-            |
+            |%s
             |Releasetool-sign: %s
             |Releasetool-sha1: %s""".stripMargin.format(config.releasPrefix(), release,
-            Starter.sign(), toolSh1), releaseMod.depTreeFilenameList())
+            msgs, Starter.sign(), toolSh1), releaseMod.depTreeFilenameList())
       }
       out.println(". done")
     }
@@ -494,7 +498,7 @@ object Release {
       if (again == "n") {
         System.exit(1)
       } else {
-        offerAutoFixForReleaseSnapshots(out, PomMod.ofAether(mod.file, err, aether), gitFiles, shellWidth, err, aether, opts)
+        offerAutoFixForReleaseSnapshots(out, PomMod.ofAether(mod.file, opts, aether), gitFiles, shellWidth, err, aether, opts)
       }
     }
     mod

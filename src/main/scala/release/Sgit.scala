@@ -300,7 +300,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     doCommitPomXmlsAnd(message, Nil)
   }
 
-  def doCommitWithFilter(message: String, filter: Seq[String]): Unit = {
+  private[release] def doCommitWithFilter(message: String, filter: Seq[String]): Unit = {
     val distinctFilter = filter.distinct.sorted
     addAll(localChangesWithFilter(distinctFilter))
     val statusAfterAdd = localChanges().filterNot(line ⇒ distinctFilter.exists(key ⇒ line.endsWith(key)))
