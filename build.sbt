@@ -28,6 +28,8 @@ libraryDependencies += "org.jline" % "jline-reader" % "3.8.0"
 
 libraryDependencies += "org.scalatest" % "scalatest_2.12" % "3.0.4" % "test"
 
+libraryDependencies += "org.mockito" % "mockito-scala_2.12" % "0.0.13" % "test"
+
 libraryDependencies += "com.novocode" % "junit-interface" % "0.11" % "test"
 
 unmanagedSourceDirectories in Compile := (scalaSource in Compile).value :: Nil

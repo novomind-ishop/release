@@ -377,10 +377,12 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   }
 
   def stashPop(): Unit = {
+    // TODO try
     gitNative(Seq("stash", "pop"))
   }
 
   def rebase(): Unit = {
+    // TODO try
     gitNative(Seq("rebase", "-q"))
   }
 

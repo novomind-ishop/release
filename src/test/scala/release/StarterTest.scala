@@ -5,7 +5,8 @@ import java.nio.charset.StandardCharsets
 import java.util.concurrent.{TimeUnit, TimeoutException}
 
 import org.junit.rules.Timeout
-import org.junit.{Assert, Rule, Test}
+import org.junit.{Assert, Ignore, Rule, Test}
+import org.mockito.MockitoSugar
 import org.scalatest.junit.AssertionsForJUnit
 import release.Sgit.GitRemote
 import release.Starter.{FutureEither, FutureError, Opts, OptsDepUp}
@@ -13,7 +14,7 @@ import release.Starter.{FutureEither, FutureError, Opts, OptsDepUp}
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 
-class StarterTest extends AssertionsForJUnit {
+class StarterTest extends AssertionsForJUnit with MockitoSugar {
 
   val _globalTimeout = new Timeout(10000)
 
@@ -226,6 +227,61 @@ class StarterTest extends AssertionsForJUnit {
   def testArgRead_mixed(): Unit = {
     val opts = Opts(depUpOpts = OptsDepUp().copy(showDependencyUpdates = true, showHelp = true), useGerrit = false)
     Assert.assertEquals(opts, Starter.argsRead(Seq("--no-gerrit", "showDependencyUpdates", "--help", "", " ", "\t"), Opts()))
+  }
+
+  @Test
+  def testSuggestRebase_detached(): Unit = {
+    val out = mock[PrintStream]
+    val sgit = mock[Sgit]
+    when(sgit.findUpstreamBranch()).thenReturn(None)
+    val opts = mock[Opts]
+
+    Starter.suggestRebase(out, sgit, branch = "test", opts)
+
+    verify(sgit).checkout("test")
+  }
+
+  @Test
+  @Ignore
+  def testSuggestRebase(): Unit = {
+    // TODO later
+    val out = mock[PrintStream]
+    val in = mock[BufferedReader]
+    when(in.readLine()).thenReturn("bert")
+    val sgit = mock[Sgit]
+    when(sgit.isNotDetached).thenReturn(true)
+    when(sgit.findUpstreamBranch()).thenReturn(None)
+    when(sgit.listBranchNamesRemote()).thenReturn(Seq("blabla"), Seq("bert"))
+    val opts = mock[Opts]
+
+    Starter.suggestRebase(out, sgit, branch = "test", opts, in)
+
+    val oi = inOrder(out)
+    oi.verify(out).println("No upstream found, please set")
+    oi.verify(out).println("a")
+    oi.verify(out).println("[1] origin/master")
+    oi.verify(out).println("[2] origin/test")
+
+    verify(sgit).checkout("test")
+    verify(sgit).setUpstream("bert")
+
+    //verify(out, times(2)).println("No upstream found, please set")
+    //verify(out, times(2)).println("[2] origin/test")
+    //verify(out).println("W: unknown upstream branch; known are blabla")
+    //verify(out, times(1)).println("Enter option or type [origin/master]: ")
+    // verifyNoMoreInteractions(out)
+  }
+
+  @Test
+  def inOrder(): Unit = {
+    val out = mock[PrintStream]
+    out.println("a")
+    out.println("b")
+    out.println("a")
+    val inO = inOrder(out)
+    inO.verify(out).println("a")
+    inO.verify(out).println("b")
+    inO.verify(out).println("a")
   }
 
   @Test

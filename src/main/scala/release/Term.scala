@@ -57,7 +57,10 @@ object Term {
   def readFrom(out: PrintStream, text: String, defaultValue: String, opts: Opts, in: BufferedReader = Console.in): String = {
     val line = readLineWithPrompt(in, out, text + " [%s]: ".format(defaultValue), opts)
     val result = line match {
-      case null ⇒ System.exit(14); null
+      case null ⇒ {
+        System.err.println("invalid readFrom(..)")
+        System.exit(14)
+      }; null
       case "" ⇒ defaultValue
       case any: String ⇒ Option(any.trim).getOrElse(defaultValue)
     }
@@ -75,7 +78,10 @@ object Term {
   def readFromOneOf(out: PrintStream, text: String, possibleValues: Seq[String], opts: Opts, in: BufferedReader = Console.in): String = {
     val line = readLineWithPrompt(in, out, text + " [%s]: ".format(possibleValues.mkString("/")), opts)
     line match {
-      case null ⇒ System.exit(1); null
+      case null ⇒ {
+        System.err.println("invalid readFromOneOf(..)")
+        System.exit(1)
+      }; null
       case any: String if possibleValues.contains(any.trim) ⇒ any.trim
       case _: String ⇒ readFromOneOf(out, text, possibleValues, opts, in)
     }
@@ -99,7 +105,10 @@ object Term {
         val mapped: Map[String, String] = printOptions(out, possibleValues)
         val line = readLineWithPrompt(in, out, "Enter option [" + mapped.head._1 + "]: ", opts)
         line match {
-          case null ⇒ System.exit(1); null
+          case null ⇒ {
+            System.err.println("invalid readChooseOneOf(..)")
+            System.exit(1)
+          }; null
           case "" ⇒ mapped.head._2
           case any: String if mapped.contains(any) ⇒ mapped(any)
           case other: String ⇒ other.trim
@@ -117,7 +126,10 @@ object Term {
         val mapped: Map[String, String] = printOptions(out, possibleValues)
         val line = readLineWithPrompt(in, out, "Enter option or type [" + possibleValues.head + "]: ", opts)
         line match {
-          case null ⇒ System.exit(1); null
+          case null ⇒ {
+            System.err.println("invalid readChooseOneOfOrType(..)")
+            System.exit(1)
+          }; null
           case "" ⇒ mapped.head._2
           case any: String if mapped.contains(any) ⇒ mapped(any)
           case other: String ⇒ other.trim

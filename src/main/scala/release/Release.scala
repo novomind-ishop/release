@@ -101,7 +101,7 @@ object Release {
       sgit.checkout(sgit.currentBranch)
     })
     sgit.checkout(branch)
-    Starter.chooseUpstreamIfUndef(out, sgit, branch, opts)
+    Starter.chooseUpstreamIfUndef(out, sgit, branch, opts, Console.in)
     out.print("I: Reading pom.xmls ..")
     val mod = PomMod.ofAether(workDirFile, opts, aether)
     out.println(". done")

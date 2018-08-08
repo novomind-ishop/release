@@ -60,16 +60,16 @@ object Starter extends App with LazyLogging {
     }(ec))(ec)
   }
 
-  def suggestRebase(out: PrintStream, sgit: Sgit, branch: String, opts: Opts): () ⇒ Unit = {
+  def suggestRebase(out: PrintStream, sgit: Sgit, branch: String, opts: Opts, in: BufferedReader = Console.in): () ⇒ Unit = {
     logger.trace("ask for rebase")
     sgit.checkout(branch)
-    chooseUpstreamIfUndef(out, sgit, branch, opts)
+    chooseUpstreamIfUndef(out, sgit, branch, opts, in)
     if (sgit.isNotDetached) {
       val shouldRebase = sgit.commitIds("@{upstream}", branch)
       if (shouldRebase != Nil) {
         () ⇒ {
           val update = Term.readFromOneOfYesNo(out, "Your branch is " + shouldRebase.size +
-            " commits behind or ahead defined upstream. Rebase local branch?", opts)
+            " commits behind or ahead defined upstream. Rebase local branch?", opts, in)
           if (update == "y") {
             sgit.rebase()
           }
@@ -465,17 +465,18 @@ object Starter extends App with LazyLogging {
   }
 
   @tailrec
-  def chooseUpstreamIfUndef(out: PrintStream, sgit: Sgit, branch: String, opts: Opts): Unit = {
+  def chooseUpstreamIfUndef(out: PrintStream, sgit: Sgit, branch: String, opts: Opts, in: BufferedReader): Unit = {
     val upstream = sgit.findUpstreamBranch()
     if (upstream.isEmpty && sgit.isNotDetached) {
-      val newUpstream = Term.readChooseOneOfOrType(out, "No upstream found, please set", Seq("origin/master", "origin/" + branch).distinct, opts)
+      val newUpstream = Term.readChooseOneOfOrType(out, "No upstream found, please set",
+        Seq("origin/master", "origin/" + branch).distinct, opts, in)
       val remoteBranchNames = sgit.listBranchNamesRemote()
       if (remoteBranchNames.contains(newUpstream)) {
         sgit.setUpstream(newUpstream)
         return
       } else {
         out.println("W: unknown upstream branch; known are " + remoteBranchNames.mkString(", "))
-        chooseUpstreamIfUndef(out, sgit, branch, opts)
+        chooseUpstreamIfUndef(out, sgit, branch, opts, in)
       }
     }
   }
