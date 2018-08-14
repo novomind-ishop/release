@@ -36,7 +36,8 @@ class PomCheckerTest extends AssertionsForJUnit {
   def testCheck_ishop_maven(): Unit = {
     // GIVEN
     val deps: Seq[PluginDep] = Seq(PluginDep(PomRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war"),
-      "com.novomind.ishop.maven", "ishop-maven-plugin", "", Seq(PluginExec("", Seq("check-for-changes-before", "check-for-changes-package"), "", Map())),
+      "com.novomind.ishop.maven", "ishop-maven-plugin", "",
+      Seq(PluginExec("", Seq("check-for-changes-before", "check-for-changes-package"), "", Map())),
       Seq("plugin", "plugins", "build", "project")))
 
     // WHEN
@@ -50,7 +51,8 @@ class PomCheckerTest extends AssertionsForJUnit {
   def testCheck_ishop_maven_managed(): Unit = {
     // GIVEN
     val deps: Seq[PluginDep] = Seq(PluginDep(PomRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war"),
-      "com.novomind.ishop.maven", "ishop-maven-plugin", "", Seq(PluginExec("", Seq("check-for-changes-before", "check-for-changes-package"), "", Map())),
+      "com.novomind.ishop.maven", "ishop-maven-plugin", "",
+      Seq(PluginExec("", Seq("check-for-changes-before", "check-for-changes-package"), "", Map())),
       Seq("plugin", "plugins", "build", "project")),
 
       PluginDep(PomRef("com.novomind.ishop.shops:anyshop-any:27.0.0-SNAPSHOT:jar"),
@@ -68,7 +70,8 @@ class PomCheckerTest extends AssertionsForJUnit {
   def testCheck_ishop_maven_multiple_no_exec(): Unit = {
     // GIVEN
     val deps: Seq[PluginDep] = Seq(PluginDep(PomRef("c.n.i.s:n:0.0.1-SNAPSHOT:war"),
-      "com.novomind.ishop.maven", "ishop-maven-plugin", "", Seq(PluginExec("", Seq("check-for-changes-before", "check-for-changes-package"), "", Map())),
+      "com.novomind.ishop.maven", "ishop-maven-plugin", "", Seq(PluginExec("",
+        Seq("check-for-changes-before", "check-for-changes-package"), "", Map())),
       Seq("plugin", "plugins", "build", "project")),
 
       PluginDep(PomRef("c.n.i.s:n-any:0.0.1-SNAPSHOT:jar"),
@@ -76,19 +79,22 @@ class PomCheckerTest extends AssertionsForJUnit {
         Seq("plugin", "plugins", "build", "project")))
 
     // WHEN / THEN
-    TestHelper.assertException("c.n.i.s:n-any:0.0.1-SNAPSHOT:jar - a single execution section for ishop maven plugin please required. Input is Nil.", classOf[IllegalArgumentException], () ⇒ PomChecker.checkIshopMaven(deps))
+    TestHelper.assertException("c.n.i.s:n-any:0.0.1-SNAPSHOT:jar - a single execution section for ishop maven plugin " +
+      "please required. Input is Nil.", classOf[IllegalArgumentException], () ⇒ PomChecker.checkIshopMaven(deps))
   }
 
   @Test
   def testCheck_ishop_maven_pom_path(): Unit = {
     // GIVEN
     val deps: Seq[PluginDep] = Seq(PluginDep(PomRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war"),
-      "com.novomind.ishop.maven", "ishop-maven-plugin", "", Seq(PluginExec("", Seq("check-for-changes-before", "check-for-changes-package"), "", Map())),
+      "com.novomind.ishop.maven", "ishop-maven-plugin", "",
+      Seq(PluginExec("", Seq("check-for-changes-before", "check-for-changes-package"), "", Map())),
       Seq("plugin", "plugins", "build", "profile", "profiles", "project")))
 
     // WHEN / THEN
     TestHelper.assertException("please check your pom.xml's and move your ishop-maven-plugin to plugin/plugins/build/project " +
-            "your path is plugin/plugins/build/profile/profiles/project", classOf[PomChecker.ValidationException], () ⇒ PomChecker.checkIshopMaven(deps))
+            "your path is plugin/plugins/build/profile/profiles/project",
+      classOf[PomChecker.ValidationException], () ⇒ PomChecker.checkIshopMaven(deps))
   }
 
   @Test
@@ -103,7 +109,9 @@ class PomCheckerTest extends AssertionsForJUnit {
       Seq("plugin", "plugins", "build", "project")))
 
     // WHEN / THEN
-    TestHelper.assertException("maven-dependency-plugin pre-build-validate-any has no config or outputFile contains slashes", classOf[PomChecker.ValidationException], () ⇒ PomChecker.check(deps))
+    TestHelper.assertException("Please check your pom.xml's. The maven-dependency-plugin execution with id " +
+      "pre-build-validate-any has no configuration-element or the outputFile-tag contains slashes",
+      classOf[PomChecker.ValidationException], () ⇒ PomChecker.check(deps))
   }
 
   @Test
@@ -118,7 +126,8 @@ class PomCheckerTest extends AssertionsForJUnit {
       Seq("plugin", "plugins", "build", "project")))
 
     // WHEN / THEN
-    TestHelper.assertException("maven-dependency-plugin goals tree, list must be executed on phase \"validate\"", classOf[PomChecker.ValidationException], () ⇒ PomChecker.check(deps))
+    TestHelper.assertException("maven-dependency-plugin goals tree, list must be executed on phase \"validate\"",
+      classOf[PomChecker.ValidationException], () ⇒ PomChecker.check(deps))
   }
 
   @Test
@@ -132,7 +141,9 @@ class PomCheckerTest extends AssertionsForJUnit {
       Seq("plugin", "plugins", "build", "project")))
 
     // WHEN / THEN
-    TestHelper.assertException("maven-dependency-plugin pre-build-validate-tree has no config or outputFile contains slashes", classOf[PomChecker.ValidationException], () ⇒ PomChecker.check(deps))
+    TestHelper.assertException("Please check your pom.xml's. The maven-dependency-plugin execution with id " +
+      "pre-build-validate-tree has no configuration-element or the outputFile-tag contains slashes",
+      classOf[PomChecker.ValidationException], () ⇒ PomChecker.check(deps))
   }
 
   @Test
@@ -144,7 +155,8 @@ class PomCheckerTest extends AssertionsForJUnit {
       Seq("plugin", "plugins", "build", "project")))
 
     // WHEN / THEN
-    TestHelper.assertException("please add at least one execution to you maven-dependency-plugin", classOf[PomChecker.ValidationException], () ⇒ PomChecker.check(deps))
+    TestHelper.assertException("please add at least one execution to you maven-dependency-plugin",
+      classOf[PomChecker.ValidationException], () ⇒ PomChecker.check(deps))
   }
 
   @Test
@@ -177,7 +189,8 @@ class PomCheckerTest extends AssertionsForJUnit {
 
     // WHEN / THEN
     TestHelper.assertException("please check your pom.xml's and move your maven-dependency-plugin to plugin/plugins/build/project " +
-            "your path is plugin/plugins/build/profile/profiles/project", classOf[PomChecker.ValidationException], () ⇒ PomChecker.check(deps))
+            "your path is plugin/plugins/build/profile/profiles/project",
+      classOf[PomChecker.ValidationException], () ⇒ PomChecker.check(deps))
 
   }
 }

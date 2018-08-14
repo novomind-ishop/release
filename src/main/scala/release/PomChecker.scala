@@ -24,8 +24,8 @@ object PomChecker {
             outputFileValue.isEmpty || outputFileValue.get.contains("/")
           })
           if (defectconfig != Nil) {
-            throw new ValidationException("maven-dependency-plugin " +
-              defectconfig.map(_.id).mkString(", ") + " has no config or outputFile contains slashes")
+            throw new ValidationException("Please check your pom.xml's. The maven-dependency-plugin execution with id " +
+              defectconfig.map(_.id).mkString(", ") + " has no configuration-element or the outputFile-tag contains slashes")
           }
           checkDefaultPath(plugin)
         }
