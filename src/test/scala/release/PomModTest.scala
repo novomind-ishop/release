@@ -406,18 +406,6 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
-  def suggestReleaseVersionShop(): Unit = {
-    // GIVEN
-    val srcPoms = TestHelper.testResources("shop1")
-
-    // WHEN
-    val releaseVersion = PomMod.ofAetherForTests(srcPoms, aether).suggestReleaseVersion()
-
-    // THEN
-    assert(Seq("27.0.0-SNAPSHOT") === releaseVersion)
-  }
-
-  @Test
   def findSelected(): Unit = {
     // GIVEN
     val srcPoms = TestHelper.testResources("shop1")
@@ -741,7 +729,7 @@ class PomModTest extends AssertionsForJUnit {
     val next = PomMod.ofAetherForTests(srcPoms, aether).suggestNextRelease("28.0.0")
 
     // THEN
-    assert("28.0.1" === next)
+    Assert.assertEquals("28.0.1", next)
   }
 
   @Test
@@ -751,7 +739,7 @@ class PomModTest extends AssertionsForJUnit {
     val next = PomMod.suggestNextReleaseBy("28x-SNAPSHOT", "28.0.1-SNAPSHOT")
 
     // THEN
-    assert("28x" === next)
+    Assert.assertEquals("28x", next)
   }
 
   @Test
@@ -761,7 +749,7 @@ class PomModTest extends AssertionsForJUnit {
     val next = PomMod.suggestNextReleaseBy("RC-2017.02-SNAPSHOT", "RC-2017.02-SNAPSHOT")
 
     // THEN
-    assert("RC-2017.03" === next)
+    Assert.assertEquals("RC-2017.03", next)
   }
 
   @Test
@@ -771,17 +759,27 @@ class PomModTest extends AssertionsForJUnit {
     val next = PomMod.suggestNextReleaseBy("RC-2017.02.1-SNAPSHOT", "RC-2017.02.1-SNAPSHOT")
 
     // THEN
-    assert("RC-2017.03" === next)
+    Assert.assertEquals("RC-2017.03", next)
   }
 
   @Test
   def suggestNextRelease_shop_patch_sub(): Unit = {
 
     // GIVEN/WHEN
+    val release = PomMod.suggestNextReleaseBy("RC-2018.17.5_1-SNAPSHOT")
+
+    // THEN
+    Assert.assertEquals("RC-2018.18", release)
+  }
+
+  @Test
+  def suggestNextRelease_shop_patch_sub_invalid(): Unit = {
+
+    // GIVEN/WHEN
     val release = PomMod.suggestNextReleaseBy("RC-2018.17.5.1-SNAPSHOT")
 
     // THEN
-    assert("RC-2018.18" === release)
+    assert("RC-2018.17.5.1-UNDEF" === release)
   }
 
   @Test
@@ -865,6 +863,14 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def suggestReleaseVersionShop(): Unit = {
+
+    TestHelper.assertException("invalid shop release name: 27.0.0 - please create new ticket", classOf[IllegalStateException],
+      () ⇒ PomMod.suggestReleaseBy(LocalDate.now(), "27.0.0-SNAPSHOT", hasShopPom = true, Nil))
+
+  }
+
+  @Test
   def suggestRelease_shop(): Unit = {
 
     // GIVEN/WHEN
@@ -875,12 +881,40 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def suggestRelease_shop_minor(): Unit = {
+
+    // GIVEN/WHEN
+    val release = PomMod.suggestReleaseBy(LocalDate.now(), "RC-2017.52.1-SNAPSHOT", hasShopPom = true, Nil)
+
+    // THEN
+    assert(Seq("RC-2017.52.1-SNAPSHOT") === release)
+  }
+
+  @Test
   def suggestRelease_shop_existing(): Unit = {
     // GIVEN/WHEN
     val release = PomMod.suggestReleaseBy(LocalDate.now(), "RC-2017.52-SNAPSHOT", hasShopPom = true, Seq("release/RC-2017.52"))
 
     // THEN
     assert(Seq("RC-2017.52.1-SNAPSHOT") === release)
+  }
+
+  @Test
+  def suggestRelease_shop_existing_two(): Unit = {
+    // GIVEN/WHEN
+    val release = PomMod.suggestReleaseBy(LocalDate.now(), "RC-2017.52.1-SNAPSHOT", hasShopPom = true, Seq("release/RC-2017.52.1"))
+
+    // THEN
+    assert(Seq("RC-2017.52.2-SNAPSHOT") === release)
+  }
+
+  @Test
+  def suggestRelease_shop_existing_three(): Unit = {
+    // GIVEN/WHEN
+    val release = PomMod.suggestReleaseBy(LocalDate.now(), "RC-2017.52.1_1-SNAPSHOT", hasShopPom = true, Seq("release/RC-2017.52.1_1"))
+
+    // THEN
+    assert(Seq("RC-2017.52.2-SNAPSHOT") === release)
   }
 
   @Test
@@ -940,7 +974,7 @@ class PomModTest extends AssertionsForJUnit {
     val release = PomMod.suggestReleaseBy(LocalDate.of(2017, Month.FEBRUARY, 1), "master-SNAPSHOT", hasShopPom = true, Nil)
 
     // THEN
-    assert(Seq("RC-2017.05-SNAPSHOT", "RC-2017.06-SNAPSHOT", "RC-2017.07-SNAPSHOT") === release)
+    Assert.assertEquals(Seq("RC-2017.05-SNAPSHOT", "RC-2017.06-SNAPSHOT", "RC-2017.07-SNAPSHOT"), release)
   }
 
   @Test
@@ -951,7 +985,7 @@ class PomModTest extends AssertionsForJUnit {
       Seq("hula", "release/RC-2017.05", "release/RC-2017.07", "release/RC-2017.07.1", "release/RC-2017.07.2"))
 
     // THEN
-    assert(Seq("RC-2017.05.1-SNAPSHOT", "RC-2017.06-SNAPSHOT", "RC-2017.07.3-SNAPSHOT") === release)
+    Assert.assertEquals(Seq("RC-2017.05.1-SNAPSHOT", "RC-2017.06-SNAPSHOT", "RC-2017.07.3-SNAPSHOT"), release)
   }
 
   @Test
@@ -1001,6 +1035,7 @@ class PomModTest extends AssertionsForJUnit {
   def testIsUnknownReleasePattern(): Unit = {
     Assert.assertFalse(PomMod.isUnknownReleasePattern("RC-2018.08-SNAPSHOT"))
     Assert.assertFalse(PomMod.isUnknownReleasePattern("RC-2018.08.1-SNAPSHOT"))
+    Assert.assertFalse(PomMod.isUnknownReleasePattern("RC-2018.08.1_4-SNAPSHOT"))
     Assert.assertFalse(PomMod.isUnknownReleasePattern("RC-2018.08"))
     Assert.assertFalse(PomMod.isUnknownReleasePattern("1"))
     Assert.assertFalse(PomMod.isUnknownReleasePattern("1.0"))
@@ -1009,6 +1044,7 @@ class PomModTest extends AssertionsForJUnit {
     Assert.assertFalse(PomMod.isUnknownReleasePattern("1.0.0-SNAPSHOT"))
     Assert.assertFalse(PomMod.isUnknownReleasePattern("RC-2018.08.1"))
     Assert.assertTrue(PomMod.isUnknownReleasePattern("RC.2018.08.1"))
+    Assert.assertTrue(PomMod.isUnknownReleasePattern("RC.2018.08.1.3"))
     Assert.assertTrue(PomMod.isUnknownReleasePattern("1."))
     Assert.assertTrue(PomMod.isUnknownReleasePattern("RC-2018-08.1"))
     Assert.assertTrue(PomMod.isUnknownReleasePattern("RC-2018.08-1"))

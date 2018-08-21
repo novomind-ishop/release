@@ -35,11 +35,11 @@ object Conf {
     def msgAround[T](message: String, logger: Logger, fn: () ⇒ T): T = {
       val start = System.currentTimeMillis()
       val idx = index(message)
-      logger.trace("/ started %03d %s".format(idx, message))
+      logger.trace("/ started idx(%03d) %s".format(idx, message))
       val result = fn.apply()
       val end = System.currentTimeMillis()
-      logger.trace("\\ ended %03d  %s".format(idx, message))
-      logger.trace("§ duration: %03d ".format(idx) + (end - start) + " " + message)
+      logger.trace("\\ ended   idx(%03d)  %s".format(idx, message))
+      logger.trace("§ duration idx(%03d): ".format(idx) + (end - start) + "ms " + message)
       result
     }
   }

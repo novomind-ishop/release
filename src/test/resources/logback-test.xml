@@ -3,7 +3,7 @@
   <statusListener class="ch.qos.logback.core.status.NopStatusListener" />
   <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
-      <pattern>%d{"HH:mm:ss.SSS"} %-5level %-120location - %m%n</pattern>
+      <pattern>%d{"HH:mm:ss.SSS"} %-5level - %m%n</pattern>
     </encoder>
   </appender>
 

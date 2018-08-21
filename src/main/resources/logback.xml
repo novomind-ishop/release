@@ -3,12 +3,14 @@
   <statusListener class="ch.qos.logback.core.status.NopStatusListener" />
   <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
-      <pattern>%d{"HH:mm:ss.SSS"} %-5level %-120location - %m%n</pattern>
+      <charset>UTF-8</charset>
+      <pattern>%d{"HH:mm:ss.SSS"} %-5level - %m%n</pattern>
     </encoder>
   </appender>
-  <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <file>${user.home}/.release.log</file>
 
+  <appender name="FILE_IN_HOME" class="ch.qos.logback.core.rolling.RollingFileAppender">
+
+    <file>${user.home}/.release.log</file>
     <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
       <fileNamePattern>${user.home}/.release.%i.log.gz</fileNamePattern>
       <minIndex>1</minIndex>
@@ -19,16 +21,17 @@
       <maxFileSize>4MB</maxFileSize>
     </triggeringPolicy>
     <encoder>
-      <pattern>%d{HH:mm:ss.SSS} %logger{35} - %msg - [%thread - %{relative}ms since init]%rEx%n</pattern>
+      <charset>UTF-8</charset>
+      <pattern>%d{"HH:mm:ss.SSS"} %-20logger{45} - %msg - [%thread - %relative{}ms since init]%rEx%n</pattern>
     </encoder>
   </appender>
 
-  <logger level="trace" name="release" additivity="false" >
-    <appender-ref ref="FILE" />
+  <logger name="release" level="TRACE" additivity="false">
+    <appender-ref ref="FILE_IN_HOME" />
   </logger>
 
   <root>
-    <level value="warn" />
+    <level value="WARN" />
     <appender-ref ref="CONSOLE" />
   </root>
 

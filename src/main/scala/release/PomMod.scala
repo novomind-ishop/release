@@ -8,6 +8,7 @@ import java.time.temporal.WeekFields
 import java.util.Locale
 
 import com.google.common.annotations.VisibleForTesting
+import com.google.common.base.Strings
 import com.typesafe.scalalogging.LazyLogging
 import javax.xml.transform.dom.DOMSource
 import javax.xml.transform.stream.StreamResult
@@ -561,7 +562,7 @@ object PomMod {
     ofAether(file, opts, aether)
   }
 
-  def ofAetherForTests(file: File,  aether: Aether): PomMod = {
+  def ofAetherForTests(file: File, aether: Aether): PomMod = {
     PomMod(file, aether, Opts())
   }
 
@@ -584,6 +585,7 @@ object PomMod {
   private val semverPatternNoBugfix = "^([0-9]+)\\.([0-9]+)$".r
   private val semverPatternNoMinor = "^([0-9]+)$".r
   private val semverPatternLowdash = "^([0-9]+)\\.([0-9]+)\\.([0-9]+_)([0-9]+)$".r
+  private val shopPattern = "^(RC-)([0-9]{4})\\.([0-9]+)?(?:\\.([0-9]+[0-9]*))?(?:_([0-9]+[0-9]*))?$".r
 
   private def depFrom(id: String, dfn: Map[Dep, Node] ⇒ Unit)(depSeq: Seq[(String, String, Node)]): Dep = {
     val deps = Xpath.toMapOf(depSeq)
@@ -656,63 +658,136 @@ object PomMod {
 
   private[release] def dependecyPlugins(plugins: Seq[PluginDep]) = findPluginsByName(plugins, "maven-dependency-plugin")
 
+  case class Version(pre: String, major: Int, minor: Int, patch: Int, low: String) {
+
+    private val lowF = if (Strings.isNullOrEmpty(low)) {
+      ""
+    } else {
+      "_" + low
+    }
+
+    private val patchF = if (patch == 0) {
+      ""
+    } else {
+      "." + patch
+    }
+
+    @tailrec
+    final def nextIfKnown(known: Seq[Version], ref: Version = this): Version = {
+      if (known.contains(ref)) {
+        nextIfKnown(known, ref.copy(patch = ref.patch + 1, low = ""))
+      } else {
+        ref
+      }
+    }
+
+    def plusWeek(): Version = {
+      val addWeek = minor.toInt + 1
+      val nextWeek = if (addWeek > 52) {
+        1
+      } else {
+        addWeek
+      }
+      val nextYear = if (addWeek > 52) {
+        major.toInt + 1
+      } else {
+        major
+      }
+      copy(minor = nextWeek, major = nextYear)
+    }
+
+    def formatShop(): String = {
+      pre + major + "." + "%02d".format(minor) + patchF + lowF
+    }
+
+    def formatAsSnapshot(): String = {
+      pre + major + "." + minor + "." + patch + lowF + "-SNAPSHOT"
+    }
+
+    def formatShopAsSnapshot(): String = {
+      formatShop() + "-SNAPSHOT"
+    }
+  }
+
+  object Version {
+    implicit def ordering[A <: Version]: Ordering[A] = Ordering.by(e => (e.major, e.minor, e.patch))
+
+    val undef: Version = Version("n/a", -1, -1, -1, "")
+
+    private def nullToZero(in: String) = if (in == null) {
+      0
+    } else {
+      in.toInt
+    }
+
+    def fromStringOpt(pre: String, major: String, minor: String, patch: String, low: String): Option[Version] = {
+      Some(fromString(pre, major, minor, patch, low))
+    }
+
+    def fromString(pre: String, major: String, minor: String, patch: String, low: String): Version = {
+      Version(pre, nullToZero(major), nullToZero(minor), nullToZero(patch), Strings.nullToEmpty(low))
+    }
+  }
+
   def suggestReleaseBy(localDate: LocalDate, currentVersion: String, hasShopPom: Boolean,
                        branchNames: Seq[String]): Seq[String] = {
     if (hasShopPom) {
       val releaseBranchNames = branchNames.filter(_.startsWith("release/")).map(_.replaceFirst("^release/", ""))
-
-      @tailrec
-      def nextReleaseIfExisting(known: Seq[String], name: String, suffix: Int): String = {
-        val finalName = if (suffix == 0) {
-          name
-        } else {
-          name + "." + suffix
-        }
-        if (known.contains(finalName)) {
-          nextReleaseIfExisting(known, name, suffix + 1)
-        } else {
-          finalName
-        }
+      val knownVersions: Seq[Version] = releaseBranchNames.map {
+        case shopPattern(pre, year, week, minor, low) ⇒ Version.fromString(pre, year, week, minor, low)
+        case _ ⇒ Version.undef
       }
 
       if (currentVersion.startsWith("master")) {
-
-        def dateBased(localDate: LocalDate, known: Seq[String]): String = {
+        def dateBased(localDate: LocalDate, known: Seq[Version]): String = {
           val weekFields = WeekFields.of(Locale.getDefault())
-          val releaseVersion = "RC-" + localDate.getYear + "." + "%02d".format(localDate.get(weekFields.weekOfWeekBasedYear()))
-          nextReleaseIfExisting(known, releaseVersion, 0) + "-SNAPSHOT"
+          Version("RC-", localDate.getYear, localDate.get(weekFields.weekOfWeekBasedYear()), 0, "")
+            .nextIfKnown(knownVersions)
+            .formatShopAsSnapshot()
         }
 
-        Seq(dateBased(localDate, releaseBranchNames),
-          dateBased(localDate.plusWeeks(1), releaseBranchNames),
-          dateBased(localDate.plusWeeks(2), releaseBranchNames))
+        Seq(dateBased(localDate, knownVersions),
+          dateBased(localDate.plusWeeks(1), knownVersions),
+          dateBased(localDate.plusWeeks(2), knownVersions))
       } else if (currentVersion.matches("^[0-9]+x-SNAPSHOT$")) {
         val withoutSnapshot = currentVersion.replaceFirst("x-SNAPSHOT$", "") + ".0.0"
 
-        def toInts(m: String): (Int, Int, Int, Int) = m match {
-          case semverPattern(ma, mi, b) ⇒ (ma.toInt, mi.toInt, b.toInt, 0)
-          case semverPatternLowdash(ma, mi, b, low) ⇒ (ma.toInt, mi.toInt, b.toInt, low.toInt)
-          case _ ⇒ (-1, -1, -1, -1)
+        def toVersion(m: String): Option[Version] = m match {
+          case semverPattern(ma, mi, b) ⇒ Version.fromStringOpt("", ma, mi, b, "")
+          case semverPatternLowdash(ma, mi, b, low) ⇒ Version.fromStringOpt("", ma, mi, b, low)
+          case _ ⇒ None
         }
 
-        val versionTupels = branchNames.map(_.replace("release/", "")).map(toInts).filterNot(_._1 <= -1)
+        val versionTuples = branchNames.map(_.replace("release/", "")).flatMap(toVersion)
 
-        // TODO @tailrec
-        def nextNumberedReleaseIfExisting(known: Seq[(Int, Int, Int, Int)], name: (Int, Int, Int, Int)): Seq[String] = {
+        @tailrec
+        def nextNumberedReleaseIfExisting(known: Seq[Version], names: Version*): Seq[Version] = {
 
-          if (known.contains(name)) {
+          if (known.exists(in ⇒ names.contains(in))) {
             val latest = known.max
-            nextNumberedReleaseIfExisting(known, latest.copy(_3 = latest._3 + 1)) ++
-              nextNumberedReleaseIfExisting(known, latest.copy(_2 = latest._2 + 1, _3 = 0))
+            val nextMinor = latest.copy(minor = latest.minor + 1, patch = 0)
+            val nextPatch = latest.copy(patch = latest.patch + 1)
+            nextNumberedReleaseIfExisting(known, nextPatch, nextMinor)
           } else {
-            Seq(Seq(name._1, name._2, name._3).mkString("."))
+            names
           }
         }
 
-        val n = toInts(withoutSnapshot)
-        nextNumberedReleaseIfExisting(versionTupels, n).map(_ + "-SNAPSHOT")
+        nextNumberedReleaseIfExisting(versionTuples, toVersion(withoutSnapshot).get).map(_.formatAsSnapshot())
       } else {
-        Seq(nextReleaseIfExisting(releaseBranchNames, currentVersion.replaceFirst("-SNAPSHOT$", ""), 0) + "-SNAPSHOT")
+        val snapped = currentVersion.replaceFirst("-SNAPSHOT", "")
+        snapped match {
+          case shopPattern(pre, year, week, minor, low) ⇒ {
+            val version = Version.fromString(pre, year, week, minor, low)
+            if (knownVersions.contains(version)) {
+              Seq(version.nextIfKnown(knownVersions).formatShopAsSnapshot())
+            } else {
+              Seq(currentVersion)
+            }
+
+          }
+          case any ⇒ throw new IllegalStateException("invalid shop release name: " + any + " - please create new ticket")
+        }
       }
     } else {
       Seq(currentVersion.replaceFirst("-SNAPSHOT$", ""))
@@ -735,7 +810,6 @@ object PomMod {
     } else if (currentVersion.matches("^[0-9]+x-SNAPSHOT")) {
       currentVersion.replaceFirst("-SNAPSHOT$", "")
     } else {
-      val shopPattern = "^(RC-)([0-9]{4})\\.([0-9]+)(?:\\.[0-9]+[0-9\\.]*)?$".r
       val stableShop = "^([0-9]+x)-stable.*$".r
 
       val snapped = releaseVersion.replaceFirst("-SNAPSHOT", "")
@@ -745,19 +819,9 @@ object PomMod {
         case semverPattern(ma, mi, b) ⇒ ma + "." + mi + "." + (b.toInt + 1)
         case semverPatternNoBugfix(ma, mi) ⇒ ma + "." + (mi.toInt + 1) + ".0"
         case semverPatternNoMinor(ma) ⇒ (ma.toInt + 1) + ".0.0"
-        case shopPattern(pre, year, week) ⇒ {
-          val addWeek = week.toInt + 1
-          val nextWeek = if (addWeek > 52) {
-            1
-          } else {
-            addWeek
-          }
-          val nextYear = if (addWeek > 52) {
-            year.toInt + 1
-          } else {
-            year
-          }
-          pre + nextYear + "." + "%02d".format(nextWeek)
+        case shopPattern(pre, year, week, minor, low) ⇒ {
+          val verso = Version.fromString(pre, year, week, minor, low).plusWeek()
+          verso.copy(patch = 0, low = "").formatShop()
         }
         case any ⇒ any + "-UNDEF"
       }
@@ -884,7 +948,7 @@ object PomMod {
     }
   }
 
-  private[release] def checkRootFirstChildPropertiesVar(opts:Opts, childPomFiles: Seq[RawPomFile]): Unit = {
+  private[release] def checkRootFirstChildPropertiesVar(opts: Opts, childPomFiles: Seq[RawPomFile]): Unit = {
     case class DepProps(dep: Dep, parentDep: Dep, properties: Map[String, String])
 
     val allP: Seq[DepProps] = childPomFiles.map(in ⇒ {

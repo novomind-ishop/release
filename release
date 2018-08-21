@@ -1,5 +1,6 @@
 #!/bin/bash
 # Released sowohl Shop- als auch sonstige Artefakte mit Hilfe des CI Servers
+unset JAVA_TOOL_OPTIONS
 set -eu
 trace_setup() {
   echo "$(date '+%H:%M:%S.000') shell-script - $1" >> ${HOME}/.release.log
@@ -36,12 +37,12 @@ fi
 trace_setup "start vm"
 if [[ "${os}" = "Cygwin" ]]; then
   set +e
-  java -jar $(cygpath -aw ${release_jar}) "$(cygpath -aw $(dirname $0))" "$(cygpath -aw $(pwd))" "${os}" "${TERM}" "${terminal_cols}" ${argLine}
+  java -Dfile.encoding=UTF-8 -jar $(cygpath -aw ${release_jar}) "$(cygpath -aw $(dirname $0))" "$(cygpath -aw $(pwd))" "${os}" "${TERM}" "${terminal_cols}" ${argLine}
   java_exit=$?
   set -e
 else
   set +e
-  java -jar ${release_jar} "$(dirname $0)" "$(pwd)" "${os}" "${TERM}" "${terminal_cols}" ${argLine}
+  java -Dfile.encoding=UTF-8 -jar ${release_jar} "$(dirname $0)" "$(pwd)" "${os}" "${TERM}" "${terminal_cols}" ${argLine}
   java_exit=$?
   set -e
 fi
@@ -50,7 +51,7 @@ if [[ ${java_exit} -eq 99 ]]; then
     ps -fp $$ | egrep -v "COMMAND"
   fi
   if [[ ${ISHOP_RELEASE_UPDATE_AUTO:-0} -eq 1 ]]; then
-    update_cmd=$(java -jar ${release_jar} "$(dirname $0)" "$(pwd)" "${os}" "${TERM}" "${terminal_cols}" --show-update-cmd)
+    update_cmd=$(java -Dfile.encoding=UTF-8 -jar ${release_jar} "$(dirname $0)" "$(pwd)" "${os}" "${TERM}" "${terminal_cols}" --show-update-cmd)
     echo "I: starting self update"
     eval "${update_cmd}"
     if [[ ${ISHOP_RELEASE_UPDATE_EXEC_AUTO:-0} -eq 1 ]]; then

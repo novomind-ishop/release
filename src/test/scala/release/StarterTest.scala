@@ -4,6 +4,12 @@ import java.io._
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.{TimeUnit, TimeoutException}
 
+import ch.qos.logback.classic.LoggerContext
+import ch.qos.logback.classic.joran.JoranConfigurator
+import ch.qos.logback.core.BasicStatusManager
+import ch.qos.logback.core.joran.GenericConfigurator
+import ch.qos.logback.core.status.Status
+import com.typesafe.scalalogging.LazyLogging
 import org.junit.rules.Timeout
 import org.junit.{Assert, Ignore, Rule, Test}
 import org.mockito.MockitoSugar
@@ -11,10 +17,11 @@ import org.scalatest.junit.AssertionsForJUnit
 import release.Sgit.GitRemote
 import release.Starter.{FutureEither, FutureError, Opts, OptsDepUp}
 
+import scala.collection.JavaConverters
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 
-class StarterTest extends AssertionsForJUnit with MockitoSugar {
+class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging {
 
   val _globalTimeout = new Timeout(10000)
 
@@ -239,6 +246,30 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar {
     Starter.suggestRebase(out, sgit, branch = "test", opts)
 
     verify(sgit).checkout("test")
+  }
+
+  @Test
+  def testLogback(): Unit = {
+    doTest(new File("src/main/resources/logback.xml"))
+    doTest(new File("src/test/resources/logback-test.xml"))
+
+    def doTest(logbackFile:File): Unit = {
+      val context: LoggerContext = new LoggerContext
+      val configurator: GenericConfigurator = new JoranConfigurator
+      configurator.setContext(context)
+      configurator.doConfigure(logbackFile)
+
+      val sm = context.getStatusManager.asInstanceOf[BasicStatusManager]
+      if (sm.getLevel != Status.INFO) {
+        val statuses: Seq[Status] = JavaConverters.asScalaBuffer(sm.getCopyOfStatusList).toList
+        val errorMsgs = statuses.filter(_.getLevel != Status.INFO)
+        if (errorMsgs != Nil) {
+          val allStatuses: String = errorMsgs.mkString("\n")
+          fail(logbackFile + ": has errors/warnings:\n" + allStatuses)
+        }
+      }
+    }
+
   }
 
   @Test
