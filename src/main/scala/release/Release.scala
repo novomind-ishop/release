@@ -473,13 +473,13 @@ object Release {
     if (snapState.nonEmpty || snapshotProperties.nonEmpty) {
       if (snapshotProperties.nonEmpty) {
         out.println("")
-        out.println("Snapshot properties found for (fix manually):")
+        out.println("Snapshot properties found for (please fix manually in pom.xml (remove -SNAPSHOT in most cases)):")
         snapshotProperties.map(in ⇒ "Property: " + in).foreach(println)
       }
       if (snapState.nonEmpty) {
         out.println("")
         // TODO later autofix
-        out.println("Snapshots found for (fix manually):")
+        out.println("Snapshots found for (please fix manually in pom.xml (remove -SNAPSHOT in most cases)):")
       }
 
       def info(rel: Boolean): String = if (rel) {
