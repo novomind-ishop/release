@@ -585,39 +585,31 @@ object Sgit {
           throw new IllegalStateException("git version 2.4 support ended at 2017-07-01")
         case v: String if v.startsWith("git version 2.5.") ⇒
           throw new IllegalStateException("git version 2.5 support ended at 2017-07-01")
-        case v: String if v.startsWith("git version 2.6.") ⇒
-          // (2017-05-05) - (tag: v2.6.7)
+        case v: String if v.startsWith("git version 2.6.") ⇒ // (2017-05-05) - (tag: v2.6.7)
           throw new IllegalStateException("git version 2.6 support ended at 2017-07-01")
-        case v: String if v.startsWith("git version 2.7.") ⇒
-          // (2017-07-30) - (tag: v2.7.6)
+        case v: String if v.startsWith("git version 2.7.") ⇒ // (2017-07-30) - (tag: v2.7.6)
           throw new IllegalStateException("git version 2.7 support ended at 2017-07-01")
-        case v: String if v.startsWith("git version 2.8.") ⇒
-          // (2016-06-06) - (tag: v2.8.4)
+        case v: String if v.startsWith("git version 2.8.") ⇒ // (2016-06-06) - (tag: v2.8.4)
           throw new IllegalStateException("git version 2.8 support ended at 2017-07-01")
-        case v: String if v.startsWith("git version 2.9.") ⇒
-          // (2016-08-12) - (tag: v2.9.3)
+        case v: String if v.startsWith("git version 2.9.") ⇒ // (2016-08-12) - (tag: v2.9.3)
           throw new IllegalStateException("git version 2.9 support ended at 2017-08-01")
-        case v: String if v.startsWith("git version 2.10.") ⇒
-          // (2016-10-28) - (tag: v2.10.2)
+        case v: String if v.startsWith("git version 2.10.") ⇒ // (2016-10-28) - (tag: v2.10.2)
           throw new IllegalStateException("git version 2.10 support ended at 2017-11-01")
-        case v: String if v.startsWith("git version 2.11.") ⇒
-          // 2017-02-02) - (tag: v2.11.1)
+        case v: String if v.startsWith("git version 2.11.") ⇒ // 2017-02-02) - (tag: v2.11.1)
           throw new IllegalStateException("git version 2.11 support ended at 2017-11-01")
-        case v: String if v.startsWith("git version 2.12.") ⇒
-          // (2017-03-20) - (tag: v2.12.1)
+        case v: String if v.startsWith("git version 2.12.") ⇒ // (2017-03-20) - (tag: v2.12.1)
           throw new IllegalStateException("git version 2.12 support ended at 2018-04-02")
-        case v: String if v.startsWith("git version 2.13.") ⇒
-          // (2017-09-22) - (tag: v2.13.6)
+        case v: String if v.startsWith("git version 2.13.") ⇒ // (2017-09-22) - (tag: v2.13.6)
           throw new IllegalStateException("git version 2.13 support ended at 2018-05-02")
-        case v: String if v.startsWith("git version 2.14.") ⇒
-          // (2017-10-23) - (tag: v2.14.3)
+        case v: String if v.startsWith("git version 2.14.") ⇒ // (2017-10-23) - (tag: v2.14.3)
           throw new IllegalStateException("git version 2.13 support ended at 2018-07-02")
-        case v: String if v.startsWith("git version 2.15.") ⇒
-          // (2017-11-28) - (tag: v2.15.1)
+        case v: String if v.startsWith("git version 2.15.") ⇒ // (2017-11-28) - (tag: v2.15.1)
           out.println("W: please update your git version, \"" + v + "\" support ends at 2018-11-02");
-        case v: String if v.startsWith("git version 2.16.") ⇒ // do nothing (2018-02-15) - (tag: v2.16.2)
+        case v: String if v.startsWith("git version 2.16.") ⇒ // (2018-02-15) - (tag: v2.16.2)
+          out.println("W: please update your git version, \"" + v + "\" support ends at 2018-12-02");
         case v: String if v.startsWith("git version 2.17.") ⇒ // do nothing (2018-04-02) - (tag: v2.17.0)
         case v: String if v.startsWith("git version 2.18.") ⇒ // do nothing (2018-06-21) - (tag: v2.18.0)
+        case v: String if v.startsWith("git version 2.19.") ⇒ // do nothing (2018-09-10) - (tag: v2.19.0)
         case v: String ⇒ out.println("W: unknown/untested git version: \"" + v + "\". Please create a ticket at ISPS.");
       }
       gits = gits ++ Map(cmd → result)

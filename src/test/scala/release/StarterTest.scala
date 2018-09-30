@@ -71,11 +71,13 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
       |
       |Possible options:
       |--help, -h            => shows this and exits
-      |--simple-chars        => use no drawing chars
-      |--replace             => replaces release jar / only required for development
       |--no-gerrit           => use this toggle for non gerrit projects
-      |--no-jline            => if you have problems with terminal inputs, try this to read from Stdin
       |--skip-property value => if you get false positives with property definitions
+      |
+      |--simple-chars        => use no drawing chars
+      |--no-color            => use no color
+      |--no-jline            => if you have problems with terminal inputs, try this to read from Stdin
+      |--replace             => replaces release jar / only required for development
       |
       |showDependencyUpdates                => shows dependency updates from nexus option
       |versionSet newVersion                => changes version like maven

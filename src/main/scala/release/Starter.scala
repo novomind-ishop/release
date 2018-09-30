@@ -190,7 +190,7 @@ object Starter extends App with LazyLogging {
                   showUpdateCmd: Boolean = false, versionSet: Option[String] = None, shopGA: Option[String] = None,
                   createFeature: Boolean = false, useGerrit: Boolean = true, doUpdate: Boolean = true,
                   depUpOpts: OptsDepUp = OptsDepUp(), useJlineInput: Boolean = true, skipProperties: Seq[String] = Nil,
-                  useDefaults: Boolean = false)
+                  colors:Boolean = true, useDefaults: Boolean = false)
 
   @tailrec
   def argsRead(params: Seq[String], inOpt: Opts): Opts = {
@@ -205,6 +205,7 @@ object Starter extends App with LazyLogging {
       case "--no-update" :: tail ⇒ argsRead(tail, inOpt.copy(doUpdate = false))
       case "--defaults" :: tail ⇒ argsRead(tail, inOpt.copy(useDefaults = true))
       case "--no-jline" :: tail ⇒ argsRead(tail, inOpt.copy(useJlineInput = false))
+      case "--no-color" :: tail ⇒ argsRead(tail, inOpt.copy(colors = false))
       case "--skip-property" :: value :: tail ⇒ argsRead(tail, inOpt.copy(skipProperties = inOpt.skipProperties ++ Seq(value)))
       // CMDs
       case "versionSet" :: value :: _ ⇒ argsRead(Nil, inOpt.copy(versionSet = Some(value)))
@@ -258,11 +259,13 @@ object Starter extends App with LazyLogging {
       out.println()
       out.println("Possible options:")
       out.println("--help, -h            => shows this and exits")
-      out.println("--simple-chars        => use no drawing chars")
-      out.println("--replace             => replaces release jar / only required for development")
       out.println("--no-gerrit           => use this toggle for non gerrit projects")
-      out.println("--no-jline            => if you have problems with terminal inputs, try this to read from Stdin")
       out.println("--skip-property value => if you get false positives with property definitions")
+      out.println()
+      out.println("--simple-chars        => use no drawing chars")
+      out.println("--no-color            => use no color")
+      out.println("--no-jline            => if you have problems with terminal inputs, try this to read from Stdin")
+      out.println("--replace             => replaces release jar / only required for development")
       out.println()
       out.println("showDependencyUpdates                => shows dependency updates from nexus option")
       out.println("versionSet newVersion                => changes version like maven")

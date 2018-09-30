@@ -22,19 +22,49 @@ class ReleaseTest extends AssertionsForJUnit {
   }
 
   @Test
-  def testFormatVersionLines(): Unit = {
+  def testFormatVersionLinesHighlight(): Unit = {
 
-    val check = Release.formatVersionLines(Seq(
-      "* com.novomind.ishop.core:ishop-core-projects:29.6.4-SNAPSHOT",
-      "* com.novomind.ishop.core:ishop-api:1.0.2.1",
-      "* any:1.0.2.1",
-      "* 1.0.2.1"))
+    val check = Release.formatVersionLinesGav(Seq(
+      PomMod.Gav("com.novomind.ishop.core", "ishop-core-projects", "29.6.4-SNAPSHOT"),
+      PomMod.Gav("com.novomind.ishop.core", "ishop-api", "1.0.2.1"),
+      PomMod.Gav("na", "na", "1.0.2.1"),
+      PomMod.Gav("any", "an", "2.2"),
+      PomMod.Gav("any", "any", "2")
+    ), color = true)
+
+    Assert.assertEquals(Seq(
+      "* com.novomind.ishop.core:ishop-core-projects:  \u001B[31m29.6.4-SNAPSHOT\u001B[0m",
+      "* com.novomind.ishop.core:ishop-api:            \u001B[31m1.0.2.1\u001B[0m",
+      "* na:na:                                        \u001B[31m1.0.2.1\u001B[0m",
+      "* any:an:                                       2.2",
+      "* any:any:                                      2"
+    ).mkString("\n"), check.mkString("\n"))
+  }
+
+  @Test
+  def testFormatVersionLinesGav(): Unit = {
+
+    val check = Release.formatVersionLinesGav(Seq(
+      PomMod.Gav("com.novomind.ishop.core", "ishop-core-projects", "29.6.4-SNAPSHOT"),
+      PomMod.Gav("com.novomind.ishop.core", "ishop-api", "1.0.2.1"),
+      PomMod.Gav("na", "na", "1.0.2.1"),
+      PomMod.Gav("any", "ax", "2.2.2"),
+      PomMod.Gav("any", "an", "2.2"),
+      PomMod.Gav("any", "any", "2"),
+      PomMod.Gav("", "any", "2"),
+      PomMod.Gav("", "", "2")
+    ))
 
     Assert.assertEquals(Seq(
       "* com.novomind.ishop.core:ishop-core-projects:  29.6.4-SNAPSHOT",
       "* com.novomind.ishop.core:ishop-api:            1.0.2.1",
-      "* any:                                          1.0.2.1",
-      "* 1.0.2.1"), check)
+      "* na:na:                                        1.0.2.1",
+      "* any:ax:                                       2.2.2",
+      "* any:an:                                       2.2",
+      "* any:any:                                      2",
+      "* :any:                                         2",
+      "* ::                                            2"
+    ).mkString("\n"), check.mkString("\n"))
   }
 
 }

@@ -11,14 +11,34 @@ import release.Starter.{Opts, PreconditionsException, TermOs}
 import scala.annotation.tailrec
 
 object Release {
-  def formatVersionLines(versionLines: Seq[String]): Seq[String] = {
-    val maxLenght = versionLines.map(_.replaceFirst("[^:]*$", "")).map(_.length).max + 2
-    versionLines.map(in ⇒ {
-      val baseLenght = in.replaceFirst("[^:]*$", "").length
-      val spaces = List.fill(maxLenght - baseLenght)(" ").mkString("")
-      in.replaceFirst("^(.*:)([^:]*$)", "$1" + spaces + "$2")
-    })
 
+  def formatVersionLinesGav(versionLines: Seq[Gav], color: Boolean = false): Seq[String] = {
+    def gavLength(in: Gav) = Seq(in.groupId, in.artifactId).mkString(":").length
+
+    val max = versionLines.map(gavLength).max
+    lazy val maxString = versionLines.map(_.version).groupBy { i =>
+      if (i.contains(".")) {
+        i.replaceFirst("\\..*", "")
+      } else {
+        i
+      }
+    }.toList.map(in => (in._1, in._2.size, in._2))
+      .sortBy(_._1).reverse.sortBy(-_._2).drop(1).flatMap(_._3).distinct
+
+    val lines = versionLines.map { in ⇒
+      val baseLength = gavLength(in)
+      val spaces = " " * (max - baseLength)
+
+      val v = if (color && maxString.contains(in.version)) {
+        "\u001B[31m" + in.version + "\u001B[0m"
+      } else {
+        in.version
+      }
+      "* " + Seq(in.groupId, in.artifactId, spaces).mkString(":") + "  " + v
+
+    }
+      .distinct
+    lines
   }
 
   def findBadLines(regexp: Pattern)(aFileName: String): Seq[(Int, String, Path)] = {
@@ -212,18 +232,16 @@ object Release {
     if (coreMajorVersions != Nil && sortedMajors != Seq(releaseMajorVersion)) {
 
       if (mod.hasNoShopPom) {
-        out.println("W: You are trying to release major version " + releaseMajorVersion + " (" + release +
-          ") but this artifact refers to: " + sortedMajors.mkString(" and "))
+        out.print("W: You are trying to release major version " + releaseMajorVersion + " (" + release + ")")
       } else {
-        out.println("W: You are trying to use major version " + releaseMajorVersion +
-          " but this artifact refers to: " + sortedMajors.mkString(" and "))
+        out.print("W: You are trying to use major version " + releaseMajorVersion)
       }
-      val t = coreMajorVersions
-        .sortBy(a ⇒ a._2.version)
-        .map(in ⇒ "  * " + Seq(in._2.groupId, in._2.artifactId, in._2.version).mkString(":"))
-        .distinct
+      out.println(" but this artifact refers to: " + sortedMajors.mkString(" and ") + "." +
+        "\n   We prefer consistent major versions. So please update all projects to same major version.")
 
-      Release.formatVersionLines(t).foreach(out.println)
+      Release.formatVersionLinesGav(coreMajorVersions.map(_._2.gav()).sortBy(_.version), opts.colors)
+        .map(in => " " + in)
+        .foreach(out.println)
       val continue = Term.readFromOneOfYesNo(out, "Continue?", opts)
       if (continue == "n") {
         System.exit(1)
