@@ -190,7 +190,7 @@ object Starter extends App with LazyLogging {
                   showUpdateCmd: Boolean = false, versionSet: Option[String] = None, shopGA: Option[String] = None,
                   createFeature: Boolean = false, useGerrit: Boolean = true, doUpdate: Boolean = true,
                   depUpOpts: OptsDepUp = OptsDepUp(), useJlineInput: Boolean = true, skipProperties: Seq[String] = Nil,
-                  colors:Boolean = true, useDefaults: Boolean = false)
+                  colors: Boolean = true, useDefaults: Boolean = false)
 
   @tailrec
   def argsRead(params: Seq[String], inOpt: Opts): Opts = {

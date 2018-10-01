@@ -581,12 +581,6 @@ object PomMod {
   private val xPathToProjectParentVersion = "//project/parent/version"
   private val xPathToProjectParentPackaging = "//project/parent/packaging"
 
-  private val semverPattern = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)$".r
-  private val semverPatternNoBugfix = "^([0-9]+)\\.([0-9]+)$".r
-  private val semverPatternNoMinor = "^([0-9]+)$".r
-  private val semverPatternLowdash = "^([0-9]+)\\.([0-9]+)\\.([0-9]+_)([0-9]+)$".r
-  private val shopPattern = "^(RC-)([0-9]{4})\\.([0-9]+)?(?:\\.([0-9]+[0-9]*))?(?:_([0-9]+[0-9]*))?$".r
-
   private def depFrom(id: String, dfn: Map[Dep, Node] ⇒ Unit)(depSeq: Seq[(String, String, Node)]): Dep = {
     val deps = Xpath.toMapOf(depSeq)
     val dep = Dep(pomRef = PomRef(id),
@@ -710,14 +704,24 @@ object PomMod {
   }
 
   object Version {
+    private[release] val semverPattern = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)$".r
+    private[release] val semverPatternNoBugfix = "^([0-9]+)\\.([0-9]+)$".r
+    private[release] val semverPatternNoMinor = "^([0-9]+)$".r
+    private[release] val semverPatternLowdash = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)_([0-9]+)$".r
+    private[release] val semverPatternLowdashString = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)_(.+)$".r
+    private[release] val stableShop = "^([0-9]+x)-stable.*$".r
+    private[release] val shopPattern = "^(RC-)([0-9]{4})\\.([0-9]+)?(?:\\.([0-9]+[0-9]*))?(?:_([0-9]+[0-9]*))?$".r
+
     implicit def ordering[A <: Version]: Ordering[A] = Ordering.by(e => (e.major, e.minor, e.patch))
 
     val undef: Version = Version("n/a", -1, -1, -1, "")
 
-    private def nullToZero(in: String) = if (in == null) {
+    private def nullToZero(in: String) = if (in == null || in == "") {
       0
-    } else {
+    } else if (in.forall(_.isDigit)) {
       in.toInt
+    } else {
+      -1
     }
 
     def fromStringOpt(pre: String, major: String, minor: String, patch: String, low: String): Option[Version] = {
@@ -727,6 +731,31 @@ object PomMod {
     def fromString(pre: String, major: String, minor: String, patch: String, low: String): Version = {
       Version(pre, nullToZero(major), nullToZero(minor), nullToZero(patch), Strings.nullToEmpty(low))
     }
+
+    def toVersion(m: String): Option[Version] = m match {
+      case semverPattern(ma, mi, b) ⇒ Version.fromStringOpt("", ma, mi, b, "")
+      case semverPatternLowdash(ma, mi, b, low) ⇒ Version.fromStringOpt("", ma, mi, b, low)
+      case _ ⇒ None
+    }
+
+    def parse(versionText: String): Version = {
+      val snapped = versionText.replaceFirst("-SNAPSHOT", "")
+
+      try {
+        snapped match {
+          case stableShop(pre) ⇒ undef
+          case semverPatternLowdash(ma, mi, b, low) ⇒ Version.fromString("", ma, mi, b, low)
+          case semverPatternLowdashString(ma, mi, b, low) ⇒ Version.fromString("", ma, mi, b, low)
+          case semverPattern(ma, mi, b) ⇒ Version.fromString("", ma, mi, b, "")
+          case semverPatternNoBugfix(ma, mi) ⇒ Version.fromString("", ma, mi, "", "")
+          case semverPatternNoMinor(ma) ⇒ Version.fromString("", ma, "", "", "")
+          case shopPattern(pre, year, week, minor, low) ⇒ Version.fromString(pre, year, week, minor, low)
+          case any ⇒ undef
+        }
+      } catch {
+        case e: Exception ⇒ e.printStackTrace(); undef
+      }
+    }
   }
 
   def suggestReleaseBy(localDate: LocalDate, currentVersion: String, hasShopPom: Boolean,
@@ -734,7 +763,7 @@ object PomMod {
     if (hasShopPom) {
       val releaseBranchNames = branchNames.filter(_.startsWith("release/")).map(_.replaceFirst("^release/", ""))
       val knownVersions: Seq[Version] = releaseBranchNames.map {
-        case shopPattern(pre, year, week, minor, low) ⇒ Version.fromString(pre, year, week, minor, low)
+        case Version.shopPattern(pre, year, week, minor, low) ⇒ Version.fromString(pre, year, week, minor, low)
         case _ ⇒ Version.undef
       }
 
@@ -752,13 +781,7 @@ object PomMod {
       } else if (currentVersion.matches("^[0-9]+x-SNAPSHOT$")) {
         val withoutSnapshot = currentVersion.replaceFirst("x-SNAPSHOT$", "") + ".0.0"
 
-        def toVersion(m: String): Option[Version] = m match {
-          case semverPattern(ma, mi, b) ⇒ Version.fromStringOpt("", ma, mi, b, "")
-          case semverPatternLowdash(ma, mi, b, low) ⇒ Version.fromStringOpt("", ma, mi, b, low)
-          case _ ⇒ None
-        }
-
-        val versionTuples = branchNames.map(_.replace("release/", "")).flatMap(toVersion)
+        val versionTuples = branchNames.map(_.replace("release/", "")).flatMap(Version.toVersion)
 
         @tailrec
         def nextNumberedReleaseIfExisting(known: Seq[Version], names: Version*): Seq[Version] = {
@@ -773,11 +796,11 @@ object PomMod {
           }
         }
 
-        nextNumberedReleaseIfExisting(versionTuples, toVersion(withoutSnapshot).get).map(_.formatAsSnapshot())
+        nextNumberedReleaseIfExisting(versionTuples, Version.toVersion(withoutSnapshot).get).map(_.formatAsSnapshot())
       } else {
         val snapped = currentVersion.replaceFirst("-SNAPSHOT", "")
         snapped match {
-          case shopPattern(pre, year, week, minor, low) ⇒ {
+          case Version.shopPattern(pre, year, week, minor, low) ⇒ {
             val version = Version.fromString(pre, year, week, minor, low)
             if (knownVersions.contains(version)) {
               Seq(version.nextIfKnown(knownVersions).formatShopAsSnapshot())
@@ -810,16 +833,14 @@ object PomMod {
     } else if (currentVersion.matches("^[0-9]+x-SNAPSHOT")) {
       currentVersion.replaceFirst("-SNAPSHOT$", "")
     } else {
-      val stableShop = "^([0-9]+x)-stable.*$".r
-
       val snapped = releaseVersion.replaceFirst("-SNAPSHOT", "")
       snapped match {
-        case stableShop(pre) ⇒ pre + "-stable-RELEASE-DEMO-DELETE-ME"
-        case semverPatternLowdash(ma, mi, b, low) ⇒ ma + "." + mi + "." + b + (low.toInt + 1)
-        case semverPattern(ma, mi, b) ⇒ ma + "." + mi + "." + (b.toInt + 1)
-        case semverPatternNoBugfix(ma, mi) ⇒ ma + "." + (mi.toInt + 1) + ".0"
-        case semverPatternNoMinor(ma) ⇒ (ma.toInt + 1) + ".0.0"
-        case shopPattern(pre, year, week, minor, low) ⇒ {
+        case Version.stableShop(pre) ⇒ pre + "-stable-RELEASE-DEMO-DELETE-ME"
+        case Version.semverPatternLowdash(ma, mi, b, low) ⇒ ma + "." + mi + "." + b + "_" + (low.toInt + 1)
+        case Version.semverPattern(ma, mi, b) ⇒ ma + "." + mi + "." + (b.toInt + 1)
+        case Version.semverPatternNoBugfix(ma, mi) ⇒ ma + "." + (mi.toInt + 1) + ".0"
+        case Version.semverPatternNoMinor(ma) ⇒ (ma.toInt + 1) + ".0.0"
+        case Version.shopPattern(pre, year, week, minor, low) ⇒ {
           val verso = Version.fromString(pre, year, week, minor, low).plusWeek()
           verso.copy(patch = 0, low = "").formatShop()
         }

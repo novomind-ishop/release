@@ -5,7 +5,7 @@ import java.nio.charset.MalformedInputException
 import java.nio.file.{Files, InvalidPathException, Path, Paths}
 import java.util.regex.Pattern
 
-import release.PomMod.{Dep, Gav}
+import release.PomMod.{Dep, Gav, Version}
 import release.Starter.{Opts, PreconditionsException, TermOs}
 
 import scala.annotation.tailrec
@@ -22,21 +22,23 @@ object Release {
       } else {
         i
       }
-    }.toList.map(in => (in._1, in._2.size, in._2))
-      .sortBy(_._1).reverse.sortBy(-_._2).drop(1).flatMap(_._3).distinct
+    }.toList.map(in ⇒ (in._1, in._2.size, in._2))
+      .sortBy(_._1)
+      .reverse.sortBy(-_._2).drop(1).flatMap(_._3).distinct
 
-    val lines = versionLines.map { in ⇒
-      val baseLength = gavLength(in)
-      val spaces = " " * (max - baseLength)
+    val lines = versionLines
+      .sortBy(gav ⇒ Version.parse(gav.version))
+      .map { in ⇒
+        val baseLength = gavLength(in)
+        val spaces = " " * (max - baseLength)
 
-      val v = if (color && maxString.contains(in.version)) {
-        "\u001B[31m" + in.version + "\u001B[0m"
-      } else {
-        in.version
+        val v = if (color && maxString.contains(in.version)) {
+          "\u001B[31m" + in.version + "\u001B[0m"
+        } else {
+          in.version
+        }
+        "* " + Seq(in.groupId, in.artifactId, spaces).mkString(":") + "  " + v
       }
-      "* " + Seq(in.groupId, in.artifactId, spaces).mkString(":") + "  " + v
-
-    }
       .distinct
     lines
   }
@@ -203,7 +205,7 @@ object Release {
     val releaseMajorVersion = if (mod.hasNoShopPom) {
       release.replaceAll("\\..*", "")
     } else {
-      relevantDeps.map(_.version).max.replaceAll("\\..*", "")
+      relevantDeps.map(_.version).maxBy(Version.parse).replaceAll("\\..*", "")
     }
 
     val relevantFilteredDeps = if (releaseMajorVersion.matches("[0-9]+")) {
@@ -228,22 +230,23 @@ object Release {
       .filter(_._1.nonEmpty)
       .sortBy(_._1)
 
-    val sortedMajors = coreMajorVersions.map(_._1).distinct.sorted
+    val sortedMajors = coreMajorVersions.map(_._1).distinct.sortBy(Version.parse)
     if (coreMajorVersions != Nil && sortedMajors != Seq(releaseMajorVersion)) {
-
+      out.println()
       if (opts.colors) {
-        out.print("\u001B[45m")
+        out.print("\u001B[30;45m")
       }
       if (mod.hasNoShopPom) {
-        out.print("W: You are trying to release major version " + releaseMajorVersion + " (" + release + ")")
+        out.print(" W: You are trying to release major version " + releaseMajorVersion + " (" + release + ")")
       } else {
-        out.print("W: You are trying to use core major version " + releaseMajorVersion)
+        out.print(" W: You are trying to use core major version " + releaseMajorVersion)
       }
-      out.print(" but this artifact refers to: " + sortedMajors.mkString(" and ") + "." +
-        "\n   We prefer consistent major versions. So please update all projects to same major version.")
+      out.println(" but this artifact refers to: " + sortedMajors.mkString(" and ") + ".")
+      out.print("    We prefer consistent major versions. So please update all projects to same major version.")
       if (opts.colors) {
         out.print("\u001B[0m")
       }
+      out.println()
       out.println()
       Release.formatVersionLinesGav(coreMajorVersions.map(_._2.gav()).sortBy(_.version), opts.colors)
         .map(in => " " + in)

@@ -60,7 +60,8 @@ object Term {
       case null ⇒ {
         System.err.println("invalid readFrom(..)")
         System.exit(14)
-      }; null
+        null
+      }
       case "" ⇒ defaultValue
       case any: String ⇒ Option(any.trim).getOrElse(defaultValue)
     }
@@ -76,12 +77,14 @@ object Term {
 
   @tailrec
   def readFromOneOf(out: PrintStream, text: String, possibleValues: Seq[String], opts: Opts, in: BufferedReader = Console.in): String = {
-    val line = readLineWithPrompt(in, out, text + " [%s]: ".format(possibleValues.mkString("/")), opts)
+    val line = readLineWithPrompt(in, out, text + " [%s]: ".format(
+      possibleValues.map(line ⇒ line.replace(" ", "\u00A0")).mkString("/")), opts)
     line match {
       case null ⇒ {
         System.err.println("invalid readFromOneOf(..)")
         System.exit(1)
-      }; null
+        null
+      }
       case any: String if possibleValues.contains(any.trim) ⇒ any.trim
       case _: String ⇒ readFromOneOf(out, text, possibleValues, opts, in)
     }
@@ -108,7 +111,8 @@ object Term {
           case null ⇒ {
             System.err.println("invalid readChooseOneOf(..)")
             System.exit(1)
-          }; null
+            null
+          }
           case "" ⇒ mapped.head._2
           case any: String if mapped.contains(any) ⇒ mapped(any)
           case other: String ⇒ other.trim
@@ -129,7 +133,8 @@ object Term {
           case null ⇒ {
             System.err.println("invalid readChooseOneOfOrType(..)")
             System.exit(1)
-          }; null
+            null
+          }
           case "" ⇒ mapped.head._2
           case any: String if mapped.contains(any) ⇒ mapped(any)
           case other: String ⇒ other.trim

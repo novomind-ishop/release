@@ -8,7 +8,7 @@ import org.junit.{Assert, Rule, Test}
 import org.scalatest.junit.AssertionsForJUnit
 import org.w3c.dom._
 import release.PomChecker.ValidationException
-import release.PomMod.{Dep, PluginDep, PluginExec, PomRef}
+import release.PomMod._
 import release.PomModTest.{assertDeps, document, pomfile, _}
 import release.Starter.Opts
 
@@ -1347,6 +1347,30 @@ class PomModTest extends AssertionsForJUnit {
     }
 
     assertBy(expected, actual, defstr)
+  }
+
+  @Test
+  def testVersionParse(): Unit = {
+    Assert.assertEquals(Version("", 1, 2, 3, ""), Version.parse("1.2.3"))
+    Assert.assertEquals(Version("", 1, 2, 3, "6"), Version.parse("1.2.3_6"))
+    Assert.assertEquals(Version("", 1, 2, 3, "final"), Version.parse("1.2.3_final"))
+    Assert.assertEquals(Version("", 3, 2, 1, ""), Version.parse("3.2.1-SNAPSHOT"))
+    Assert.assertEquals(Version("", 7, 0, 0, ""), Version.parse("7"))
+    Assert.assertEquals(Version("", 8, 43, 0, ""), Version.parse("8.43"))
+  }
+
+  @Test
+  def testVersionOrdering(): Unit = {
+    val in = Seq(
+      Version.parse("1.2.3"),
+      Version.parse("2.2.3"),
+      Version.parse("2.2.4"),
+      Version.parse("2.3.0"),
+      Version.parse("7"),
+      Version.parse("9.1"),
+      Version.parse("21.2.3")
+    )
+    Assert.assertEquals(in, in.sorted)
   }
 
 }
