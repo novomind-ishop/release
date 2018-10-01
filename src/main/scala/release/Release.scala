@@ -231,20 +231,36 @@ object Release {
     val sortedMajors = coreMajorVersions.map(_._1).distinct.sorted
     if (coreMajorVersions != Nil && sortedMajors != Seq(releaseMajorVersion)) {
 
+      if (opts.colors) {
+        out.print("\u001B[45m")
+      }
       if (mod.hasNoShopPom) {
         out.print("W: You are trying to release major version " + releaseMajorVersion + " (" + release + ")")
       } else {
-        out.print("W: You are trying to use major version " + releaseMajorVersion)
+        out.print("W: You are trying to use core major version " + releaseMajorVersion)
       }
-      out.println(" but this artifact refers to: " + sortedMajors.mkString(" and ") + "." +
+      out.print(" but this artifact refers to: " + sortedMajors.mkString(" and ") + "." +
         "\n   We prefer consistent major versions. So please update all projects to same major version.")
-
+      if (opts.colors) {
+        out.print("\u001B[0m")
+      }
+      out.println()
       Release.formatVersionLinesGav(coreMajorVersions.map(_._2.gav()).sortBy(_.version), opts.colors)
         .map(in => " " + in)
         .foreach(out.println)
       val continue = Term.readFromOneOfYesNo(out, "Continue?", opts)
       if (continue == "n") {
         System.exit(1)
+      } else {
+        val really = Term.readFromOneOf(out, "Really?", Seq("Yes I'm really sure", "n"), opts)
+        if (really == "n") {
+          System.exit(1)
+        } else {
+          val abort = Term.readFromOneOfYesNo(out, "Abort?", opts)
+          if (abort == "y") {
+            System.exit(1)
+          }
+        }
       }
     }
 
