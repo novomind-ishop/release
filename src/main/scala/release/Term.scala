@@ -78,7 +78,7 @@ object Term {
   @tailrec
   def readFromOneOf(out: PrintStream, text: String, possibleValues: Seq[String], opts: Opts, in: BufferedReader = Console.in): String = {
     val line = readLineWithPrompt(in, out, text + " [%s]: ".format(
-      possibleValues.map(line ⇒ line.replace(" ", "\u00A0")).mkString("/")), opts)
+      possibleValues.map(line ⇒ line.replace(' ', ' ')).mkString("/")), opts)
     line match {
       case null ⇒ {
         System.err.println("invalid readFromOneOf(..)")
