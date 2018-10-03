@@ -226,9 +226,8 @@ object Starter extends App with LazyLogging {
       err.println("usage: $0 \"$(dirname $0)\" \"$(pwd)\" \"${os}\" \"${TERM}\" \"${terminal_cols}\" ${argLine}")
       return 1
     }
-    out.println(". done")
-
     val releaseToolPath = argSeq.head
+
     val releaseToolDir = new File(releaseToolPath).getAbsoluteFile
     val workDir = argSeq(1)
     val workDirFile = new File(workDir).getAbsoluteFile
@@ -236,6 +235,9 @@ object Starter extends App with LazyLogging {
     val otherArgs = argSeq.drop(5).filter(_ != null).map(_.trim).toList
 
     val opts = argsRead(otherArgs, Opts())
+    if (!opts.showUpdateCmd) {
+      out.println(". done")
+    }
     val config = ReleaseConfig.default(opts.useDefaults)
     val termOs: TermOs = TermOs.select(argSeq(3), argSeq(2), opts.simpleChars)
     val showHelp = opts.showHelp
@@ -261,6 +263,7 @@ object Starter extends App with LazyLogging {
       out.println("--help, -h            => shows this and exits")
       out.println("--no-gerrit           => use this toggle for non gerrit projects")
       out.println("--skip-property value => if you get false positives with property definitions")
+      out.println("--defaults            => do not read ${HOME}/.ishop-release")
       out.println()
       out.println("--simple-chars        => use no drawing chars")
       out.println("--no-color            => use no color")

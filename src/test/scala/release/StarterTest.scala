@@ -73,6 +73,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
       |--help, -h            => shows this and exits
       |--no-gerrit           => use this toggle for non gerrit projects
       |--skip-property value => if you get false positives with property definitions
+      |--defaults            => do not read ${HOME}/.ishop-release
       |
       |--simple-chars        => use no drawing chars
       |--no-color            => use no color
