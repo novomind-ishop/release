@@ -415,7 +415,8 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
       listSelf.map(_.copy(classifier = "", typeN = "war", scope = "runtime", packaging = "")) ++ // for bo-client
       listSelf.map(_.copy(packaging = ""))
     val pomMods = selfDeps.map(_.copy(typeN = "pom"))
-    (pomMods ++ selfDeps)
+    val pomModsImport = pomMods.map(_.copy(scope = "import"))
+    (pomMods ++ pomModsImport ++ selfDeps)
       .map(_.copy(pomRef = PomRef.undef))
       .distinct
       .sortBy(_.toString)
