@@ -8,6 +8,18 @@ import scala.collection.{JavaConverters, mutable}
 
 object Util {
 
+  class PluralString(in: String) {
+    def pluralize(int: Int): String = {
+      if (int > 0) {
+        in + "s"
+      } else {
+        in
+      }
+    }
+  }
+
+  implicit def pluralize(input: String) = new PluralString(input)
+
   def emptyToNone(in: String): Option[String] = in match {
     case "" ⇒ None
     case any if any.trim == "" ⇒ None

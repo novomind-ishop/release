@@ -14,6 +14,7 @@ import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClients
 import release.Conf.Tracer
 import release.Sgit.GitRemote
+import release.Util.pluralize
 import release.Xpath.InvalidPomXmlException
 
 import scala.annotation.tailrec
@@ -65,13 +66,25 @@ object Starter extends App with LazyLogging {
     sgit.checkout(branch)
     chooseUpstreamIfUndef(out, sgit, branch, opts, in)
     if (sgit.isNotDetached) {
-      val shouldRebase = sgit.commitIds("@{upstream}", branch)
-      if (shouldRebase != Nil) {
+      val commintsBehindOrAhead = sgit.commitIds("@{upstream}", branch)
+      if (commintsBehindOrAhead != Nil) {
         () ⇒ {
-          val update = Term.readFromOneOfYesNo(out, "Your branch is " + shouldRebase.size +
-            " commits behind or ahead defined upstream. Rebase local branch?", opts, in)
-          if (update == "y") {
-            sgit.rebase()
+          val upstreamCommit = sgit.commitId("@{upstream}")
+          val upstreamName = sgit.findUpstreamBranch().get
+          if (commintsBehindOrAhead.head == upstreamCommit) {
+            val text = "Your branch is " + commintsBehindOrAhead.size +
+              s" ${"commit".pluralize(commintsBehindOrAhead.size)} behind defined upstream $upstreamName. Rebase local branch?"
+            val update = Term.readFromOneOfYesNo(out, text, opts, in)
+            if (update == "y") {
+              sgit.rebase()
+            }
+          } else {
+            val text = "Your branch is " + commintsBehindOrAhead.size +
+              s" ${"commit".pluralize(commintsBehindOrAhead.size)} ahead of defined upstream $upstreamName. Abort release?"
+            val abort = Term.readFromOneOfYesNo(out, text, opts, in)
+            if (abort == "y") {
+              System.exit(1)
+            }
           }
 
         }
