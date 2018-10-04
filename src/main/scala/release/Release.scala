@@ -153,7 +153,8 @@ object Release {
           out.println("I: RC-{YEAR}.{WEEK OF YEAR} for common releases")
           out.println("I: RC-{YEAR}.{WEEK OF YEAR}.{NUMBER} for intermediate releases")
         }
-        val retryVersionEnter = Term.readFromOneOfYesNo(out, "Unknown release version \"" + result + "\". Are you sure to continue?", opts)
+        val retryVersionEnter = Term.readFromOneOfYesNo(out, "Unknown release version name: \"" + result + "\"." +
+          " Are you sure to continue with this name?", opts)
         if (retryVersionEnter == "n") {
           readReleaseVersions
         } else {
