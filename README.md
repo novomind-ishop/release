@@ -1,7 +1,6 @@
 ## Release
 ### Synopsis
 We created ```release``` as alternative to ```maven-release-plugin``` for git based projects.
-
 It does the job much faster and with less commits. It also helps us to create
 branches, tags, standardize commit-messages and ```pom.xml``` modifications with and without [Gerrit](https://www.gerritcodereview.com).
 It also checks your ```pom.xml``` for problems and suggests hints to fix them.
