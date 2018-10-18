@@ -604,12 +604,21 @@ object Sgit {
         case v: String if v.startsWith("git version 2.14.") ⇒ // (2017-10-23) - (tag: v2.14.3)
           throw new IllegalStateException("git version 2.13 support ended at 2018-07-02")
         case v: String if v.startsWith("git version 2.15.") ⇒ // (2017-11-28) - (tag: v2.15.1)
-          out.println("W: please update your git version, \"" + v + "\" support ends at 2018-11-02");
+          // out.println("W: please update your git version, \"" + v + "\" support ends at 2018-11-02");
+          throw new IllegalStateException("git version 2.15 support ended at 2018-10-18 because of CVE-2018-17456")
         case v: String if v.startsWith("git version 2.16.") ⇒ // (2018-02-15) - (tag: v2.16.2)
-          out.println("W: please update your git version, \"" + v + "\" support ends at 2018-12-02");
-        case v: String if v.startsWith("git version 2.17.") ⇒ // do nothing (2018-04-02) - (tag: v2.17.0)
-        case v: String if v.startsWith("git version 2.18.") ⇒ // do nothing (2018-06-21) - (tag: v2.18.0)
-        case v: String if v.startsWith("git version 2.19.") ⇒ // do nothing (2018-09-10) - (tag: v2.19.0)
+          // out.println("W: please update your git version, \"" + v + "\" support ends at 2018-12-02");
+          throw new IllegalStateException("git version 2.16 support ended at 2018-10-18 because of CVE-2018-17456")
+        case v: String if v.startsWith("git version 2.17.") ⇒
+          // do nothing (2018-04-02) - (tag: v2.17.0)
+          throw new IllegalStateException("git version 2.17 support ended at 2018-10-18 because of CVE-2018-17456")
+        case v: String if v.startsWith("git version 2.18.") ⇒
+          // do nothing (2018-06-21) - (tag: v2.18.0)
+          throw new IllegalStateException("git version 2.18 support ended at 2018-10-18 because of CVE-2018-17456")
+        case v: String if v.startsWith("git version 2.19.0") ⇒
+          // do nothing (2018-09-10) - (tag: v2.19.0)
+          throw new IllegalStateException("git version 2.19.0 support ended at 2018-10-18 because of CVE-2018-17456")
+        case v: String if v.startsWith("git version 2.19.1") ⇒ // do nothing (2018-09-27) - (tag: v2.19.1) -- fixes CVE-2018-17456
         case v: String ⇒ out.println("W: unknown/untested git version: \"" + v + "\". Please create a ticket at ISPS.");
       }
       gits = gits ++ Map(cmd → result)
