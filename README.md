@@ -1,4 +1,5 @@
 ## Release
+[![Build Status](https://travis-ci.org/novomind-ishop/release.svg?branch=master)](https://travis-ci.org/novomind-ishop/release)
 ### Synopsis
 We created ```release``` as alternative to ```maven-release-plugin``` for git based projects.
 It does the job much faster and with less commits. It also helps us to create
