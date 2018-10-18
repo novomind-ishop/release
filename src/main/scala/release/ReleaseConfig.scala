@@ -196,4 +196,8 @@ object ReleaseConfig extends LazyLogging {
 
   }
 
+  def isTravisCi(): Boolean = {
+    scala.util.Properties.envOrNone("TRAVIS").exists(_.toBoolean)
+  }
+
 }
