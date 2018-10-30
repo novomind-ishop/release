@@ -60,7 +60,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   }
 
   private[release] def configGetLocalAll(key: String): Option[Seq[String]] = {
-    gitNativeOpt(Seq("config", "--local", "--get-all", key)).map(_.lines.toList)
+    gitNativeOpt(Seq("config", "--local", "--get-all", key)).map(_.linesIterator.toList)
   }
 
   private[release] def configGetLocalAllSeq(key: String): Seq[String] = {
@@ -68,7 +68,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   }
 
   private[release] def configGetGlobalAll(key: String): Option[Seq[String]] = {
-    gitNativeOpt(Seq("config", "--global", "--get-all", key)).map(_.lines.toList)
+    gitNativeOpt(Seq("config", "--global", "--get-all", key)).map(_.linesIterator.toList)
   }
 
   private[release] def configGetGlobalAllSeq(key: String): Seq[String] = {
@@ -92,7 +92,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   }
 
   private[release] def commitAll(message: String): Unit = {
-    val lines = message.replaceAll("\r", "").lines.toList
+    val lines = message.replaceAll("\r", "").linesIterator.toList
     val msx = if (lines.size == 1) {
       lines ++ Seq("")
     } else {
@@ -186,7 +186,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
   def currentBranch: String = gitNative(Seq("rev-parse", "--abbrev-ref", "HEAD"))
 
-  def lsFiles(): Seq[String] = gitNative(Seq("ls-files")).lines.toList.map(_.trim).map(in ⇒ if (in.startsWith("\"") && in.endsWith("\"")) {
+  def lsFiles(): Seq[String] = gitNative(Seq("ls-files")).linesIterator.toList.map(_.trim).map(in ⇒ if (in.startsWith("\"") && in.endsWith("\"")) {
     Sgit.unescape(in.substring(1).dropRight(1))
   } else {
     in
@@ -214,7 +214,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
   def listRemotes(): Seq[GitRemote] = {
     val out = gitNative(Seq("remote", "-v"))
-    out.lines.toList.map(in ⇒ {
+    out.linesIterator.toList.map(in ⇒ {
       val splitted = Sgit.splitLineOnWhitespace(in)
       GitRemote(splitted(0), splitted(1), splitted(2))
     })
@@ -224,7 +224,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
   def listBranchesLocal(): Seq[GitShaBranch] = {
     gitNative(Seq("branch", "--list", "--verbose", "--no-abbrev"))
-      .lines.toSeq
+      .linesIterator.toSeq
       .flatMap(Sgit.splitLineOnBranchlistErr(err))
       .map(parts ⇒ {
         GitShaBranch(parts._2, "refs/heads/" + parts._1)
@@ -245,7 +245,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
   private[release] def listBranchRemoteRaw(): Seq[GitShaBranch] = {
     gitNative(Seq("branch", "--list", "--verbose", "--no-abbrev", "--remote"))
-      .lines.toSeq
+      .linesIterator.toSeq
       .flatMap(in ⇒ in match {
         case l: String if l.trim.startsWith("origin/HEAD") ⇒ None
         case l: String if l.trim.startsWith("origin/") ⇒ {
@@ -260,7 +260,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
   def listRefs(): Seq[GitShaBranch] = {
     gitNative(Seq("show-ref"))
-      .lines.toSeq
+      .linesIterator.toSeq
       .map(in ⇒ {
         val parts = in.replaceFirst("^\\*", "").trim.split("[ \t]+")
         GitShaBranch(parts(0), parts(1))
@@ -348,7 +348,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
   def commitIds(fromRef: String, toRef: String): Seq[String] = {
     val changes = gitNative(Seq("log", "--pretty=%H", fromRef + "..." + toRef))
-    changes.lines.toList
+    changes.linesIterator.toList
   }
 
   def hasChangesToPush: Boolean = {
@@ -365,7 +365,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
   def localChanges(): Seq[String] = {
     val status = gitNative(Seq("status", "--porcelain"))
-    status.lines.toList.map(_.replaceAll("[ ]+", " ").trim)
+    status.linesIterator.toList.map(_.replaceAll("[ ]+", " ").trim)
   }
 
   def hasLocalChanges: Boolean = {
@@ -407,7 +407,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     }
   }
 
-  def listTags(): Seq[String] = gitNative(Seq("tag", "--list")).lines.toList
+  def listTags(): Seq[String] = gitNative(Seq("tag", "--list")).linesIterator.toList
 
   private def checkedTagName(tagName: String): String = {
     if (tagName.startsWith("v")) {
@@ -605,13 +605,13 @@ object Sgit {
           throw new IllegalStateException("git version 2.13 support ended at 2018-07-02")
         case v: String if v.startsWith("git version 2.15.") ⇒ // (2017-11-28) - (tag: v2.15.1)
           if (ReleaseConfig.isTravisCi()) {
-            out.println("W: please update your git version, \"" + v + "\" support ends at 2018-11-02");
+            err.println("W: please update your git version, \"" + v + "\" support ends at 2018-11-02")
           } else {
             throw new IllegalStateException("git version 2.15 support ended at 2018-10-18 because of CVE-2018-17456")
           }
         case v: String if v.startsWith("git version 2.16.") ⇒ // (2018-02-15) - (tag: v2.16.2)
           if (ReleaseConfig.isTravisCi()) {
-            out.println("W: please update your git version, \"" + v + "\" support ends at 2018-12-02");
+            err.println("W: please update your git version, \"" + v + "\" support ends at 2018-12-02")
           } else {
             throw new IllegalStateException("git version 2.16 support ended at 2018-10-18 because of CVE-2018-17456")
           }
@@ -625,7 +625,13 @@ object Sgit {
           }
         case v: String if v.startsWith("git version 2.19.0") ⇒ // do nothing (2018-09-10) - (tag: v2.19.0)
           if (!ReleaseConfig.isTravisCi()) {
-            throw new IllegalStateException("git version 2.19.0 support ended at 2018-10-18 because of CVE-2018-17456")
+            if (Sgit.getOs == Os.Darwin) {
+              // https://git-scm.com/download/mac
+              // latest public release is 2.19.0 from 2018-09-27
+              err.println("W: git version 2.19.0 support ended at 2018-10-18 because of CVE-2018-17456, but no newer releases are available")
+            } else {
+              throw new IllegalStateException("git version 2.19.0 support ended at 2018-10-18 because of CVE-2018-17456")
+            }
           }
         case v: String if v.startsWith("git version 2.19.1") ⇒ // do nothing (2018-09-27) - (tag: v2.19.1) -- fixes CVE-2018-17456
         case v: String ⇒ out.println("W: unknown/untested git version: \"" + v + "\". Please create a ticket at ISPS.");
