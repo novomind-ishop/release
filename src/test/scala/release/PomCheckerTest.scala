@@ -92,8 +92,8 @@ class PomCheckerTest extends AssertionsForJUnit {
       Seq("plugin", "plugins", "build", "profile", "profiles", "project")))
 
     // WHEN / THEN
-    TestHelper.assertException("please check your pom.xml's and move your ishop-maven-plugin to plugin/plugins/build/project " +
-            "your path is plugin/plugins/build/profile/profiles/project",
+    TestHelper.assertException("please check your pom.xml's and move your ishop-maven-plugin to project/build/plugins/plugin " +
+            "your path is project/profiles/profile/build/plugins/plugin",
       classOf[PomChecker.ValidationException], () ⇒ PomChecker.checkIshopMaven(deps))
   }
 
@@ -188,8 +188,8 @@ class PomCheckerTest extends AssertionsForJUnit {
       Seq("plugin", "plugins", "build", "profile", "profiles", "project")))
 
     // WHEN / THEN
-    TestHelper.assertException("please check your pom.xml's and move your maven-dependency-plugin to plugin/plugins/build/project " +
-            "your path is plugin/plugins/build/profile/profiles/project",
+    TestHelper.assertException("please check your pom.xml's and move your maven-dependency-plugin to project/build/plugins/plugin " +
+            "your path is project/profiles/profile/build/plugins/plugin",
       classOf[PomChecker.ValidationException], () ⇒ PomChecker.check(deps))
 
   }
