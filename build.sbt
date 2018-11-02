@@ -28,7 +28,7 @@ libraryDependencies += "org.jline" % "jline-reader" % "3.9.0"
 
 libraryDependencies += "org.scalatest" % "scalatest_2.12" % "3.0.5" % "test"
 
-libraryDependencies += "org.mockito" % "mockito-scala_2.12" % "0.4.5" % "test"
+libraryDependencies += "org.mockito" % "mockito-scala_2.12" % "1.0.0" % "test"
 
 libraryDependencies += "com.novocode" % "junit-interface" % "0.11" % "test"
 
