@@ -864,10 +864,8 @@ class PomModTest extends AssertionsForJUnit {
 
   @Test
   def suggestReleaseVersionShop(): Unit = {
-
-    TestHelper.assertException("invalid shop release name: 27.0.0 - please create new ticket", classOf[IllegalStateException],
-      () ⇒ PomMod.suggestReleaseBy(LocalDate.now(), "27.0.0-SNAPSHOT", hasShopPom = true, Nil))
-
+    Assert.assertEquals(Seq("27.0.0-SNAPSHOT"),
+      PomMod.suggestReleaseBy(LocalDate.now(), "27.0.0-SNAPSHOT", hasShopPom = true, Nil))
   }
 
   @Test

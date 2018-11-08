@@ -799,8 +799,8 @@ object PomMod {
 
         nextNumberedReleaseIfExisting(versionTuples, Version.toVersion(withoutSnapshot).get).map(_.formatAsSnapshot())
       } else {
-        val snapped = currentVersion.replaceFirst("-SNAPSHOT", "")
-        snapped match {
+        val unSnapshoted = currentVersion.replaceFirst("-SNAPSHOT", "")
+        unSnapshoted match {
           case Version.shopPattern(pre, year, week, minor, low) ⇒ {
             val version = Version.fromString(pre, year, week, minor, low)
             if (knownVersions.contains(version)) {
@@ -808,9 +808,8 @@ object PomMod {
             } else {
               Seq(currentVersion)
             }
-
           }
-          case any ⇒ throw new IllegalStateException("invalid shop release name: " + any + " - please create new ticket")
+          case any ⇒ Seq(currentVersion) // release a feature branch
         }
       }
     } else {
