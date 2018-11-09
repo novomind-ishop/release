@@ -110,13 +110,14 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
   logger.trace("pomMod val/var init")
 
   private def nodePath(node: Node): Seq[String] = {
-    // TODO @tailrec
-    def nodePathOther(node: Node): Seq[String] = {
+
+    @tailrec
+    def nodePathOther(node: Node, others:Seq[String] = Nil): Seq[String] = {
       val parent = node.getParentNode
       if ("#document" == parent.getNodeName) {
-        Nil
+        others
       } else {
-        Seq(parent.getNodeName) ++ nodePathOther(parent)
+        nodePathOther(parent, others ++ Seq(parent.getNodeName))
       }
     }
 

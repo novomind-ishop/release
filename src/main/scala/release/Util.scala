@@ -80,16 +80,11 @@ object Util {
     }
   }
 
-  // TODO @tailrec
   def deleteRecursive(file: File): Unit = {
-    def deleteFile(allFiles: Array[File]): Unit = {
-      if (allFiles != null) {
-        allFiles.foreach(deleteRecursive)
-      }
-    }
-
     if (file.isDirectory) {
-      deleteFile(file.listFiles())
+      if (file.listFiles() != null) {
+        file.listFiles().foreach(deleteRecursive)
+      }
       file.delete()
     } else {
       file.delete()

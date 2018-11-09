@@ -193,6 +193,7 @@ object Release {
       }
     }
 
+    // TODO release a feature branch should not change the next version
     val nextReleaseWithoutSnapshot = readNextReleaseVersions
 
     val relevantDeps = if (mod.hasNoShopPom) {

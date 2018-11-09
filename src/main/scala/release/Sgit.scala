@@ -10,6 +10,7 @@ import release.Conf.Tracer
 import release.Sgit.{BranchAlreadyExistsException, GitRemote, GitShaBranch, MissingGitDirException}
 import release.Starter.{Opts, PreconditionsException}
 
+import scala.annotation.tailrec
 import scala.io.Source
 import scala.sys.process.ProcessLogger
 import scala.util.{Failure, Success, Try}
@@ -743,15 +744,15 @@ object Sgit {
   }
 
   def unescape(str: String): String = {
-    // TODO @tailrec
-    def cate(in: Seq[Char]): Seq[Byte] = {
+    @tailrec
+    def cate(in: Seq[Char], result:Seq[Byte] = Nil) : Seq[Byte] = {
       in match {
         case '\\' :: c0 :: c1 :: c2 :: tail ⇒ {
           val b = new BigInteger(new String(Array(c0, c1, c2)), 8).byteValue()
-          b +: cate(tail)
+          cate(tail, result :+ b)
         }
-        case c :: tail ⇒ c.toByte +: cate(tail)
-        case Nil ⇒ Nil
+        case c :: tail ⇒ cate(tail, result :+ c.toByte)
+        case Nil ⇒ result
       }
     }
 
