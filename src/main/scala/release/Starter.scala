@@ -371,7 +371,7 @@ object Starter extends App with LazyLogging {
         }
         val autoCrlf = activeGit.configGetGlobalAllSeq("core.autocrlf")
         if (autoCrlf != Seq("input")) {
-          val msg = "You have an unespected core.autocrlf setting (%s) in your global .gitconfig. ".format(autoCrlf.mkString(", ")) +
+          val msg = "You have an unexpected core.autocrlf setting (%s) in your global .gitconfig. ".format(autoCrlf.mkString(", ")) +
             "Please set to '$ git config --global core.autocrlf input'."
           val options = Seq("Change core.autocrlf globaly to 'input'", "Abort release", "Continue")
 
