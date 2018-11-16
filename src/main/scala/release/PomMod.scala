@@ -818,32 +818,33 @@ object PomMod {
     }
   }
 
-  def suggestNextReleaseBy(currentVersion: String): String = {
-    suggestNextReleaseBy(currentVersion, currentVersion)
-  }
-
   def isUnknownReleasePattern(in: String): Boolean = {
     suggestNextReleaseBy(in, in).endsWith("-UNDEF")
   }
 
   def suggestNextReleaseBy(currentVersion: String, releaseVersion: String): String = {
-    if (currentVersion == "master-SNAPSHOT") {
-      "master"
-    } else if (currentVersion == "master") {
+    if (currentVersion == "master-SNAPSHOT" || currentVersion == "master") {
       "master"
     } else if (currentVersion.matches("^[0-9]+x-SNAPSHOT")) {
       currentVersion.replaceFirst("-SNAPSHOT$", "")
     } else {
-      val snapped = releaseVersion.replaceFirst("-SNAPSHOT", "")
-      snapped match {
+      val withoutSnapshot = releaseVersion.replaceFirst("-SNAPSHOT", "")
+      withoutSnapshot match {
         case Version.stableShop(pre) ⇒ pre + "-stable-RELEASE-DEMO-DELETE-ME"
         case Version.semverPatternLowdash(ma, mi, b, low) ⇒ ma + "." + mi + "." + b + "_" + (low.toInt + 1)
         case Version.semverPattern(ma, mi, b) ⇒ ma + "." + mi + "." + (b.toInt + 1)
         case Version.semverPatternNoBugfix(ma, mi) ⇒ ma + "." + (mi.toInt + 1) + ".0"
         case Version.semverPatternNoMinor(ma) ⇒ (ma.toInt + 1) + ".0.0"
         case Version.shopPattern(pre, year, week, minor, low) ⇒ {
-          val verso = Version.fromString(pre, year, week, minor, low).plusWeek()
-          verso.copy(patch = 0, low = "").formatShop()
+          currentVersion.replaceFirst("-SNAPSHOT", "") match {
+            case Version.shopPattern(_, _, _, _, _) ⇒ {
+              val verso = Version.fromString(pre, year, week, minor, low).plusWeek()
+              verso.copy(patch = 0, low = "").formatShop()
+            }
+            case any ⇒ {
+              any.replaceFirst("-SNAPSHOT$", "")
+            }
+          }
         }
         case any ⇒ any + "-UNDEF"
       }

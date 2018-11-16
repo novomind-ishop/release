@@ -732,6 +732,71 @@ class PomModTest extends AssertionsForJUnit {
     Assert.assertEquals("28.0.1", next)
   }
 
+
+  @Test
+  def suggestNextRelease_shop(): Unit = {
+
+    // GIVEN/WHEN
+    val next = suggestNextReleaseBy("RC-2017.02-SNAPSHOT")
+
+    // THEN
+    Assert.assertEquals("RC-2017.03", next)
+  }
+
+  @Test
+  def suggestNextRelease_shop_patch(): Unit = {
+
+    // GIVEN/WHEN
+    val next = suggestNextReleaseBy("RC-2017.02.1-SNAPSHOT")
+
+    // THEN
+    Assert.assertEquals("RC-2017.03", next)
+  }
+
+  def suggestNextReleaseBy(currentVersion: String): String = {
+    PomMod.suggestNextReleaseBy(currentVersion, currentVersion)
+  }
+
+  @Test
+  def suggestNextRelease_shop_patch_sub(): Unit = {
+
+    // GIVEN/WHEN
+    val release = suggestNextReleaseBy("RC-2018.17.5_1-SNAPSHOT")
+
+    // THEN
+    Assert.assertEquals("RC-2018.18", release)
+  }
+
+  @Test
+  def suggestNextRelease_shop_patch_sub_invalid(): Unit = {
+
+    // GIVEN/WHEN
+    val release = suggestNextReleaseBy("RC-2018.17.5.1-SNAPSHOT")
+
+    // THEN
+    assert("RC-2018.17.5.1-UNDEF" === release)
+  }
+
+  @Test
+  def suggestNextRelease_shop_next_year(): Unit = {
+
+    // GIVEN/WHEN
+    val next = suggestNextReleaseBy("RC-2017.52-SNAPSHOT")
+
+    // THEN
+    assert("RC-2018.01" === next)
+  }
+
+  @Test
+  def suggestNextRelease_shop_next(): Unit = {
+
+    // GIVEN/WHEN
+    val next = suggestNextReleaseBy("RC-2017.2-SNAPSHOT")
+
+    // THEN
+    assert("RC-2017.03" === next)
+  }
+
   @Test
   def suggestNextRelease_x(): Unit = {
 
@@ -742,65 +807,6 @@ class PomModTest extends AssertionsForJUnit {
     Assert.assertEquals("28x", next)
   }
 
-  @Test
-  def suggestNextRelease_shop(): Unit = {
-
-    // GIVEN/WHEN
-    val next = PomMod.suggestNextReleaseBy("RC-2017.02-SNAPSHOT", "RC-2017.02-SNAPSHOT")
-
-    // THEN
-    Assert.assertEquals("RC-2017.03", next)
-  }
-
-  @Test
-  def suggestNextRelease_shop_patch(): Unit = {
-
-    // GIVEN/WHEN
-    val next = PomMod.suggestNextReleaseBy("RC-2017.02.1-SNAPSHOT", "RC-2017.02.1-SNAPSHOT")
-
-    // THEN
-    Assert.assertEquals("RC-2017.03", next)
-  }
-
-  @Test
-  def suggestNextRelease_shop_patch_sub(): Unit = {
-
-    // GIVEN/WHEN
-    val release = PomMod.suggestNextReleaseBy("RC-2018.17.5_1-SNAPSHOT")
-
-    // THEN
-    Assert.assertEquals("RC-2018.18", release)
-  }
-
-  @Test
-  def suggestNextRelease_shop_patch_sub_invalid(): Unit = {
-
-    // GIVEN/WHEN
-    val release = PomMod.suggestNextReleaseBy("RC-2018.17.5.1-SNAPSHOT")
-
-    // THEN
-    assert("RC-2018.17.5.1-UNDEF" === release)
-  }
-
-  @Test
-  def suggestNextRelease_shop_next_year(): Unit = {
-
-    // GIVEN/WHEN
-    val next = PomMod.suggestNextReleaseBy("RC-2017.52-SNAPSHOT", "RC-2017.52-SNAPSHOT")
-
-    // THEN
-    assert("RC-2018.01" === next)
-  }
-
-  @Test
-  def suggestNextRelease_shop_next(): Unit = {
-
-    // GIVEN/WHEN
-    val next = PomMod.suggestNextReleaseBy("RC-2017.2-SNAPSHOT")
-
-    // THEN
-    assert("RC-2017.03" === next)
-  }
 
   @Test
   def suggestNextRelease_shop_master(): Unit = {
@@ -810,6 +816,16 @@ class PomModTest extends AssertionsForJUnit {
 
     // THEN
     assert("master" === next)
+  }
+
+  @Test
+  def suggestNextRelease_shop_feature(): Unit = {
+
+    // GIVEN/WHEN
+    val next = PomMod.suggestNextReleaseBy("phase2-SNAPSHOT", "RC-2017.52-SNAPSHOT")
+
+    // THEN
+    assert("phase2" === next)
   }
 
   @Test
@@ -826,7 +842,7 @@ class PomModTest extends AssertionsForJUnit {
   def suggestNextRelease_any(): Unit = {
 
     // GIVEN/WHEN
-    val next = PomMod.suggestNextReleaseBy("mööp-SNAPSHOT")
+    val next = suggestNextReleaseBy("mööp-SNAPSHOT")
 
     // THEN
     assert("mööp-UNDEF" === next)
@@ -836,7 +852,7 @@ class PomModTest extends AssertionsForJUnit {
   def suggestNextRelease_lowdash(): Unit = {
 
     // GIVEN/WHEN
-    val next = PomMod.suggestNextReleaseBy("28.0.0_1")
+    val next = suggestNextReleaseBy("28.0.0_1")
 
     // THEN
     assert("28.0.0_2" === next)
@@ -846,7 +862,7 @@ class PomModTest extends AssertionsForJUnit {
   def suggestNextRelease_no_bugfix(): Unit = {
 
     // GIVEN/WHEN
-    val next = PomMod.suggestNextReleaseBy("28.0")
+    val next = suggestNextReleaseBy("28.0")
 
     // THEN
     assert("28.1.0" === next)
@@ -856,7 +872,7 @@ class PomModTest extends AssertionsForJUnit {
   def suggestNextRelease_no_minor(): Unit = {
 
     // GIVEN/WHEN
-    val next = PomMod.suggestNextReleaseBy("28")
+    val next = suggestNextReleaseBy("28")
 
     // THEN
     assert("29.0.0" === next)
