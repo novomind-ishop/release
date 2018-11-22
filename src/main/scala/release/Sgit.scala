@@ -634,7 +634,7 @@ object Sgit {
               throw new IllegalStateException("git version 2.19.0 support ended at 2018-10-18 because of CVE-2018-17456")
             }
           }
-        case v: String if v.startsWith("git version 2.19.1") ⇒ // do nothing (2018-09-27) - (tag: v2.19.1) -- fixes CVE-2018-17456
+        case v: String if v.startsWith("git version 2.19.") ⇒ // do nothing (2018-09-27) - (tag: v2.19.1) -- fixes CVE-2018-17456
         case v: String ⇒ out.println("W: unknown/untested git version: \"" + v + "\". Please create a ticket at ISPS.");
       }
       gits = gits ++ Map(cmd → result)

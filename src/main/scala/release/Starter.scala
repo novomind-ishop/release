@@ -219,6 +219,9 @@ object Starter extends App with LazyLogging {
       case "--defaults" :: tail ⇒ argsRead(tail, inOpt.copy(useDefaults = true))
       case "--no-jline" :: tail ⇒ argsRead(tail, inOpt.copy(useJlineInput = false))
       case "--no-color" :: tail ⇒ argsRead(tail, inOpt.copy(colors = false))
+      case "--100" :: _ ⇒ throw new UnsupportedOperationException("major increment not implemented")
+      case "--010" :: _ ⇒ throw new UnsupportedOperationException("minor increment not implemented")
+      case "--001" :: _ ⇒ throw new UnsupportedOperationException("patch increment not implemented")
       case "--skip-property" :: value :: tail ⇒ argsRead(tail, inOpt.copy(skipProperties = inOpt.skipProperties ++ Seq(value)))
       // CMDs
       case "versionSet" :: value :: _ ⇒ argsRead(Nil, inOpt.copy(versionSet = Some(value)))
