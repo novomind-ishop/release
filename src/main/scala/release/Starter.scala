@@ -222,6 +222,7 @@ object Starter extends App with LazyLogging {
       case "--100" :: _ ⇒ throw new UnsupportedOperationException("major increment not implemented")
       case "--010" :: _ ⇒ throw new UnsupportedOperationException("minor increment not implemented")
       case "--001" :: _ ⇒ throw new UnsupportedOperationException("patch increment not implemented")
+      case "--demo-chars" :: _ ⇒ showDemoChars(inOpt)
       case "--skip-property" :: value :: tail ⇒ argsRead(tail, inOpt.copy(skipProperties = inOpt.skipProperties ++ Seq(value)))
       // CMDs
       case "versionSet" :: value :: _ ⇒ argsRead(Nil, inOpt.copy(versionSet = Some(value)))
@@ -234,6 +235,16 @@ object Starter extends App with LazyLogging {
       case string :: tail ⇒ argsRead(tail, inOpt.copy(invalids = inOpt.invalids :+ string))
     }
 
+  }
+
+  def showDemoChars(inOpt: Opts): Opts = {
+    println()
+    val r = Term.readFrom(Console.out, "test",
+      "u200B(\u200B),u0009(\u0009),u00A0(\u00A0),u1680(\u1680),,,u2012(\u2012),u2013(\u2013)",
+      inOpt, Console.in)
+    println("demo: " + r)
+    System.exit(3)
+    null
   }
 
   def init(argSeq: Seq[String], out: PrintStream, err: PrintStream): Int = {
@@ -379,7 +390,7 @@ object Starter extends App with LazyLogging {
           val options = Seq("Change core.autocrlf globaly to 'input'", "Abort release", "Continue")
 
           def autoCrlfCheck(): Unit = {
-            val result = Term.readChooseOneOf(out, msg, options, opts)
+            val result = Term.readChooseOneOf(out, msg, options, opts, Console.in)
             if (result == options(1)) {
               System.exit(1)
             } else if (result == options(0)) {

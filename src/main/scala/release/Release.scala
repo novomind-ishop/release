@@ -180,7 +180,8 @@ object Release {
 
     @tailrec
     def readNextReleaseVersions: String = {
-      val result = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(out, "Enter the next version without -SNAPSHOT", newMod.suggestNextRelease(release), opts))
+      val result = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(out, "Enter the next version without -SNAPSHOT",
+        newMod.suggestNextRelease(release), opts, Console.in))
       if (PomMod.isUnknownReleasePattern(result)) {
         val retryVersionEnter = Term.readFromOneOfYesNo(out, "Unknown next release version \"" + result + "\". Are you sure to continue?", opts)
         if (retryVersionEnter == "n") {
@@ -257,7 +258,7 @@ object Release {
       if (continue == "n") {
         System.exit(1)
       } else {
-        val really = Term.readFromOneOf(out, "Really?", Seq("Yes I'm really sure", "n"), opts)
+        val really = Term.readFromOneOf(out, "Really?", Seq("Yes I'm really sure", "n"), opts, Console.in)
         if (really == "n") {
           System.exit(1)
         } else {

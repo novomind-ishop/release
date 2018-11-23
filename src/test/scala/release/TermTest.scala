@@ -49,7 +49,8 @@ class TermTest extends AssertionsForJUnit {
     val value = "My string"
 
     TermTest.testSys(Seq(value), Seq("enter some [word]: "), Nil)((in, out, err) ⇒ {
-      val result = Term.readFrom(new PrintStream(out), "enter some", "word", Opts())
+      val result = Term.readFrom(new PrintStream(out), "enter some", "word", Opts(),
+        new BufferedReader(new InputStreamReader(in, "UTF-8")))
       Assert.assertEquals(value, result)
     })
 
@@ -59,7 +60,8 @@ class TermTest extends AssertionsForJUnit {
   @Ignore
   def testReadNull(): Unit = {
     TermTest.testSys(Nil, Seq("enter some [word]: "), Nil, 14)((in, out, err) ⇒ {
-      Term.readFrom(new PrintStream(out), "enter some", "word", Opts())
+      Term.readFrom(new PrintStream(out), "enter some", "word", Opts(),
+        new BufferedReader(new InputStreamReader(in, "UTF-8")))
     })
 
   }
@@ -69,7 +71,7 @@ class TermTest extends AssertionsForJUnit {
 object TermTest extends LazyLogging {
 
   def testSys(input: Seq[String], expectedOut: Seq[String], expectedErr: Seq[String], expectedExitCode: Int = 0)
-             (fn: ((InputStream, OutputStream, OutputStream) ⇒ Unit)): Unit = {
+             (fn: (InputStream, OutputStream, OutputStream) ⇒ Unit): Unit = {
     this.synchronized {
       val oldSecurityManager = System.getSecurityManager
       var exitCode = 0
