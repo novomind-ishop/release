@@ -184,7 +184,9 @@ object Starter extends App with LazyLogging {
     }
   }
 
-  case class OptsDepUp(showDependencyUpdates: Boolean = false, showHelp: Boolean = false, invalids: Seq[String] = Nil)
+  case class OptsDepUp(showDependencyUpdates: Boolean = false, showHelp: Boolean = false,
+                       hideLatest: Boolean = true, comactVersionRangeTo: Integer = 3, hideStageVersions:Boolean = true,
+                       invalids: Seq[String] = Nil)
 
   @tailrec
   def argsDepRead(params: Seq[String], inOpt: Opts): Opts = {
@@ -434,7 +436,7 @@ object Starter extends App with LazyLogging {
       } else {
         lazy val aether = new Aether(opts)
         Release.work(workDirFile, out, err, askForRebase, startBranch,
-          git, opts.depUpOpts.showDependencyUpdates, termOs, shellWidth, releaseToolGit.headStatusValue(), config, aether, opts)
+          git, termOs, shellWidth, releaseToolGit.headStatusValue(), config, aether, opts)
       }
 
       return 0

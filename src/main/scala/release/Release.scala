@@ -100,7 +100,7 @@ object Release {
 
   // TODO @tailrec
   def work(workDirFile: File, out: PrintStream, err: PrintStream, rebaseFn: () ⇒ Unit, branch: String, sgit: Sgit,
-           showDependencyUpdates: Boolean, termOs: TermOs, shellWidth: Int, releaseToolGitSha1: String, config: ReleaseConfig,
+           termOs: TermOs, shellWidth: Int, releaseToolGitSha1: String, config: ReleaseConfig,
            aether: Aether, opts: Opts): Seq[Unit] = {
     if (sgit.hasLocalChanges) {
       val message = localChangeMessage(sgit)
@@ -114,7 +114,7 @@ object Release {
       } else if (changes == "n") {
         checkLocalChanges(sgit, branch)
       } else {
-        work(workDirFile, out, err, rebaseFn, branch, sgit, showDependencyUpdates, termOs, shellWidth, releaseToolGitSha1, config, aether, opts)
+        work(workDirFile, out, err, rebaseFn, branch, sgit, termOs, shellWidth, releaseToolGitSha1, config, aether, opts)
       }
 
     }
@@ -127,8 +127,8 @@ object Release {
     out.print("I: Reading pom.xmls ..")
     val mod = PomMod.ofAether(workDirFile, opts, aether)
     out.println(". done")
-    if (showDependencyUpdates) {
-      mod.showDependencyUpdates(shellWidth, termOs, out)
+    if (opts.depUpOpts.showDependencyUpdates) {
+      mod.showDependencyUpdates(shellWidth, termOs, opts.depUpOpts, out)
       System.exit(0)
     }
 

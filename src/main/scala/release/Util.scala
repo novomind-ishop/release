@@ -40,7 +40,7 @@ object Util {
     case e ⇒ throw new IllegalArgumentException("any: " + e)
   }
 
-  def only[T](ts: Seq[T], msg: String) = ts match {
+  def only[T](ts: Seq[T], msg: String): T = ts match {
     case Nil ⇒ throw new IllegalArgumentException(msg + ". Input is Nil.")
     case e if e.size == 1 ⇒ e.head
     case e ⇒ throw new IllegalArgumentException(msg + " (" + e.toList.mkString(", ") + ")")
@@ -91,7 +91,7 @@ object Util {
     }
   }
 
-  def handleWindowsFilesystem(fn: Unit => Unit) {
+  def handleWindowsFilesystem(fn: Unit ⇒ Unit) {
     try {
       fn.apply(Unit)
     } catch {

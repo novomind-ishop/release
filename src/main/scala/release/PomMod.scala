@@ -17,7 +17,7 @@ import org.w3c.dom.{Document, Node}
 import release.Conf.Tracer
 import release.PomChecker.ValidationException
 import release.PomMod._
-import release.Starter.{Opts, PreconditionsException, TermOs}
+import release.Starter.{Opts, OptsDepUp, PreconditionsException, TermOs}
 
 import scala.annotation.tailrec
 
@@ -112,7 +112,7 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
   private def nodePath(node: Node): Seq[String] = {
 
     @tailrec
-    def nodePathOther(node: Node, others:Seq[String] = Nil): Seq[String] = {
+    def nodePathOther(node: Node, others: Seq[String] = Nil): Seq[String] = {
       val parent = node.getParentNode
       if ("#document" == parent.getNodeName) {
         others
@@ -306,16 +306,15 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
       })
   }
 
-  def showDependencyUpdates(shellWidth: Int, termOs: TermOs, out: PrintStream): Unit = {
+  def showDependencyUpdates(shellWidth: Int, termOs: TermOs, depUpOpts: OptsDepUp, out: PrintStream): Unit = {
     out.println("I: checking dependecies against nexus - please wait")
     val rootDeps = listDependeciesReplaces()
 
     def normalizeUnwanted(in: Seq[String]): Seq[String] = {
       in.filterNot(_.endsWith("-SNAPSHOT"))
         .filterNot(_.contains("patch"))
-        .filterNot(_.matches(".*M[0-9]+$"))
+        .filterNot(_.matches(".*[Mm][0-9]+$"))
         .filterNot(_.matches(".*pr[0-9]+$"))
-        .filterNot(_.contains("pre"))
         .filterNot(_.contains("alpha"))
         .filterNot(_.contains("Alpha"))
         .filterNot(_.contains("ALPHA"))
@@ -323,12 +322,10 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
         .filterNot(_.contains("Beta"))
         .filterNot(_.contains("beta"))
         .filterNot(_.contains("brew"))
-        .filterNot(_.contains("EA"))
         .filterNot(_.matches(".*b[0-9]+.*"))
         .filterNot(_.endsWith(".*\\-beta$"))
-        .filterNot(_.contains("RC"))
-        .filterNot(_.contains("rc"))
         .filterNot(_.matches(".*SP[0-9]+$"))
+        .filterNot(_.matches(".*[(sec|SEC)][0-9]+$"))
         .filterNot(_.endsWith("-incubating"))
         .filterNot(_.endsWith("SONATYPE"))
         .filterNot(_.contains("jbossorg"))
@@ -338,17 +335,32 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
         .filterNot(_.contains("darft"))
         .filterNot(_.startsWith("2003"))
         .filterNot(_.startsWith("2004"))
-
         .filterNot(_.endsWith("-PUBLISHED-BY-MISTAKE"))
     }
 
     val relevant = rootDeps
+      // TODO filter self deps
       .filterNot(_.version == "")
-      .filterNot(_.groupId.startsWith("org.apache.tomcat")) // Remove later
+
+    val relevantGav = relevant
+      .map(_.gav())
       .distinct
 
-    val aetherFetch = StatusLine(relevant.size, shellWidth)
-    val updates = relevant.par
+    val emptyVersions = rootDeps
+      // TODO filter self deps
+      .filter(_.version == "")
+      .map(_.gav())
+      .distinct
+
+    val unmangedVersions = unmanged(emptyVersions, relevantGav)
+    if (unmangedVersions != Nil) {
+      unmangedVersions.foreach(println)
+      println("Empty:versions found -- check your versions and/or create ISPS ticket")
+      System.exit(1)
+    }
+
+    val aetherFetch = StatusLine(relevantGav.size, shellWidth)
+    val updates: Map[Gav, Seq[String]] = relevantGav.par
       .map(dep ⇒ (dep, {
         aetherFetch.start()
         val result = aether.newerVersionsOf(dep.groupId, dep.artifactId, dep.version)
@@ -356,12 +368,24 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
         result
       }))
       .seq
-      .map(in ⇒ in.copy(_2 = normalizeUnwanted(in._2)))
+      .map(in ⇒ if (depUpOpts.hideStageVersions) {
+        in.copy(_2 = normalizeUnwanted(in._2))
+      } else {
+        in
+      })
       .filter(_._2.nonEmpty)
+      .toMap
+
     aetherFetch.finish()
-    updates.groupBy(_._1.pomRef).foreach(element ⇒ {
+
+    case class GavWithRef(pomRef: PomRef, gavWithDetailsFormatted: String)
+
+    val allWithUpdate: Seq[(GavWithRef, Seq[String])] = relevant.map(in ⇒ (GavWithRef(in.pomRef, in.gavWithDetailsFormatted),
+      updates.getOrElse(in.gav(), Nil))).filterNot(in ⇒ depUpOpts.hideLatest && in._2.isEmpty)
+
+    allWithUpdate.groupBy(_._1.pomRef).foreach(element ⇒ {
       val ref: PomRef = element._1
-      val mods: Seq[(PomMod.Dep, Seq[String])] = element._2
+      val mods: Seq[(GavWithRef, Seq[String])] = element._2
 
       def ch(pretty: String, simple: String) = if (!termOs.isCygwin || termOs.isMinGw) {
         if (termOs.simpleChars) {
@@ -374,8 +398,8 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
       }
 
       out.println(ch("║ ", "| ") + ref)
-      mods.sortBy(_._1.toString).foreach((subElement: (PomMod.Dep, Seq[String])) ⇒ {
-        out.println(ch("╠═╦═ ", "+-+- ") + subElement._1.gavWithDetailsFormatted)
+      mods.sortBy(_._1.toString).foreach((subElement: (GavWithRef, Seq[String])) ⇒ {
+
         val o: Seq[String] = subElement._2
 
         def majorGrouping(in: String): String = {
@@ -389,13 +413,24 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
 
         val majorVersions: Seq[(String, Seq[String])] = o.groupBy(majorGrouping).toSeq
           .sortBy(_._1).reverse
-        if (majorVersions.size == 1) {
-          out.println(ch("║ ╚═══ ", "| +--- ") + majorVersions.head._2.mkString(", "))
+        if (majorVersions != Nil) {
+          out.println(ch("╠═╦═ ", "+-+- ") + subElement._1.gavWithDetailsFormatted)
         } else {
-          majorVersions.tail.reverse.foreach(el ⇒ {
-            out.println(ch("║ ╠═══ ", "| +--- ") + "(" + el._1 + ") " + el._2.mkString(", "))
-          })
-          out.println(ch("║ ╚═══ ", "| +--- ") + "(" + majorVersions.head._1 + ") " + majorVersions.head._2.mkString(", "))
+          out.println(ch("╠═══ ", "+--- ") + subElement._1.gavWithDetailsFormatted)
+        }
+
+        if (majorVersions.size == 1) {
+          out.println(ch("║ ╚═══ ", "| +--- ") +
+            compact(depUpOpts.comactVersionRangeTo)(majorVersions.head._2).mkString(", "))
+        } else {
+          if (majorVersions != Nil) {
+            majorVersions.tail.reverse.foreach(el ⇒ {
+              out.println(ch("║ ╠═══ ", "| +--- ") + "(" + el._1 + ") " +
+                compact(depUpOpts.comactVersionRangeTo)(el._2).mkString(", "))
+            })
+            out.println(ch("║ ╚═══ ", "| +--- ") + "(" + majorVersions.head._1 + ") " +
+              compact(depUpOpts.comactVersionRangeTo)(majorVersions.head._2).mkString(", "))
+          }
         }
 
       })
@@ -582,6 +617,23 @@ object PomMod {
   private val xPathToProjectParentArtifactId = "//project/parent/artifactId"
   private val xPathToProjectParentVersion = "//project/parent/version"
   private val xPathToProjectParentPackaging = "//project/parent/packaging"
+
+  def compact(max: Int)(in: Seq[String]): Seq[String] = {
+    if (in.length > max) {
+      Seq(in.head, "..") ++ in.tail.drop(in.length - max)
+    } else {
+      in
+    }
+  }
+
+  def unmanged(emptyVersions: Seq[Gav], relevantGav: Seq[Gav]): Seq[Gav] = {
+    if (emptyVersions.filterNot(_.version.isEmpty) != Nil) {
+      throw new IllegalStateException("invalid empty versions")
+    } else {
+      // TODO scope erasure might be problematic
+      emptyVersions.filterNot(gav ⇒ relevantGav.exists(rGav ⇒ rGav.copy(version = "", scope = "") == gav.copy(scope = "")))
+    }
+  }
 
   private def depFrom(id: String, dfn: Map[Dep, Node] ⇒ Unit)(depSeq: Seq[(String, String, Node)]): Dep = {
     val deps = Xpath.toMapOf(depSeq)

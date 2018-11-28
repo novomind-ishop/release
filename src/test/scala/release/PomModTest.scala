@@ -732,7 +732,6 @@ class PomModTest extends AssertionsForJUnit {
     Assert.assertEquals("28.0.1", next)
   }
 
-
   @Test
   def suggestNextRelease_shop(): Unit = {
 
@@ -806,7 +805,6 @@ class PomModTest extends AssertionsForJUnit {
     // THEN
     Assert.assertEquals("28x", next)
   }
-
 
   @Test
   def suggestNextRelease_shop_master(): Unit = {
@@ -1386,6 +1384,29 @@ class PomModTest extends AssertionsForJUnit {
     )
     Assert.assertEquals(in, in.sorted)
   }
+
+  @Test
+  def testCompact(): Unit = {
+    Assert.assertEquals(Nil, PomMod.compact(2)(Nil))
+    Assert.assertEquals(Seq("a"), PomMod.compact(2)(Seq("a")))
+    Assert.assertEquals(Seq("a", "b"), PomMod.compact(2)(Seq("a", "b")))
+    Assert.assertEquals(Seq("a", "b"), PomMod.compact(3)(Seq("a", "b")))
+    Assert.assertEquals(Seq("a", "..", "c"), PomMod.compact(2)(Seq("a", "b", "c")))
+    Assert.assertEquals(Seq("a", "..", "d"), PomMod.compact(2)(Seq("a", "b", "c", "d")))
+    Assert.assertEquals(Seq("a", "..", "c", "d"), PomMod.compact(3)(Seq("a", "b", "c", "d")))
+  }
+
+  @Test
+  def testUnmanged(): Unit = {
+    Assert.assertEquals(Nil, PomMod.unmanged(Nil, Nil))
+    TestHelper.assertException(classOf[IllegalArgumentException], () ⇒ PomMod.unmanged(
+      Seq(Gav(groupId = "a.b", artifactId = "a", version = "1.0.0")),
+      Seq(Gav(groupId = "a.b", artifactId = "a", version = "1.0.0"))))
+
+    Assert.assertEquals(Nil, PomMod.unmanged(Seq(Gav(groupId = "a.b", artifactId = "a", version = "", scope = "test")),
+      Seq(Gav(groupId = "a.b", artifactId = "a", version = "1.0.0", scope = "compile"))))
+  }
+
 
 }
 
