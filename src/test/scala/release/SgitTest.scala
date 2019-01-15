@@ -83,10 +83,10 @@ class SgitTest extends AssertionsForJUnit {
   @Test
   def testCommitIdHEAD(): Unit = {
     // GIVEN
-    val status = SgitTest.workSgit()
-
+    val git = SgitTest.workSgit()
+    SgitTest.assumeNoShallowClone(git)
     // WHEN
-    val commitId = status.commitId("origin/master")
+    val commitId = git.commitId("origin/master")
 
     // THEN
     Assert.assertEquals(40, commitId.length)
