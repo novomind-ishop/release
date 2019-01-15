@@ -308,7 +308,7 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
 
   def showDependencyUpdates(shellWidth: Int, termOs: TermOs, depUpOpts: OptsDepUp, out: PrintStream): Unit = {
     out.println("I: checking dependecies against nexus - please wait")
-    val rootDeps = listDependeciesReplaces()
+    val rootDeps = listDependeciesForCheck()
 
     def normalizeUnwanted(in: Seq[String]): Seq[String] = {
       in.filterNot(_.endsWith("-SNAPSHOT"))
@@ -361,6 +361,13 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
 
     val aetherFetch = StatusLine(relevantGav.size, shellWidth)
     val updates: Map[Gav, Seq[String]] = relevantGav.par
+      .map(in ⇒ {
+        if (in.version.isEmpty || in.artifactId.isEmpty || in.groupId.isEmpty) {
+          throw new IllegalStateException("gav has empty parts: " + in)
+        } else {
+          in
+        }
+      })
       .map(dep ⇒ (dep, {
         aetherFetch.start()
         val result = aether.newerVersionsOf(dep.groupId, dep.artifactId, dep.version)
@@ -506,7 +513,13 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
     onlySnapshots
   }
 
-  private def listDependeciesReplaces(): Seq[Dep] = replacedVersionProperties(listDependecies)
+  private def listDependeciesForCheck(): Seq[Dep] = replacedVersionProperties(listDependecies) ++
+    listPluginDependencies.map(_.fakeDep())
+      .filterNot(_.version == "") // managed plugins are okay
+      .map(in ⇒ in.groupId match {
+      case "" ⇒ in.copy(groupId = "org.apache.maven.plugins")
+      case _ ⇒ in
+    })
 
   private def deps(document: Document): Seq[Dep] = {
     val self: Dep = PomMod.selfDep(depU)(document)
@@ -1118,7 +1131,9 @@ object PomMod {
 
   case class PluginDep(pomRef: PomRef, groupId: String, artifactId: String, version: String, execs: Seq[PluginExec], pomPath: Seq[String]) {
 
-    def gav() = Gav(groupId, artifactId, version)
+    def fakeDep() = Dep(pomRef, groupId, artifactId, version, "", "", "", "")
+
+    def simpleGav() = Gav(groupId, artifactId, version)
   }
 
   case class Gav(groupId: String, artifactId: String, version: String, packageing: String = "", classifier: String = "", scope: String = "") {
@@ -1127,6 +1142,7 @@ object PomMod {
 
   object Gav {
     def format(parts: Seq[String]): String = parts.mkString(":").replaceAll("[:]{2,}", ":").replaceFirst(":$", "")
+
     val empty = Gav(groupId = "", artifactId = "", version = "")
   }
 

@@ -491,7 +491,7 @@ object Release {
 
     val snaps: Seq[Gav] = mod.listSnapshotsDistinct
       .map(_.gav())
-      .filterNot(noShops) ++ plugins.map(_.gav())
+      .filterNot(noShops) ++ plugins.map(_.simpleGav())
       .filter(_.version.contains("SNAPSHOT")) ++
       boClientVersion.map(in ⇒ Gav("com.novomind.ishop.backoffice", "bo-client", in, "war"))
 
