@@ -421,15 +421,15 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
 
         if (majorVersions.size == 1) {
           out.println(ch("║ ╚═══ ", "| +--- ") +
-            compact(depUpOpts.comactVersionRangeTo)(majorVersions.head._2).mkString(", "))
+            abbreviate(depUpOpts.comactVersionRangeTo)(majorVersions.head._2).mkString(", "))
         } else {
           if (majorVersions != Nil) {
             majorVersions.tail.reverse.foreach(el ⇒ {
               out.println(ch("║ ╠═══ ", "| +--- ") + "(" + el._1 + ") " +
-                compact(depUpOpts.comactVersionRangeTo)(el._2).mkString(", "))
+                abbreviate(depUpOpts.comactVersionRangeTo)(el._2).mkString(", "))
             })
             out.println(ch("║ ╚═══ ", "| +--- ") + "(" + majorVersions.head._1 + ") " +
-              compact(depUpOpts.comactVersionRangeTo)(majorVersions.head._2).mkString(", "))
+              abbreviate(depUpOpts.comactVersionRangeTo)(majorVersions.head._2).mkString(", "))
           }
         }
 
@@ -618,7 +618,7 @@ object PomMod {
   private val xPathToProjectParentVersion = "//project/parent/version"
   private val xPathToProjectParentPackaging = "//project/parent/packaging"
 
-  def compact(max: Int)(in: Seq[String]): Seq[String] = {
+  def abbreviate(max: Int)(in: Seq[String]): Seq[String] = {
     if (in.length > max) {
       Seq(in.head, "..") ++ in.tail.drop(in.length - max)
     } else {
@@ -626,12 +626,14 @@ object PomMod {
     }
   }
 
-  def unmanged(emptyVersions: Seq[Gav], relevantGav: Seq[Gav]): Seq[Gav] = {
+  def unmanged(emptyVersions: Seq[Gav], relevantGavs: Seq[Gav]): Seq[Gav] = {
     if (emptyVersions.filterNot(_.version.isEmpty) != Nil) {
-      throw new IllegalStateException("invalid empty versions")
+      throw new IllegalArgumentException("invalid empty versions")
     } else {
-      // TODO scope erasure might be problematic
-      emptyVersions.filterNot(gav ⇒ relevantGav.exists(rGav ⇒ rGav.copy(version = "", scope = "") == gav.copy(scope = "")))
+      emptyVersions
+        .filterNot(_ == Gav.empty) // e.g. poms with no parent
+        // TODO scope erasure might be problematic
+        .filterNot(gav ⇒ relevantGavs.exists(rGav ⇒ rGav.copy(version = "", scope = "") == gav.copy(scope = "")))
     }
   }
 
@@ -672,7 +674,7 @@ object PomMod {
     val packaging = Xpath.onlyString(document, PomMod.xPathToProjectParentPackaging)
     val parentVersion = Xpath.onlyString(document, PomMod.xPathToProjectParentVersion)
     val id = Seq(dep.groupId, dep.artifactId, dep.version).mkString(":")
-    PomMod.depFrom(id, dfn)(Map(
+    depFrom(id, dfn)(Map(
       "groupId" → groupid.getOrElse(""),
       "artifactId" → artifactId.getOrElse(""),
       "packaging" → packaging.getOrElse(""),
@@ -1125,6 +1127,7 @@ object PomMod {
 
   object Gav {
     def format(parts: Seq[String]): String = parts.mkString(":").replaceAll("[:]{2,}", ":").replaceFirst(":$", "")
+    val empty = Gav(groupId = "", artifactId = "", version = "")
   }
 
   case class PomRef(id: String)

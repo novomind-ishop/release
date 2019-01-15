@@ -16,12 +16,12 @@ object Xpath {
       throw new IllegalArgumentException("file does not exist; you passed: " + file.getAbsolutePath)
     } else if (!file.isFile) {
       throw new IllegalArgumentException("only files are allowed; you passed: " + file.getAbsolutePath)
-    }
-    try {
-      val out = newDocument(new String(Files.readAllBytes(file.toPath), StandardCharsets.UTF_8))
-      out
-    } catch {
-      case se: SAXParseException ⇒ throw InvalidPomXmlException(file, se);
+    } else {
+      try {
+        newDocument(new String(Files.readAllBytes(file.toPath), StandardCharsets.UTF_8))
+      } catch {
+        case se: SAXParseException ⇒ throw InvalidPomXmlException(file, se);
+      }
     }
   }
 

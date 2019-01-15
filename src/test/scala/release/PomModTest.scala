@@ -1386,27 +1386,33 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
-  def testCompact(): Unit = {
-    Assert.assertEquals(Nil, PomMod.compact(2)(Nil))
-    Assert.assertEquals(Seq("a"), PomMod.compact(2)(Seq("a")))
-    Assert.assertEquals(Seq("a", "b"), PomMod.compact(2)(Seq("a", "b")))
-    Assert.assertEquals(Seq("a", "b"), PomMod.compact(3)(Seq("a", "b")))
-    Assert.assertEquals(Seq("a", "..", "c"), PomMod.compact(2)(Seq("a", "b", "c")))
-    Assert.assertEquals(Seq("a", "..", "d"), PomMod.compact(2)(Seq("a", "b", "c", "d")))
-    Assert.assertEquals(Seq("a", "..", "c", "d"), PomMod.compact(3)(Seq("a", "b", "c", "d")))
+  def testAbbreviate(): Unit = {
+    Assert.assertEquals(Nil, PomMod.abbreviate(2)(Nil))
+    Assert.assertEquals(Seq("a"), PomMod.abbreviate(2)(Seq("a")))
+    Assert.assertEquals(Seq("a", "b"), PomMod.abbreviate(2)(Seq("a", "b")))
+    Assert.assertEquals(Seq("a", "b"), PomMod.abbreviate(3)(Seq("a", "b")))
+    Assert.assertEquals(Seq("a", "..", "c"), PomMod.abbreviate(2)(Seq("a", "b", "c")))
+    Assert.assertEquals(Seq("a", "..", "d"), PomMod.abbreviate(2)(Seq("a", "b", "c", "d")))
+    Assert.assertEquals(Seq("a", "..", "c", "d"), PomMod.abbreviate(3)(Seq("a", "b", "c", "d")))
   }
 
   @Test
   def testUnmanged(): Unit = {
     Assert.assertEquals(Nil, PomMod.unmanged(Nil, Nil))
-    TestHelper.assertException(classOf[IllegalArgumentException], () ⇒ PomMod.unmanged(
-      Seq(Gav(groupId = "a.b", artifactId = "a", version = "1.0.0")),
-      Seq(Gav(groupId = "a.b", artifactId = "a", version = "1.0.0"))))
+    TestHelper.assertException("invalid empty versions", classOf[IllegalArgumentException],
+      () ⇒ PomMod.unmanged(
+        Seq(Gav(groupId = "a.b", artifactId = "a", version = "1.0.0")),
+        Seq(Gav(groupId = "a.b", artifactId = "a", version = "1.0.0"))
+      )
+    )
 
     Assert.assertEquals(Nil, PomMod.unmanged(Seq(Gav(groupId = "a.b", artifactId = "a", version = "", scope = "test")),
       Seq(Gav(groupId = "a.b", artifactId = "a", version = "1.0.0", scope = "compile"))))
-  }
 
+    Assert.assertEquals(Nil, PomMod.unmanged(Seq(Gav(groupId = "", artifactId = "", version = "")), Nil))
+    Assert.assertEquals(Nil, PomMod.unmanged(Seq(Gav.empty.copy(groupId = "a")), Seq(Gav.empty.copy(groupId = "a"))))
+    Assert.assertEquals(Nil, PomMod.unmanged(Seq(Gav.empty.copy(artifactId = "a")), Seq(Gav.empty.copy(artifactId = "a"))))
+  }
 
 }
 

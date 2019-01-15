@@ -2,7 +2,7 @@ name := "release"
 
 version := "1.0"
 
-scalaVersion := "2.12.7" // 5000 k
+scalaVersion := "2.12.8" // 5000 k
 
 scalacOptions := Seq("-unchecked", "-deprecation")
 

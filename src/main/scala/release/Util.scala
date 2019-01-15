@@ -1,6 +1,6 @@
 package release
 
-import java.io.File
+import java.io.{File, IOException}
 import java.nio.charset.StandardCharsets
 import java.nio.file.{FileSystemException, Files}
 
@@ -95,7 +95,7 @@ object Util {
     try {
       fn.apply(Unit)
     } catch {
-      case e: FileSystemException ⇒ Sgit.getOs match {
+      case e @ (_ : FileSystemException | _ : IOException)  ⇒ Sgit.getOs match {
         case Sgit.Os.Windows ⇒ throw new IllegalStateException("Windows tends to lock file handles." +
           " Try to find handle or DLL that locks the file. e.g. with Sysinternals Process Explorer", e)
         case _ ⇒ throw e;
