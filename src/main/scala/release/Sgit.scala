@@ -635,6 +635,7 @@ object Sgit {
             }
           }
         case v: String if v.startsWith("git version 2.19.") ⇒ // do nothing (2018-09-27) - (tag: v2.19.1) -- fixes CVE-2018-17456
+        case v: String if v.startsWith("git version 2.20.") ⇒ // do nothing (2018-12-09) (tag: v2.20.0)
         case v: String ⇒ out.println("W: unknown/untested git version: \"" + v + "\". Please create a ticket at ISPS.");
       }
       gits = gits ++ Map(cmd → result)
