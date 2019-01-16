@@ -3,6 +3,9 @@ package release
 import java.io.{File, IOException}
 import java.nio.charset.StandardCharsets
 import java.nio.file.{FileSystemException, Files}
+import java.security.MessageDigest
+
+import javax.xml.bind.DatatypeConverter
 
 import scala.collection.{JavaConverters, mutable}
 
@@ -95,7 +98,7 @@ object Util {
     try {
       fn.apply(Unit)
     } catch {
-      case e @ (_ : FileSystemException | _ : IOException)  ⇒ Sgit.getOs match {
+      case e@(_: FileSystemException | _: IOException) ⇒ Sgit.getOs match {
         case Sgit.Os.Windows ⇒ throw new IllegalStateException("Windows tends to lock file handles." +
           " Try to find handle or DLL that locks the file. e.g. with Sysinternals Process Explorer", e)
         case _ ⇒ throw e;
@@ -107,4 +110,28 @@ object Util {
   def toSet[A](set: java.util.Set[A]): Set[A] = JavaConverters.asScalaSet(set).toSet
 
   def toJavaMap[K, V](map: Map[K, V]): java.util.Map[K, V] = JavaConverters.mapAsJavaMap(map)
+
+  def toJavaList[V](map: Seq[V]): java.util.List[V] = JavaConverters.seqAsJavaList(map)
+
+  def hashMd5(in: String): String = {
+    val md: MessageDigest = MessageDigest.getInstance("MD5")
+    md.update(in.getBytes(StandardCharsets.UTF_8))
+    DatatypeConverter.printHexBinary(md.digest()).toLowerCase()
+  }
+
+  def hashSha1(in: String): String = {
+    val md: MessageDigest = MessageDigest.getInstance("SHA1")
+    md.update(in.getBytes(StandardCharsets.UTF_8))
+    DatatypeConverter.printHexBinary(md.digest()).toLowerCase
+  }
+
+  def isNullOrEmpty(in: String): Boolean = {
+    in == null || in == ""
+  }
+
+  def nullToEmpty(in: String): String = if (in == null) {
+    ""
+  } else {
+    in
+  }
 }

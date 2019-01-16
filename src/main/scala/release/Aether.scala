@@ -1,15 +1,12 @@
 package release
 
 import java.io.{IOException, PrintStream}
-import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{FileVisitResult, FileVisitor, Files, Path}
 import java.text.{DecimalFormat, DecimalFormatSymbols}
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 
-import com.google.common.collect.{ImmutableList, ImmutableSet}
-import com.google.common.hash.Hashing
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.http.client.methods.{CloseableHttpResponse, HttpGet}
 import org.apache.http.impl.client.HttpClients
@@ -69,11 +66,10 @@ class Aether(opts: Opts) extends LazyLogging {
   }
 
   def newerVersionsOf(groupID: String, artifactId: String, version: String): Seq[String] = {
-    val request = Seq(groupID, artifactId, "(" + version + "," + ")").mkString(":")
+    val request = Seq(groupID, artifactId, "[" + version + ",)").mkString(":")
     val result = getVersionsOf(request).map(_.toString)
     result
   }
-
 
 }
 
@@ -89,9 +85,9 @@ object Aether extends LazyLogging {
     val artifact = new DefaultArtifact(request)
     val rangeRequest = new VersionRangeRequest
     rangeRequest.setArtifact(artifact)
-    rangeRequest.setRepositories(ImmutableList.of(repository))
+    rangeRequest.setRepositories(Util.toJavaList(Seq(repository)))
     val rangeResult = system.resolveVersionRange(session, rangeRequest)
-    JavaConverters.asScalaBuffer(rangeResult.getVersions)
+    JavaConverters.asScalaBuffer(rangeResult.getVersions).toList
   }
 
   private class ManualRepositorySystemFactory {
@@ -158,7 +154,7 @@ object Aether extends LazyLogging {
 
     private def newRepositorySystemSession(system: RepositorySystem, silent: Boolean): DefaultRepositorySystemSession = {
       val session = MavenRepositorySystemUtils.newSession
-      val now = Hashing.md5().hashString(Random.nextLong() + "", StandardCharsets.UTF_8).toString
+      val now = Util.hashMd5(Random.nextLong() + "")
 
       val localRepo = new LocalRepository("target/local-repo/" + now)
       localRepo.getBasedir.getAbsoluteFile.getParentFile.mkdir()
@@ -245,7 +241,7 @@ object Aether extends LazyLogging {
     }
 
     private def logStacktrace(event: TransferEvent) = {
-      val of = ImmutableSet.of(classOf[MetadataNotFoundException], classOf[ArtifactNotFoundException])
+      val of = Util.toJavaList(Seq(classOf[MetadataNotFoundException], classOf[ArtifactNotFoundException]))
       if (of.contains(event.getException.getClass)) false
       else true
     }

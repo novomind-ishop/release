@@ -1,6 +1,6 @@
 package release
 
-import org.junit.{Assert, Assume, Test}
+import org.junit.{Assume, Test}
 import org.scalatest.junit.AssertionsForJUnit
 import release.Starter.Opts
 
@@ -12,8 +12,12 @@ class AetherTest extends AssertionsForJUnit {
   def testExistsGav(): Unit = {
     val aether = new Aether(Opts())
     Assume.assumeTrue(aether.isReachable)
-    Assert.assertTrue(aether.existsGav("com.novomind.ishop.exi", "ext-b2c", "27.0.6"))
-    Assert.assertFalse(aether.existsGav("com.novomind.ishop.exi", "ext-b2c", "0.0.1-BERT"))
+    val g = "org.apache.maven.plugins"
+    val a = "maven-surefire-plugin"
+    val v = "3.0.0-M1"
+    //println("r: " + aether.existsGav(g, a, v))
+    println("r: " + aether.newerVersionsOf(g, a, v))
+    // Assert.assertFalse(aether.existsGav("com.novomind.ishop.exi", "ext-b2c", "0.0.1-BERT"))
   }
 
 }

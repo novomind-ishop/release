@@ -128,7 +128,7 @@ object Release {
     val mod = PomMod.ofAether(workDirFile, opts, aether)
     out.println(". done")
     if (opts.depUpOpts.showDependencyUpdates) {
-      mod.showDependencyUpdates(shellWidth, termOs, opts.depUpOpts, out)
+      mod.showDependencyUpdates(shellWidth, termOs, opts.depUpOpts, config.workNexusUrl(), out, err)
       System.exit(0)
     }
 
@@ -491,7 +491,7 @@ object Release {
 
     val snaps: Seq[Gav] = mod.listSnapshotsDistinct
       .map(_.gav())
-      .filterNot(noShops) ++ plugins.map(_.simpleGav())
+      .filterNot(noShops) ++ plugins.map(_.fakeDep().gav())
       .filter(_.version.contains("SNAPSHOT")) ++
       boClientVersion.map(in ⇒ Gav("com.novomind.ishop.backoffice", "bo-client", in, "war"))
 

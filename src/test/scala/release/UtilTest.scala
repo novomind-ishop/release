@@ -63,4 +63,28 @@ class UtilTest extends AssertionsForJUnit {
     Assert.assertEquals(Some(1), Util.onlyOpt(Seq(1)))
     Assert.assertEquals(None, Util.onlyOpt(Nil))
   }
+
+  @Test
+  def testMd5(): Unit = {
+    Assert.assertEquals("3de0746a7d2762a87add40dac2bc95a0", Util.hashMd5("bert"))
+  }
+
+  @Test
+  def testSha1(): Unit = {
+    Assert.assertEquals("7b964cd933b2cc9106deabd4641111826cfbc094", Util.hashSha1("bert"))
+  }
+
+  @Test
+  def testNullToEmpty(): Unit = {
+    Assert.assertEquals("bert", Util.nullToEmpty("bert"))
+    Assert.assertEquals("", Util.nullToEmpty(""))
+    Assert.assertEquals("", Util.nullToEmpty(null))
+  }
+
+  @Test
+  def testIsNullOrEmpty(): Unit = {
+    Assert.assertFalse(Util.isNullOrEmpty("bert"))
+    Assert.assertTrue(Util.isNullOrEmpty(""))
+    Assert.assertTrue(Util.isNullOrEmpty(null))
+  }
 }

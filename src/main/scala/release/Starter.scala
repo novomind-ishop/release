@@ -3,12 +3,10 @@ package release
 import java.awt.Desktop
 import java.io.{BufferedReader, File, PrintStream}
 import java.net.URI
-import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
 
-import com.google.common.hash.Hashing
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClients
@@ -185,7 +183,7 @@ object Starter extends App with LazyLogging {
   }
 
   case class OptsDepUp(showDependencyUpdates: Boolean = false, showHelp: Boolean = false,
-                       hideLatest: Boolean = true, comactVersionRangeTo: Integer = 3, hideStageVersions:Boolean = true,
+                       hideLatest: Boolean = true, comactVersionRangeTo: Integer = 3, hideStageVersions: Boolean = true,
                        invalids: Seq[String] = Nil)
 
   @tailrec
@@ -517,9 +515,7 @@ object Starter extends App with LazyLogging {
   }
 
   def sign(): String = {
-    Hashing.sha1()
-      .hashString(LocalDateTime.now().toString, StandardCharsets.UTF_8)
-      .toString
+    Util.hashSha1(LocalDateTime.now().toString)
   }
 
   def addExitFn(msg: String, fn: () ⇒ Unit): Unit = {

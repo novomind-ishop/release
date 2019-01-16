@@ -7,8 +7,6 @@ import java.time.LocalDate
 import java.time.temporal.WeekFields
 import java.util.Locale
 
-import com.google.common.annotations.VisibleForTesting
-import com.google.common.base.Strings
 import com.typesafe.scalalogging.LazyLogging
 import javax.xml.transform.dom.DOMSource
 import javax.xml.transform.stream.StreamResult
@@ -306,12 +304,13 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
       })
   }
 
-  def showDependencyUpdates(shellWidth: Int, termOs: TermOs, depUpOpts: OptsDepUp, out: PrintStream): Unit = {
+  def showDependencyUpdates(shellWidth: Int, termOs: TermOs, depUpOpts: OptsDepUp, workNexusUrl: String,
+                            out: PrintStream, err: PrintStream): Unit = {
     out.println("I: checking dependecies against nexus - please wait")
     val rootDeps = listDependeciesForCheck()
 
-    def normalizeUnwanted(in: Seq[String]): Seq[String] = {
-      in.filterNot(_.endsWith("-SNAPSHOT"))
+    def normalizeUnwanted(gav: Gav3, inVersions: Seq[String]): Seq[String] = {
+      val out: Seq[String] = inVersions.filterNot(_.endsWith("-SNAPSHOT"))
         .filterNot(_.contains("patch"))
         .filterNot(_.matches(".*[Mm][0-9]+$"))
         .filterNot(_.matches(".*pr[0-9]+$"))
@@ -336,18 +335,28 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
         .filterNot(_.startsWith("2003"))
         .filterNot(_.startsWith("2004"))
         .filterNot(_.endsWith("-PUBLISHED-BY-MISTAKE"))
+
+      val result = if (inVersions.contains(gav.version)) {
+        (Seq(gav.version) ++ out).distinct
+      } else {
+        out
+      }
+      if (result != inVersions) {
+        logger.debug("filtered for " + gav.formatted + ": " + Util.symmetricDiff(result, inVersions))
+      }
+      result
     }
 
+    val selfSimple = selfDepsMod.map(_.gav().simpleGav()).distinct
     val relevant = rootDeps
-      // TODO filter self deps
       .filterNot(_.version == "")
+      .filterNot(in ⇒ selfSimple.contains(in.gav().simpleGav()))
 
     val relevantGav = relevant
       .map(_.gav())
       .distinct
 
     val emptyVersions = rootDeps
-      // TODO filter self deps
       .filter(_.version == "")
       .map(_.gav())
       .distinct
@@ -360,7 +369,7 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
     }
 
     val aetherFetch = StatusLine(relevantGav.size, shellWidth)
-    val updates: Map[Gav, Seq[String]] = relevantGav.par
+    val updates: Map[Gav3, Seq[String]] = relevantGav.par.map(_.simpleGav())
       .map(in ⇒ {
         if (in.version.isEmpty || in.artifactId.isEmpty || in.groupId.isEmpty) {
           throw new IllegalStateException("gav has empty parts: " + in)
@@ -376,19 +385,29 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
       }))
       .seq
       .map(in ⇒ if (depUpOpts.hideStageVersions) {
-        in.copy(_2 = normalizeUnwanted(in._2))
+        in.copy(_2 = normalizeUnwanted(in._1, in._2))
       } else {
         in
       })
-      .filter(_._2.nonEmpty)
       .toMap
 
     aetherFetch.finish()
 
     case class GavWithRef(pomRef: PomRef, gavWithDetailsFormatted: String)
 
+    // TODO move Version check to here
+
+    val checkedUpdates = updates.map(gavAndVersion ⇒ {
+      if (gavAndVersion._2 == Nil) {
+        (gavAndVersion._1, Nil) // TODO remove this, because it is invalid
+      } else {
+        (gavAndVersion._1, gavAndVersion._2.tail)
+      }
+
+    })
+
     val allWithUpdate: Seq[(GavWithRef, Seq[String])] = relevant.map(in ⇒ (GavWithRef(in.pomRef, in.gavWithDetailsFormatted),
-      updates.getOrElse(in.gav(), Nil))).filterNot(in ⇒ depUpOpts.hideLatest && in._2.isEmpty)
+      checkedUpdates.getOrElse(in.gav().simpleGav(), Nil))).filterNot(in ⇒ depUpOpts.hideLatest && in._2.isEmpty)
 
     allWithUpdate.groupBy(_._1.pomRef).foreach(element ⇒ {
       val ref: PomRef = element._1
@@ -404,7 +423,7 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
         simple
       }
 
-      out.println(ch("║ ", "| ") + ref)
+      out.println(ch("║ ", "| ") + "Project GAV: " + ref.id)
       mods.sortBy(_._1.toString).foreach((subElement: (GavWithRef, Seq[String])) ⇒ {
 
         val o: Seq[String] = subElement._2
@@ -443,6 +462,20 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
       })
       out.println(ch("║", "|"))
     })
+
+    {
+      // TODO check versions before
+      val versionNotFound = updates.filter(_._2 == Nil)
+      if (versionNotFound.nonEmpty) {
+        // TODO throw new PreconditionsException
+        err.println("Non existing dependencies for:\n" +
+          versionNotFound.map(in ⇒ in._1.formatted + "->" + (in._2 match {
+            case Nil ⇒ "Nil"
+            case e ⇒ e
+          }) + "\n  " + workNexusUrl + in._1.slashedMeta).toList.sorted.mkString("\n"))
+      }
+    }
+
     out.println("term: " + termOs)
 
   }
@@ -723,7 +756,7 @@ object PomMod {
 
   case class Version(pre: String, major: Int, minor: Int, patch: Int, low: String) {
 
-    private val lowF = if (Strings.isNullOrEmpty(low)) {
+    private val lowF = if (Util.isNullOrEmpty(low)) {
       ""
     } else {
       "_" + low
@@ -798,7 +831,7 @@ object PomMod {
     }
 
     def fromString(pre: String, major: String, minor: String, patch: String, low: String): Version = {
-      Version(pre, nullToZero(major), nullToZero(minor), nullToZero(patch), Strings.nullToEmpty(low))
+      Version(pre, nullToZero(major), nullToZero(minor), nullToZero(patch), Util.nullToEmpty(low))
     }
 
     def toVersion(m: String): Option[Version] = m match {
@@ -1113,7 +1146,6 @@ object PomMod {
     }
   }
 
-  @VisibleForTesting
   def format(in: String, xPathStr: String, value: String): String = {
     val raw = RawPomFile(new File("."), Xpath.newDocument(in), new File("."))
     applyValueOfXpathTo(raw, xPathStr, value)
@@ -1133,11 +1165,19 @@ object PomMod {
 
     def fakeDep() = Dep(pomRef, groupId, artifactId, version, "", "", "", "")
 
-    def simpleGav() = Gav(groupId, artifactId, version)
+    def simpleGav() = Gav3(groupId, artifactId, version)
+  }
+
+  case class Gav3(groupId: String, artifactId: String, version: String) {
+    def formatted: String = Gav.format(Seq(groupId, artifactId, version))
+
+    def slashedMeta: String = (groupId + '/' + artifactId).replace('.', '/') + "/maven-metadata.xml"
   }
 
   case class Gav(groupId: String, artifactId: String, version: String, packageing: String = "", classifier: String = "", scope: String = "") {
-    def formatted = Gav.format(Seq(groupId, artifactId, version, packageing, classifier, scope))
+    def formatted: String = Gav.format(Seq(groupId, artifactId, version, packageing, classifier, scope))
+
+    def simpleGav() = Gav3(groupId, artifactId, version)
   }
 
   object Gav {

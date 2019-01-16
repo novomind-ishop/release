@@ -14,13 +14,13 @@ libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.9.0"
 
 libraryDependencies += "redis.clients" % "jedis" % "2.9.0" // 540 k
 
-libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-connector-basic" % "1.1.1" // 41 k
+libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-connector-basic" % "1.3.1"
 
-libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-transport-file" % "1.1.1" // 12 k
+libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-transport-file" % "1.3.1"
 
-libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-transport-http" % "1.1.1" // 40 k
+libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-transport-http" % "1.3.1"
 
-libraryDependencies += "org.apache.maven" % "maven-resolver-provider" % "3.5.4" // 66 k
+libraryDependencies += "org.apache.maven" % "maven-resolver-provider" % "3.6.0"
 
 libraryDependencies += "org.jline" % "jline-terminal" % "3.9.0"
 

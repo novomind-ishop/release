@@ -402,7 +402,8 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
   def graph(): String = {
     try {
-      gitNative(Seq("log", "HEAD", "--no-color", "--all", "--graph", "-3", "--oneline", "--decorate", "--"))
+      gitNative(Seq("log", "HEAD", "--no-color", "--branches", "--remotes", "--tag", "--graph",
+        "-3", "--oneline", "--decorate", "--"))
     } catch {
       case e: Exception ⇒ e.printStackTrace(); "no - graph"
     }
@@ -746,7 +747,7 @@ object Sgit {
 
   def unescape(str: String): String = {
     @tailrec
-    def cate(in: Seq[Char], result:Seq[Byte] = Nil) : Seq[Byte] = {
+    def cate(in: Seq[Char], result: Seq[Byte] = Nil): Seq[Byte] = {
       in match {
         case '\\' :: c0 :: c1 :: c2 :: tail ⇒ {
           val b = new BigInteger(new String(Array(c0, c1, c2)), 8).byteValue()
