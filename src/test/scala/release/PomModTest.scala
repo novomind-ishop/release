@@ -1438,7 +1438,7 @@ object PomModTest {
 
   def depTreeMap(pomMod: PomMod): Map[String, Seq[String]] = {
     pomMod.depTreeFileContents.map(entry ⇒ {
-      val erpLines = entry._2.content.lines.filter(l ⇒ l.contains("anyshop-erp")).toList
+      val erpLines = entry._2.content.linesIterator.filter(l ⇒ l.contains("anyshop-erp")).toList
       val key = if (pomMod.file.getName == entry._1.getParentFile.getName) {
         entry._1.getName
       } else {
@@ -1494,7 +1494,7 @@ object PomModTest {
   }
 
   def assertElems(expected: Seq[Elem], actual: Seq[Elem]): Unit = {
-    def toStr(in: Elem) = PomMod.toString(document(in)).lines.map(in ⇒ in.trim).toList.mkString("\n")
+    def toStr(in: Elem) = PomMod.toString(document(in)).linesIterator.map(in ⇒ in.trim).toList.mkString("\n")
 
     Assert.assertEquals(expected.toList.map(toStr).mkString("\n---\n"), actual.toList.map(toStr).mkString("\n---\n"))
   }

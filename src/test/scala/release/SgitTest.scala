@@ -572,7 +572,7 @@ class SgitTest extends AssertionsForJUnit {
   private def assertMsg(expected: Seq[String], sgit: Sgit): Unit = {
     val gitRawOut = sgit.gitNative(Seq("log", "-n1", "--pretty=\"%B\""))
     val unwrapped = unw(gitRawOut)
-    val nativeLines = unwrapped.lines.toList
+    val nativeLines = unwrapped.linesIterator.toList
     val body = nativeLines match {
       case lines if lines.last.startsWith("Change-Id:") ⇒ lines.dropRight(1)
       case lines ⇒ Assert.fail("invalid lines: " + lines.mkString("|"))

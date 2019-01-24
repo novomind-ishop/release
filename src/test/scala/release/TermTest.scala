@@ -108,8 +108,8 @@ object TermTest extends LazyLogging {
         System.setErr(oldErr)
         System.setSecurityManager(oldSecurityManager)
       }
-      Assert.assertEquals(expectedOut, out.toString.lines.toList)
-      Assert.assertEquals(expectedErr, err.toString.lines.toList)
+      Assert.assertEquals(expectedOut, out.toString.linesIterator.toList)
+      Assert.assertEquals(expectedErr, err.toString.linesIterator.toList)
       Assert.assertEquals(expectedExitCode, exitCode)
     }
   }

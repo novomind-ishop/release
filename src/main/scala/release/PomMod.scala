@@ -163,7 +163,7 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
   }
 
   private def replacedDepTreesVersion(in: String, groupId: String, artifactId: String, version: String, newVersion: String) = {
-    in.lines
+    in.linesIterator
       .map(_.replaceFirst(groupId + ":" + artifactId + ":([^:]*):([^:]*):" + version, groupId + ":" + artifactId + ":$1:$2:" + newVersion))
       .map(_.replaceFirst(groupId + ":" + artifactId + ":([^:]*):" + version, groupId + ":" + artifactId + ":$1:" + newVersion))
       .mkString("\n") + "\n"
@@ -178,7 +178,7 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
 
   private def replacedDepTreesGA(in: String, groupId: String, artifactId: String, version: String,
                                  groupIdFn: String ⇒ String, artifactIdFn: String ⇒ String) = {
-    in.lines
+    in.linesIterator
       .map(_.replaceFirst(groupId + ":" + artifactId + ":war:" + version, groupIdFn.apply(groupId).replace("." + artifactIdFn.apply(artifactId), "") + ":" + artifactIdFn.apply(artifactId) + ":war:" + version))
       .map(_.replaceFirst(groupId + ":" + artifactId + ":([^:]*):([^:]*):" + version, groupIdFn.apply(groupId) + ":" + artifactIdFn.apply(artifactId) + ":$1:$2:" + version))
       .map(_.replaceFirst(groupId + ":" + artifactId + ":([^:]*):" + version, groupIdFn.apply(groupId) + ":" + artifactIdFn.apply(artifactId) + ":$1:" + version))

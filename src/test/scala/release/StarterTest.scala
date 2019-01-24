@@ -104,7 +104,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
         |Invalid options:
         |help
         |
-        |""".stripMargin + helpMessage.lines.drop(1).mkString("\n"), result)
+        |""".stripMargin + helpMessage.linesIterator.drop(1).mkString("\n"), result)
   }
 
   def testRepo(originDir: File, workDir: File): File = {
@@ -123,7 +123,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
     // WHEN
     val in = StarterTest.willReadFrom("master\n")
     TestHelper.assertExceptionWithCheck(in ⇒ Assert.assertEquals("E: please download a commit-message hook and retry",
-      in.lines.toSeq(1)),
+      in.linesIterator.toSeq(1)),
       classOf[Sgit.MissingCommitHookException], () ⇒ {
         StarterTest.withOutErr[Unit]((out, err) ⇒ Starter.fetchGitAndAskForBranch(out, err, noVerify = true, None, testRepoD, in, Opts()))
       })
