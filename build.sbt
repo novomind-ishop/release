@@ -14,6 +14,8 @@ libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.9.0"
 
 libraryDependencies += "redis.clients" % "jedis" % "2.9.0" // 540 k
 
+libraryDependencies += "javax.xml.bind" % "jaxb-api" % "2.3.1"
+
 libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-connector-basic" % "1.3.1"
 
 libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-transport-file" % "1.3.1"

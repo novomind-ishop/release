@@ -402,7 +402,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
   def graph(): String = {
     try {
-      gitNative(Seq("log", "HEAD", "--no-color", "--branches", "--remotes", "--tag", "--graph",
+      gitNative(Seq("log", "HEAD", "--no-color", "--branches", "--remotes", "--tags", "--graph",
         "-3", "--oneline", "--decorate", "--"))
     } catch {
       case e: Exception ⇒ e.printStackTrace(); "no - graph"

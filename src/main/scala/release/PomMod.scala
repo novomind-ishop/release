@@ -306,6 +306,14 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
 
   def showDependencyUpdates(shellWidth: Int, termOs: TermOs, depUpOpts: OptsDepUp, workNexusUrl: String,
                             out: PrintStream, err: PrintStream): Unit = {
+
+    if (opts.invalids != Nil) {
+      err.println("Invalid options:")
+      err.println(opts.invalids.mkString(", "))
+      err.println()
+      System.exit(1)
+    }
+
     out.println("I: checking dependecies against nexus - please wait")
     val rootDeps = listDependeciesForCheck()
 
@@ -360,13 +368,6 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
       .filter(_.version == "")
       .map(_.gav())
       .distinct
-
-    val unmangedVersions = unmanged(emptyVersions, relevantGav)
-    if (unmangedVersions != Nil) {
-      unmangedVersions.foreach(println)
-      println("Empty:versions found -- check your versions and/or create ISPS ticket")
-      System.exit(1)
-    }
 
     val aetherFetch = StatusLine(relevantGav.size, shellWidth)
     val updates: Map[Gav3, Seq[String]] = relevantGav.par.map(_.simpleGav())
@@ -473,6 +474,16 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
             case Nil ⇒ "Nil"
             case e ⇒ e
           }) + "\n  " + workNexusUrl + in._1.slashedMeta).toList.sorted.mkString("\n"))
+        err.println()
+      }
+    }
+
+    {
+      val unmangedVersions = unmanged(emptyVersions, relevantGav)
+      if (unmangedVersions != Nil) {
+        err.println("Empty or managed versions found:")
+        unmangedVersions.map(_.simpleGav()).foreach(err.println)
+        err.println()
       }
     }
 
