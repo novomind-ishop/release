@@ -23,8 +23,6 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
   logger.trace("init pomMod")
   private var depMap: Map[Dep, Node] = Map.empty
 
-  private val xPathToDependecies = "//dependencies/dependency"
-
   private val rootPom = new File(file, "pom.xml")
   if (!rootPom.canRead) {
     throw new PreconditionsException(file.toString + " seems to be no maven project")
@@ -589,7 +587,7 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
 
   private def toRawPom(pomFile: File): RawPomFile = {
     // TODO check if pom is sub sub module - parse
-    RawPomFile(pomFile, Xpath.pomDoc(pomFile), file)
+    RawPomFile(pomFile, PomMod.stripDependecyDefaults(Xpath.pomDoc(pomFile)), file)
   }
 
   private def toRawPoms(pomFiles: Seq[File]): Seq[RawPomFile] = {
@@ -674,6 +672,10 @@ object PomMod {
   private val xPathToProjectParentArtifactId = "//project/parent/artifactId"
   private val xPathToProjectParentVersion = "//project/parent/version"
   private val xPathToProjectParentPackaging = "//project/parent/packaging"
+
+  private val xPathToDependecies = "//dependencies/dependency"
+  private val xPathToDependeciesScopeCompile = "//dependencies/dependency/scope[text() = 'compile']"
+  private val xPathToDependeciesTypeJar = "//dependencies/dependency/type[text() = 'jar']"
 
   def abbreviate(max: Int)(in: Seq[String]): Seq[String] = {
     if (in.length > max) {
@@ -986,7 +988,7 @@ object PomMod {
     })
   }
 
-  def formatDependcy(in: String, selectedGroupId: String, selectedArtifcatId: String, selectedVersion: String, newVersion: String): String = {
+  def formatDependecy(in: String, selectedGroupId: String, selectedArtifcatId: String, selectedVersion: String, newVersion: String): String = {
     val doc = Xpath.newDocument(in)
     val filtered = filterBy(doc, selectedGroupId, selectedArtifcatId, Some(selectedVersion))
     filtered.headOption.foreach(node ⇒ {
@@ -1080,6 +1082,16 @@ object PomMod {
     if (node.isDefined) {
       node.get.setTextContent(newValue)
     }
+  }
+
+  private[release] def stripDependecyDefaults(doc: Document): Document = {
+
+    val toRemove = Xpath.toSeq(doc, xPathToDependeciesScopeCompile) ++ Xpath.toSeq(doc, xPathToDependeciesTypeJar)
+    toRemove.foreach(in ⇒ {
+      in.getParentNode.removeChild(in.getNextSibling)
+      in.getParentNode.removeChild(in)
+    })
+    doc
   }
 
   private[release] def checkRootFirstChildPropertiesVar(opts: Opts, childPomFiles: Seq[RawPomFile]): Unit = {

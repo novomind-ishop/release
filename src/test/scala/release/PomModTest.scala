@@ -1316,7 +1316,7 @@ class PomModTest extends AssertionsForJUnit {
         |     <version>27.0.0-SNAPSHOT</version></dependency>
         |      </dependencies>""".stripMargin
 
-    val result = PomMod.formatDependcy(input, "com.novomind.ishop.shops.anyshop", "anyshop-erp", "27.0.0-SNAPSHOT", "27.0.0")
+    val result = PomMod.formatDependecy(input, "com.novomind.ishop.shops.anyshop", "anyshop-erp", "27.0.0-SNAPSHOT", "27.0.0")
 
     Assert.assertEquals(
       """<dependencies><dependency>      <groupId>com.novomind.ishop.shops.anyshop</groupId><br />

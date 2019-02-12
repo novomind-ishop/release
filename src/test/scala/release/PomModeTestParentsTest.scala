@@ -18,6 +18,96 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
   lazy val aether = new Aether(Opts())
 
   @Test
+  def testStrip(): Unit = {
+    // GIVEN
+    val in = document(<project>
+      <modelVersion>4.0.0</modelVersion>
+      <packaging>war</packaging>
+      <groupId>com.some</groupId>
+      <artifactId>some</artifactId>
+      <dependencyManagement>
+        <dependencies>
+          <dependency>
+            <groupId>some.group</groupId>
+            <artifactId>artifact</artifactId>
+            <version>1.0.0</version>
+            <scope>import</scope>
+            <type>pom</type>
+          </dependency>
+          <dependency>
+            <groupId>some.group</groupId>
+            <artifactId>artifact2</artifactId>
+            <version>1.0.0</version>
+            <scope>compile</scope>
+          </dependency>
+        </dependencies>
+      </dependencyManagement>
+      <dependencies>
+        <dependency>
+          <groupId>other</groupId>
+          <artifactId>data</artifactId>
+          <scope>compile</scope>
+        </dependency>
+        <dependency>
+          <groupId>other2</groupId>
+          <type>jar</type>
+          <artifactId>data2</artifactId>
+        </dependency>
+        <dependency>
+          <groupId>other3</groupId>
+          <artifactId>data3</artifactId>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
+    </project>
+    )
+
+    // WHEN
+    val doc = PomMod.stripDependecyDefaults(in)
+
+    // THEN
+    val result = Seq(doc).map(toElement)
+    PomModTest.assertElems(Seq(
+      <project>
+        <modelVersion>4.0.0</modelVersion>
+        <packaging>war</packaging>
+        <groupId>com.some</groupId>
+        <artifactId>some</artifactId>
+        <dependencyManagement>
+          <dependencies>
+            <dependency>
+              <groupId>some.group</groupId>
+              <artifactId>artifact</artifactId>
+              <version>1.0.0</version>
+              <scope>import</scope>
+              <type>pom</type>
+            </dependency>
+            <dependency>
+              <groupId>some.group</groupId>
+              <artifactId>artifact2</artifactId>
+              <version>1.0.0</version>
+            </dependency>
+          </dependencies>
+        </dependencyManagement>
+        <dependencies>
+          <dependency>
+            <groupId>other</groupId>
+            <artifactId>data</artifactId>
+          </dependency>
+          <dependency>
+            <groupId>other2</groupId>
+            <artifactId>data2</artifactId>
+          </dependency>
+          <dependency>
+            <groupId>other3</groupId>
+            <artifactId>data3</artifactId>
+            <scope>test</scope>
+          </dependency>
+        </dependencies>
+      </project>), result)
+  }
+
+  @Test
   def testChangeOfChildWithDifferentParent(): Unit = {
     val srcPoms: File = pomTestFile(temp, document(<project>
       <modelVersion>4.0.0</modelVersion>
@@ -250,6 +340,5 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
         <version>12.12</version>
       </project>), result)
   }
-
 
 }
