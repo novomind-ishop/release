@@ -714,7 +714,11 @@ object Sgit {
         e.getMessage.startsWith("Nonzero exit value:") && cmd.head.contains("git") ⇒
         val msg = e.getMessage + "; git " + cmd.drop(3).mkString(" ") +
           "; " + Seq(errors, stdout).filterNot(_.isEmpty).mkString("; ")
-        throw new RuntimeException(msg.trim)
+        if (e.getMessage.startsWith("Nonzero exit value: 130")) {
+          throw new TerminatedByCtrlCException(msg.trim)
+        } else {
+          throw new RuntimeException(msg.trim)
+        }
       case e: Throwable ⇒ {
         throw e
       }
@@ -768,6 +772,8 @@ object Sgit {
   class MissingCommitHookException(msg: String) extends RuntimeException(msg)
 
   class MissingGitDirException(msg: String) extends RuntimeException(msg)
+
+  class TerminatedByCtrlCException(msg: String) extends RuntimeException(msg)
 
   class BranchAlreadyExistsException(msg: String) extends RuntimeException(msg)
 

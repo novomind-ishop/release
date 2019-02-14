@@ -338,7 +338,7 @@ object Starter extends App with LazyLogging {
 
     def handleException(t: Throwable): Int = {
       t match {
-        case x@(_: Sgit.MissingCommitHookException | _: Sgit.MissingGitDirException |
+        case x@(_: Sgit.MissingCommitHookException | _: Sgit.MissingGitDirException | _: Sgit.TerminatedByCtrlCException |
                 _: PomChecker.ValidationException | _: PreconditionsException | _: Sgit.BranchAlreadyExistsException) ⇒ {
           err.println()
           err.println("E: " + x.getMessage)

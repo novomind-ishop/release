@@ -1,6 +1,7 @@
 package release
 
 import java.io.{BufferedWriter, File, FileWriter}
+import java.nio.file.Paths
 import java.time.{LocalDate, Month}
 
 import org.junit.rules.TemporaryFolder
@@ -21,6 +22,35 @@ class PomModTest extends AssertionsForJUnit {
   @Rule def temp = _temporarayFolder
 
   lazy val aether = new Aether(Opts())
+
+  @Test
+  def testTeset(): Unit = {
+    val srcPoms: File = pomTestFile(temp, document(
+      <project>
+      <modelVersion>4.0.0</modelVersion>
+      <groupId>com.novomind.ishop.shops.any</groupId>
+      <artifactId>any-projects</artifactId>
+      <version>27.0.0-SNAPSHOT</version>
+      <packaging>pom</packaging>
+      <modules>
+        <module>any-erp</module>
+      </modules>
+    </project>
+    )).sub("any-erp", document(<project>
+      <modelVersion>4.0.0</modelVersion>
+      <parent>
+        <groupId>com.novomind.ishop.shops.any</groupId>
+        <artifactId>any-projects</artifactId>
+        <version>28.0.0-SNAPSHOT</version>
+        <relativePath>..</relativePath>
+      </parent>
+      <artifactId>any-erp</artifactId>
+      <name>any-erp</name>
+    </project>
+    )).create()
+    val out = PomMod.allRawModulePomsFiles(Seq(srcPoms)).map(in ⇒ srcPoms.toPath.relativize(in.toPath))
+    Assert.assertEquals(Seq(Paths.get("pom.xml"), Paths.get("any-erp", "pom.xml")), out)
+  }
 
   @Test
   def testCheckRootFirstChildPropertiesVar_noChilds(): Unit = {

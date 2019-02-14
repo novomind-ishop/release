@@ -1,6 +1,6 @@
 package release
 
-import java.io.{BufferedReader, PrintStream}
+import java.io.{BufferedReader, IOError, PrintStream}
 
 import org.jline.reader._
 import org.jline.terminal.TerminalBuilder
@@ -31,6 +31,10 @@ object Term {
       case _: UserInterruptException ⇒ {
         System.exit(28)
         "UserInterruptException"
+      }
+      case _: IOError ⇒ {
+        System.exit(28)
+        "IOError"
       }
     }
   }

@@ -594,44 +594,6 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
     pomFiles.map(toRawPom)
   }
 
-  private def subModuleNames(document: Document): Seq[String] = {
-    Xpath.toSeq(document, "//project/modules/module").map(_.getTextContent)
-  }
-
-  // TODO @tailrec
-  private def allRawModulePomsFiles(rootFolders: Seq[File]): Seq[File] = {
-    def isPomPacked(document: Document): Boolean = {
-      Seq("pom") == Xpath.toSeq(document, PomMod.xPathToProjectPackaging).map(_.getTextContent)
-    }
-
-    rootFolders
-      .flatMap(rootFolder ⇒ {
-        val p = if (rootFolder.isFile) {
-          rootFolder.getParentFile
-        } else {
-          new File(rootFolder, "pom.xml")
-        }
-        val document: Document = Xpath.pomDoc(p)
-        if (isPomPacked(document)) {
-          val subModules = subModuleNames(document)
-          val s = subModules.par.map(subModuleName ⇒ {
-            new File(p.getParentFile, subModuleName).getAbsoluteFile
-          }).seq
-          val o: Seq[File] = p +: allRawModulePomsFiles(s)
-          o
-        } else {
-          Seq(p)
-        }
-      }).map(r ⇒ {
-      val files = r.isFile
-      if (!files) {
-        throw new IllegalStateException("asdf " + r)
-      } else {
-        r
-      }
-    })
-
-  }
 }
 
 case class RawPomFile(pomFile: File, document: Document, file: File) {
@@ -710,6 +672,44 @@ object PomMod {
 
     dfn.apply(Map(dep → Util.only(ma, "invalid dep creation")))
     dep
+  }
+
+  private[release] def allRawModulePomsFiles(rootFolders: Seq[File]): Seq[File] = {
+
+    def subModuleNames(document: Document): Seq[String] = {
+      Xpath.toSeq(document, "//project/modules/module").map(_.getTextContent)
+    }
+
+    def isPomPacked(document: Document): Boolean = {
+      Seq("pom") == Xpath.toSeq(document, PomMod.xPathToProjectPackaging).map(_.getTextContent)
+    }
+
+    rootFolders
+      .flatMap(rootFolder ⇒ {
+        val pomFile = if (rootFolder.isFile) {
+          rootFolder.getParentFile
+        } else {
+          new File(rootFolder, "pom.xml")
+        }
+        val document: Document = Xpath.pomDoc(pomFile)
+        if (isPomPacked(document)) {
+          val subModules = subModuleNames(document)
+          val s = subModules.par.map(subModuleName ⇒ {
+            new File(pomFile.getParentFile, subModuleName).getAbsoluteFile
+          }).seq
+           pomFile +: allRawModulePomsFiles(s)
+        } else {
+          Seq(pomFile)
+        }
+      }).map(resultFile ⇒ {
+      val files = resultFile.isFile
+      if (!files) {
+        throw new IllegalStateException("is not a file: " + resultFile)
+      } else {
+        resultFile
+      }
+    })
+
   }
 
   private[release] def selfDep(dfn: Map[Dep, Node] ⇒ Unit)(document: Document): Dep = {
