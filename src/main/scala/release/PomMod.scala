@@ -46,7 +46,18 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
 
   val selfVersion: String = {
     val v = listSelf.map(_.version).distinct
-    Util.only(v, "More then one Version found in your pom.xmls")
+
+    Util.only(v, {
+      val selection = listSelf.groupBy(_.version) match {
+        case grouped if grouped.keySet.size == 2 ⇒ {
+          val sizeMap = grouped.map(entry ⇒ (entry._1, entry._2.size))
+          val key = sizeMap.toList.minBy(_._2)._1
+          grouped(key).toList.mkString(", ")
+        }
+        case grouped ⇒ grouped.toString()
+      }
+      "More then one Version found in your pom.xmls: " + selection
+    })
   }
 
   private val currentVersion: Option[String] = {
@@ -697,7 +708,7 @@ object PomMod {
           val s = subModules.par.map(subModuleName ⇒ {
             new File(pomFile.getParentFile, subModuleName).getAbsoluteFile
           }).seq
-           pomFile +: allRawModulePomsFiles(s)
+          pomFile +: allRawModulePomsFiles(s)
         } else {
           Seq(pomFile)
         }

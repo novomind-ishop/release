@@ -414,7 +414,8 @@ class PomModTest extends AssertionsForJUnit {
     )).create()
 
     // WHEN
-    TestHelper.assertException("More then one Version found in your pom.xmls (27.0.0-SNAPSHOT, 28.0.0-SNAPSHOT)",
+    TestHelper.assertException("More then one Version found in your pom.xmls: " +
+      "Dep(PomRef(any-erp),com.novomind.ishop.shops.any,any-erp,28.0.0-SNAPSHOT,,,,) (27.0.0-SNAPSHOT, 28.0.0-SNAPSHOT)",
       classOf[IllegalArgumentException], () ⇒ {
         PomMod.ofAetherForTests(srcPoms, aether).selfVersion
       })

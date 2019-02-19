@@ -42,11 +42,10 @@ object Util {
     case e if e.size == 1 ⇒ Some(e.head)
     case e ⇒ throw new IllegalArgumentException("any: " + e)
   }
-
-  def only[T](ts: Seq[T], msg: String): T = ts match {
-    case Nil ⇒ throw new IllegalArgumentException(msg + ". Input is Nil.")
+  def only[T](ts: Seq[T], msgSupplier: ⇒ String): T = ts match {
+    case Nil ⇒ throw new IllegalArgumentException(msgSupplier + ". Input is Nil.")
     case e if e.size == 1 ⇒ e.head
-    case e ⇒ throw new IllegalArgumentException(msg + " (" + e.toList.mkString(", ") + ")")
+    case e ⇒ throw new IllegalArgumentException(msgSupplier + " (" + e.toList.mkString(", ") + ")")
   }
 
   lazy val localWork: File = new File(".").getAbsoluteFile match {
