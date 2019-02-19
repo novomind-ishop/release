@@ -1,5 +1,4 @@
 package release
-
 import java.io.{File, IOException}
 import java.nio.charset.StandardCharsets
 import java.nio.file.{FileSystemException, Files}
@@ -18,6 +17,13 @@ object Util {
       } else {
         in
       }
+    }
+
+    /**
+      * @jdk11 has isBlank()
+      */
+    def blank(): Boolean = {
+      in != null && in.trim.isEmpty
     }
   }
 
@@ -42,6 +48,7 @@ object Util {
     case e if e.size == 1 ⇒ Some(e.head)
     case e ⇒ throw new IllegalArgumentException("any: " + e)
   }
+
   def only[T](ts: Seq[T], msgSupplier: ⇒ String): T = ts match {
     case Nil ⇒ throw new IllegalArgumentException(msgSupplier + ". Input is Nil.")
     case e if e.size == 1 ⇒ e.head

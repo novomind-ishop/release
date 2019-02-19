@@ -53,6 +53,17 @@ class UtilTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testBlank(): Unit = {
+    import Util.pluralize
+    Assert.assertFalse("value".blank())
+    Assert.assertTrue(" ".blank())
+    Assert.assertTrue(" \t".blank())
+    Assert.assertTrue(" \t\r".blank())
+    Assert.assertTrue(" \t\n".blank())
+    Assert.assertTrue(" \t\r\n".blank())
+  }
+
+  @Test
   def testDistinctOn(): Unit = {
     Assert.assertEquals(Seq("ab", "c", "abc"), Util.distinctOn[String, Int](Seq("ab", "ba", "c", "abc"), in ⇒ in.length))
   }

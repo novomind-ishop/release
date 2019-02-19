@@ -5,7 +5,7 @@ import java.nio.file.Paths
 import java.time.{LocalDate, Month}
 
 import org.junit.rules.TemporaryFolder
-import org.junit.{Assert, Rule, Test}
+import org.junit.{Assert, ComparisonFailure, Rule, Test}
 import org.scalatest.junit.AssertionsForJUnit
 import org.w3c.dom._
 import release.PomChecker.ValidationException
@@ -13,7 +13,7 @@ import release.PomMod._
 import release.PomModTest.{assertDeps, document, pomfile, _}
 import release.Starter.Opts
 
-import scala.xml.{Elem, XML}
+import scala.xml.Elem
 
 class PomModTest extends AssertionsForJUnit {
 
@@ -27,15 +27,15 @@ class PomModTest extends AssertionsForJUnit {
   def testTeset(): Unit = {
     val srcPoms: File = pomTestFile(temp, document(
       <project>
-      <modelVersion>4.0.0</modelVersion>
-      <groupId>com.novomind.ishop.shops.any</groupId>
-      <artifactId>any-projects</artifactId>
-      <version>27.0.0-SNAPSHOT</version>
-      <packaging>pom</packaging>
-      <modules>
-        <module>any-erp</module>
-      </modules>
-    </project>
+        <modelVersion>4.0.0</modelVersion>
+        <groupId>com.novomind.ishop.shops.any</groupId>
+        <artifactId>any-projects</artifactId>
+        <version>27.0.0-SNAPSHOT</version>
+        <packaging>pom</packaging>
+        <modules>
+          <module>any-erp</module>
+        </modules>
+      </project>
     )).sub("any-erp", document(<project>
       <modelVersion>4.0.0</modelVersion>
       <parent>
@@ -1445,6 +1445,31 @@ class PomModTest extends AssertionsForJUnit {
     Assert.assertEquals(Nil, PomMod.unmanged(Seq(Gav.empty.copy(artifactId = "a")), Seq(Gav.empty.copy(artifactId = "a"))))
   }
 
+  @Test
+  def testAsserts(): Unit = {
+    // @formatter:off
+    val elem:Elem =      <test>
+      <!-- bla --></test>
+    // @formatter:on
+    val doc = PomModTest.document(elem)
+    val s = PomMod.toString(doc)
+    val value = "<test>\n      <!-- bla --></test>"
+    Assert.assertEquals(value, s)
+
+    PomModTest.assertDocs(Seq(doc), Seq(Xpath.newDocument(value)))
+    TestHelper.assertAssertionError(
+      "expected:<<test>\n<!-- [bla] --></test>> but was:<<test>\n<!-- [invalid] --></test>>",
+      classOf[ComparisonFailure], () ⇒ {
+        PomModTest.assertDocs(Seq(doc), Seq(Xpath.newDocument("<test>\n  <!-- invalid --></test>")))
+      })
+    PomModTest.assertElems(Seq(elem), Seq(Xpath.newDocument(value)))
+    TestHelper.assertAssertionError(
+      "expected:<<test>\n<!-- [bla] --></test>> but was:<<test>\n<!-- [invalid] --></test>>",
+      classOf[ComparisonFailure], () ⇒ {
+        PomModTest.assertElems(Seq(elem), Seq(Xpath.newDocument("<test>\n  <!-- invalid --></test>")))
+      })
+  }
+
 }
 
 object PomModTest {
@@ -1480,8 +1505,6 @@ object PomModTest {
   }
 
   def document(elem: Elem): Document = Xpath.newDocument(elem.toString())
-
-  def toElement(doc: Document): Elem = XML.loadString(PomMod.toString(doc))
 
   def pomfile(doc: Document) = RawPomFile(new File("f"), doc, new File("f"))
 
@@ -1524,10 +1547,15 @@ object PomModTest {
     }
   }
 
-  def assertElems(expected: Seq[Elem], actual: Seq[Elem]): Unit = {
-    def toStr(in: Elem) = PomMod.toString(document(in)).linesIterator.map(in ⇒ in.trim).toList.mkString("\n")
-
-    Assert.assertEquals(expected.toList.map(toStr).mkString("\n---\n"), actual.toList.map(toStr).mkString("\n---\n"))
+  def assertElems(expected: Seq[Elem], actual: Seq[Document]): Unit = {
+    assertDocs(expected.map(PomModTest.document), actual)
   }
 
+  def assertDocs(expected: Seq[Document], actual: Seq[Document]): Unit = {
+    def fmt(tf: Seq[Document]): String = {
+      tf.map(PomMod.toString).map(in ⇒ in.linesIterator.map(_.trim()).mkString("\n")).mkString("\n---\n")
+    }
+
+    Assert.assertEquals(fmt(expected), fmt(actual))
+  }
 }

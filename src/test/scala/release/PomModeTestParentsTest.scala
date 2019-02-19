@@ -34,15 +34,23 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
             <scope>import</scope>
             <type>pom</type>
           </dependency>
+          <!-- comment -->
           <dependency>
             <groupId>some.group</groupId>
             <artifactId>artifact2</artifactId>
             <version>1.0.0</version>
             <scope>compile</scope>
+            <!-- comment -->
           </dependency>
         </dependencies>
       </dependencyManagement>
       <dependencies>
+        <dependency>
+          <groupId>other</groupId>
+          <artifactId>data-tests</artifactId>
+          <!-- @release:keep-compile-scope -->
+          <scope>compile</scope>
+        </dependency>
         <dependency>
           <groupId>other</groupId>
           <artifactId>data</artifactId>
@@ -63,10 +71,10 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
     )
 
     // WHEN
-    val doc = PomMod.stripDependecyDefaults(in)
+    val doc = PomMod.stripDependencyDefaults(in)
 
     // THEN
-    val result = Seq(doc).map(toElement)
+    val result = Seq(doc)
     PomModTest.assertElems(Seq(
       <project>
         <modelVersion>4.0.0</modelVersion>
@@ -82,14 +90,22 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
               <scope>import</scope>
               <type>pom</type>
             </dependency>
+            <!-- comment -->
             <dependency>
               <groupId>some.group</groupId>
               <artifactId>artifact2</artifactId>
               <version>1.0.0</version>
+              <!-- comment -->
             </dependency>
           </dependencies>
         </dependencyManagement>
         <dependencies>
+          <dependency>
+            <groupId>other</groupId>
+            <artifactId>data-tests</artifactId>
+            <!-- @release:keep-compile-scope -->
+            <scope>compile</scope>
+          </dependency>
           <dependency>
             <groupId>other</groupId>
             <artifactId>data</artifactId>
@@ -167,7 +183,7 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
         "com.novomind.any", "any-projects", "27.0.0", "", "", "", "")),
       PomMod.ofAetherForTests(srcPoms, aether).listDependecies)
     Assert.assertEquals(3, newpom.allPomsDocs.size)
-    val result = newpom.allPomsDocs.map(toElement)
+    val result = newpom.allPomsDocs
 
     PomModTest.assertElems(Seq(
       <project>
@@ -287,7 +303,7 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
         "com.novomind.ishop.shops.any", "any-parent", "12.12", "", "", "", "")),
       PomMod.ofAetherForTests(srcPoms, aether).listDependecies)
     Assert.assertEquals(4, newpom.allPomsDocs.size)
-    val result = newpom.allPomsDocs.map(toElement)
+    val result = newpom.allPomsDocs
 
     PomModTest.assertElems(Seq(
       <project>

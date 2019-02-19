@@ -3,9 +3,9 @@ package release
 import java.io.{ByteArrayInputStream, File}
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
+
 import javax.xml.parsers.DocumentBuilderFactory
 import javax.xml.xpath.{XPathConstants, XPathFactory}
-
 import org.w3c.dom.{Document, Node, NodeList}
 import org.xml.sax.SAXParseException
 
@@ -39,6 +39,13 @@ object Xpath {
   def only(document: Document, xpath: String): Option[Node] = {
     val elements = toSeq(document, xpath)
     Util.onlyOpt(elements)
+  }
+
+  private def nodeCommentFilter(node: Node): Option[Node] = node match {
+    case element: Node if element.getNodeType == Node.ELEMENT_NODE ⇒ None
+    case element: Node if element.getNodeType == Node.TEXT_NODE ⇒ None
+    case element: Node if element.getNodeType == Node.COMMENT_NODE ⇒ Some(node)
+    case elment ⇒ throw new IllegalStateException(elment.getClass.getCanonicalName)
   }
 
   private def nodeFilter(node: Node): Option[Node] = node match {
@@ -76,8 +83,12 @@ object Xpath {
     mapToSeqTuples(toSeq(document, xpath))
   }
 
+  private def toSeqNodesF(nodeList: NodeList, nodeF: Node ⇒ Option[Node]): Seq[Node] = {
+    List.tabulate(nodeList.getLength)(i ⇒ i).map(key ⇒ nodeList.item(key)).flatMap(in ⇒ nodeF(in))
+  }
+
   def toSeqNodes(nodeList: NodeList): Seq[Node] = {
-    List.tabulate(nodeList.getLength)(i ⇒ i).map(key ⇒ nodeList.item(key)).flatMap(nodeFilter)
+    toSeqNodesF(nodeList, nodeFilter)
   }
 
   def toSeq(document: Document, xpath: String): Seq[Node] = {
@@ -111,7 +122,15 @@ object Xpath {
     if (xpath.startsWith("/")) {
       throw new IllegalStateException("only relative xpathes are allowed for nodes")
     }
-    toSeqNodes(toNodeList(node, xpath: String))
+    toSeqNodes(toNodeList(node, xpath))
+  }
+
+  def nodeComments(node: Node, xpath: String): Seq[Node] = {
+    if (xpath.startsWith("/")) {
+      throw new IllegalStateException("only relative xpathes are allowed for nodes")
+    }
+    val list = toNodeList(node, xpath)
+    toSeqNodesF(list, nodeCommentFilter)
   }
 
   private def toNodeList(doc: AnyRef, xpath: String): NodeList = {

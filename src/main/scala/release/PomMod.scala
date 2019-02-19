@@ -11,6 +11,7 @@ import com.typesafe.scalalogging.LazyLogging
 import javax.xml.transform.dom.DOMSource
 import javax.xml.transform.stream.StreamResult
 import javax.xml.transform.{OutputKeys, TransformerFactory}
+import release.Util.pluralize
 import org.w3c.dom.{Document, Node}
 import release.Conf.Tracer
 import release.PomChecker.ValidationException
@@ -598,7 +599,7 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
 
   private def toRawPom(pomFile: File): RawPomFile = {
     // TODO check if pom is sub sub module - parse
-    RawPomFile(pomFile, PomMod.stripDependecyDefaults(Xpath.pomDoc(pomFile)), file)
+    RawPomFile(pomFile, PomMod.stripDependencyDefaults(Xpath.pomDoc(pomFile)), file)
   }
 
   private def toRawPoms(pomFiles: Seq[File]): Seq[RawPomFile] = {
@@ -1029,7 +1030,7 @@ object PomMod {
     applyToKey(raw, selfs, "version", _ ⇒ newValue)
   }
 
-  private def applyToGroupAndArtifactId(raw: RawPomFile, selfs: Seq[Dep], groupidFn: (String ⇒ String), artifactIdFn: (String ⇒ String)): Unit = {
+  private def applyToGroupAndArtifactId(raw: RawPomFile, selfs: Seq[Dep], groupidFn: String ⇒ String, artifactIdFn: String ⇒ String): Unit = {
 
     val ga = selfs.map(x ⇒ (x.groupId, x.artifactId))
 
@@ -1058,7 +1059,7 @@ object PomMod {
 
   }
 
-  private def applyToKey(raw: RawPomFile, selfs: Seq[Dep], key: String, newValueFn: (String ⇒ String)): Unit = {
+  private def applyToKey(raw: RawPomFile, selfs: Seq[Dep], key: String, newValueFn: String ⇒ String): Unit = {
 
     val ga = selfs.map(x ⇒ (x.groupId, x.artifactId))
 
@@ -1079,7 +1080,7 @@ object PomMod {
 
   }
 
-  def modifyValueOfXpathTo(raw: RawPomFile, xpath: String, newValueFn: (String ⇒ String)): Unit = {
+  def modifyValueOfXpathTo(raw: RawPomFile, xpath: String, newValueFn: String ⇒ String): Unit = {
     val xPathResult = Xpath.toSeq(raw.document, xpath)
     val node = xPathResult.headOption
     if (node.isDefined) {
@@ -1095,13 +1096,21 @@ object PomMod {
     }
   }
 
-  private[release] def stripDependecyDefaults(doc: Document): Document = {
+  private[release] def stripDependencyDefaults(doc: Document): Document = {
 
     val toRemove = Xpath.toSeq(doc, xPathToDependeciesScopeCompile) ++ Xpath.toSeq(doc, xPathToDependeciesTypeJar)
     toRemove.foreach(in ⇒ {
-      in.getParentNode.removeChild(in.getNextSibling)
-      in.getParentNode.removeChild(in)
+      val comments = Xpath.nodeComments(in.getParentNode, "comment()")
+        .map(n ⇒ n.getTextContent.trim)
+      if (!comments.contains("@release:keep-compile-scope")) {
+        // XXX compile scope allows transitiv dependencies, and we use this to create test dependency _bundles_
+        if (in.getNextSibling.getTextContent.blank()) {
+          in.getParentNode.removeChild(in.getNextSibling)
+        }
+        in.getParentNode.removeChild(in)
+      }
     })
+
     doc
   }
 
