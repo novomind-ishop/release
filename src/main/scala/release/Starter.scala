@@ -78,7 +78,7 @@ object Starter extends App with LazyLogging {
             }
           } else {
             val text = "Your branch is " + commintsBehindOrAhead.size +
-              s" ${"commit".pluralize(commintsBehindOrAhead.size)} ahead of defined upstream $upstreamName. Abort release?"
+              s" ${"commit".pluralize(commintsBehindOrAhead.size)} ahead of defined upstream $upstreamName. Abort?"
             val abort = Term.readFromOneOfYesNo(out, text, opts, in)
             if (abort == "y") {
               System.exit(1)
