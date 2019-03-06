@@ -127,9 +127,9 @@ object Starter extends App with LazyLogging {
       val branch = Term.readFrom(out, "Enter branch name where to start from", suggestCurrentBranch(workDirFile), opts, in)
       val git = workGit(workDirFile)
       val allBranches = git.listBranchNamesAllFull()
-      if (!allBranches.contains(branch)) {
-        // XXX maybe problematic with "detatched heads" or relative position like "HEAD~2"
-        out.println("W: invalid branchname: " + branch + "; try one of: " + allBranches.mkString(", "))
+
+      if (!allBranches.contains(branch) && git.commitIdOpt(branch).isEmpty) {
+        out.println("W: invalid branchname: " + branch + "; try one of: " + allBranches.mkString(", ") + " or sha1 or relative name")
         askReleaseBranch()
       } else {
         branch
