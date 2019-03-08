@@ -31,7 +31,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   }
 
   private[release] def isShallowClone: Boolean = {
-    gitNative(Seq("rev-parse", "--is-shallow-repository")).toBoolean
+    Util.only(gitNative(Seq("rev-parse", "--is-shallow-repository")), "only one boolean expected").toBoolean
   }
 
   private def configRemoveLocalAll(key: String, value: String): Unit = {
@@ -61,7 +61,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   }
 
   private[release] def configGetLocalAll(key: String): Option[Seq[String]] = {
-    gitNativeOpt(Seq("config", "--local", "--get-all", key)).map(_.linesIterator.toList)
+    gitNativeOpt(Seq("config", "--local", "--get-all", key))
   }
 
   private[release] def configGetLocalAllSeq(key: String): Seq[String] = {
@@ -69,7 +69,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   }
 
   private[release] def configGetGlobalAll(key: String): Option[Seq[String]] = {
-    gitNativeOpt(Seq("config", "--global", "--get-all", key)).map(_.linesIterator.toList)
+    gitNativeOpt(Seq("config", "--global", "--get-all", key))
   }
 
   private[release] def configGetGlobalAllSeq(key: String): Seq[String] = {
@@ -185,9 +185,9 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     verify()
   }
 
-  def currentBranch: String = gitNative(Seq("rev-parse", "--abbrev-ref", "HEAD"))
+  def currentBranch: String = Util.only(gitNative(Seq("rev-parse", "--abbrev-ref", "HEAD")), "only one branch expected")
 
-  def lsFiles(): Seq[String] = gitNative(Seq("ls-files")).linesIterator.toList.map(_.trim).map(in ⇒ if (in.startsWith("\"") && in.endsWith("\"")) {
+  def lsFiles(): Seq[String] = gitNative(Seq("ls-files")).map(_.trim).map(in ⇒ if (in.startsWith("\"") && in.endsWith("\"")) {
     Sgit.unescape(in.substring(1).dropRight(1))
   } else {
     in
@@ -215,9 +215,13 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
   def listRemotes(): Seq[GitRemote] = {
     val out = gitNative(Seq("remote", "-v"))
-    out.linesIterator.toList.map(in ⇒ {
-      val splitted = Sgit.splitLineOnWhitespace(in)
-      GitRemote(splitted(0), splitted(1), splitted(2))
+    out.map(in ⇒ {
+      try {
+        val splitted = Sgit.splitLineOnWhitespace(in)
+        GitRemote(splitted(0), splitted(1), splitted(2))
+      } catch {
+        case e: Exception ⇒ throw new IllegalStateException("invalid line: \"" + in + "\"", e)
+      }
     })
   }
 
@@ -225,7 +229,6 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
   def listBranchesLocal(): Seq[GitShaBranch] = {
     gitNative(Seq("branch", "--list", "--verbose", "--no-abbrev"))
-      .linesIterator.toSeq
       .flatMap(Sgit.splitLineOnBranchlistErr(err))
       .map(parts ⇒ {
         GitShaBranch(parts._2, "refs/heads/" + parts._1)
@@ -246,7 +249,6 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
   private[release] def listBranchRemoteRaw(): Seq[GitShaBranch] = {
     gitNative(Seq("branch", "--list", "--verbose", "--no-abbrev", "--remote"))
-      .linesIterator.toSeq
       .flatMap(in ⇒ in match {
         case l: String if l.trim.startsWith("origin/HEAD") ⇒ None
         case l: String if l.trim.startsWith("origin/") ⇒ {
@@ -261,7 +263,6 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
   def listRefs(): Seq[GitShaBranch] = {
     gitNative(Seq("show-ref"))
-      .linesIterator.toSeq
       .map(in ⇒ {
         val parts = in.replaceFirst("^\\*", "").trim.split("[ \t]+")
         GitShaBranch(parts(0), parts(1))
@@ -317,7 +318,8 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   }
 
   def findUpstreamBranch(): Option[String] = {
-    val upstreamOpt = gitNativeOpt(Seq("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"))
+    val upstreamOpt:Option[String] = gitNativeOpt(Seq("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"))
+      .map(Util.only(_, "only one upstream expected"))
     selectUpstream(upstreamOpt)
   }
 
@@ -340,33 +342,32 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   }
 
   def commitIdOpt(ref: String): Option[String] = {
-    gitNativeOpt(Seq("log", "-n1", "--pretty=%H", ref))
+    gitNativeOpt(Seq("log", "-n1", "--pretty=%H", ref)).map(Util.only(_, "only one commitid expected"))
   }
 
   def commitId(ref: String): String = {
-    gitNative(Seq("log", "-n1", "--pretty=%H", ref))
+    Util.only(gitNative(Seq("log", "-n1", "--pretty=%H", ref)), "only one commitid expected")
   }
 
   def commitIds(fromRef: String, toRef: String): Seq[String] = {
-    val changes = gitNative(Seq("log", "--pretty=%H", fromRef + "..." + toRef))
-    changes.linesIterator.toList
+    gitNative(Seq("log", "--pretty=%H", fromRef + "..." + toRef))
   }
 
   def hasChangesToPush: Boolean = {
-    val status = gitNative(Seq("status", "--branch", "--porcelain", currentBranch))
+    val status = gitNative(Seq("status", "--branch", "--porcelain", currentBranch)).mkString(" ")
     status.contains("ahead")
   }
 
   def isNotDetached: Boolean = !isDetached
 
   def isDetached: Boolean = {
-    val status = gitNative(Seq("status", "--branch", "--porcelain"))
+    val status = gitNative(Seq("status", "--branch", "--porcelain")).mkString(" ")
     status.startsWith("## HEAD (no branch)")
   }
 
   def localChanges(): Seq[String] = {
     val status = gitNative(Seq("status", "--porcelain"))
-    status.linesIterator.toList.map(_.replaceAll("[ ]+", " ").trim)
+    status.map(_.replaceAll("[ ]+", " ").trim)
   }
 
   def hasLocalChanges: Boolean = {
@@ -403,13 +404,13 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   def graph(): String = {
     try {
       gitNative(Seq("log", "HEAD", "--no-color", "--branches", "--remotes", "--tags", "--graph",
-        "-3", "--oneline", "--decorate", "--"))
+        "-3", "--oneline", "--decorate", "--")).mkString("\n")
     } catch {
       case e: Exception ⇒ e.printStackTrace(); "no - graph"
     }
   }
 
-  def listTags(): Seq[String] = gitNative(Seq("tag", "--list")).linesIterator.toList
+  def listTags(): Seq[String] = gitNative(Seq("tag", "--list"))
 
   private def checkedTagName(tagName: String): String = {
     if (tagName.startsWith("v")) {
@@ -481,22 +482,22 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   }
 
   private[release] def pushInnerRaw(src: String): Seq[String] = {
-    Seq(gitNative(Seq("push", "-q", "-u", "origin", src), errMapper = Sgit.gerritPushFilter))
+    gitNative(Seq("push", "-q", "-u", "origin", src), errMapper = Sgit.gerritPushFilter)
   }
 
   private[release] def revertHead(): Seq[String] = {
-    Seq(gitNative(Seq("revert", "--no-edit", "HEAD")))
+    gitNative(Seq("revert", "--no-edit", "HEAD"))
   }
 
   private[release] def commitMessageBody(commitId: String): Seq[String] = {
-    gitNative(Seq("log", "-n1", "--pretty=%b", commitId)).split("[\r\n]+").toList
+    gitNative(Seq("log", "-n1", "--pretty=%b", commitId))
   }
 
   private[release] def resetHard(commitId: String): Seq[String] = {
-    Seq(gitNative(Seq("reset", "--hard", commitId)))
+    gitNative(Seq("reset", "--hard", commitId))
   }
 
-  private[release] def gitNativeOpt(args: Seq[String]): Option[String] = {
+  private[release] def gitNativeOpt(args: Seq[String]): Option[Seq[String]] = {
     try {
       Some(gitNative(args, showErrors = false))
     } catch {
@@ -506,7 +507,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
   private[release] def gitNative(args: Seq[String], showErrors: Boolean = true, useWorkdir: Boolean = true,
                                  cmdFilter: String ⇒ Boolean = _ ⇒ false,
-                                 errMapper: String ⇒ Option[String] = errLine ⇒ Some(errLine)): String = {
+                                 errMapper: String ⇒ Option[String] = errLine ⇒ Some(errLine)): Seq[String] = {
     if (!gitRoot.isDirectory && checkExisting) {
       throw new IllegalStateException("invalid git dir: " + gitRoot.getAbsolutePath)
     }
@@ -519,7 +520,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
     val ff = Tracer.msgAround[String](gitCmdCall.mkString(" "), logger,
       () ⇒ Sgit.native(gitCmdCall, syserrErrors = showErrors, cmdFilter, err, errMapper))
-    ff
+    ff.linesIterator.toList.dropWhile(in ⇒ in.trim.isEmpty)
   }
 }
 
@@ -571,7 +572,7 @@ object Sgit {
     val git = gits.get(cmd)
     if (git.isEmpty) {
       // git lg --tags --date=short --simplify-by-decoration --pretty=format:'(%cd)%d'
-      val result: Unit = sgit.gitNative(Seq("--version"), useWorkdir = false) match {
+      val result: Unit = sgit.gitNative(Seq("--version"), useWorkdir = false).mkString("") match {
         case v: String if v.startsWith("git version 1") ⇒
           // (2014-12-17) - (tag: v1.9.5)
           throw new IllegalStateException("git version 1.9.5 support ended at 2016-01-01")

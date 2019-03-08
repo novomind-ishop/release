@@ -401,16 +401,16 @@ object Release {
       if (sendToGerrit == "y") {
         try {
           if (sgit.hasChangesToPush) {
-            val result = sgit.pushFor(srcBranchName = branch, targetBranchName = selectedBranch)
-            // TODO handle push output
+            val pushOut = sgit.pushFor(srcBranchName = branch, targetBranchName = selectedBranch)
+            pushOut.foreach(err.println)
             if (config.openGerritInBrowser) {
               // TODO hier gerrit öffnen da man submit klicken muss
               // TODO wenn man genau den change öffnen könnte wär noch cooler
               Starter.openInDefaultBrowser(config.gerritBaseUrl() + "#/q/status:open")
             }
             if (newMod.hasNoShopPom) {
-              val strings = sgit.pushTag(release)
-              // TODO handle push output
+              val pushOut = sgit.pushTag(release)
+              pushOut.foreach(err.println)
               if (config.openJenkinsInBrowser) {
                 val jenkinsBase = config.jenkinsBaseUrl()
                 val tagUrl = Starter.tagBuildUrl(sgit, jenkinsBase)
@@ -422,9 +422,9 @@ object Release {
             }
           }
           if (newMod.hasShopPom) {
-            val result = sgit.pushHeads(srcBranchName = "release/" + releaseWitoutSnapshot,
+            val pushOut = sgit.pushHeads(srcBranchName = "release/" + releaseWitoutSnapshot,
               targetBranchName = "release/" + releaseWitoutSnapshot)
-            // TODO handle push output
+            pushOut.foreach(err.println)
             // TODO try to trigger job updates for jenkins
             // TODO try to trigger job execution in loop with abort
           }
