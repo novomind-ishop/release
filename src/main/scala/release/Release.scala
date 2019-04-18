@@ -406,6 +406,7 @@ object Release {
             if (config.openGerritInBrowser) {
               // TODO hier gerrit öffnen da man submit klicken muss
               // TODO wenn man genau den change öffnen könnte wär noch cooler
+              // TODO try to exctract gerrit url from repo
               Starter.openInDefaultBrowser(config.gerritBaseUrl() + "#/q/status:open")
             }
             if (newMod.hasNoShopPom) {

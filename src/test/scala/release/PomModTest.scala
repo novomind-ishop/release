@@ -1446,6 +1446,40 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testReplacedDepTreesVersionSnapshot(): Unit = {
+    val out = PomMod.replacedDepTreesVersion("com.any:any-some:jar:1.0.0",
+      "com.any", "any-some", "1.0.0",
+      "1.0.0-SNAPSHOT")
+    Assert.assertEquals("com.any:any-some:jar:1.0.0-SNAPSHOT\n", out)
+
+    val out2 = PomMod.replacedDepTreesVersion(out,
+      "com.any", "any-some", "1.0.0",
+      "1.0.0-SNAPSHOT")
+    Assert.assertEquals("com.any:any-some:jar:1.0.0-SNAPSHOT\n", out2)
+  }
+
+  @Test
+  def testReplacedDepTreesVersion(): Unit = {
+    val out = PomMod.replacedDepTreesVersion("com.any:any-some:jar:1.0.0",
+      "com.any", "any-some", "1.0.0",
+      "1.0.1")
+    Assert.assertEquals("com.any:any-some:jar:1.0.1\n", out)
+
+    val out2 = PomMod.replacedDepTreesVersion(out,
+      "com.any", "any-some", "1.0.1",
+      "1.0.0-SNAPSHOT")
+    Assert.assertEquals("com.any:any-some:jar:1.0.0-SNAPSHOT\n", out2)
+  }
+
+  @Test
+  def testReplacedDepTreesVersion_noChange(): Unit = {
+    val out = PomMod.replacedDepTreesVersion("com.any:any-some:jar:1.0.0",
+      "com.any", "any-some", "1.0.1",
+      "1.0.1")
+    Assert.assertEquals("com.any:any-some:jar:1.0.0\n", out)
+  }
+
+  @Test
   def testAsserts(): Unit = {
     // @formatter:off
     val elem:Elem =      <test>

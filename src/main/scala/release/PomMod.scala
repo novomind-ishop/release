@@ -168,15 +168,8 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
 
   private[release] def changeDepTreesVersion(groupId: String, artifactId: String, version: String, newVersion: String): Unit = {
     depTreeFileContents = depTreeFileContents.map(entry ⇒ {
-      (entry._1, entry._2.copy(replacedDepTreesVersion(entry._2.content, groupId, artifactId, version, newVersion)))
+      (entry._1, entry._2.copy(PomMod.replacedDepTreesVersion(entry._2.content, groupId, artifactId, version, newVersion)))
     }).foldLeft(Map.empty[File, DepTree])(_ + _)
-  }
-
-  private def replacedDepTreesVersion(in: String, groupId: String, artifactId: String, version: String, newVersion: String) = {
-    in.linesIterator
-      .map(_.replaceFirst(groupId + ":" + artifactId + ":([^:]*):([^:]*):" + version, groupId + ":" + artifactId + ":$1:$2:" + newVersion))
-      .map(_.replaceFirst(groupId + ":" + artifactId + ":([^:]*):" + version, groupId + ":" + artifactId + ":$1:" + newVersion))
-      .mkString("\n") + "\n"
   }
 
   private[release] def changeDepTreesGA(groupId: String, artifactId: String, version: String,
@@ -653,6 +646,14 @@ object PomMod {
   private val xPathToDependecies = "//dependencies/dependency"
   private val xPathToDependeciesScopeCompile = "//dependencies/dependency/scope[text() = 'compile']"
   private val xPathToDependeciesTypeJar = "//dependencies/dependency/type[text() = 'jar']"
+
+  private[release] def replacedDepTreesVersion(in: String, groupId: String, artifactId: String, version: String, newVersion: String) = {
+    in.linesIterator
+      .map(_.replaceFirst(groupId + ":" + artifactId + ":([^:]*):([^:]*):" + version, groupId + ":" + artifactId + ":$1:$2:" + newVersion))
+      .map(_.replaceFirst(groupId + ":" + artifactId + ":([^:]*):" + version, groupId + ":" + artifactId + ":$1:" + newVersion))
+      .map(_.replaceFirst("-SNAPSHOT-SNAPSHOT", "-SNAPSHOT"))
+      .mkString("\n") + "\n"
+  }
 
   def abbreviate(max: Int)(in: Seq[String]): Seq[String] = {
     if (in.length > max) {
