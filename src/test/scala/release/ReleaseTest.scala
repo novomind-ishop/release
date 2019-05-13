@@ -25,11 +25,11 @@ class ReleaseTest extends AssertionsForJUnit {
   def testFormatVersionLinesHighlight(): Unit = {
 
     val check = Release.formatVersionLinesGav(Seq(
-      PomMod.Gav("com.novomind.ishop.core", "ishop-core-projects", "29.6.4-SNAPSHOT"),
-      PomMod.Gav("com.novomind.ishop.core", "ishop-api", "1.0.2.1"),
-      PomMod.Gav("na", "na", "1.0.2.1"),
-      PomMod.Gav("any", "an", "2.2"),
-      PomMod.Gav("any", "any", "2")
+      ProjectMod.Gav("com.novomind.ishop.core", "ishop-core-projects", "29.6.4-SNAPSHOT"),
+      ProjectMod.Gav("com.novomind.ishop.core", "ishop-api", "1.0.2.1"),
+      ProjectMod.Gav("na", "na", "1.0.2.1"),
+      ProjectMod.Gav("any", "an", "2.2"),
+      ProjectMod.Gav("any", "any", "2")
     ), color = true)
 
     Assert.assertEquals(Seq(
@@ -45,15 +45,15 @@ class ReleaseTest extends AssertionsForJUnit {
   def testFormatVersionLinesGav(): Unit = {
 
     val check = Release.formatVersionLinesGav(Seq(
-      PomMod.Gav("com.novomind.ishop.core", "ishop-core-projects", "29.6.4-SNAPSHOT"),
-      PomMod.Gav("com.novomind.ishop.core", "ishop-api", "1.0.2.1"),
-      PomMod.Gav("na", "na", "1.0.2.1"),
-      PomMod.Gav("any", "ax", "2.2.2"),
-      PomMod.Gav("any", "an", "2.2"),
-      PomMod.Gav("any", "any", "2"),
-      PomMod.Gav("", "any", "2"),
-      PomMod.Gav("", "other", "7.21"),
-      PomMod.Gav("", "", "2")
+      ProjectMod.Gav("com.novomind.ishop.core", "ishop-core-projects", "29.6.4-SNAPSHOT"),
+      ProjectMod.Gav("com.novomind.ishop.core", "ishop-api", "1.0.2.1"),
+      ProjectMod.Gav("na", "na", "1.0.2.1"),
+      ProjectMod.Gav("any", "ax", "2.2.2"),
+      ProjectMod.Gav("any", "an", "2.2"),
+      ProjectMod.Gav("any", "any", "2"),
+      ProjectMod.Gav("", "any", "2"),
+      ProjectMod.Gav("", "other", "7.21"),
+      ProjectMod.Gav("", "", "2")
     ))
 
     Assert.assertEquals(Seq(

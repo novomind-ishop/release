@@ -5,7 +5,7 @@ import java.io.File
 import org.junit.rules.TemporaryFolder
 import org.junit.{Assert, Rule, Test}
 import org.scalatest.junit.AssertionsForJUnit
-import release.PomMod.{Dep, PomRef}
+import release.ProjectMod.{Dep, PomRef}
 import release.PomModTest._
 import release.Starter.Opts
 

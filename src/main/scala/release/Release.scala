@@ -5,7 +5,7 @@ import java.nio.charset.MalformedInputException
 import java.nio.file.{Files, InvalidPathException, Path, Paths}
 import java.util.regex.Pattern
 
-import release.PomMod.{Dep, Gav, Version}
+import release.ProjectMod.{Dep, Gav, Version}
 import release.Starter.{Opts, PreconditionsException, TermOs}
 
 import scala.annotation.tailrec
@@ -140,7 +140,7 @@ object Release {
     }
 
     val newMod = offerAutoFixForReleaseSnapshots(out, mod, sgit.lsFiles(), shellWidth, err, aether, opts)
-    if (newMod.hasNoShopPom) {
+    if (newMod.isNoShop) {
       out.println("---------")
       out.println("1. MAJOR version when you make incompatible API changes,")
       out.println("2. MINOR version when you add functionality in a backwards-compatible manner, and")
@@ -155,7 +155,7 @@ object Release {
     def readReleaseVersions: String = {
       val result = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readChooseOneOfOrType(out, "Enter the release version", suggestedVersions, opts))
       if (PomMod.isUnknownReleasePattern(result)) {
-        if (mod.hasShopPom) {
+        if (mod.isShop) {
           out.println("I: We prefer:")
           out.println("I: RC-{YEAR}.{WEEK OF YEAR} for common releases")
           out.println("I: RC-{YEAR}.{WEEK OF YEAR}.{NUMBER} for intermediate releases")
@@ -174,13 +174,13 @@ object Release {
 
     val releaseWithoutSnapshot = readReleaseVersions
 
-    val release = if (mod.hasShopPom) {
+    val release = if (mod.isShop) {
       Term.removeSnapshot(releaseWithoutSnapshot) + "-SNAPSHOT"
     } else {
       releaseWithoutSnapshot
     }
     val releaseWitoutSnapshot = Term.removeSnapshot(release)
-    if (mod.hasNoShopPom && sgit.listTags().contains("v" + releaseWitoutSnapshot)) {
+    if (mod.isNoShop && sgit.listTags().contains("v" + releaseWitoutSnapshot)) {
       // TODO fetch remote and try to read new version again
       throw new IllegalStateException("release " + releaseWitoutSnapshot + " already found; check your repository or change version.")
     }
@@ -204,7 +204,7 @@ object Release {
     // TODO release a feature branch should not change the next version
     val nextReleaseWithoutSnapshot = readNextReleaseVersions
 
-    val relevantDeps = if (mod.hasNoShopPom) {
+    val relevantDeps = if (mod.isNoShop) {
       mod.listDependecies.filter(in ⇒ in.groupId.startsWith("com.novomind.ishop.core"))
     } else {
       val selfGavs = mod.selfDepsMod.map(_.gav())
@@ -212,7 +212,7 @@ object Release {
         .filter(in ⇒ in.groupId.startsWith("com.novomind.ishop"))
         .filterNot(in ⇒ selfGavs.contains(in.gav()))
     }
-    val releaseMajorVersion = if (mod.hasNoShopPom) {
+    val releaseMajorVersion = if (mod.isNoShop) {
       release.replaceAll("\\..*", "")
     } else {
       relevantDeps.map(_.version).maxBy(Version.parse).replaceAll("\\..*", "")
@@ -246,7 +246,7 @@ object Release {
       if (opts.colors) {
         out.print("\u001B[30;45m")
       }
-      if (mod.hasNoShopPom) {
+      if (mod.isNoShop) {
         out.print(" W: You are trying to release major version " + releaseMajorVersion + " (" + release + ")")
       } else {
         out.print(" W: You are trying to use core major version " + releaseMajorVersion)
@@ -365,13 +365,13 @@ object Release {
       }
       out.println(". done")
     }
-    if (releaseMod.hasNoShopPom) {
+    if (releaseMod.isNoShop) {
       sgit.doTag(release)
     }
     out.print("Checking out " + branch + " ..")
     sgit.checkout(branch)
     out.println(". done")
-    if (newMod.hasNoShopPom) {
+    if (newMod.isNoShop) {
       sgit.deleteBranch(releaseBrachName)
     }
     out.println(sgit.graph())
@@ -379,12 +379,12 @@ object Release {
     val selectedBranch = sgit.findUpstreamBranch().getOrElse(branch)
 
     def showManual(): Unit = {
-      val pushTagOrBranch = if (newMod.hasNoShopPom) {
+      val pushTagOrBranch = if (newMod.isNoShop) {
         "git push origin tag v" + releaseWitoutSnapshot + "; "
       } else {
         "git push -u origin release/" + releaseWitoutSnapshot + ":release/" + releaseWitoutSnapshot + ";"
       }
-      val deleteTagOrBranch = if (newMod.hasNoShopPom) {
+      val deleteTagOrBranch = if (newMod.isNoShop) {
         "git tag -d v" + release + "; "
       } else {
         "git branch -D release/" + releaseWitoutSnapshot + ";"
@@ -416,7 +416,7 @@ object Release {
               // TODO try to exctract gerrit url from repo
               Starter.openInDefaultBrowser(config.gerritBaseUrl() + "#/q/status:open")
             }
-            if (newMod.hasNoShopPom) {
+            if (newMod.isNoShop) {
               val pushOut = sgit.pushTag(release)
               pushOut.foreach(err.println)
               if (config.openJenkinsInBrowser) {
@@ -429,7 +429,7 @@ object Release {
               }
             }
           }
-          if (newMod.hasShopPom) {
+          if (newMod.isShop) {
             val pushOut = sgit.pushHeads(srcBranchName = "release/" + releaseWitoutSnapshot,
               targetBranchName = "release/" + releaseWitoutSnapshot)
             pushOut.foreach(err.println)
@@ -457,7 +457,7 @@ object Release {
   def offerAutoFixForReleaseSnapshots(out: PrintStream, mod: ProjectMod, gitFiles: Seq[String], shellWidth: Int, err: PrintStream,
                                       aether: Aether, opts: Opts): ProjectMod = {
     val plugins = mod.listPluginDependencies
-    if (mod.hasShopPom) {
+    if (mod.isShop) {
       // TODO check if core needs this checks too
       PomChecker.check(plugins)
     }
@@ -487,7 +487,7 @@ object Release {
 
     case class ReleaseInfo(gav: String, released: Boolean)
 
-    val noShops: (Gav ⇒ Boolean) = if (mod.hasNoShopPom) {
+    val noShops: (Gav ⇒ Boolean) = if (mod.isNoShop) {
       gav: Gav ⇒ gav.groupId.contains("com.novomind.ishop.shops")
     } else {
       _ ⇒ false

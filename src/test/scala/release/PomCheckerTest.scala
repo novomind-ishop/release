@@ -2,7 +2,7 @@ package release
 
 import org.junit.Test
 import org.scalatest.junit.AssertionsForJUnit
-import release.PomMod.{PluginDep, PluginExec, PomRef}
+import release.ProjectMod.{PluginDep, PluginExec, PomRef}
 
 class PomCheckerTest extends AssertionsForJUnit {
 

@@ -9,8 +9,8 @@ import org.junit.{Assert, ComparisonFailure, Rule, Test}
 import org.scalatest.junit.AssertionsForJUnit
 import org.w3c.dom._
 import release.PomChecker.ValidationException
-import release.PomMod._
 import release.PomModTest.{assertDeps, document, pomfile, _}
+import release.ProjectMod.{Dep, Gav, PluginDep, PluginExec, PomRef, Version}
 import release.Starter.Opts
 
 import scala.xml.Elem
@@ -1101,7 +1101,7 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("shop1/anyshop-erp")
 
     // WHEN / THEN
-    Assert.assertFalse(PomMod.ofAetherForTests(srcPoms, aether).hasShopPom)
+    Assert.assertFalse(PomMod.ofAetherForTests(srcPoms, aether).isShop)
   }
 
   @Test
@@ -1110,8 +1110,8 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("mini")
 
     // WHEN / THEN
-    Assert.assertFalse(PomMod.ofAetherForTests(srcPoms, aether).hasShopPom)
-    Assert.assertTrue(PomMod.ofAetherForTests(srcPoms, aether).hasNoShopPom)
+    Assert.assertFalse(PomMod.ofAetherForTests(srcPoms, aether).isShop)
+    Assert.assertTrue(PomMod.ofAetherForTests(srcPoms, aether).isNoShop)
   }
 
   @Test
@@ -1120,7 +1120,7 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("shop1")
 
     // WHEN / THEN
-    Assert.assertTrue(PomMod.ofAetherForTests(srcPoms, aether).hasShopPom)
+    Assert.assertTrue(PomMod.ofAetherForTests(srcPoms, aether).isShop)
   }
 
   @Test
@@ -1231,7 +1231,7 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("pom-packaged")
 
     // WHEN / THEN
-    Assert.assertTrue(PomMod.ofAetherForTests(srcPoms, aether).hasNoShopPom)
+    Assert.assertTrue(PomMod.ofAetherForTests(srcPoms, aether).isNoShop)
   }
 
   @Test
@@ -1240,7 +1240,7 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("shop1")
 
     // WHEN / THEN
-    Assert.assertTrue(PomMod.ofAetherForTests(srcPoms, aether).hasShopPom)
+    Assert.assertTrue(PomMod.ofAetherForTests(srcPoms, aether).isShop)
   }
 
   @Test

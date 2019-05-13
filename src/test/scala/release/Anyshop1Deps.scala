@@ -1,6 +1,6 @@
 package release
 
-import release.PomMod.{Dep, PluginDep, PluginExec, PomRef}
+import ProjectMod.{Dep, PluginDep, PluginExec, PomRef}
 
 object Anyshop1Deps {
 

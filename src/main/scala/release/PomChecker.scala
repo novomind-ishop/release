@@ -1,6 +1,6 @@
 package release
 
-import release.PomMod.PluginDep
+import release.ProjectMod.PluginDep
 
 object PomChecker {
 
