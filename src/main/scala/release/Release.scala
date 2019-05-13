@@ -124,8 +124,15 @@ object Release {
     })
     sgit.checkout(branch)
     Starter.chooseUpstreamIfUndef(out, sgit, branch, opts, Console.in)
-    out.print("I: Reading pom.xmls ..")
-    val mod = PomMod.ofAether(workDirFile, opts, aether)
+
+    val rootPom = PomMod.rootPom(workDirFile)
+    val mod:ProjectMod = if (rootPom.canRead) {
+      out.print("I: Reading pom.xmls ..")
+      PomMod.ofAether(workDirFile, opts, aether)
+    } else {
+      throw new PreconditionsException(workDirFile.toString + " is no maven project")
+    }
+
     out.println(". done")
     if (opts.depUpOpts.showDependencyUpdates) {
       mod.showDependencyUpdates(shellWidth, termOs, opts.depUpOpts, config.workNexusUrl(), out, err)
@@ -447,8 +454,8 @@ object Release {
   }
 
   // TODO @tailrec
-  def offerAutoFixForReleaseSnapshots(out: PrintStream, mod: PomMod, gitFiles: Seq[String], shellWidth: Int, err: PrintStream,
-                                      aether: Aether, opts: Opts): PomMod = {
+  def offerAutoFixForReleaseSnapshots(out: PrintStream, mod: ProjectMod, gitFiles: Seq[String], shellWidth: Int, err: PrintStream,
+                                      aether: Aether, opts: Opts): ProjectMod = {
     val plugins = mod.listPluginDependencies
     if (mod.hasShopPom) {
       // TODO check if core needs this checks too

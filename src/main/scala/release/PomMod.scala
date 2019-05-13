@@ -11,20 +11,20 @@ import com.typesafe.scalalogging.LazyLogging
 import javax.xml.transform.dom.DOMSource
 import javax.xml.transform.stream.StreamResult
 import javax.xml.transform.{OutputKeys, TransformerFactory}
-import release.Util.pluralize
 import org.w3c.dom.{Document, Node}
 import release.Conf.Tracer
 import release.PomChecker.ValidationException
 import release.PomMod._
 import release.Starter.{Opts, OptsDepUp, PreconditionsException, TermOs}
+import release.Util.pluralize
 
 import scala.annotation.tailrec
 
-case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
+case class PomMod(file: File, aether: Aether, opts: Opts) extends ProjectMod with LazyLogging {
   logger.trace("init pomMod")
   private var depMap: Map[Dep, Node] = Map.empty
 
-  private val rootPom = new File(file, "pom.xml")
+  private val rootPom = PomMod.rootPom(file)
   if (!rootPom.canRead) {
     throw new PreconditionsException(file.toString + " seems to be no maven project")
   }
@@ -69,7 +69,7 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
     PomMod.checkRootFirstChildPropertiesVar(opts, raws)
   }
 
-  private[release] val listProperties: Map[String, String] = {
+  val listProperties: Map[String, String] = {
     checkRootFirstChildProperties()
     val allPropsFromDocs = allPomsDocs.flatMap(PomMod.createPropertyMap)
     val result = allPropsFromDocs.foldLeft(Map.empty[String, String])(_ + _)
@@ -93,7 +93,7 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
     replacedVersionProperties(allPomsDocs.flatMap(deps)).distinct
   }
 
-  private[release] val listPluginDependencies: Seq[PluginDep] = {
+  val listPluginDependencies: Seq[PluginDep] = {
     val allP: Seq[PluginDep] = allPomsDocs.map(in ⇒ {
       val gav = PomMod.selfDep(depU)(in).gavWithDetailsFormatted
       val nodes = Xpath.toSeqTuples(in, "//plugins/plugin")
@@ -515,10 +515,6 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends LazyLogging {
       .sortBy(_.toString)
   }
 
-  def hasNoShopPom: Boolean = {
-    !hasShopPom
-  }
-
   def hasShopPom: Boolean = {
     val filtered = listSelf.filterNot(_.packaging == "pom")
     filtered.map(_.groupId).contains("com.novomind.ishop.shops")
@@ -673,6 +669,8 @@ object PomMod {
         .filterNot(gav ⇒ relevantGavs.exists(rGav ⇒ rGav.copy(version = "", scope = "") == gav.copy(scope = "")))
     }
   }
+
+  def rootPom(file: File) = new File(file, "pom.xml")
 
   private def depFrom(id: String, dfn: Map[Dep, Node] ⇒ Unit)(depSeq: Seq[(String, String, Node)]): Dep = {
     val deps = Xpath.toMapOf(depSeq)
