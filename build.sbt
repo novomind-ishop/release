@@ -47,3 +47,4 @@ mainClass in assembly := Some("release.Starter")
 
 assemblyJarName in assembly := "release.jar"
 
+skip in publish := true

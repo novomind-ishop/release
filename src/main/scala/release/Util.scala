@@ -20,7 +20,7 @@ object Util {
     }
 
     /**
-      * @jdk11 has isBlank()
+      * @see jdk11 has isBlank()
       */
     def blank(): Boolean = {
       in != null && in.trim.isEmpty
