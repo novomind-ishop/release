@@ -4,6 +4,7 @@ import java.io.{File, PrintStream}
 import java.nio.charset.MalformedInputException
 import java.nio.file.{Files, InvalidPathException, Path, Paths}
 import java.util.regex.Pattern
+import scala.collection.parallel.CollectionConverters._
 
 import release.ProjectMod.{Dep, Gav, Version}
 import release.Starter.{Opts, PreconditionsException, TermOs}
@@ -22,13 +23,13 @@ object Release {
       } else {
         i
       }
-    }.toList.map(in ⇒ (in._1, in._2.size, in._2))
+    }.toList.map(in => (in._1, in._2.size, in._2))
       .sortBy(_._1)
       .reverse.sortBy(-_._2).drop(1).flatMap(_._3).distinct
 
     val lines = versionLines
-      .sortBy(gav ⇒ Version.parse(gav.version))
-      .map { in ⇒
+      .sortBy(gav => Version.parse(gav.version))
+      .map { in =>
         val baseLength = gavLength(in)
         val spaces = " " * (max - baseLength)
 
@@ -52,7 +53,7 @@ object Release {
         Nil
       }
 
-      lines.par.flatMap(line ⇒ {
+      lines.par.flatMap(line => {
         val matcher = regexp.matcher("")
         matcher.reset(line._1)
         if (matcher.find) {
@@ -62,15 +63,15 @@ object Release {
         }
       }).seq.toList
     } catch {
-      case _: MalformedInputException ⇒ {
+      case _: MalformedInputException => {
         Nil
       }
-      case e: InvalidPathException ⇒ {
+      case e: InvalidPathException => {
         println("W: " + e.getMessage + " " + " < " + aFileName)
         Nil
       }
 
-      case e: Exception ⇒ {
+      case e: Exception => {
         println("W: " + e.getClass.getCanonicalName + " " + e.getMessage + " " + " < " + aFileName)
         e.printStackTrace()
         Nil
@@ -83,8 +84,8 @@ object Release {
     if (sgit.hasLocalChanges) {
       val changes = sgit.localChanges().take(5)
       changes match {
-        case c if c.size <= 5 ⇒ c.mkString("\n")
-        case c ⇒ c.mkString("\n") + "\n..."
+        case c if c.size <= 5 => c.mkString("\n")
+        case c => c.mkString("\n") + "\n..."
       }
     } else {
       ""
@@ -99,7 +100,7 @@ object Release {
   }
 
   // TODO @tailrec
-  def work(workDirFile: File, out: PrintStream, err: PrintStream, rebaseFn: () ⇒ Unit, branch: String, sgit: Sgit,
+  def work(workDirFile: File, out: PrintStream, err: PrintStream, rebaseFn: () => Unit, branch: String, sgit: Sgit,
            termOs: TermOs, shellWidth: Int, releaseToolGitSha1: String, config: ReleaseConfig,
            aether: Aether, opts: Opts): Seq[Unit] = {
     if (sgit.hasLocalChanges) {
@@ -108,7 +109,7 @@ object Release {
       val changes = Term.readFromOneOfYesNo(out, "You have local changes. Add changes to stash?", opts)
       if (changes == "y") {
         sgit.stash()
-        Starter.addExitFn("cleanup branches", () ⇒ {
+        Starter.addExitFn("cleanup branches", () => {
           sgit.stashPop()
         })
       } else if (changes == "n") {
@@ -119,7 +120,7 @@ object Release {
 
     }
     rebaseFn.apply()
-    Starter.addExitFn("cleanup branches", () ⇒ {
+    Starter.addExitFn("cleanup branches", () => {
       sgit.checkout(sgit.currentBranch)
     })
     sgit.checkout(branch)
@@ -205,12 +206,12 @@ object Release {
     val nextReleaseWithoutSnapshot = readNextReleaseVersions
 
     val relevantDeps = if (mod.isNoShop) {
-      mod.listDependecies.filter(in ⇒ in.groupId.startsWith("com.novomind.ishop.core"))
+      mod.listDependecies.filter(in => in.groupId.startsWith("com.novomind.ishop.core"))
     } else {
       val selfGavs = mod.selfDepsMod.map(_.gav())
       mod.listDependecies
-        .filter(in ⇒ in.groupId.startsWith("com.novomind.ishop"))
-        .filterNot(in ⇒ selfGavs.contains(in.gav()))
+        .filter(in => in.groupId.startsWith("com.novomind.ishop"))
+        .filterNot(in => selfGavs.contains(in.gav()))
     }
     val releaseMajorVersion = if (mod.isNoShop) {
       release.replaceAll("\\..*", "")
@@ -223,19 +224,19 @@ object Release {
         relevantDeps
       } else {
         relevantDeps
-          .filterNot(in ⇒ in.groupId == "com.novomind.ishop.exi" && in.artifactId == "ishop-ext-authentication")
+          .filterNot(in => in.groupId == "com.novomind.ishop.exi" && in.artifactId == "ishop-ext-authentication")
       }
     } else {
       relevantDeps
     }
 
     val coreVersions: Seq[(String, Dep)] = relevantFilteredDeps
-      .map(in ⇒ (in.version, in))
+      .map(in => (in.version, in))
       .distinct
       .filter(_._1.nonEmpty)
       .sortBy(_._1)
     val coreMajorVersions: Seq[(String, Dep)] = coreVersions
-      .map(in ⇒ (in._1.replaceAll("\\..*", "").trim, in._2))
+      .map(in => (in._1.replaceAll("\\..*", "").trim, in._2))
       .distinct
       .filter(_._1.nonEmpty)
       .sortBy(_._1)
@@ -305,8 +306,8 @@ object Release {
     val headCommitId = sgit.commitIdHead()
     val releaseMod = PomMod.ofAether(workDirFile, opts, aether)
     val msgs = opts.skipProperties match {
-      case Nil ⇒ ""
-      case found ⇒ "\nReleasetool-Prop-Skip: " + found.mkString(", ")
+      case Nil => ""
+      case found => "\nReleasetool-Prop-Skip: " + found.mkString(", ")
     }
     if (sgit.hasNoLocalChanges) {
       out.println("skipped release commit on " + branch)
@@ -438,7 +439,7 @@ object Release {
           }
           out.println("done.")
         } catch {
-          case e: RuntimeException ⇒ {
+          case e: RuntimeException => {
             err.println("E: Push failed - try manual - " + e.getMessage)
             showManual()
           }
@@ -463,14 +464,14 @@ object Release {
     }
 
     val snapsF = gitFiles.par
-      .filterNot(in ⇒ in.endsWith(".list"))
-      .filterNot(in ⇒ in.endsWith(".tree"))
-      .filterNot(in ⇒ in.endsWith(".java"))
-      .filterNot(in ⇒ in.endsWith(".png"))
-      .filterNot(in ⇒ in.endsWith(".potx"))
-      .filterNot(in ⇒ in.endsWith(".jpg"))
-      .filterNot(in ⇒ in.matches(".*[/\\\\]src[/\\\\]test[/\\\\]resources[/\\\\]app\\-manifest.*"))
-      .filterNot(in ⇒ in.endsWith("pom.xml"))
+      .filterNot(in => in.endsWith(".list"))
+      .filterNot(in => in.endsWith(".tree"))
+      .filterNot(in => in.endsWith(".java"))
+      .filterNot(in => in.endsWith(".png"))
+      .filterNot(in => in.endsWith(".potx"))
+      .filterNot(in => in.endsWith(".jpg"))
+      .filterNot(in => in.matches(".*[/\\\\]src[/\\\\]test[/\\\\]resources[/\\\\]app\\-manifest.*"))
+      .filterNot(in => in.endsWith("pom.xml"))
       .flatMap(findBadLines(Pattern.compile("-SNAPSHOT")))
       .seq
       .sortBy(_._3)
@@ -478,7 +479,7 @@ object Release {
     if (snapsF != Nil) {
       println()
       println("Warning: Found SNAPSHOT occurrences in following files")
-      snapsF.foreach(in ⇒ {
+      snapsF.foreach(in => {
         println(in._3.toFile.getAbsolutePath + ":" + in._1)
         println("  " + in._2.trim())
       })
@@ -487,10 +488,10 @@ object Release {
 
     case class ReleaseInfo(gav: String, released: Boolean)
 
-    val noShops: (Gav ⇒ Boolean) = if (mod.isNoShop) {
-      gav: Gav ⇒ gav.groupId.contains("com.novomind.ishop.shops")
+    val noShops: (Gav => Boolean) = if (mod.isNoShop) {
+      gav: Gav => gav.groupId.contains("com.novomind.ishop.shops")
     } else {
-      _ ⇒ false
+      _ => false
     }
 
     val boClientVersion = mod.listProperties
@@ -501,12 +502,12 @@ object Release {
       .map(_.gav())
       .filterNot(noShops) ++ plugins.map(_.fakeDep().gav())
       .filter(_.version.contains("SNAPSHOT")) ++
-      boClientVersion.map(in ⇒ Gav("com.novomind.ishop.backoffice", "bo-client", in, "war"))
+      boClientVersion.map(in => Gav("com.novomind.ishop.backoffice", "bo-client", in, "war"))
 
     val aetherStateLine = StatusLine(snaps.size, shellWidth)
     val snapState: Seq[ReleaseInfo] = snaps
       .par
-      .map(in ⇒ {
+      .map(in => {
         aetherStateLine.start()
         val released = aether.existsGav(in.groupId, in.artifactId, in.version.replace("-SNAPSHOT", ""))
         aetherStateLine.end()
@@ -522,7 +523,7 @@ object Release {
       if (snapshotProperties.nonEmpty) {
         out.println("")
         out.println("Snapshot properties found for (please fix manually in pom.xml (remove -SNAPSHOT in most cases)):")
-        snapshotProperties.map(in ⇒ "Property: " + in).foreach(println)
+        snapshotProperties.map(in => "Property: " + in).foreach(println)
       }
       if (snapState.nonEmpty) {
         out.println("")
@@ -538,7 +539,7 @@ object Release {
 
       snapState
         .sortBy(_.toString)
-        .map(in ⇒ info(in.released) + in.gav)
+        .map(in => info(in.released) + in.gav)
         .foreach(println)
       out.println("")
 

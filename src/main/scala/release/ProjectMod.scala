@@ -6,6 +6,7 @@ import com.typesafe.scalalogging.LazyLogging
 import release.PomMod.{abbreviate, unmanged}
 import release.ProjectMod.{Dep, Gav3, PluginDep, PomRef}
 import release.Starter.{Opts, OptsDepUp, TermOs}
+import scala.collection.parallel.CollectionConverters._
 
 import scala.annotation.tailrec
 
@@ -132,9 +133,9 @@ object ProjectMod {
     }
 
     def toVersion(m: String): Option[Version] = m match {
-      case semverPattern(ma, mi, b) ⇒ Version.fromStringOpt("", ma, mi, b, "")
-      case semverPatternLowdash(ma, mi, b, low) ⇒ Version.fromStringOpt("", ma, mi, b, low)
-      case _ ⇒ None
+      case semverPattern(ma, mi, b) => Version.fromStringOpt("", ma, mi, b, "")
+      case semverPatternLowdash(ma, mi, b, low) => Version.fromStringOpt("", ma, mi, b, low)
+      case _ => None
     }
 
     def parse(versionText: String): Version = {
@@ -142,17 +143,17 @@ object ProjectMod {
 
       try {
         snapped match {
-          case stableShop(pre) ⇒ undef
-          case semverPatternLowdash(ma, mi, b, low) ⇒ Version.fromString("", ma, mi, b, low)
-          case semverPatternLowdashString(ma, mi, b, low) ⇒ Version.fromString("", ma, mi, b, low)
-          case semverPattern(ma, mi, b) ⇒ Version.fromString("", ma, mi, b, "")
-          case semverPatternNoBugfix(ma, mi) ⇒ Version.fromString("", ma, mi, "", "")
-          case semverPatternNoMinor(ma) ⇒ Version.fromString("", ma, "", "", "")
-          case shopPattern(pre, year, week, minor, low) ⇒ Version.fromString(pre, year, week, minor, low)
-          case any ⇒ undef
+          case stableShop(pre) => undef
+          case semverPatternLowdash(ma, mi, b, low) => Version.fromString("", ma, mi, b, low)
+          case semverPatternLowdashString(ma, mi, b, low) => Version.fromString("", ma, mi, b, low)
+          case semverPattern(ma, mi, b) => Version.fromString("", ma, mi, b, "")
+          case semverPatternNoBugfix(ma, mi) => Version.fromString("", ma, mi, "", "")
+          case semverPatternNoMinor(ma) => Version.fromString("", ma, "", "", "")
+          case shopPattern(pre, year, week, minor, low) => Version.fromString(pre, year, week, minor, low)
+          case any => undef
         }
       } catch {
-        case e: Exception ⇒ e.printStackTrace(); undef
+        case e: Exception => e.printStackTrace(); undef
       }
     }
   }
@@ -226,7 +227,7 @@ trait ProjectMod extends LazyLogging {
     val selfSimple = selfDepsMod.map(_.gav().simpleGav()).distinct
     val relevant = rootDeps
       .filterNot(_.version == "")
-      .filterNot(in ⇒ selfSimple.contains(in.gav().simpleGav()))
+      .filterNot(in => selfSimple.contains(in.gav().simpleGav()))
 
     val relevantGav = relevant
       .map(_.gav())
@@ -239,21 +240,21 @@ trait ProjectMod extends LazyLogging {
 
     val aetherFetch = StatusLine(relevantGav.size, shellWidth)
     val updates: Map[Gav3, Seq[String]] = relevantGav.par.map(_.simpleGav())
-      .map(in ⇒ {
+      .map(in => {
         if (in.version.isEmpty || in.artifactId.isEmpty || in.groupId.isEmpty) {
           throw new IllegalStateException("gav has empty parts: " + in)
         } else {
           in
         }
       })
-      .map(dep ⇒ (dep, {
+      .map(dep => (dep, {
         aetherFetch.start()
         val result = aether.newerVersionsOf(dep.groupId, dep.artifactId, dep.version)
         aetherFetch.end()
         result
       }))
       .seq
-      .map(in ⇒ if (depUpOpts.hideStageVersions) {
+      .map(in => if (depUpOpts.hideStageVersions) {
         in.copy(_2 = normalizeUnwanted(in._1, in._2))
       } else {
         in
@@ -266,7 +267,7 @@ trait ProjectMod extends LazyLogging {
 
     // TODO move Version check to here
 
-    val checkedUpdates = updates.map(gavAndVersion ⇒ {
+    val checkedUpdates = updates.map(gavAndVersion => {
       if (gavAndVersion._2 == Nil) {
         (gavAndVersion._1, Nil) // TODO remove this, because it is invalid
       } else {
@@ -275,10 +276,10 @@ trait ProjectMod extends LazyLogging {
 
     })
 
-    val allWithUpdate: Seq[(GavWithRef, Seq[String])] = relevant.map(in ⇒ (GavWithRef(in.pomRef, in.gavWithDetailsFormatted),
-      checkedUpdates.getOrElse(in.gav().simpleGav(), Nil))).filterNot(in ⇒ depUpOpts.hideLatest && in._2.isEmpty)
+    val allWithUpdate: Seq[(GavWithRef, Seq[String])] = relevant.map(in => (GavWithRef(in.pomRef, in.gavWithDetailsFormatted),
+      checkedUpdates.getOrElse(in.gav().simpleGav(), Nil))).filterNot(in => depUpOpts.hideLatest && in._2.isEmpty)
 
-    allWithUpdate.groupBy(_._1.pomRef).foreach(element ⇒ {
+    allWithUpdate.groupBy(_._1.pomRef).foreach(element => {
       val ref: PomRef = element._1
       val mods: Seq[(GavWithRef, Seq[String])] = element._2
 
@@ -293,7 +294,7 @@ trait ProjectMod extends LazyLogging {
       }
 
       out.println(ch("║ ", "| ") + "Project GAV: " + ref.id)
-      mods.sortBy(_._1.toString).foreach((subElement: (GavWithRef, Seq[String])) ⇒ {
+      mods.sortBy(_._1.toString).foreach((subElement: (GavWithRef, Seq[String])) => {
 
         val o: Seq[String] = subElement._2
 
@@ -319,7 +320,7 @@ trait ProjectMod extends LazyLogging {
             abbreviate(depUpOpts.comactVersionRangeTo)(majorVersions.head._2).mkString(", "))
         } else {
           if (majorVersions != Nil) {
-            majorVersions.tail.reverse.foreach(el ⇒ {
+            majorVersions.tail.reverse.foreach(el => {
               out.println(ch("║ ╠═══ ", "| +--- ") + "(" + el._1 + ") " +
                 abbreviate(depUpOpts.comactVersionRangeTo)(el._2).mkString(", "))
             })
@@ -338,9 +339,9 @@ trait ProjectMod extends LazyLogging {
       if (versionNotFound.nonEmpty) {
         // TODO throw new PreconditionsException
         err.println("Non existing dependencies for:\n" +
-          versionNotFound.map(in ⇒ in._1.formatted + "->" + (in._2 match {
-            case Nil ⇒ "Nil"
-            case e ⇒ e
+          versionNotFound.map(in => in._1.formatted + "->" + (in._2 match {
+            case Nil => "Nil"
+            case e => e
           }) + "\n  " + workNexusUrl + in._1.slashedMeta).toList.sorted.mkString("\n"))
         err.println()
       }
@@ -362,12 +363,12 @@ trait ProjectMod extends LazyLogging {
   private[release] def replacedPropertyOf(string: String) = PomMod.replaceProperty(listProperties)(string)
 
 
-  private[release] def replacedVersionProperties(deps: Seq[Dep]) = deps.map(dep ⇒ dep.copy(
+  private[release] def replacedVersionProperties(deps: Seq[Dep]) = deps.map(dep => dep.copy(
     version = replacedPropertyOf(dep.version),
     packaging = replacedPropertyOf(dep.packaging),
     typeN = replacedPropertyOf(dep.typeN),
     scope = replacedPropertyOf(dep.scope))
-  ).map(in ⇒ {
+  ).map(in => {
     if (in.toString.contains("$")) {
       throw new IllegalStateException("missing var in " + in)
     }
@@ -377,9 +378,9 @@ trait ProjectMod extends LazyLogging {
   private[release] def listDependeciesForCheck(): Seq[Dep] = replacedVersionProperties(listDependecies) ++
     listPluginDependencies.map(_.fakeDep())
       .filterNot(_.version == "") // managed plugins are okay
-      .map(in ⇒ in.groupId match {
-      case "" ⇒ in.copy(groupId = "org.apache.maven.plugins")
-      case _ ⇒ in
+      .map(in => in.groupId match {
+      case "" => in.copy(groupId = "org.apache.maven.plugins")
+      case _ => in
     })
 
   def isNoShop: Boolean = {

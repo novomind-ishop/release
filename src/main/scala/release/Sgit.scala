@@ -41,9 +41,9 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   private[release] def configRemoveLocal(key: String, value: String): Unit = {
     val values = configGetLocalAll(key)
     values match {
-      case None ⇒ // do nothing
-      case s: Some[Seq[String]] if s.get.size == 1 ⇒ gitNative(Seq("config", "--local", "--unset", key, value))
-      case s: Some[Seq[String]] if s.get.size > 1 ⇒ configRemoveLocalAll(key, value)
+      case None => // do nothing
+      case s: Some[Seq[String]] if s.get.size == 1 => gitNative(Seq("config", "--local", "--unset", key, value))
+      case s: Some[Seq[String]] if s.get.size > 1 => configRemoveLocalAll(key, value)
     }
 
   }
@@ -187,7 +187,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
   def currentBranch: String = Util.only(gitNative(Seq("rev-parse", "--abbrev-ref", "HEAD")), "only one branch expected")
 
-  def lsFiles(): Seq[String] = gitNative(Seq("ls-files")).map(_.trim).map(in ⇒ if (in.startsWith("\"") && in.endsWith("\"")) {
+  def lsFiles(): Seq[String] = gitNative(Seq("ls-files")).map(_.trim).map(in => if (in.startsWith("\"") && in.endsWith("\"")) {
     Sgit.unescape(in.substring(1).dropRight(1))
   } else {
     in
@@ -201,7 +201,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     try {
       Success(fetchAll())
     } catch {
-      case any: Throwable ⇒ Failure(any)
+      case any: Throwable => Failure(any)
     }
   }
 
@@ -215,12 +215,12 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
   def listRemotes(): Seq[GitRemote] = {
     val out = gitNative(Seq("remote", "-v"))
-    out.map(in ⇒ {
+    out.map(in => {
       try {
         val splitted = Sgit.splitLineOnWhitespace(in)
         GitRemote(splitted(0), splitted(1), splitted(2))
       } catch {
-        case e: Exception ⇒ throw new IllegalStateException("invalid line: \"" + in + "\"", e)
+        case e: Exception => throw new IllegalStateException("invalid line: \"" + in + "\"", e)
       }
     })
   }
@@ -230,7 +230,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   def listBranchesLocal(): Seq[GitShaBranch] = {
     gitNative(Seq("branch", "--list", "--verbose", "--no-abbrev"))
       .flatMap(Sgit.splitLineOnBranchlistErr(err))
-      .map(parts ⇒ {
+      .map(parts => {
         GitShaBranch(parts._2, "refs/heads/" + parts._1)
       }).toList
   }
@@ -244,18 +244,18 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   def listBranchNamesAllFull(): Seq[String] = (listBranchNamesRemote() ++ listBranchNamesLocal()).distinct.sorted
 
   def listBranchRemoteRefRemotes(): Seq[GitShaBranch] = {
-    listBranchRemoteRaw().map(in ⇒ in.copy(branchName = "refs/remotes/" + in.branchName))
+    listBranchRemoteRaw().map(in => in.copy(branchName = "refs/remotes/" + in.branchName))
   }
 
   private[release] def listBranchRemoteRaw(): Seq[GitShaBranch] = {
     gitNative(Seq("branch", "--list", "--verbose", "--no-abbrev", "--remote"))
-      .flatMap(in ⇒ in match {
-        case l: String if l.trim.startsWith("origin/HEAD") ⇒ None
-        case l: String if l.trim.startsWith("origin/") ⇒ {
+      .flatMap(in => in match {
+        case l: String if l.trim.startsWith("origin/HEAD") => None
+        case l: String if l.trim.startsWith("origin/") => {
           val parts = l.replaceFirst("^\\*", "").trim.split("[ \t]+")
           Some(GitShaBranch(parts(1), parts(0)))
         }
-        case _: String ⇒ None
+        case _: String => None
       }).toList
   }
 
@@ -263,7 +263,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
   def listRefs(): Seq[GitShaBranch] = {
     gitNative(Seq("show-ref"))
-      .map(in ⇒ {
+      .map(in => {
         val parts = in.replaceFirst("^\\*", "").trim.split("[ \t]+")
         GitShaBranch(parts(0), parts(1))
       }).sortBy(_.branchName).toList
@@ -283,13 +283,13 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
   def localChangesWithFilter(filter: Seq[String]): Seq[String] = {
     val modPom = localChanges()
-    val modWithoutState = modPom.map(in ⇒ in.replaceFirst("^[^ ]+ ", ""))
+    val modWithoutState = modPom.map(in => in.replaceFirst("^[^ ]+ ", ""))
 
-    val modDistinct = modWithoutState.map(in ⇒ filter.foldLeft(in)((i, fi) ⇒ i.replaceFirst(".*/" + fi, fi))).distinct.sorted
-    val mod = modDistinct.filterNot(in ⇒ filter.contains(in))
+    val modDistinct = modWithoutState.map(in => filter.foldLeft(in)((i, fi) => i.replaceFirst(".*/" + fi, fi))).distinct.sorted
+    val mod = modDistinct.filterNot(in => filter.contains(in))
     if (mod.nonEmpty) {
       throw new IllegalStateException("only (" + filter.mkString(", ") + ") changes are allowed => " +
-        modPom.mkString(", ") + " => " + modDistinct.filterNot(in ⇒ filter.contains(in)).mkString(", ") + " <= " + modDistinct.mkString(", "))
+        modPom.mkString(", ") + " => " + modDistinct.filterNot(in => filter.contains(in)).mkString(", ") + " <= " + modDistinct.mkString(", "))
     }
     modWithoutState
   }
@@ -305,7 +305,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   private[release] def doCommitWithFilter(message: String, filter: Seq[String]): Unit = {
     val distinctFilter = filter.distinct.sorted
     addAll(localChangesWithFilter(distinctFilter))
-    val statusAfterAdd = localChanges().filterNot(line ⇒ distinctFilter.exists(key ⇒ line.endsWith(key)))
+    val statusAfterAdd = localChanges().filterNot(line => distinctFilter.exists(key => line.endsWith(key)))
     if (statusAfterAdd.nonEmpty) {
       throw new IllegalStateException("uncommitted changes: " + statusAfterAdd.mkString(", "))
     }
@@ -406,7 +406,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
       gitNative(Seq("log", "HEAD", "--no-color", "--branches", "--remotes", "--tags", "--graph",
         "-3", "--oneline", "--decorate", "--")).mkString("\n")
     } catch {
-      case e: Exception ⇒ e.printStackTrace(); "no - graph"
+      case e: Exception => e.printStackTrace(); "no - graph"
     }
   }
 
@@ -447,9 +447,9 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     try {
       gitNative(Seq("branch", branchName))
     } catch {
-      case e: RuntimeException if e.getMessage.contains("A branch named '" + branchName + "' already exists.") ⇒
+      case e: RuntimeException if e.getMessage.contains("A branch named '" + branchName + "' already exists.") =>
         throw new BranchAlreadyExistsException(e.getMessage)
-      case t: Throwable ⇒ throw t
+      case t: Throwable => throw t
     }
   }
 
@@ -464,9 +464,9 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   def pushFor(srcBranchName: String, targetBranchName: String): Seq[String] = {
     if (findUpstreamBranch().isDefined) {
       val commitsWithoutChangeId = commitIds("@{upstream}", currentBranch)
-        .map(in ⇒ (in, commitMessageBody(in)))
-        .filterNot(in ⇒ {
-          in._2.exists(iin ⇒ iin.matches("^Change-Id: I[a-f0-9]{40}"))
+        .map(in => (in, commitMessageBody(in)))
+        .filterNot(in => {
+          in._2.exists(iin => iin.matches("^Change-Id: I[a-f0-9]{40}"))
         })
 
       if (commitsWithoutChangeId.nonEmpty) {
@@ -501,13 +501,13 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     try {
       Some(gitNative(args, showErrors = false))
     } catch {
-      case t: Throwable ⇒ None
+      case t: Throwable => None
     }
   }
 
   private[release] def gitNative(args: Seq[String], showErrors: Boolean = true, useWorkdir: Boolean = true,
-                                 cmdFilter: String ⇒ Boolean = _ ⇒ false,
-                                 errMapper: String ⇒ Option[String] = errLine ⇒ Some(errLine)): Seq[String] = {
+                                 cmdFilter: String => Boolean = _ => false,
+                                 errMapper: String => Option[String] = errLine => Some(errLine)): Seq[String] = {
     if (!gitRoot.isDirectory && checkExisting) {
       throw new IllegalStateException("invalid git dir: " + gitRoot.getAbsolutePath)
     }
@@ -519,14 +519,15 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     val gitCmdCall = Sgit.selectedGitCmd(err, gitBin) ++ workdir ++ Seq("--no-pager") ++ args
 
     val ff = Tracer.msgAround[String](gitCmdCall.mkString(" "), logger,
-      () ⇒ Sgit.native(gitCmdCall, syserrErrors = showErrors, cmdFilter, err, errMapper))
-    ff.linesIterator.toList.dropWhile(in ⇒ in.trim.isEmpty)
+      () => Sgit.native(gitCmdCall, syserrErrors = showErrors, cmdFilter, err, errMapper))
+    ff.linesIterator.toList.dropWhile(in => in.trim.isEmpty)
   }
 }
 
 object Sgit {
 
-  private[release] def splitLineOnWhitespace(in: String): Seq[String] = in.replaceFirst("^\\*", "").trim.split("[ \t]+")
+  private[release] def splitLineOnWhitespace(in: String): Seq[String] = in.replaceFirst("^\\*", "")
+    .trim.split("[ \t]+").toIndexedSeq
 
   private[release] def splitLineOnBranchlist(in: String): Option[(String, String)] = {
     splitLineOnBranchlistErr(System.err)(in)
@@ -535,7 +536,7 @@ object Sgit {
   private[release] def splitLineOnBranchlistErr(err: PrintStream)(in: String): Option[(String, String)] = {
     val trimmed = in.replaceFirst("^\\*", "").trim.replaceFirst("^\\([^\\)]+", "(branch_name_replaced")
     val out = trimmed.split("[ \t]+").toList
-    val result = out.flatMap(in ⇒ if (in == "(branch_name_replaced)") {
+    val result = out.flatMap(in => if (in == "(branch_name_replaced)") {
       Seq(out(1))
     } else {
       Seq(in)
@@ -573,60 +574,60 @@ object Sgit {
     if (git.isEmpty) {
       // git lg --tags --date=short --simplify-by-decoration --pretty=format:'(%cd)%d'
       val result: Unit = sgit.gitNative(Seq("--version"), useWorkdir = false).mkString("") match {
-        case v: String if v.startsWith("git version 1") ⇒
+        case v: String if v.startsWith("git version 1") =>
           // (2014-12-17) - (tag: v1.9.5)
           throw new IllegalStateException("git version 1.9.5 support ended at 2016-01-01")
-        case v: String if v.startsWith("git version 2.0.") ⇒
+        case v: String if v.startsWith("git version 2.0.") =>
           throw new IllegalStateException("git version 2.0 support ended at 2017-07-01")
-        case v: String if v.startsWith("git version 2.1.") ⇒
+        case v: String if v.startsWith("git version 2.1.") =>
           throw new IllegalStateException("git version 2.1 support ended at 2017-07-01")
-        case v: String if v.startsWith("git version 2.2.") ⇒
+        case v: String if v.startsWith("git version 2.2.") =>
           throw new IllegalStateException("git version 2.2 support ended at 2017-07-01")
-        case v: String if v.startsWith("git version 2.3.") ⇒
+        case v: String if v.startsWith("git version 2.3.") =>
           throw new IllegalStateException("git version 2.3 support ended at 2017-07-01")
-        case v: String if v.startsWith("git version 2.4.") ⇒
+        case v: String if v.startsWith("git version 2.4.") =>
           throw new IllegalStateException("git version 2.4 support ended at 2017-07-01")
-        case v: String if v.startsWith("git version 2.5.") ⇒
+        case v: String if v.startsWith("git version 2.5.") =>
           throw new IllegalStateException("git version 2.5 support ended at 2017-07-01")
-        case v: String if v.startsWith("git version 2.6.") ⇒ // (2017-05-05) - (tag: v2.6.7)
+        case v: String if v.startsWith("git version 2.6.") => // (2017-05-05) - (tag: v2.6.7)
           throw new IllegalStateException("git version 2.6 support ended at 2017-07-01")
-        case v: String if v.startsWith("git version 2.7.") ⇒ // (2017-07-30) - (tag: v2.7.6)
+        case v: String if v.startsWith("git version 2.7.") => // (2017-07-30) - (tag: v2.7.6)
           throw new IllegalStateException("git version 2.7 support ended at 2017-07-01")
-        case v: String if v.startsWith("git version 2.8.") ⇒ // (2016-06-06) - (tag: v2.8.4)
+        case v: String if v.startsWith("git version 2.8.") => // (2016-06-06) - (tag: v2.8.4)
           throw new IllegalStateException("git version 2.8 support ended at 2017-07-01")
-        case v: String if v.startsWith("git version 2.9.") ⇒ // (2016-08-12) - (tag: v2.9.3)
+        case v: String if v.startsWith("git version 2.9.") => // (2016-08-12) - (tag: v2.9.3)
           throw new IllegalStateException("git version 2.9 support ended at 2017-08-01")
-        case v: String if v.startsWith("git version 2.10.") ⇒ // (2016-10-28) - (tag: v2.10.2)
+        case v: String if v.startsWith("git version 2.10.") => // (2016-10-28) - (tag: v2.10.2)
           throw new IllegalStateException("git version 2.10 support ended at 2017-11-01")
-        case v: String if v.startsWith("git version 2.11.") ⇒ // 2017-02-02) - (tag: v2.11.1)
+        case v: String if v.startsWith("git version 2.11.") => // 2017-02-02) - (tag: v2.11.1)
           throw new IllegalStateException("git version 2.11 support ended at 2017-11-01")
-        case v: String if v.startsWith("git version 2.12.") ⇒ // (2017-03-20) - (tag: v2.12.1)
+        case v: String if v.startsWith("git version 2.12.") => // (2017-03-20) - (tag: v2.12.1)
           throw new IllegalStateException("git version 2.12 support ended at 2018-04-02")
-        case v: String if v.startsWith("git version 2.13.") ⇒ // (2017-09-22) - (tag: v2.13.6)
+        case v: String if v.startsWith("git version 2.13.") => // (2017-09-22) - (tag: v2.13.6)
           throw new IllegalStateException("git version 2.13 support ended at 2018-05-02")
-        case v: String if v.startsWith("git version 2.14.") ⇒ // (2017-10-23) - (tag: v2.14.3)
+        case v: String if v.startsWith("git version 2.14.") => // (2017-10-23) - (tag: v2.14.3)
           throw new IllegalStateException("git version 2.13 support ended at 2018-07-02")
-        case v: String if v.startsWith("git version 2.15.") ⇒ // (2017-11-28) - (tag: v2.15.1)
+        case v: String if v.startsWith("git version 2.15.") => // (2017-11-28) - (tag: v2.15.1)
           if (ReleaseConfig.isTravisCi()) {
             err.println("W: please update your git version, \"" + v + "\" support ends at 2018-11-02")
           } else {
             throw new IllegalStateException("git version 2.15 support ended at 2018-10-18 because of CVE-2018-17456")
           }
-        case v: String if v.startsWith("git version 2.16.") ⇒ // (2018-02-15) - (tag: v2.16.2)
+        case v: String if v.startsWith("git version 2.16.") => // (2018-02-15) - (tag: v2.16.2)
           if (ReleaseConfig.isTravisCi()) {
             err.println("W: please update your git version, \"" + v + "\" support ends at 2018-12-02")
           } else {
             throw new IllegalStateException("git version 2.16 support ended at 2018-10-18 because of CVE-2018-17456")
           }
-        case v: String if v.startsWith("git version 2.17.") ⇒ // do nothing (2018-04-02) - (tag: v2.17.0)
+        case v: String if v.startsWith("git version 2.17.") => // do nothing (2018-04-02) - (tag: v2.17.0)
           if (!ReleaseConfig.isTravisCi()) {
             throw new IllegalStateException("git version 2.17 support ended at 2018-10-18 because of CVE-2018-17456")
           }
-        case v: String if v.startsWith("git version 2.18.") ⇒ // do nothing (2018-06-21) - (tag: v2.18.0)
+        case v: String if v.startsWith("git version 2.18.") => // do nothing (2018-06-21) - (tag: v2.18.0)
           if (!ReleaseConfig.isTravisCi()) {
             throw new IllegalStateException("git version 2.18 support ended at 2018-10-18 because of CVE-2018-17456")
           }
-        case v: String if v.startsWith("git version 2.19.0") ⇒ // do nothing (2018-09-10) - (tag: v2.19.0)
+        case v: String if v.startsWith("git version 2.19.0") => // do nothing (2018-09-10) - (tag: v2.19.0)
           if (!ReleaseConfig.isTravisCi()) {
             if (Sgit.getOs == Os.Darwin) {
               // https://git-scm.com/download/mac
@@ -636,23 +637,23 @@ object Sgit {
               throw new IllegalStateException("git version 2.19.0 support ended at 2018-10-18 because of CVE-2018-17456")
             }
           }
-        case v: String if v.startsWith("git version 2.19.") ⇒ // do nothing (2018-09-27) - (tag: v2.19.1) -- fixes CVE-2018-17456
-        case v: String if v.startsWith("git version 2.20.") ⇒ // do nothing (2018-12-09) (tag: v2.20.0)
-        case v: String ⇒ out.println("W: unknown/untested git version: \"" + v + "\". Please create a ticket at ISPS.");
+        case v: String if v.startsWith("git version 2.19.") => // do nothing (2018-09-27) - (tag: v2.19.1) -- fixes CVE-2018-17456
+        case v: String if v.startsWith("git version 2.20.") => // do nothing (2018-12-09) (tag: v2.20.0)
+        case v: String => out.println("W: unknown/untested git version: \"" + v + "\". Please create a ticket at ISPS.");
       }
-      gits = gits ++ Map(cmd → result)
+      gits = gits ++ Map(cmd -> result)
     }
   }
 
   private[release] def outLogger(syserrErrors: Boolean, cmd: Seq[String],
-                                 errOut: String ⇒ Unit, outLog: String ⇒ Unit,
-                                 errorLineMapper: String ⇒ Option[String]): ProcessLogger = {
+                                 errOut: String => Unit, outLog: String => Unit,
+                                 errorLineMapper: String => Option[String]): ProcessLogger = {
     new ProcessLogger {
-      override def out(s: ⇒ String): Unit = {
+      override def out(s: => String): Unit = {
         outLog.apply(s)
       }
 
-      override def err(s: ⇒ String): Unit = {
+      override def err(s: => String): Unit = {
         if (syserrErrors && s.nonEmpty) {
           val out = errorLineMapper.apply(s)
           if (out.isDefined) {
@@ -662,37 +663,37 @@ object Sgit {
         }
       }
 
-      override def buffer[T](f: ⇒ T): T = f
+      override def buffer[T](f: => T): T = f
     }
   }
 
   private[release] def stashFilter(line: String) = line match {
-    case l: String if l.endsWith("warning: command substitution: ignored null byte in input") ⇒ None
-    case l: String ⇒ Some(l)
+    case l: String if l.endsWith("warning: command substitution: ignored null byte in input") => None
+    case l: String => Some(l)
   }
 
   private[release] def fetchFilter(line: String) = line match {
-    case l: String if l.matches("Total [0-9]+ \\(delta [0-9]+\\), reused [0-9]+ \\(delta [0-9]+\\)") ⇒ None
-    case l: String ⇒ Some(l)
+    case l: String if l.matches("Total [0-9]+ \\(delta [0-9]+\\), reused [0-9]+ \\(delta [0-9]+\\)") => None
+    case l: String => Some(l)
   }
 
   private[release] def gerritPushFilter(line: String): Option[String] = {
     line match {
-      case l if l == "remote: " ⇒ None
-      case l if l.startsWith("remote: Processing change") ⇒ None
-      case l if l.startsWith("remote: error:") ⇒ None
-      case l if l.startsWith("To ssh:") ⇒ None
-      case l if l.trim == "remote: New Changes:" ⇒ None
-      case l if l.startsWith("remote:   http") ⇒ Some(l.replaceFirst(".*http", "See http"))
-      case l if l.contains("[remote rejected]") ⇒ Some(l.replaceFirst(".*\\[remote rejected\\]", "[remote rejected]"))
-      case l ⇒ Some("git-err: '" + l + "'")
+      case l if l == "remote: " => None
+      case l if l.startsWith("remote: Processing change") => None
+      case l if l.startsWith("remote: error:") => None
+      case l if l.startsWith("To ssh:") => None
+      case l if l.trim == "remote: New Changes:" => None
+      case l if l.startsWith("remote:   http") => Some(l.replaceFirst(".*http", "See http"))
+      case l if l.contains("[remote rejected]") => Some(l.replaceFirst(".*\\[remote rejected\\]", "[remote rejected]"))
+      case l => Some("git-err: '" + l + "'")
     }
 
   }
 
   private[release] def native(cmd: Seq[String], syserrErrors: Boolean,
-                              cmdFilter: String ⇒ Boolean, err: PrintStream,
-                              errLineMapper: String ⇒ Option[String]): String = {
+                              cmdFilter: String => Boolean, err: PrintStream,
+                              errLineMapper: String => Option[String]): String = {
     import sys.process._
 
     var errors: String = ""
@@ -712,7 +713,7 @@ object Sgit {
       result.trim
     } catch {
       case e: RuntimeException if e.getMessage != null &&
-        e.getMessage.startsWith("Nonzero exit value:") && cmd.head.contains("git") ⇒
+        e.getMessage.startsWith("Nonzero exit value:") && cmd.head.contains("git") =>
         val msg = e.getMessage + "; git " + cmd.drop(3).mkString(" ") +
           "; " + Seq(errors, stdout).filterNot(_.isEmpty).mkString("; ")
         if (e.getMessage.startsWith("Nonzero exit value: 130")) {
@@ -720,7 +721,7 @@ object Sgit {
         } else {
           throw new RuntimeException(msg.trim)
         }
-      case e: Throwable ⇒ {
+      case e: Throwable => {
         throw e
       }
     }
@@ -732,9 +733,9 @@ object Sgit {
       gitBin.toSeq
     } else {
       val gitCygCmd: Try[Seq[String]] = try {
-        Success(Seq(native(Seq("cygpath", "-daw", "/usr/bin/git"), syserrErrors = false, _ ⇒ false, err, s ⇒ Some(s))))
+        Success(Seq(native(Seq("cygpath", "-daw", "/usr/bin/git"), syserrErrors = false, _ => false, err, s => Some(s))))
       } catch {
-        case e: Exception ⇒ Failure(e)
+        case e: Exception => Failure(e)
       }
       val gitCmd: Seq[String] = if (gitCygCmd.isSuccess) {
         gitCygCmd.get
@@ -754,12 +755,12 @@ object Sgit {
     @tailrec
     def cate(in: Seq[Char], result: Seq[Byte] = Nil): Seq[Byte] = {
       in match {
-        case '\\' :: c0 :: c1 :: c2 :: tail ⇒ {
+        case '\\' :: c0 :: c1 :: c2 :: tail => {
           val b = new BigInteger(new String(Array(c0, c1, c2)), 8).byteValue()
           cate(tail, result :+ b)
         }
-        case c :: tail ⇒ cate(tail, result :+ c.toByte)
-        case Nil ⇒ result
+        case c :: tail => cate(tail, result :+ c.toByte)
+        case Nil => result
       }
     }
 
@@ -810,10 +811,10 @@ object Sgit {
 
   lazy val getOs: Os = {
     System.getProperty("os.name") match {
-      case "Windows 10" ⇒ Os.Windows
-      case "Linux" ⇒ Os.Linux
-      case "Mac OS X" ⇒ Os.Darwin
-      case other ⇒ throw new IllegalStateException("unknown os: " + other)
+      case "Windows 10" => Os.Windows
+      case "Linux" => Os.Linux
+      case "Mac OS X" => Os.Darwin
+      case other => throw new IllegalStateException("unknown os: " + other)
     }
   }
 }

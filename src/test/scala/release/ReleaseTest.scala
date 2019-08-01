@@ -4,7 +4,7 @@ import java.io.File
 import java.util.regex.Pattern
 
 import org.junit.{Assert, Test}
-import org.scalatest.junit.AssertionsForJUnit
+import org.scalatestplus.junit.AssertionsForJUnit
 
 class ReleaseTest extends AssertionsForJUnit {
 

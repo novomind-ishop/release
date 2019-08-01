@@ -7,7 +7,7 @@ import release.Starter.Opts
 import scala.annotation.tailrec
 
 object FeatureBranch {
-  def work(workDirFile: File, out: PrintStream, err: PrintStream, sgit: Sgit, branch: String, rebaseFn: () ⇒ Unit,
+  def work(workDirFile: File, out: PrintStream, err: PrintStream, sgit: Sgit, branch: String, rebaseFn: () => Unit,
            toolSh1: String, config: ReleaseConfig, opts: Opts): Unit = {
     Release.checkLocalChanges(sgit, branch)
     rebaseFn.apply()

@@ -9,17 +9,17 @@ object PomChecker {
   def check(plugins: Seq[PluginDep]): Unit = {
     checkIshopMaven(plugins)
     val depPlugins = PomMod.dependecyPlugins(plugins)
-    depPlugins.foreach(plugin ⇒ {
+    depPlugins.foreach(plugin => {
       if (plugin.execs == Nil) {
         throw new ValidationException("please add at least one execution to you maven-dependency-plugin")
       } else {
-        val treeOrLists = plugin.execs.filter(in ⇒ in.goals.contains("tree") || in.goals.contains("list"))
+        val treeOrLists = plugin.execs.filter(in => in.goals.contains("tree") || in.goals.contains("list"))
         val invalidPhase = treeOrLists.filter(_.phase != "validate")
         if (invalidPhase != Nil) {
           throw new ValidationException("maven-dependency-plugin goals " +
             invalidPhase.flatMap(_.goals).mkString(", ") + " must be executed on phase \"validate\"")
         } else {
-          val defectconfig = treeOrLists.filter(in ⇒ {
+          val defectconfig = treeOrLists.filter(in => {
             val outputFileValue = in.config.get("outputFile")
             outputFileValue.isEmpty || outputFileValue.get.contains("/")
           })
@@ -36,7 +36,7 @@ object PomChecker {
   private[release] def checkIshopMaven(_plugins: Seq[PluginDep]): Unit = {
     val plugins = PomMod.findPluginsByName(_plugins, "ishop-maven-plugin")
     // TODO ishop maven plugin muss definiert sein
-    plugins.foreach(ishopMaven ⇒ {
+    plugins.foreach(ishopMaven => {
       val execs = Util.only(ishopMaven.execs, ishopMaven.pomRef.id + " - a single execution section for ishop maven plugin please required")
       if (!execs.goals.contains("check-for-changes-before")) {
         throw new ValidationException("please add \"check-for-changes-before\" to your ishop maven plugin")

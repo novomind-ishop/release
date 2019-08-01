@@ -5,7 +5,7 @@ import java.security.Permission
 
 import com.typesafe.scalalogging.LazyLogging
 import org.junit._
-import org.scalatest.junit.AssertionsForJUnit
+import org.scalatestplus.junit.AssertionsForJUnit
 import release.Starter.Opts
 
 class TermTest extends AssertionsForJUnit {
@@ -48,7 +48,7 @@ class TermTest extends AssertionsForJUnit {
   def testReadFrom(): Unit = {
     val value = "My string"
 
-    TermTest.testSys(Seq(value), Seq("enter some [word]: "), Nil)((in, out, err) ⇒ {
+    TermTest.testSys(Seq(value), Seq("enter some [word]: "), Nil)((in, out, err) => {
       val result = Term.readFrom(new PrintStream(out), "enter some", "word", Opts(),
         new BufferedReader(new InputStreamReader(in, "UTF-8")))
       Assert.assertEquals(value, result)
@@ -59,7 +59,7 @@ class TermTest extends AssertionsForJUnit {
   @Test
   @Ignore
   def testReadNull(): Unit = {
-    TermTest.testSys(Nil, Seq("enter some [word]: "), Nil, 14)((in, out, err) ⇒ {
+    TermTest.testSys(Nil, Seq("enter some [word]: "), Nil, 14)((in, out, err) => {
       Term.readFrom(new PrintStream(out), "enter some", "word", Opts(),
         new BufferedReader(new InputStreamReader(in, "UTF-8")))
     })
@@ -71,7 +71,7 @@ class TermTest extends AssertionsForJUnit {
 object TermTest extends LazyLogging {
 
   def testSys(input: Seq[String], expectedOut: Seq[String], expectedErr: Seq[String], expectedExitCode: Int = 0)
-             (fn: (InputStream, OutputStream, OutputStream) ⇒ Unit): Unit = {
+             (fn: (InputStream, OutputStream, OutputStream) => Unit): Unit = {
     this.synchronized {
       val oldSecurityManager = System.getSecurityManager
       var exitCode = 0
@@ -101,7 +101,7 @@ object TermTest extends LazyLogging {
       try {
         fn.apply(System.in, System.out, System.err)
       } catch {
-        case e: Throwable ⇒ e.printStackTrace(oldErr)
+        case e: Throwable => e.printStackTrace(oldErr)
       } finally {
         System.setIn(oldIn)
         System.setOut(oldOut)

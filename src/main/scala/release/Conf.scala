@@ -14,7 +14,7 @@ object Conf {
     val tracerIndex: TrieMap[String, Int] = TrieMap.empty
     val idxCounter = new AtomicInteger()
 
-    def withFn(logger: Logger, fn: () ⇒ String): Unit = {
+    def withFn(logger: Logger, fn: () => String): Unit = {
       if (logger.underlying.isTraceEnabled) {
         logger.trace(fn.apply())
       }
@@ -24,15 +24,15 @@ object Conf {
     private def index(str: String): Int = {
       val idx = tracerIndex.get(str)
       idx match {
-        case None ⇒ {
+        case None => {
           tracerIndex.put(str, idxCounter.getAndIncrement())
           index(str)
         }
-        case in ⇒ in.get
+        case in => in.get
       }
     }
 
-    def msgAround[T](message: String, logger: Logger, fn: () ⇒ T): T = {
+    def msgAround[T](message: String, logger: Logger, fn: () => T): T = {
       val start = System.currentTimeMillis()
       val idx = index(message)
       logger.trace("/ started idx(%03d) %s".format(idx, message))

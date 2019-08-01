@@ -1,7 +1,7 @@
 package release
 
 import org.junit.{Assume, Test}
-import org.scalatest.junit.AssertionsForJUnit
+import org.scalatestplus.junit.AssertionsForJUnit
 import release.Starter.Opts
 
 class AetherTest extends AssertionsForJUnit {
@@ -11,7 +11,7 @@ class AetherTest extends AssertionsForJUnit {
   @Test
   def testExistsGav(): Unit = {
     val aether = new Aether(Opts())
-    Assume.assumeTrue(aether.isReachable)
+    Assume.assumeTrue(aether.isReachable(false))
     val g = "org.apache.maven.plugins"
     val a = "maven-surefire-plugin"
     val v = "3.0.0-M1"

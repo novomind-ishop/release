@@ -6,11 +6,11 @@ import java.time.{LocalDate, Month}
 
 import org.junit.rules.TemporaryFolder
 import org.junit.{Assert, ComparisonFailure, Rule, Test}
-import org.scalatest.junit.AssertionsForJUnit
+import org.scalatestplus.junit.AssertionsForJUnit
 import org.w3c.dom._
 import release.PomChecker.ValidationException
 import release.PomModTest.{assertDeps, document, pomfile, _}
-import release.ProjectMod.{Dep, Gav, PluginDep, PluginExec, PomRef, Version}
+import release.ProjectMod._
 import release.Starter.Opts
 
 import scala.xml.Elem
@@ -48,7 +48,7 @@ class PomModTest extends AssertionsForJUnit {
       <name>any-erp</name>
     </project>
     )).create()
-    val out = PomMod.allRawModulePomsFiles(Seq(srcPoms)).map(in ⇒ srcPoms.toPath.relativize(in.toPath))
+    val out = PomMod.allRawModulePomsFiles(Seq(srcPoms)).map(in => srcPoms.toPath.relativize(in.toPath))
     Assert.assertEquals(Seq(Paths.get("pom.xml"), Paths.get("any-erp", "pom.xml")), out)
   }
 
@@ -61,7 +61,7 @@ class PomModTest extends AssertionsForJUnit {
       </properties>
     </project>)
 
-    Assert.assertEquals(Map("a" → "b"), PomMod.createPropertyMap(root))
+    Assert.assertEquals(Map("a" -> "b"), PomMod.createPropertyMap(root))
     PomMod.checkRootFirstChildPropertiesVar(Opts(), Seq(pomfile(root)))
   }
 
@@ -99,14 +99,14 @@ class PomModTest extends AssertionsForJUnit {
       </properties>
     </project>)
 
-    Assert.assertEquals(Map("p" → "1", "valid" → "1"), PomMod.createPropertyMap(root))
-    Assert.assertEquals(Map("p" → "1", "valid" → "1"), PomMod.createPropertyMap(child))
+    Assert.assertEquals(Map("p" -> "1", "valid" -> "1"), PomMod.createPropertyMap(root))
+    Assert.assertEquals(Map("p" -> "1", "valid" -> "1"), PomMod.createPropertyMap(child))
 
     TestHelper.assertException("unnecessary/multiple property definition (move property to parent pom or remove from sub poms):\n" +
       "  (p -> 1)\n" +
       "      -> very.long.groupid.any:a-parent:1.0.0-SNAPSHOT\n" +
       "      -> any:a:1.0.0-SNAPSHOT",
-      classOf[ValidationException], () ⇒ {
+      classOf[ValidationException], () => {
         PomMod.checkRootFirstChildPropertiesVar(Opts().copy(skipProperties = Seq("valid")), Seq(pomfile(root), pomfile(child)))
       })
   }
@@ -143,8 +143,8 @@ class PomModTest extends AssertionsForJUnit {
       </properties>
     </project>)
 
-    Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(root))
-    Assert.assertEquals(Map("p" → "2"), PomMod.createPropertyMap(child))
+    Assert.assertEquals(Map("p" -> "1"), PomMod.createPropertyMap(root))
+    Assert.assertEquals(Map("p" -> "2"), PomMod.createPropertyMap(child))
     PomMod.checkRootFirstChildPropertiesVar(Opts(), Seq(pomfile(root), pomfile(child)))
   }
 
@@ -174,8 +174,8 @@ class PomModTest extends AssertionsForJUnit {
       </properties>
     </project>)
 
-    Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(root))
-    Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(child))
+    Assert.assertEquals(Map("p" -> "1"), PomMod.createPropertyMap(root))
+    Assert.assertEquals(Map("p" -> "1"), PomMod.createPropertyMap(child))
 
     PomMod.checkRootFirstChildPropertiesVar(Opts(), Seq(pomfile(root), pomfile(child)))
 
@@ -212,7 +212,7 @@ class PomModTest extends AssertionsForJUnit {
     </project>)
 
     Assert.assertEquals(Map.empty, PomMod.createPropertyMap(root))
-    Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(child0))
+    Assert.assertEquals(Map("p" -> "1"), PomMod.createPropertyMap(child0))
     Assert.assertEquals(Map.empty, PomMod.createPropertyMap(child1))
 
     PomMod.checkRootFirstChildPropertiesVar(Opts(), Seq(pomfile(root), pomfile(child0), pomfile(child1)))
@@ -262,7 +262,7 @@ class PomModTest extends AssertionsForJUnit {
     </project>)
 
     Assert.assertEquals(Map.empty, PomMod.createPropertyMap(root))
-    Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(child0))
+    Assert.assertEquals(Map("p" -> "1"), PomMod.createPropertyMap(child0))
     Assert.assertEquals(Map.empty, PomMod.createPropertyMap(child1))
 
     PomMod.checkRootFirstChildPropertiesVar(Opts(), Seq(pomfile(root), pomfile(child0), pomfile(child1)))
@@ -313,8 +313,8 @@ class PomModTest extends AssertionsForJUnit {
       <version>1.0.0-SNAPSHOT</version>
     </project>)
 
-    Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(root))
-    Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(child0))
+    Assert.assertEquals(Map("p" -> "1"), PomMod.createPropertyMap(root))
+    Assert.assertEquals(Map("p" -> "1"), PomMod.createPropertyMap(child0))
     Assert.assertEquals(Map.empty, PomMod.createPropertyMap(child1))
 
     TestHelper.assertException("unnecessary/multiple property definition (move property to parent pom or remove from sub poms):\n" +
@@ -322,7 +322,7 @@ class PomModTest extends AssertionsForJUnit {
       "      -> very.long.groupid.any:a-parent:1.0.0-SNAPSHOT\n" +
       "      -> any:a:1.0.0-SNAPSHOT\n" +
       "      -> very.long.groupid.any:b:1.0.0-SNAPSHOT",
-      classOf[ValidationException], () ⇒ {
+      classOf[ValidationException], () => {
         PomMod.checkRootFirstChildPropertiesVar(Opts(), Seq(pomfile(root), pomfile(child0), pomfile(child1)))
       })
   }
@@ -372,15 +372,15 @@ class PomModTest extends AssertionsForJUnit {
     </project>)
 
     Assert.assertEquals(Map.empty, PomMod.createPropertyMap(root))
-    Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(child0))
-    Assert.assertEquals(Map("p" → "1"), PomMod.createPropertyMap(child1))
+    Assert.assertEquals(Map("p" -> "1"), PomMod.createPropertyMap(child0))
+    Assert.assertEquals(Map("p" -> "1"), PomMod.createPropertyMap(child1))
 
     TestHelper.assertException("unnecessary/multiple property definition (move property to parent pom or remove from sub poms):\n" +
       "  (p -> 1)\n" +
       "      -> any:a-parent:1.0.0-SNAPSHOT\n" +
       "      -> any:a:1.0.0-SNAPSHOT\n" +
       "      -> any:b:1.0.0-SNAPSHOT",
-      classOf[ValidationException], () ⇒ {
+      classOf[ValidationException], () => {
         PomMod.checkRootFirstChildPropertiesVar(Opts(), Seq(pomfile(root), pomfile(child0), pomfile(child1)))
       })
   }
@@ -416,7 +416,7 @@ class PomModTest extends AssertionsForJUnit {
     // WHEN
     TestHelper.assertException("More then one Version found in your pom.xmls: " +
       "Dep(PomRef(any-erp),com.novomind.ishop.shops.any,any-erp,28.0.0-SNAPSHOT,,,,) (27.0.0-SNAPSHOT, 28.0.0-SNAPSHOT)",
-      classOf[IllegalArgumentException], () ⇒ {
+      classOf[IllegalArgumentException], () => {
         PomMod.ofAetherForTests(srcPoms, aether).selfVersion
       })
 
@@ -448,34 +448,34 @@ class PomModTest extends AssertionsForJUnit {
     // THEN
 
     val baseVersion = Map(
-      "groupId" → "com.novomind.ishop.shops.anyshop",
-      "artifactId" → "anyshop-erp",
-      "version" → "${project.version}")
+      "groupId" -> "com.novomind.ishop.shops.anyshop",
+      "artifactId" -> "anyshop-erp",
+      "version" -> "${project.version}")
     val noVersion = Map(
-      "groupId" → "com.novomind.ishop.shops.anyshop",
-      "artifactId" → "anyshop-erp")
+      "groupId" -> "com.novomind.ishop.shops.anyshop",
+      "artifactId" -> "anyshop-erp")
     val testScope = Map(
-      "groupId" → "com.novomind.ishop.shops.anyshop",
-      "artifactId" → "anyshop-erp",
-      "version" → "27.0.0-SNAPSHOT",
-      "scope" → "test")
+      "groupId" -> "com.novomind.ishop.shops.anyshop",
+      "artifactId" -> "anyshop-erp",
+      "version" -> "27.0.0-SNAPSHOT",
+      "scope" -> "test")
     val testsScope = Map(
-      "groupId" → "com.novomind.ishop.shops.anyshop",
-      "artifactId" → "anyshop-erp",
-      "version" → "27.0.0-SNAPSHOT",
-      "classifier" → "tests",
-      "scope" → "test")
+      "groupId" -> "com.novomind.ishop.shops.anyshop",
+      "artifactId" -> "anyshop-erp",
+      "version" -> "27.0.0-SNAPSHOT",
+      "classifier" -> "tests",
+      "scope" -> "test")
     val pomClassifier = Map(
-      "groupId" → "com.novomind.ishop.shops.anyshop",
-      "artifactId" → "anyshop-erp",
-      "version" → "27.0.0-SNAPSHOT",
-      "classifier" → "pom")
+      "groupId" -> "com.novomind.ishop.shops.anyshop",
+      "artifactId" -> "anyshop-erp",
+      "version" -> "27.0.0-SNAPSHOT",
+      "classifier" -> "pom")
     val testsPomScope = Map(
-      "groupId" → "com.novomind.ishop.shops.anyshop",
-      "artifactId" → "anyshop-erp",
-      "version" → "27.0.0-SNAPSHOT",
-      "classifier" → "pom",
-      "scope" → "test")
+      "groupId" -> "com.novomind.ishop.shops.anyshop",
+      "artifactId" -> "anyshop-erp",
+      "version" -> "27.0.0-SNAPSHOT",
+      "classifier" -> "pom",
+      "scope" -> "test")
 
     Assert.assertEquals(Seq(baseVersion, noVersion, testScope, testsScope, pomClassifier, testsPomScope).sortBy(_.toString()),
       Xpath.mapToSeqMap(nodes).sortBy(_.toString()))
@@ -570,7 +570,7 @@ class PomModTest extends AssertionsForJUnit {
     // THEN
     val newTargetMod = PomMod.ofAetherForTests(targetPoms, aether)
     Assert.assertEquals("27.0.0-SNAPSHOT", newTargetMod.selfVersion)
-    val erpVersionChanged = Anyshop1Deps.ownDeps().map(in ⇒ if (in.artifactId.contains("anyshop-erp") && in.version.nonEmpty) {
+    val erpVersionChanged = Anyshop1Deps.ownDeps().map(in => if (in.artifactId.contains("anyshop-erp") && in.version.nonEmpty) {
       in.copy(version = newVersion)
     } else {
       in
@@ -631,13 +631,13 @@ class PomModTest extends AssertionsForJUnit {
     mod.writeTo(srcPoms)
 
     val allMod = Anyshop1Deps.all()
-      .map(dep ⇒ if (dep.artifactId == "anyshop-erp" && dep.version.nonEmpty) {
+      .map(dep => if (dep.artifactId == "anyshop-erp" && dep.version.nonEmpty) {
         dep.copy(version = "RC-2017.01-SNAPSHOT")
       } else if (dep.artifactId == "anyshop-projects" && dep.version.nonEmpty) {
         dep.copy(version = "RC-2017.01-SNAPSHOT")
       } else {
         dep
-      }).map(dep ⇒
+      }).map(dep =>
       dep.copy(pomRef = PomRef(dep.pomRef.id.replace("27.0.0-SNAPSHOT", "RC-2017.01-SNAPSHOT")))
     )
 
@@ -648,29 +648,33 @@ class PomModTest extends AssertionsForJUnit {
 
   @Test
   def replaceProperty(): Unit = {
-    Assert.assertEquals("ab", PomMod.replaceProperty(Map("a" → "b"))("a${a}"))
+    Assert.assertEquals("ab", PomMod.replaceProperty(Map("a" -> "b"))("a${a}"))
 
-    TestHelper.assertException("No property replacement found in pom.xmls for: \"a${\". Input is Nil.",
-      classOf[IllegalArgumentException], () ⇒ {
-        PomMod.replaceProperty(Map("a" → "b"))("a${")
+    TestHelper.assertException("No property replacement found in pom.xmls for: \"a${\" " +
+      "- define properties where they are required and not in parent pom.xml. Input is Nil.",
+      classOf[IllegalArgumentException], () => {
+        PomMod.replaceProperty(Map("a" -> "b"))("a${")
       })
 
-    TestHelper.assertException("No property replacement found in pom.xmls for: \"a${b}\". Input is Nil.",
-      classOf[IllegalArgumentException], () ⇒ {
-        PomMod.replaceProperty(Map("a" → "b"))("a${b}")
+    TestHelper.assertException("No property replacement found in pom.xmls for: \"a${b}\" " +
+      "- define properties where they are required and not in parent pom.xml. Input is Nil.",
+      classOf[IllegalArgumentException], () => {
+        PomMod.replaceProperty(Map("a" -> "b"))("a${b}")
       })
 
-    TestHelper.assertException("No property replacement found in pom.xmls for: \"a${}\". Input is Nil.",
-      classOf[IllegalArgumentException], () ⇒ {
-        PomMod.replaceProperty(Map("a" → "b"))("a${}")
+    TestHelper.assertException("No property replacement found in pom.xmls for: \"a${}\" " +
+      "- define properties where they are required and not in parent pom.xml. Input is Nil.",
+      classOf[IllegalArgumentException], () => {
+        PomMod.replaceProperty(Map("a" -> "b"))("a${}")
       })
 
-    TestHelper.assertException("No property replacement found in pom.xmls for: \"${u}\". Input is Nil.",
-      classOf[IllegalArgumentException], () ⇒ {
-        PomMod.replaceProperty(Map("a" → "b"))("${u}")
+    TestHelper.assertException("No property replacement found in pom.xmls for: \"${u}\" " +
+      "- define properties where they are required and not in parent pom.xml. Input is Nil.",
+      classOf[IllegalArgumentException], () => {
+        PomMod.replaceProperty(Map("a" -> "b"))("${u}")
       })
 
-    TestHelper.assertException("property map is empty", classOf[IllegalStateException], () ⇒ {
+    TestHelper.assertException("property map is empty", classOf[IllegalStateException], () => {
       PomMod.replaceProperty(Map.empty)("a${b}")
     })
   }
@@ -693,7 +697,7 @@ class PomModTest extends AssertionsForJUnit {
     mod.writeTo(srcPoms)
 
     val allMod: Seq[Dep] = Anyshop1Deps.all()
-      .map(dep ⇒ if (!Seq("anyshop-commons", "anyshop-db-migration", "anyshop-ipim-reviews").contains(dep.artifactId)) {
+      .map(dep => if (!Seq("anyshop-commons", "anyshop-db-migration", "anyshop-ipim-reviews").contains(dep.artifactId)) {
         dep.copy(groupId = dep.groupId.replace("anyshop", "anyshop"),
           artifactId = dep.artifactId.replace("anyshop", "anyshop"),
           pomRef = dep.pomRef.copy(id = dep.pomRef.id.replace("anyshop", "anyshop")))
@@ -735,7 +739,7 @@ class PomModTest extends AssertionsForJUnit {
 
     // WHEN / THEN
     TestHelper.assertException("anyshop-erp as no version, please define", classOf[IllegalStateException],
-      () ⇒ PomMod.ofAetherForTests(srcPoms, aether).suggestReleaseVersion())
+      () => PomMod.ofAetherForTests(srcPoms, aether).suggestReleaseVersion())
 
   }
 
@@ -1247,32 +1251,32 @@ class PomModTest extends AssertionsForJUnit {
   def testCheckNoSlashesNotEmptyNoZeros(): Unit = {
     Assert.assertEquals("s", PomMod.checkNoSlashesNotEmptyNoZeros("s"))
     TestHelper.assertException("empty is not allowed", classOf[IllegalArgumentException],
-      () ⇒ PomMod.checkNoSlashesNotEmptyNoZeros(""))
+      () => PomMod.checkNoSlashesNotEmptyNoZeros(""))
     TestHelper.assertException("no slashes are allowed in \"sdf/s/\"", classOf[IllegalArgumentException],
-      () ⇒ PomMod.checkNoSlashesNotEmptyNoZeros("sdf/s/"))
+      () => PomMod.checkNoSlashesNotEmptyNoZeros("sdf/s/"))
     TestHelper.assertException("no slashes are allowed in \"sdf\\s\"", classOf[IllegalArgumentException],
-      () ⇒ PomMod.checkNoSlashesNotEmptyNoZeros("sdf\\s"))
+      () => PomMod.checkNoSlashesNotEmptyNoZeros("sdf\\s"))
     TestHelper.assertException("no leading zeros are allowed in \"00.0.1\"", classOf[IllegalArgumentException],
-      () ⇒ PomMod.checkNoSlashesNotEmptyNoZeros("00.0.1"))
+      () => PomMod.checkNoSlashesNotEmptyNoZeros("00.0.1"))
     TestHelper.assertException("no leading zeros are allowed in \"0\"", classOf[IllegalArgumentException],
-      () ⇒ PomMod.checkNoSlashesNotEmptyNoZeros("0"))
+      () => PomMod.checkNoSlashesNotEmptyNoZeros("0"))
     TestHelper.assertException("no leading zeros are allowed in \"00\"", classOf[IllegalArgumentException],
-      () ⇒ PomMod.checkNoSlashesNotEmptyNoZeros("00"))
+      () => PomMod.checkNoSlashesNotEmptyNoZeros("00"))
     TestHelper.assertException("no leading zeros are allowed in \"0.0\"", classOf[IllegalArgumentException],
-      () ⇒ PomMod.checkNoSlashesNotEmptyNoZeros("0.0"))
+      () => PomMod.checkNoSlashesNotEmptyNoZeros("0.0"))
     TestHelper.assertException("no leading zeros are allowed in \"0.0.0\"", classOf[IllegalArgumentException],
-      () ⇒ PomMod.checkNoSlashesNotEmptyNoZeros("0.0.0"))
+      () => PomMod.checkNoSlashesNotEmptyNoZeros("0.0.0"))
     Assert.assertEquals("0.1.0", PomMod.checkNoSlashesNotEmptyNoZeros("0.1.0"))
     Assert.assertEquals("0.0.1", PomMod.checkNoSlashesNotEmptyNoZeros("0.0.1"))
     Assert.assertEquals("0.1", PomMod.checkNoSlashesNotEmptyNoZeros("0.1"))
     Assert.assertEquals("0.100", PomMod.checkNoSlashesNotEmptyNoZeros("0.100"))
     Assert.assertEquals("0.1000", PomMod.checkNoSlashesNotEmptyNoZeros("0.1000"))
     TestHelper.assertException("no trailing zeros are allowed in \"0.0.1.00\"", classOf[IllegalArgumentException],
-      () ⇒ PomMod.checkNoSlashesNotEmptyNoZeros("0.0.1.00"))
+      () => PomMod.checkNoSlashesNotEmptyNoZeros("0.0.1.00"))
     TestHelper.assertException("no trailing zeros are allowed in \"0.0.1.000\"", classOf[IllegalArgumentException],
-      () ⇒ PomMod.checkNoSlashesNotEmptyNoZeros("0.0.1.000"))
+      () => PomMod.checkNoSlashesNotEmptyNoZeros("0.0.1.000"))
     TestHelper.assertException("no trailing zeros are allowed in \"0.0.1-000\"", classOf[IllegalArgumentException],
-      () ⇒ PomMod.checkNoSlashesNotEmptyNoZeros("0.0.1-000"))
+      () => PomMod.checkNoSlashesNotEmptyNoZeros("0.0.1-000"))
   }
 
   @Test
@@ -1283,14 +1287,14 @@ class PomModTest extends AssertionsForJUnit {
     writer.write("hello")
     try {
       Sgit.getOs match {
-        case Sgit.Os.Windows ⇒ {
+        case Sgit.Os.Windows => {
           TestHelper.assertException("Windows tends to lock file handles." +
             " Try to find handle or DLL that locks the file. e.g. with Sysinternals Process Explorer",
-            classOf[IllegalStateException], () ⇒ {
+            classOf[IllegalStateException], () => {
               PomMod.writeContent(file, "asdf")
             })
         }
-        case _ ⇒ // do not test
+        case _ => // do not test
       }
     } finally {
       writer.close()
@@ -1310,20 +1314,20 @@ class PomModTest extends AssertionsForJUnit {
 
     // THEN
     val expected = Map(
-      "ishop-core.version" → "27.1.2-SNAPSHOT",
-      "project.build.sourceEncoding" → "UTF-8",
-      "ishop-plugin.version" → "27.3.0-SNAPSHOT",
-      "project.version" → "27.0.0-SNAPSHOT",
-      "webappDirectory" → "skip/skip",
-      "aspectj.version" → "1.8.8",
-      "aspectj-maven-plugin.version" → "1.8",
-      "ishop-core-sub.version" → "27.1.2-SNAPSHOT",
-      "build.timestamp" → "skip",
-      "zkm.skip" → "true",
-      "bo-client" → "27.0.0-SNAPSHOT",
-      "allowedProjectDir" → "skip/any",
-      "project.reporting.outputEncoding" → "UTF-8",
-      "java.version" → "1.8")
+      "ishop-core.version" -> "27.1.2-SNAPSHOT",
+      "project.build.sourceEncoding" -> "UTF-8",
+      "ishop-plugin.version" -> "27.3.0-SNAPSHOT",
+      "project.version" -> "27.0.0-SNAPSHOT",
+      "webappDirectory" -> "skip/skip",
+      "aspectj.version" -> "1.8.8",
+      "aspectj-maven-plugin.version" -> "1.8",
+      "ishop-core-sub.version" -> "27.1.2-SNAPSHOT",
+      "build.timestamp" -> "skip",
+      "zkm.skip" -> "true",
+      "bo-client" -> "27.0.0-SNAPSHOT",
+      "allowedProjectDir" -> "skip/any",
+      "project.reporting.outputEncoding" -> "UTF-8",
+      "java.version" -> "1.8")
     Assert.assertEquals(expected, props)
   }
 
@@ -1377,16 +1381,16 @@ class PomModTest extends AssertionsForJUnit {
   private def assertPluginDeps(expected: Seq[PluginDep], actual: Seq[PluginDep]): Unit = {
     def defstr(dep: PluginDep): String = {
       def formatExec(pluginExec: Seq[PluginExec]): String = {
-        "Seq(" + pluginExec.map(in ⇒ {
-          val goals = in.goals.map(in ⇒ "\"" + in + "\"").mkString(",")
-          val conf = in.config.map(in ⇒ "\"" + in._1 + "\" -> \"" + in._2 + "\"").mkString(",")
+        "Seq(" + pluginExec.map(in => {
+          val goals = in.goals.map(in => "\"" + in + "\"").mkString(",")
+          val conf = in.config.toList.map(in => "\"" + in._1 + "\" -> \"" + in._2 + "\"").mkString(",")
           "PluginExec(\"" + in.id + "\", Seq(" + goals + "), \"" + in.phase + "\", Map(" + conf + "))"
         }).mkString(", ") + ")"
       }
 
       "PluginDep(PomRef(\"" + dep.pomRef.id + "\"),\n \"" + dep.groupId + "\", \"" +
         dep.artifactId + "\", \"" + dep.version + "\", " + formatExec(dep.execs) +
-        ",\n Seq(" + dep.pomPath.map(in ⇒ "\"" + in + "\"").mkString(", ") + "))"
+        ",\n Seq(" + dep.pomPath.map(in => "\"" + in + "\"").mkString(", ") + "))"
     }
 
     assertBy(expected, actual, defstr)
@@ -1431,7 +1435,7 @@ class PomModTest extends AssertionsForJUnit {
   def testUnmanged(): Unit = {
     Assert.assertEquals(Nil, PomMod.unmanged(Nil, Nil))
     TestHelper.assertException("invalid empty versions", classOf[IllegalArgumentException],
-      () ⇒ PomMod.unmanged(
+      () => PomMod.unmanged(
         Seq(Gav(groupId = "a.b", artifactId = "a", version = "1.0.0")),
         Seq(Gav(groupId = "a.b", artifactId = "a", version = "1.0.0"))
       )
@@ -1482,7 +1486,7 @@ class PomModTest extends AssertionsForJUnit {
   @Test
   def testAsserts(): Unit = {
     // @formatter:off
-    val elem:Elem =      <test>
+    val elem: Elem = <test>
       <!-- bla --></test>
     // @formatter:on
     val doc = PomModTest.document(elem)
@@ -1493,13 +1497,13 @@ class PomModTest extends AssertionsForJUnit {
     PomModTest.assertDocs(Seq(doc), Seq(Xpath.newDocument(value)))
     TestHelper.assertAssertionError(
       "expected:<<test>\n<!-- [bla] --></test>> but was:<<test>\n<!-- [invalid] --></test>>",
-      classOf[ComparisonFailure], () ⇒ {
+      classOf[ComparisonFailure], () => {
         PomModTest.assertDocs(Seq(doc), Seq(Xpath.newDocument("<test>\n  <!-- invalid --></test>")))
       })
     PomModTest.assertElems(Seq(elem), Seq(Xpath.newDocument(value)))
     TestHelper.assertAssertionError(
       "expected:<<test>\n<!-- [bla] --></test>> but was:<<test>\n<!-- [invalid] --></test>>",
-      classOf[ComparisonFailure], () ⇒ {
+      classOf[ComparisonFailure], () => {
         PomModTest.assertElems(Seq(elem), Seq(Xpath.newDocument("<test>\n  <!-- invalid --></test>")))
       })
   }
@@ -1521,14 +1525,14 @@ object PomModTest {
     assertBy(expected, actual, defstr)
   }
 
-  private def assertBy[L](expected: Seq[L], actual: Seq[L], fn: L ⇒ String) = {
+  private def assertBy[L](expected: Seq[L], actual: Seq[L], fn: L => String) = {
     Assert.assertEquals(expected.map(fn).mkString(",\n"), actual.map(fn).mkString(",\n"))
     Assert.assertEquals(expected, actual)
   }
 
   def depTreeMap(pomMod: PomMod): Map[String, Seq[String]] = {
-    pomMod.depTreeFileContents.map(entry ⇒ {
-      val erpLines = entry._2.content.linesIterator.filter(l ⇒ l.contains("anyshop-erp")).toList
+    pomMod.depTreeFileContents.toList.map(entry => {
+      val erpLines = entry._2.content.linesIterator.filter(l => l.contains("anyshop-erp")).toList
       val key = if (pomMod.file.getName == entry._1.getParentFile.getName) {
         entry._1.getName
       } else {
@@ -1557,7 +1561,7 @@ object PomModTest {
       if (treeFileContent != "") {
         PomMod.writeContent(new File(rootDir, "dep.tree"), treeFileContent)
       }
-      subs.foreach(in ⇒ {
+      subs.foreach(in => {
         val sub = new File(rootDir, in._1)
         sub.mkdir()
         PomMod.writePom(new File(sub, "pom.xml"), in._2)
@@ -1566,7 +1570,7 @@ object PomModTest {
         }
 
         if (in._4 != Nil) {
-          in._4.foreach(in ⇒ {
+          in._4.foreach(in => {
             val subsub = new File(sub, in._1)
             subsub.mkdir()
             PomMod.writePom(new File(subsub, "pom.xml"), in._2)
@@ -1587,7 +1591,7 @@ object PomModTest {
 
   def assertDocs(expected: Seq[Document], actual: Seq[Document]): Unit = {
     def fmt(tf: Seq[Document]): String = {
-      tf.map(PomMod.toString).map(in ⇒ in.linesIterator.map(_.trim()).mkString("\n")).mkString("\n---\n")
+      tf.map(PomMod.toString).map(in => in.linesIterator.map(_.trim()).mkString("\n")).mkString("\n---\n")
     }
 
     Assert.assertEquals(fmt(expected), fmt(actual))

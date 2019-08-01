@@ -25,11 +25,11 @@ object Starter extends App with LazyLogging {
   object TermOs {
 
     def select(term: String, os: String, simpleChars: Boolean) = term match {
-      case "xterm" ⇒ TermOs("xterm", os, simpleChars)
-      case "xterm-256color" ⇒ TermOs("xterm-256color", os, simpleChars)
-      case "screen-256color" ⇒ TermOs("screen-256color", os, simpleChars)
-      case "cygwin" ⇒ TermOs("cygwin", os, simpleChars)
-      case t ⇒ throw new IllegalStateException(t)
+      case "xterm" => TermOs("xterm", os, simpleChars)
+      case "xterm-256color" => TermOs("xterm-256color", os, simpleChars)
+      case "screen-256color" => TermOs("screen-256color", os, simpleChars)
+      case "cygwin" => TermOs("cygwin", os, simpleChars)
+      case t => throw new IllegalStateException(t)
     }
   }
 
@@ -41,32 +41,32 @@ object Starter extends App with LazyLogging {
   case class FutureError(msg: String, e: Exception)
 
   implicit class FutureEither[E, A](val wrapped: Future[Either[E, A]])(implicit ec: ExecutionContext) {
-    def map[B](f: A ⇒ B): FutureEither[E, B] = wrapped.map(_.map(f))
+    def map[B](f: A => B): FutureEither[E, B] = wrapped.map(_.map(f))
 
-    def flatMap[B](f: A ⇒ FutureEither[E, B]): FutureEither[E, B] = wrapped.flatMap {
-      case Left(s) ⇒ Future(Left(s))
-      case Right(a) ⇒ f(a).wrapped
+    def flatMap[B](f: A => FutureEither[E, B]): FutureEither[E, B] = wrapped.flatMap {
+      case Left(s) => Future(Left(s))
+      case Right(a) => f(a).wrapped
     }
   }
 
-  def futureOf[T](ec: ExecutionContext, fn: ⇒ T): FutureEither[FutureError, T] = {
+  def futureOf[T](ec: ExecutionContext, fn: => T): FutureEither[FutureError, T] = {
     new FutureEither[FutureError, T](Future {
       try {
         Right(fn)
       } catch {
-        case e: Exception ⇒ Left(FutureError(e.getMessage, e))
+        case e: Exception => Left(FutureError(e.getMessage, e))
       }
     }(ec))(ec)
   }
 
-  def suggestRebase(out: PrintStream, sgit: Sgit, branch: String, opts: Opts, in: BufferedReader = Console.in): () ⇒ Unit = {
+  def suggestRebase(out: PrintStream, sgit: Sgit, branch: String, opts: Opts, in: BufferedReader = Console.in): () => Unit = {
     logger.trace("ask for rebase")
     sgit.checkout(branch)
     chooseUpstreamIfUndef(out, sgit, branch, opts, in)
     if (sgit.isNotDetached) {
       val commintsBehindOrAhead = sgit.commitIds("@{upstream}", branch)
       if (commintsBehindOrAhead != Nil) {
-        () ⇒ {
+        () => {
           val upstreamCommit = sgit.commitId("@{upstream}")
           val upstreamName = sgit.findUpstreamBranch().get
           if (commintsBehindOrAhead.head == upstreamCommit) {
@@ -87,10 +87,10 @@ object Starter extends App with LazyLogging {
 
         }
       } else {
-        () ⇒ {}
+        () => {}
       }
     } else {
-      () ⇒ {}
+      () => {}
     }
   }
 
@@ -137,7 +137,7 @@ object Starter extends App with LazyLogging {
     }
 
     val gitFetchF = futureOf(global, {
-      val result = Tracer.msgAround("fetch git", logger, () ⇒ fetchGit(workDirFile))
+      val result = Tracer.msgAround("fetch git", logger, () => fetchGit(workDirFile))
       result
     })
 
@@ -163,22 +163,22 @@ object Starter extends App with LazyLogging {
 
     def toResult(implicit ec: ExecutionContext): FutureEither[FutureError, (Sgit, String)] = {
       val result: FutureEither[FutureError, (Sgit, String)] = for {
-        _ ← gitFetchStatusF
-        git ← gitFetchF
-        startBranch ← startBranchF
+        _ <- gitFetchStatusF
+        git <- gitFetchF
+        startBranch <- startBranchF
       } yield (git, startBranch)
       result
     }
 
-    val o = try {
+    val o:Either[FutureError, (Sgit, String)] = try {
       Await.result(toResult(global).wrapped, Duration.Inf)
     } catch {
-      case _: TimeoutException ⇒ throw new TimeoutException("git fetch failed")
+      case _: TimeoutException => throw new TimeoutException("git fetch failed")
     }
     if (o.isLeft) {
-      throw o.left.get.e
+      throw o.swap.getOrElse(null).e
     } else {
-      o.right.get
+      o.getOrElse(null)
     }
   }
 
@@ -188,14 +188,14 @@ object Starter extends App with LazyLogging {
 
   @tailrec
   def argsDepRead(params: Seq[String], inOpt: Opts): Opts = {
-    params.filter(in ⇒ in.trim.nonEmpty) match {
-      case Nil ⇒ inOpt
-      case "--help" :: tail ⇒ argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(showHelp = true)))
-      case "-h" :: tail ⇒ argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(showHelp = true)))
+    params.filter(in => in.trim.nonEmpty) match {
+      case Nil => inOpt
+      case "--help" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(showHelp = true)))
+      case "-h" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(showHelp = true)))
 
       // --
-      case string :: Nil ⇒ argsDepRead(Nil, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(invalids = inOpt.depUpOpts.invalids :+ string)))
-      case string :: tail ⇒ argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(invalids = inOpt.depUpOpts.invalids :+ string)))
+      case string :: Nil => argsDepRead(Nil, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(invalids = inOpt.depUpOpts.invalids :+ string)))
+      case string :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(invalids = inOpt.depUpOpts.invalids :+ string)))
     }
   }
 
@@ -207,32 +207,32 @@ object Starter extends App with LazyLogging {
 
   @tailrec
   def argsRead(params: Seq[String], inOpt: Opts): Opts = {
-    params.filter(in ⇒ in.trim.nonEmpty) match {
-      case Nil ⇒ inOpt
-      case "--simple-chars" :: tail ⇒ argsRead(tail, inOpt.copy(simpleChars = true))
-      case "--help" :: tail ⇒ argsRead(tail, inOpt.copy(showHelp = true))
-      case "-h" :: tail ⇒ argsRead(tail, inOpt.copy(showHelp = true))
-      case "--replace" :: tail ⇒ argsRead(tail, inOpt) // handled by shell
-      case "--show-update-cmd" :: tail ⇒ argsRead(tail, inOpt.copy(showUpdateCmd = true))
-      case "--no-gerrit" :: tail ⇒ argsRead(tail, inOpt.copy(useGerrit = false))
-      case "--no-update" :: tail ⇒ argsRead(tail, inOpt.copy(doUpdate = false))
-      case "--defaults" :: tail ⇒ argsRead(tail, inOpt.copy(useDefaults = true))
-      case "--no-jline" :: tail ⇒ argsRead(tail, inOpt.copy(useJlineInput = false))
-      case "--no-color" :: tail ⇒ argsRead(tail, inOpt.copy(colors = false))
-      case "--100" :: _ ⇒ throw new UnsupportedOperationException("major increment not implemented")
-      case "--010" :: _ ⇒ throw new UnsupportedOperationException("minor increment not implemented")
-      case "--001" :: _ ⇒ throw new UnsupportedOperationException("patch increment not implemented")
-      case "--demo-chars" :: _ ⇒ showDemoChars(inOpt)
-      case "--skip-property" :: value :: tail ⇒ argsRead(tail, inOpt.copy(skipProperties = inOpt.skipProperties ++ Seq(value)))
+    params.filter(in => in.trim.nonEmpty) match {
+      case Nil => inOpt
+      case "--simple-chars" :: tail => argsRead(tail, inOpt.copy(simpleChars = true))
+      case "--help" :: tail => argsRead(tail, inOpt.copy(showHelp = true))
+      case "-h" :: tail => argsRead(tail, inOpt.copy(showHelp = true))
+      case "--replace" :: tail => argsRead(tail, inOpt) // handled by shell
+      case "--show-update-cmd" :: tail => argsRead(tail, inOpt.copy(showUpdateCmd = true))
+      case "--no-gerrit" :: tail => argsRead(tail, inOpt.copy(useGerrit = false))
+      case "--no-update" :: tail => argsRead(tail, inOpt.copy(doUpdate = false))
+      case "--defaults" :: tail => argsRead(tail, inOpt.copy(useDefaults = true))
+      case "--no-jline" :: tail => argsRead(tail, inOpt.copy(useJlineInput = false))
+      case "--no-color" :: tail => argsRead(tail, inOpt.copy(colors = false))
+      case "--100" :: _ => throw new UnsupportedOperationException("major increment not implemented")
+      case "--010" :: _ => throw new UnsupportedOperationException("minor increment not implemented")
+      case "--001" :: _ => throw new UnsupportedOperationException("patch increment not implemented")
+      case "--demo-chars" :: _ => showDemoChars(inOpt)
+      case "--skip-property" :: value :: tail => argsRead(tail, inOpt.copy(skipProperties = inOpt.skipProperties ++ Seq(value)))
       // CMDs
-      case "versionSet" :: value :: _ ⇒ argsRead(Nil, inOpt.copy(versionSet = Some(value)))
-      case "shopGASet" :: value :: _ ⇒ argsRead(Nil, inOpt.copy(shopGA = Some(value)))
-      case "nothing-but-create-feature-branch" :: _ ⇒ argsRead(Nil, inOpt.copy(createFeature = true))
-      case "showDependencyUpdates" :: tail ⇒ argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(showDependencyUpdates = true)))
+      case "versionSet" :: value :: _ => argsRead(Nil, inOpt.copy(versionSet = Some(value)))
+      case "shopGASet" :: value :: _ => argsRead(Nil, inOpt.copy(shopGA = Some(value)))
+      case "nothing-but-create-feature-branch" :: _ => argsRead(Nil, inOpt.copy(createFeature = true))
+      case "showDependencyUpdates" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(showDependencyUpdates = true)))
 
       // --
-      case string :: Nil ⇒ argsRead(Nil, inOpt.copy(invalids = inOpt.invalids :+ string))
-      case string :: tail ⇒ argsRead(tail, inOpt.copy(invalids = inOpt.invalids :+ string))
+      case string :: Nil => argsRead(Nil, inOpt.copy(invalids = inOpt.invalids :+ string))
+      case string :: tail => argsRead(tail, inOpt.copy(invalids = inOpt.invalids :+ string))
     }
 
   }
@@ -339,23 +339,23 @@ object Starter extends App with LazyLogging {
     def handleException(t: Throwable): Int = {
       t match {
         case x@(_: Sgit.MissingCommitHookException | _: Sgit.MissingGitDirException | _: Sgit.TerminatedByCtrlCException |
-                _: PomChecker.ValidationException | _: PreconditionsException | _: Sgit.BranchAlreadyExistsException) ⇒ {
+                _: PomChecker.ValidationException | _: PreconditionsException | _: Sgit.BranchAlreadyExistsException) => {
           err.println()
           err.println("E: " + x.getMessage)
           1
         }
-        case x@(_: TimeoutException) ⇒ {
+        case x@(_: TimeoutException) => {
           err.println()
           err.println("E: User timeout: " + x.getMessage)
           1
         }
-        case x@(_: InvalidPomXmlException) ⇒ {
+        case x@(_: InvalidPomXmlException) => {
           err.println()
           err.println("E: " + x.getMessage)
           err.println("E: " + x.parent.getMessage)
           1
         }
-        case _ ⇒ {
+        case _ => {
           err.println()
           err.println(t)
           t.printStackTrace(err)
@@ -379,7 +379,7 @@ object Starter extends App with LazyLogging {
             val configRefs = activeGit.configGetLocalAllSeq("remote.origin.fetch")
             configRefs.filter(_.startsWith("refs/notes/"))
               .map(_.replaceAll("\\*", "\\\\*"))
-              .foreach(in ⇒ activeGit.configRemoveLocal("remote.origin.fetch", in))
+              .foreach(in => activeGit.configRemoveLocal("remote.origin.fetch", in))
           }
           activeGit.deleteRef("refs/notes/review")
         }
@@ -413,7 +413,7 @@ object Starter extends App with LazyLogging {
       val startBranch = gitAndBranchname._2
       val askForRebase = suggestRebase(out, git, startBranch, opts)
       logger.trace("readFromPrompt")
-      Tracer.withFn(logger, () ⇒ "local branches: " + git.listBranchNamesLocal())
+      Tracer.withFn(logger, () => "local branches: " + git.listBranchNamesLocal())
       if (versionSetMode) {
         Release.checkLocalChanges(git, startBranch)
         val mod = PomMod.of(workDirFile, err, opts)
@@ -439,7 +439,7 @@ object Starter extends App with LazyLogging {
 
       return 0
     } catch {
-      case t: Throwable ⇒ {
+      case t: Throwable => {
         return handleException(t)
       }
     }
@@ -454,7 +454,7 @@ object Starter extends App with LazyLogging {
       .map(_.replaceFirst(".git$", ""))
       .map(_.replaceAll("[/]", "-"))
       .map(_.toLowerCase)
-      .map(in ⇒ jenkinsBase + "/job/" + in + "-tag/")
+      .map(in => jenkinsBase + "/job/" + in + "-tag/")
   }
 
   def tagBuildUrl(git: Sgit, jenkinsBase: String): Option[String] = {
@@ -479,7 +479,7 @@ object Starter extends App with LazyLogging {
           response.close()
         }
       } catch {
-        case e: Exception ⇒ println("W: http problem: " + e.getClass.getCanonicalName + " => " + e.getMessage); None
+        case e: Exception => println("W: http problem: " + e.getClass.getCanonicalName + " => " + e.getMessage); None
       }
     } else {
       None
@@ -493,7 +493,7 @@ object Starter extends App with LazyLogging {
         Desktop.getDesktop.browse(new URI(url))
       }
     } catch {
-      case e: Exception ⇒ e.printStackTrace()
+      case e: Exception => e.printStackTrace()
     }
   }
 
@@ -518,14 +518,14 @@ object Starter extends App with LazyLogging {
     Util.hashSha1(LocalDateTime.now().toString)
   }
 
-  def addExitFn(msg: String, fn: () ⇒ Unit): Unit = {
-    Runtime.getRuntime.addShutdownHook(new Thread(() ⇒ {
+  def addExitFn(msg: String, fn: () => Unit): Unit = {
+    Runtime.getRuntime.addShutdownHook(new Thread(() => {
       fn.apply()
     }))
   }
 
   class PreconditionsException(msg: String) extends RuntimeException(msg)
 
-  System.exit(init(args, System.out, System.err))
+  System.exit(init(args.toIndexedSeq, System.out, System.err))
 
 }

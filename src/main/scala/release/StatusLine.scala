@@ -30,7 +30,7 @@ case class StatusLine(rawSteps: Int, width: Int, out: PrintStream = System.out) 
       }
     }
     val range = List.range(0, endOfLine)
-    range.map(_ ⇒ symbol).mkString
+    range.map(_ => symbol).mkString
   }
 
   private def updateLine(): Unit = {

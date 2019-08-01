@@ -4,7 +4,7 @@ import java.io.File
 
 import org.junit._
 import org.junit.rules.TemporaryFolder
-import org.scalatest.junit.AssertionsForJUnit
+import org.scalatestplus.junit.AssertionsForJUnit
 import redis.clients.jedis.Jedis
 
 class ReleaseConfigTest extends AssertionsForJUnit {
@@ -29,13 +29,13 @@ class ReleaseConfigTest extends AssertionsForJUnit {
   @Test
   def testParseConfig(): Unit = {
     Assert.assertEquals(Map.empty, ReleaseConfig.parseConfig(""))
-    Assert.assertEquals(Map("e" → ""), ReleaseConfig.parseConfig("e"))
-    Assert.assertEquals(Map("a" → "b"), ReleaseConfig.parseConfig("""a=b"""))
-    Assert.assertEquals(Map("a" → "b "), ReleaseConfig.parseConfig(""" a = b """))
-    Assert.assertEquals(Map("a" → "\" b \""), ReleaseConfig.parseConfig(""" a =" b """"))
-    Assert.assertEquals(Map("a" → "a:b"), ReleaseConfig.parseConfig(""" a =a:b"""))
-    Assert.assertEquals(Map("a" → "a:b"), ReleaseConfig.parseConfig(""" a =a\:b"""))
-    Assert.assertEquals(Map("a.b.c" → "Test <test-@ö> "), ReleaseConfig.parseConfig(""" a.b.c = Test <test-@ö> """))
+    Assert.assertEquals(Map("e" -> ""), ReleaseConfig.parseConfig("e"))
+    Assert.assertEquals(Map("a" -> "b"), ReleaseConfig.parseConfig("""a=b"""))
+    Assert.assertEquals(Map("a" -> "b "), ReleaseConfig.parseConfig(""" a = b """))
+    Assert.assertEquals(Map("a" -> "\" b \""), ReleaseConfig.parseConfig(""" a =" b """"))
+    Assert.assertEquals(Map("a" -> "a:b"), ReleaseConfig.parseConfig(""" a =a:b"""))
+    Assert.assertEquals(Map("a" -> "a:b"), ReleaseConfig.parseConfig(""" a =a\:b"""))
+    Assert.assertEquals(Map("a.b.c" -> "Test <test-@ö> "), ReleaseConfig.parseConfig(""" a.b.c = Test <test-@ö> """))
   }
 
   @Test
@@ -57,7 +57,7 @@ class ReleaseConfigTest extends AssertionsForJUnit {
 
       println(value)
     } catch {
-      case e: Throwable ⇒ println("E: " + e.getMessage)
+      case e: Throwable => println("E: " + e.getMessage)
     }
   }
 }

@@ -86,15 +86,15 @@ object ReleaseConfig extends LazyLogging {
   private val keyNexusMirrorUrl = "ishop-release.nexus.mirror.url"
 
   private val defaults: Map[String, String] = Map(
-    keyJenkinsBase → "https://jenkins",
-    keyGerritUrl → "https://gerrit/",
-    keyGerritHostname → "gerrit",
-    keyGerritPort → "29418",
-    keyGerritSignedOfBy → "Ishop Release <release@example.org>",
-    keyReleasePrefix → "release",
-    keyBranchPrefix → "branch",
-    keyNexusWorkUrl → "https://nexus-work/",
-    keyNexusMirrorUrl → "https://nexus-mirror/"
+    keyJenkinsBase -> "https://jenkins",
+    keyGerritUrl -> "https://gerrit/",
+    keyGerritHostname -> "gerrit",
+    keyGerritPort -> "29418",
+    keyGerritSignedOfBy -> "Ishop Release <release@example.org>",
+    keyReleasePrefix -> "release",
+    keyBranchPrefix -> "branch",
+    keyNexusWorkUrl -> Aether.centralUrl, // "https://nexus-work/"
+    keyNexusMirrorUrl -> Aether.centralUrl //"https://nexus-mirror/"
   )
 
   def parseConfig(str: String): Map[String, String] = {
@@ -102,9 +102,9 @@ object ReleaseConfig extends LazyLogging {
       val properties = new Properties()
       properties.load(new ByteArrayInputStream(str.getBytes(StandardCharsets.ISO_8859_1)))
       val entries: Set[Entry[String, String]] = Util.toSet(properties.entrySet()).asInstanceOf[Set[Entry[String, String]]]
-      entries.foldLeft(Map.empty[String, String])((a, b) ⇒ a ++ Map(b.getKey → b.getValue))
+      entries.foldLeft(Map.empty[String, String])((a, b) => a ++ Map(b.getKey -> b.getValue))
     } catch {
-      case e: Exception ⇒ {
+      case e: Exception => {
         logger.warn("invalid config")
         Map.empty
       }
@@ -115,10 +115,10 @@ object ReleaseConfig extends LazyLogging {
   private def writeConfig(file: File, map: Map[String, String]): Unit = {
     try {
       val properties = new Properties()
-      map.foreach(t ⇒ properties.put(t._1, t._2))
+      map.foreach(t => properties.put(t._1, t._2))
       properties.store(new FileOutputStream(file), "")
     } catch {
-      case e: Exception ⇒ {
+      case e: Exception => {
         logger.warn("invalid config")
         Map.empty
       }
@@ -130,7 +130,7 @@ object ReleaseConfig extends LazyLogging {
       val configText = Source.fromFile(file).mkString
       parseConfig(configText)
     } catch {
-      case e: Exception ⇒ {
+      case e: Exception => {
         logger.warn("invalid config from file")
         Map.empty
       }
@@ -150,7 +150,7 @@ object ReleaseConfig extends LazyLogging {
       val remoteConfigText = EntityUtils.toString(response.getEntity)
       parseConfig(remoteConfigText)
     } catch {
-      case e: Exception ⇒ {
+      case e: Exception => {
         // TODO debug
         Map.empty
       }
@@ -174,7 +174,7 @@ object ReleaseConfig extends LazyLogging {
       }
       val work = if (localConfig == Map.empty || refresh) {
         val rc = remoteConfig(removeConfigUrl)
-        Util.handleWindowsFilesystem { _ ⇒
+        Util.handleWindowsFilesystem { _ =>
           defaultUpdateFile.delete()
           defaultUpdateFile.createNewFile()
         }

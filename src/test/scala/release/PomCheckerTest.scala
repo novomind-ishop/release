@@ -1,7 +1,7 @@
 package release
 
 import org.junit.Test
-import org.scalatest.junit.AssertionsForJUnit
+import org.scalatestplus.junit.AssertionsForJUnit
 import release.ProjectMod.{PluginDep, PluginExec, PomRef}
 
 class PomCheckerTest extends AssertionsForJUnit {
@@ -16,7 +16,7 @@ class PomCheckerTest extends AssertionsForJUnit {
     // WHEN / THEN
     TestHelper.assertException("please add \"check-for-changes-before\" to your ishop maven plugin",
       classOf[PomChecker.ValidationException],
-      () ⇒ PomChecker.checkIshopMaven(deps))
+      () => PomChecker.checkIshopMaven(deps))
   }
 
   @Test
@@ -29,7 +29,7 @@ class PomCheckerTest extends AssertionsForJUnit {
     // WHEN / THEN
     TestHelper.assertException("please add \"check-for-changes-package\" to your ishop maven plugin",
       classOf[PomChecker.ValidationException],
-      () ⇒ PomChecker.checkIshopMaven(deps))
+      () => PomChecker.checkIshopMaven(deps))
   }
 
   @Test
@@ -80,7 +80,7 @@ class PomCheckerTest extends AssertionsForJUnit {
 
     // WHEN / THEN
     TestHelper.assertException("c.n.i.s:n-any:0.0.1-SNAPSHOT:jar - a single execution section for ishop maven plugin " +
-      "please required. Input is Nil.", classOf[IllegalArgumentException], () ⇒ PomChecker.checkIshopMaven(deps))
+      "please required. Input is Nil.", classOf[IllegalArgumentException], () => PomChecker.checkIshopMaven(deps))
   }
 
   @Test
@@ -94,7 +94,7 @@ class PomCheckerTest extends AssertionsForJUnit {
     // WHEN / THEN
     TestHelper.assertException("please check your pom.xml's and move your ishop-maven-plugin to project/build/plugins/plugin " +
             "your path is project/profiles/profile/build/plugins/plugin",
-      classOf[PomChecker.ValidationException], () ⇒ PomChecker.checkIshopMaven(deps))
+      classOf[PomChecker.ValidationException], () => PomChecker.checkIshopMaven(deps))
   }
 
   @Test
@@ -111,7 +111,7 @@ class PomCheckerTest extends AssertionsForJUnit {
     // WHEN / THEN
     TestHelper.assertException("Please check your pom.xml's. The maven-dependency-plugin execution with id " +
       "pre-build-validate-any has no configuration-element or the outputFile-tag contains slashes",
-      classOf[PomChecker.ValidationException], () ⇒ PomChecker.check(deps))
+      classOf[PomChecker.ValidationException], () => PomChecker.check(deps))
   }
 
   @Test
@@ -127,7 +127,7 @@ class PomCheckerTest extends AssertionsForJUnit {
 
     // WHEN / THEN
     TestHelper.assertException("maven-dependency-plugin goals tree, list must be executed on phase \"validate\"",
-      classOf[PomChecker.ValidationException], () ⇒ PomChecker.check(deps))
+      classOf[PomChecker.ValidationException], () => PomChecker.check(deps))
   }
 
   @Test
@@ -143,7 +143,7 @@ class PomCheckerTest extends AssertionsForJUnit {
     // WHEN / THEN
     TestHelper.assertException("Please check your pom.xml's. The maven-dependency-plugin execution with id " +
       "pre-build-validate-tree has no configuration-element or the outputFile-tag contains slashes",
-      classOf[PomChecker.ValidationException], () ⇒ PomChecker.check(deps))
+      classOf[PomChecker.ValidationException], () => PomChecker.check(deps))
   }
 
   @Test
@@ -156,7 +156,7 @@ class PomCheckerTest extends AssertionsForJUnit {
 
     // WHEN / THEN
     TestHelper.assertException("please add at least one execution to you maven-dependency-plugin",
-      classOf[PomChecker.ValidationException], () ⇒ PomChecker.check(deps))
+      classOf[PomChecker.ValidationException], () => PomChecker.check(deps))
   }
 
   @Test
@@ -190,7 +190,7 @@ class PomCheckerTest extends AssertionsForJUnit {
     // WHEN / THEN
     TestHelper.assertException("please check your pom.xml's and move your maven-dependency-plugin to project/build/plugins/plugin " +
             "your path is project/profiles/profile/build/plugins/plugin",
-      classOf[PomChecker.ValidationException], () ⇒ PomChecker.check(deps))
+      classOf[PomChecker.ValidationException], () => PomChecker.check(deps))
 
   }
 }

@@ -26,11 +26,12 @@ import org.eclipse.aether.{DefaultRepositorySystemSession, RepositorySystem}
 import release.Aether.getVersions
 import release.Starter.Opts
 
-import scala.collection.JavaConverters
-import scala.util.Random
+import scala.jdk.CollectionConverters._
+
 
 class Aether(opts: Opts) extends LazyLogging {
-  lazy val newRepositoriesCentral: RemoteRepository = Aether.newDefaultRepository("http://central.maven.org/maven2/")
+
+  lazy val newRepositoriesCentral: RemoteRepository = Aether.newDefaultRepository(Aether.centralUrl)
 
   lazy val mirrorNexus: RemoteRepository = Aether.newDefaultRepository(ReleaseConfig.default(opts.useDefaults).mirrorNexusUrl())
 
@@ -40,7 +41,7 @@ class Aether(opts: Opts) extends LazyLogging {
 
   private def getVersionsOf(req: String) = getVersions(workNexus)(req)
 
-  private[release] def isReachable: Boolean = {
+  private[release] def isReachable(showTrace: Boolean = true): Boolean = {
     val httpclient = HttpClients.createDefault
     val httpGet = new HttpGet(workNexus.getUrl)
     var response: CloseableHttpResponse = null
@@ -49,7 +50,12 @@ class Aether(opts: Opts) extends LazyLogging {
       response = httpclient.execute(httpGet)
       response.getStatusLine.getStatusCode
     } catch {
-      case any: Throwable ⇒ any.printStackTrace(); return false
+      case any: Throwable => {
+        if (showTrace) {
+          any.printStackTrace()
+        }
+        return false
+      }
     } finally {
       if (response != null) {
         response.close()
@@ -76,6 +82,8 @@ class Aether(opts: Opts) extends LazyLogging {
 object Aether extends LazyLogging {
   logger.debug("init aether to suppress replayed slf4j logging - See also http://www.slf4j.org/codes.html#replay")
 
+  val centralUrl = "http://central.maven.org/maven2/"
+
   def newDefaultRepository(url: String) = new RemoteRepository.Builder("central", "default", url).build
 
   @throws[VersionRangeResolutionException]
@@ -87,7 +95,7 @@ object Aether extends LazyLogging {
     rangeRequest.setArtifact(artifact)
     rangeRequest.setRepositories(Util.toJavaList(Seq(repository)))
     val rangeResult = system.resolveVersionRange(session, rangeRequest)
-    JavaConverters.asScalaBuffer(rangeResult.getVersions).toList
+    rangeResult.getVersions.asScala.toList
   }
 
   private class ManualRepositorySystemFactory {
@@ -101,9 +109,12 @@ object Aether extends LazyLogging {
       locator.addService(classOf[TransporterFactory], classOf[FileTransporterFactory])
       locator.addService(classOf[TransporterFactory], classOf[HttpTransporterFactory])
       locator.setErrorHandler(new DefaultServiceLocator.ErrorHandler() {
-        override def serviceCreationFailed(`type`: Class[_], impl: Class[_], exception: Throwable) {
-          if (exception.isInstanceOf[ArtifactNotFoundException]) System.err.println(classOf[ManualRepositorySystemFactory].getCanonicalName + " -> " + exception.getMessage)
-          else exception.printStackTrace()
+        override def serviceCreationFailed(`type`: Class[_], impl: Class[_], exception: Throwable): Unit = {
+          if (exception.isInstanceOf[ArtifactNotFoundException]) {
+            System.err.println(classOf[ManualRepositorySystemFactory].getCanonicalName + " -> " + exception.getMessage)
+          } else {
+            exception.printStackTrace()
+          }
         }
       })
       locator.getService(classOf[RepositorySystem])
@@ -118,7 +129,7 @@ object Aether extends LazyLogging {
     def newRepositorySystemSession(system: RepositorySystem): DefaultRepositorySystemSession =
       newRepositorySystemSession(system, silent = true)
 
-    private def delete(path: Path) {
+    private def delete(path: Path): Unit = {
       try
         Files.walkFileTree(path, new FileVisitor[Path]() {
           @throws[IOException]
@@ -146,7 +157,7 @@ object Aether extends LazyLogging {
         })
 
       catch {
-        case e: IOException ⇒ {
+        case e: IOException => {
           e.printStackTrace()
         }
       }
@@ -154,9 +165,7 @@ object Aether extends LazyLogging {
 
     private def newRepositorySystemSession(system: RepositorySystem, silent: Boolean): DefaultRepositorySystemSession = {
       val session = MavenRepositorySystemUtils.newSession
-      val now = Util.hashMd5(Random.nextLong() + "")
-
-      val localRepo = new LocalRepository("target/local-repo/" + now)
+      val localRepo = new LocalRepository("target/local-repo/" + Util.hashMd5Random())
       localRepo.getBasedir.getAbsoluteFile.getParentFile.mkdir()
       localRepo.getBasedir.getAbsoluteFile.mkdir()
       delete(localRepo.getBasedir.getAbsoluteFile.toPath)
@@ -180,7 +189,7 @@ object Aether extends LazyLogging {
     private val downloads = new ConcurrentHashMap[TransferResource, Long]
     private var lastLength = 0
 
-    override def transferInitiated(event: TransferEvent) {
+    override def transferInitiated(event: TransferEvent): Unit = {
       val message = if (event.getRequestType eq TransferEvent.RequestType.PUT) {
         "Uploading"
       } else {
@@ -189,11 +198,11 @@ object Aether extends LazyLogging {
       out.println(message + ": " + event.getResource.getRepositoryUrl + event.getResource.getResourceName)
     }
 
-    override def transferProgressed(event: TransferEvent) {
+    override def transferProgressed(event: TransferEvent): Unit = {
       val resource = event.getResource
       downloads.put(resource, event.getTransferredBytes)
       val buffer = new StringBuilder(64)
-      for (entry <- JavaConverters.mapAsScalaMap(downloads)) {
+      for (entry <- downloads.asScala) {
         val total = entry._1.getContentLength
         val complete = entry._2.longValue
         buffer.append(getStatus(complete, total)).append("  ")
@@ -205,11 +214,11 @@ object Aether extends LazyLogging {
       out.print(buffer)
     }
 
-    override def transferCorrupted(event: TransferEvent) {
+    override def transferCorrupted(event: TransferEvent): Unit = {
       event.getException.printStackTrace(out)
     }
 
-    override def transferSucceeded(event: TransferEvent) {
+    override def transferSucceeded(event: TransferEvent): Unit = {
       transferCompleted(event)
       val resource = event.getResource
       val contentLength = event.getTransferredBytes
@@ -219,8 +228,11 @@ object Aether extends LazyLogging {
         } else {
           "Downloaded"
         }
-        val len = if (contentLength >= 1024) toKB(contentLength) + " KB"
-        else contentLength + " B"
+        val len = if (contentLength >= 1024) {
+          s"${toKB(contentLength)} KB"
+        } else {
+          s"${contentLength} B"
+        }
         var throughput = ""
         val duration = System.currentTimeMillis - resource.getTransferStartTime
         if (duration > 0) {
@@ -233,7 +245,7 @@ object Aether extends LazyLogging {
       }
     }
 
-    override def transferFailed(event: TransferEvent) {
+    override def transferFailed(event: TransferEvent): Unit = {
       transferCompleted(event)
       if (logStacktrace(event)) {
         event.getException.printStackTrace(out)
@@ -246,12 +258,17 @@ object Aether extends LazyLogging {
       else true
     }
 
-    private def getStatus(complete: Long, total: Long) = if (total >= 1024) toKB(complete) + "/" + toKB(total) + " KB "
-    else if (total >= 0) complete + "/" + total + " B "
-    else if (complete >= 1024) toKB(complete) + " KB "
-    else complete + " B "
+    private def getStatus(complete: Long, total: Long): String = if (total >= 1024) {
+      s"${toKB(complete)} / ${toKB(total)} KB "
+    } else if (total >= 0) {
+      s"$complete / $total B "
+    } else if (complete >= 1024) {
+      s"${toKB(complete)} KB "
+    } else {
+      s"$complete B "
+    }
 
-    private def pad(buffer: StringBuilder, _spaces: Int) {
+    private def pad(buffer: StringBuilder, _spaces: Int): Unit = {
       var spaces = _spaces
       val block = "                                        "
       while (spaces > 0) {
@@ -261,7 +278,7 @@ object Aether extends LazyLogging {
       }
     }
 
-    private def transferCompleted(event: TransferEvent) {
+    private def transferCompleted(event: TransferEvent): Unit = {
       downloads.remove(event.getResource)
       val buffer: StringBuilder = new StringBuilder(64)
       pad(buffer, lastLength)

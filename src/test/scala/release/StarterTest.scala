@@ -13,11 +13,10 @@ import com.typesafe.scalalogging.LazyLogging
 import org.junit.rules.Timeout
 import org.junit.{Assert, Ignore, Rule, Test}
 import org.mockito.MockitoSugar
-import org.scalatest.junit.AssertionsForJUnit
+import org.scalatestplus.junit.AssertionsForJUnit
 import release.Sgit.GitRemote
 import release.Starter.{FutureEither, FutureError, Opts, OptsDepUp}
 
-import scala.collection.JavaConverters
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 
@@ -29,7 +28,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
 
   def doInit(params: Seq[String]): ExecReturn = {
 
-    val result = StarterTest.withOutErr[Int]((out, err) ⇒ Starter.init(params, out, err))
+    val result = StarterTest.withOutErr[Int]((out, err) => Starter.init(params, out, err))
     ExecReturn(result.out, result.err, result.value)
   }
 
@@ -122,10 +121,10 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
 
     // WHEN
     val in = StarterTest.willReadFrom("master\n")
-    TestHelper.assertExceptionWithCheck(in ⇒ Assert.assertEquals("E: please download a commit-message hook and retry",
+    TestHelper.assertExceptionWithCheck(in => Assert.assertEquals("E: please download a commit-message hook and retry",
       in.linesIterator.toSeq(1)),
-      classOf[Sgit.MissingCommitHookException], () ⇒ {
-        StarterTest.withOutErr[Unit]((out, err) ⇒ Starter.fetchGitAndAskForBranch(out, err, noVerify = true, None, testRepoD, in, Opts()))
+      classOf[Sgit.MissingCommitHookException], () => {
+        StarterTest.withOutErr[Unit]((out, err) => Starter.fetchGitAndAskForBranch(out, err, noVerify = true, None, testRepoD, in, Opts()))
       })
   }
 
@@ -135,7 +134,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
     SgitTest.copyMsgHook(testRepoD)
     // WHEN
     val in = StarterTest.willReadFrom("master\n")
-    val result = StarterTest.withOutErr[Unit]((out, err) ⇒ Starter.fetchGitAndAskForBranch(out, err,
+    val result = StarterTest.withOutErr[Unit]((out, err) => Starter.fetchGitAndAskForBranch(out, err,
       noVerify = SgitTest.hasCommitMsg, None, testRepoD, in, Opts(useJlineInput = false)))
 
     // THEN
@@ -148,7 +147,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
     val testRepoD = testRepo(SgitTest.ensureAbsent("g"), SgitTest.ensureAbsent("h"))
     // WHEN
     val in = StarterTest.willReadFrom("master\n")
-    val result = StarterTest.withOutErr[Unit]((out, err) ⇒ Starter.fetchGitAndAskForBranch(out, err, noVerify = false,
+    val result = StarterTest.withOutErr[Unit]((out, err) => Starter.fetchGitAndAskForBranch(out, err, noVerify = false,
       None, testRepoD, in, Opts(useJlineInput = false)))
 
     // THEN
@@ -256,7 +255,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
     doTest(new File("src/main/resources/logback.xml"))
     doTest(new File("src/test/resources/logback-test.xml"))
 
-    def doTest(logbackFile:File): Unit = {
+    def doTest(logbackFile: File): Unit = {
       val context: LoggerContext = new LoggerContext
       val configurator: GenericConfigurator = new JoranConfigurator
       configurator.setContext(context)
@@ -264,7 +263,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
 
       val sm = context.getStatusManager.asInstanceOf[BasicStatusManager]
       if (sm.getLevel != Status.INFO) {
-        val statuses: Seq[Status] = JavaConverters.asScalaBuffer(sm.getCopyOfStatusList).toList
+        val statuses: Seq[Status] = Util.toSeq(sm.getCopyOfStatusList)
         val errorMsgs = statuses.filter(_.getLevel != Status.INFO)
         if (errorMsgs != Nil) {
           val allStatuses: String = errorMsgs.mkString("\n")
@@ -343,17 +342,17 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
 
     def toResult(implicit ec: ExecutionContext): FutureEither[FutureError, (Int, Boolean)] = {
       val result: FutureEither[FutureError, (Int, Boolean)] = for {
-        a ← s
-        b ← s2
+        a <- s
+        b <- s2
       } yield (a, b)
       result
     }
 
     try {
       val v: Either[FutureError, (Int, Boolean)] = Await.result(toResult(global).wrapped, Duration.create(10, TimeUnit.MINUTES))
-      Assert.assertEquals((7, true), v.right.get)
+      Assert.assertEquals((7, true), v.getOrElse(null))
     } catch {
-      case _: TimeoutException ⇒ throw new TimeoutException("git fetch failed")
+      case _: TimeoutException => throw new TimeoutException("git fetch failed")
     }
 
   }
@@ -381,7 +380,7 @@ object StarterTest {
 
   def normalize(in: ByteArrayOutputStream): String = in.toString.trim.replaceAll("\r\n", "\n")
 
-  def withOutErr[T](fn: (PrintStream, PrintStream) ⇒ T): OutErr[T] = {
+  def withOutErr[T](fn: (PrintStream, PrintStream) => T): OutErr[T] = {
     val out: ByteArrayOutputStream = new ByteArrayOutputStream
     val err: ByteArrayOutputStream = new ByteArrayOutputStream
     val x = fn.apply(new PrintStream(out), new PrintStream(err))

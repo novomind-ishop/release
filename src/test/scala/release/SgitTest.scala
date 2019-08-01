@@ -4,7 +4,7 @@ import java.io.File
 import java.nio.file.{Files, StandardCopyOption}
 
 import org.junit.{Assert, Assume, Test}
-import org.scalatest.junit.AssertionsForJUnit
+import org.scalatestplus.junit.AssertionsForJUnit
 import release.Sgit.{GitRemote, MissingGitDirException, Os}
 import release.SgitTest.hasCommitMsg
 import release.Starter.{Opts, PreconditionsException}
@@ -12,29 +12,34 @@ import release.Starter.{Opts, PreconditionsException}
 class SgitTest extends AssertionsForJUnit {
 
   @Test
+  def testSplitLineOnWhitespace: Unit = {
+    Assert.assertEquals(Seq("a", "b"), Sgit.splitLineOnWhitespace("a b"))
+  }
+
+  @Test
   def testSelectGitCmd(): Unit = {
     val git = Sgit.selectedGitCmd(System.err, None)
 
     Sgit.getOs match {
-      case Os.Windows ⇒ {
+      case Os.Windows => {
         Assert.assertEquals(Seq("C:\\Programme\\Git\\bin\\git.exe"), git)
       }
-      case Os.Linux ⇒ {
+      case Os.Linux => {
         Assert.assertEquals(Seq("git"), git)
       }
-      case Os.Darwin ⇒ {
+      case Os.Darwin => {
         Assert.assertEquals(Seq("git"), git)
       }
-      case other ⇒ Assert.fail("unknown os: " + other + " => " + git)
+      case other => Assert.fail("unknown os: " + other + " => " + git)
     }
   }
 
   @Test
   def testMissingGitDir(): Unit = {
 
-    TestHelper.assertExceptionWithCheck(message ⇒ Assert.assertEquals("no .git dir in sgit-test was found",
+    TestHelper.assertExceptionWithCheck(message => Assert.assertEquals("no .git dir in sgit-test was found",
       message.replaceFirst("[^ ]+sgit-test-[^ ]+", "sgit-test"))
-      , classOf[MissingGitDirException], () ⇒ {
+      , classOf[MissingGitDirException], () => {
         val temp = Files.createTempDirectory("sgit-test-").toFile.getAbsoluteFile
         temp.deleteOnExit()
         Sgit(file = temp, doVerify = hasCommitMsg, out = System.out, err = System.err, gitBin = None, opts = Opts())
@@ -146,7 +151,7 @@ class SgitTest extends AssertionsForJUnit {
     var err: Seq[String] = Seq.empty[String]
     var out: Seq[String] = Seq.empty[String]
     val testee = Sgit.outLogger(syserrErrors = true, Seq("fetch"),
-      in ⇒ err = err :+ in, in ⇒ out = out :+ in, in ⇒ Some(in))
+      in => err = err :+ in, in => out = out :+ in, in => Some(in))
 
     // WHEN
     testee.err("any")
@@ -160,7 +165,7 @@ class SgitTest extends AssertionsForJUnit {
     var err: Seq[String] = Seq.empty[String]
     var out: Seq[String] = Seq.empty[String]
     val testee = Sgit.outLogger(syserrErrors = true, Seq("fetch"),
-      in ⇒ err = err :+ in, in ⇒ out = out :+ in, Sgit.fetchFilter)
+      in => err = err :+ in, in => out = out :+ in, Sgit.fetchFilter)
 
     // WHEN
     testee.err("Total 31 (delta 0), reused 0 (delta 0)")
@@ -175,7 +180,7 @@ class SgitTest extends AssertionsForJUnit {
     var err: Seq[String] = Seq.empty[String]
     var out: Seq[String] = Seq.empty[String]
     val testee = Sgit.outLogger(syserrErrors = true, Seq("push"),
-      in ⇒ err = err :+ in, in ⇒ out = out :+ in, Sgit.gerritPushFilter)
+      in => err = err :+ in, in => out = out :+ in, Sgit.gerritPushFilter)
 
     // WHEN
     testee.err("remote: ")
@@ -202,7 +207,7 @@ class SgitTest extends AssertionsForJUnit {
     var err: Seq[String] = Seq.empty[String]
     var out: Seq[String] = Seq.empty[String]
     val testee = Sgit.outLogger(syserrErrors = true, Seq("push"),
-      in ⇒ err = err :+ in, in ⇒ out = out :+ in, Sgit.gerritPushFilter)
+      in => err = err :+ in, in => out = out :+ in, Sgit.gerritPushFilter)
 
     // WHEN
     testee.err("remote: ")
@@ -256,13 +261,13 @@ class SgitTest extends AssertionsForJUnit {
   def testGitNative(): Unit = {
     TestHelper.assertException("Nonzero exit value: 1; git --no-pager iutghiprjhpeth; " +
       "git: 'iutghiprjhpeth' is not a git command. See 'git --help'.",
-      classOf[RuntimeException], () ⇒ {
+      classOf[RuntimeException], () => {
         SgitTest.workSgit().gitNative(Seq("iutghiprjhpeth"))
       })
 
   }
 
-  private def testFailIllegal(expectedMsg: String, fn: () ⇒ Unit): Unit = {
+  private def testFailIllegal(expectedMsg: String, fn: () => Unit): Unit = {
     TestHelper.assertException(expectedMsg, classOf[IllegalStateException], fn)
   }
 
@@ -278,7 +283,7 @@ class SgitTest extends AssertionsForJUnit {
     TestHelper.assertException("Nonzero exit value: 1; git --no-pager push -q -u origin master:refs/for/master; " +
       "git-err: 'error: src refspec master does not match any.' " +
       "git-err: 'error: failed to push some refs to 'origin''",
-      classOf[RuntimeException], () ⇒ {
+      classOf[RuntimeException], () => {
         gitA.pushFor("master", "master")
       })
 
@@ -289,13 +294,13 @@ class SgitTest extends AssertionsForJUnit {
       "git --no-pager fetch -q --all --tags; fatal: 'failfail' does not appear to be a git repository " +
       "fatal: Could not read from remote repository. Please make sure you have the correct access rights " +
       "and the repository exists. error: Could not fetch ubglu",
-      classOf[RuntimeException], () ⇒ {
+      classOf[RuntimeException], () => {
         gitA.fetchAll()
       })
     TestHelper.assertException("Nonzero exit value: 1; git --no-pager push -q -u origin master:refs/heads/master; " +
       "git-err: 'error: src refspec master does not match any.' " +
       "git-err: 'error: failed to push some refs to 'origin''",
-      classOf[RuntimeException], () ⇒ {
+      classOf[RuntimeException], () => {
         gitA.pushHeads("master", "master")
       })
 
@@ -306,31 +311,33 @@ class SgitTest extends AssertionsForJUnit {
 
     def failFetchAll(msg: String): Unit = {
       TestHelper.assertException(msg,
-        classOf[RuntimeException], () ⇒ {
+        classOf[RuntimeException], () => {
           gitA.fetchAll()
         })
     }
 
     Sgit.getOs match {
-      case Os.Windows ⇒ {
+        // TODO maybe a git version change von 2.19 to 2.21
+        //   failed: expected:<...r does not match any[.]' git-err: 'error: f...> but was:<...r does not match any[]' git-err: 'error: f...>
+      case Os.Windows => {
         failFetchAll("Nonzero exit value: 1; git --no-pager fetch -q --all --tags; " +
           "ssh: Could not resolve hostname git.example.org: Name or service not known fatal: " +
           "Could not read from remote repository. " +
           "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu")
       }
-      case Os.Linux ⇒ {
+      case Os.Linux => {
         failFetchAll("Nonzero exit value: 1; git --no-pager fetch -q --all --tags; " +
           "ssh: Could not resolve hostname git.example.org: Name or service not known fatal: " +
           "Could not read from remote repository. " +
           "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu")
       }
-      case Os.Darwin ⇒ {
+      case Os.Darwin => {
         failFetchAll("Nonzero exit value: 1; git --no-pager fetch -q --all --tags; " +
           "ssh: Could not resolve hostname git.example.org: nodename nor servname provided, or not known fatal: " +
           "Could not read from remote repository. " +
           "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu")
       }
-      case other ⇒ Assert.fail("unknown os: " + other)
+      case other => Assert.fail("unknown os: " + other)
     }
 
     gitA.removeRemote("ubglu")
@@ -387,10 +394,10 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(Seq("This reverts commit ..."),
       gitB.commitMessageBody("HEAD").map(_.replaceFirst("[0-9a-f]{40}.$", "...")))
     gitB.revertHead()
-    TestHelper.assertExceptionWithCheck(message ⇒
+    TestHelper.assertExceptionWithCheck(message =>
       Assert.assertEquals("The commits 000, 000 has no ChangeId lines. Please amend them manually.",
         message.replaceAll("[0-9a-f]{40}", "000"))
-      , classOf[PreconditionsException], () ⇒ {
+      , classOf[PreconditionsException], () => {
         gitB.pushFor("master", "master")
       })
     gitB.resetHard(beforeReverts)
@@ -413,18 +420,18 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(Seq("?? pom.xml", "?? sub/"), gitB.localChanges())
     gitB.add(pomFile)
     Assert.assertEquals(Seq("A pom.xml", "?? sub/"), gitB.localChanges())
-    testFailIllegal("only (pom.xml) changes are allowed => A pom.xml, ?? sub/ => sub/ <= pom.xml, sub/", () ⇒ {
+    testFailIllegal("only (pom.xml) changes are allowed => A pom.xml, ?? sub/ => sub/ <= pom.xml, sub/", () => {
       gitB.localPomChanges()
     })
     val anyFile = SgitTest.testFile(testRepoB, "any.xml")
 
     Assert.assertEquals(Seq("A pom.xml", "?? any.xml", "?? sub/"), gitB.localChanges())
 
-    testFailIllegal("only (pom.xml) changes are allowed => A pom.xml, ?? any.xml, ?? sub/ => any.xml, sub/ <= any.xml, pom.xml, sub/", () ⇒ {
+    testFailIllegal("only (pom.xml) changes are allowed => A pom.xml, ?? any.xml, ?? sub/ => any.xml, sub/ <= any.xml, pom.xml, sub/", () => {
       gitB.doCommitPomXmls("fail")
     })
 
-    testFailIllegal("only (any.xml, pom.xml) changes are allowed => A pom.xml, ?? any.xml, ?? sub/ => sub/ <= any.xml, pom.xml, sub/", () ⇒ {
+    testFailIllegal("only (any.xml, pom.xml) changes are allowed => A pom.xml, ?? any.xml, ?? sub/ => sub/ <= any.xml, pom.xml, sub/", () => {
       gitB.doCommitWithFilter("fail", Seq("pom.xml", "any.xml"))
     })
 
@@ -479,7 +486,7 @@ class SgitTest extends AssertionsForJUnit {
     gitB.createBranch("feature/test")
     Assert.assertEquals(Seq("feature/test", "master"), gitB.listBranchNamesLocal())
     gitB.deleteBranch("feature/test")
-    testFailIllegal("branch 'test' not found.", () ⇒ {
+    testFailIllegal("branch 'test' not found.", () => {
       gitB.deleteBranch("test")
     })
     Assert.assertEquals(Seq("master"), gitB.listBranchNamesLocal())
@@ -488,7 +495,7 @@ class SgitTest extends AssertionsForJUnit {
       gitB.doCommitPomXmls("update pom.xml")
       Assert.fail()
     } catch {
-      case e: IllegalStateException ⇒
+      case e: IllegalStateException =>
         Assert.assertEquals("only (pom.xml) changes are allowed => M any.xml => any.xml <= any.xml", e.getMessage)
     }
     Assert.assertTrue(gitB.hasChangesToPush)
@@ -496,7 +503,7 @@ class SgitTest extends AssertionsForJUnit {
     gitB.add(anyFile)
     Assert.assertTrue(gitB.hasLocalChanges)
     gitB.commitAll("add " + Seq(anyFile).map(_.getName).mkString(", "))
-    testFailIllegal("tag v1.0.0 already exists", () ⇒ {
+    testFailIllegal("tag v1.0.0 already exists", () => {
       gitB.doTag("1.0.0")
     })
     Assert.assertFalse(gitB.hasLocalChanges)
@@ -509,23 +516,23 @@ class SgitTest extends AssertionsForJUnit {
     val triedUnit = gitB.tryFetchAll()
     if (triedUnit.isFailure && triedUnit.failed.get.getMessage.contains("publickey")) {
       Sgit.getOs match {
-        case Os.Darwin ⇒ {
+        case Os.Darwin => {
           TestHelper.assertException("Nonzero exit value: 128; git --no-pager push -q -u origin master:refs/heads/master; " +
             "git-err: 'none@any-gerrit: Permission denied (publickey).' " +
             "git-err: 'fatal: Could not read from remote repository.' " +
             "git-err: 'Please make sure you have the correct access rights' " +
             "git-err: 'and the repository exists.'",
-            classOf[RuntimeException], () ⇒ {
+            classOf[RuntimeException], () => {
               gitB.pushHeads("master", "master")
             })
         }
-        case _ ⇒ {
+        case _ => {
           TestHelper.assertException("Nonzero exit value: 128; git --no-pager push -q -u origin master:refs/heads/master; " +
             "git-err: 'Permission denied (publickey).' " +
             "git-err: 'fatal: Could not read from remote repository.' " +
             "git-err: 'Please make sure you have the correct access rights' " +
             "git-err: 'and the repository exists.'",
-            classOf[RuntimeException], () ⇒ {
+            classOf[RuntimeException], () => {
               gitB.pushHeads("master", "master")
             })
         }
@@ -556,12 +563,12 @@ class SgitTest extends AssertionsForJUnit {
     val detached = Sgit.splitLineOnBranchlist("* (HEAD detached at 97cbb59ea) 97cbb59ea40aacb4d8acad402bf90890741b0dbe Add ...")
     Assert.assertEquals(("97cbb59ea40aacb4d8acad402bf90890741b0dbe", "97cbb59ea40aacb4d8acad402bf90890741b0dbe"), detached.get)
 
-    val some = StarterTest.withOutErr[Option[(String, String)]]((_, err) ⇒
+    val some = StarterTest.withOutErr[Option[(String, String)]]((_, err) =>
       Sgit.splitLineOnBranchlistErr(err)(" See merge request !380est          a5b54bf93f5a6b84f5f0833d315f9c6c3dfc1875 [gone] " +
         "Merge branch '904_inxmail_api' into 'sprint/2017.07'"))
     Assert.assertEquals(None, some.value)
 
-    val some1 = StarterTest.withOutErr[Option[(String, String)]]((_, err) ⇒
+    val some1 = StarterTest.withOutErr[Option[(String, String)]]((_, err) =>
       Sgit.splitLineOnBranchlistErr(err)("bla\r\nbl"))
 
     Assert.assertEquals(None, some1.value)
@@ -573,8 +580,8 @@ class SgitTest extends AssertionsForJUnit {
     val gitRawOut = sgit.gitNative(Seq("log", "-n1", "--pretty=\"%B\""))
     val nativeLines = unw(gitRawOut.mkString("\n")).linesIterator.toList
     val body = nativeLines match {
-      case lines if lines.last.startsWith("Change-Id:") ⇒ lines.dropRight(1)
-      case lines ⇒ Assert.fail("invalid lines: " + lines.mkString("|"))
+      case lines if lines.last.startsWith("Change-Id:") => lines.dropRight(1)
+      case lines => Assert.fail("invalid lines: " + lines.mkString("|"))
     }
     Assert.assertEquals(expected, body)
     val hookLines = nativeLines.takeRight(1)
@@ -583,8 +590,8 @@ class SgitTest extends AssertionsForJUnit {
 
   private def unw(input: String) = {
     input.trim match {
-      case in: String if in.startsWith("\"") && in.endsWith("\"") ⇒ in.replaceFirst("^[\"]+", "").replaceFirst("[\"]+$", "")
-      case in ⇒ in
+      case in: String if in.startsWith("\"") && in.endsWith("\"") => in.replaceFirst("^[\"]+", "").replaceFirst("[\"]+$", "")
+      case in => in
     }
   }
 

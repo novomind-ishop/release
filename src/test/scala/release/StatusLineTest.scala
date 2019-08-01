@@ -3,7 +3,7 @@ package release
 import java.io.{ByteArrayOutputStream, PrintStream}
 
 import org.junit.{Assert, Before, Test}
-import org.scalatest.junit.AssertionsForJUnit
+import org.scalatestplus.junit.AssertionsForJUnit
 
 class StatusLineTest extends AssertionsForJUnit {
   var outContent: ByteArrayOutputStream = _
@@ -12,7 +12,7 @@ class StatusLineTest extends AssertionsForJUnit {
   var errStream: PrintStream = _
 
   @Before
-  def setUpStreams() {
+  def setUpStreams(): Unit = {
     outContent = new ByteArrayOutputStream()
     errContent = new ByteArrayOutputStream()
     outStream = new PrintStream(outContent)
@@ -71,8 +71,8 @@ class StatusLineTest extends AssertionsForJUnit {
   def startEnd500(): Unit = {
     // GIVEN
     val status = StatusLine(500, 94, outStream)
-    List.range(0, 500).foreach(_ ⇒ status.start())
-    List.range(0, 500).foreach(_ ⇒ status.end())
+    List.range(0, 500).foreach(_ => status.start())
+    List.range(0, 500).foreach(_ => status.end())
     status.end()
     // THEN
     assertLine("Progress: (000/500)[                                                                        ]", 0)

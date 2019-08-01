@@ -20,7 +20,7 @@ object Xpath {
       try {
         newDocument(new String(Files.readAllBytes(file.toPath), StandardCharsets.UTF_8))
       } catch {
-        case se: SAXParseException ⇒ throw InvalidPomXmlException(file, se);
+        case se: SAXParseException => throw InvalidPomXmlException(file, se);
       }
     }
   }
@@ -42,17 +42,17 @@ object Xpath {
   }
 
   private def nodeCommentFilter(node: Node): Option[Node] = node match {
-    case element: Node if element.getNodeType == Node.ELEMENT_NODE ⇒ None
-    case element: Node if element.getNodeType == Node.TEXT_NODE ⇒ None
-    case element: Node if element.getNodeType == Node.COMMENT_NODE ⇒ Some(node)
-    case elment ⇒ throw new IllegalStateException(elment.getClass.getCanonicalName)
+    case element: Node if element.getNodeType == Node.ELEMENT_NODE => None
+    case element: Node if element.getNodeType == Node.TEXT_NODE => None
+    case element: Node if element.getNodeType == Node.COMMENT_NODE => Some(node)
+    case elment => throw new IllegalStateException(elment.getClass.getCanonicalName)
   }
 
   private def nodeFilter(node: Node): Option[Node] = node match {
-    case element: Node if element.getNodeType == Node.ELEMENT_NODE ⇒ Some(node)
-    case element: Node if element.getNodeType == Node.TEXT_NODE ⇒ None
-    case element: Node if element.getNodeType == Node.COMMENT_NODE ⇒ None
-    case elment ⇒ throw new IllegalStateException(elment.getClass.getCanonicalName)
+    case element: Node if element.getNodeType == Node.ELEMENT_NODE => Some(node)
+    case element: Node if element.getNodeType == Node.TEXT_NODE => None
+    case element: Node if element.getNodeType == Node.COMMENT_NODE => None
+    case elment => throw new IllegalStateException(elment.getClass.getCanonicalName)
   }
 
   private def convertToTuples(node: Node, nodeList: NodeList): Seq[(String, String, Node)] = {
@@ -60,31 +60,31 @@ object Xpath {
     if (length == 0) {
       throw new IllegalStateException("no elements found")
     }
-    val tupleOpts: Seq[Option[(String, String, Node)]] = for (i ← Range(0, length)) yield {
+    val tupleOpts: Seq[Option[(String, String, Node)]] = for (i <- Range(0, length)) yield {
       val singleNote: Node = nodeList.item(i)
       val nodeTupleOpt: Option[(String, String, Node)] = nodeFilter(singleNote)
-        .map(element ⇒ (element.getNodeName, element.getTextContent, node))
+        .map(element => (element.getNodeName, element.getTextContent, node))
       nodeTupleOpt
     }
     tupleOpts.flatten
   }
 
   def mapToSeqMap(nodes: Seq[Node]): Seq[Map[String, String]] = {
-    mapToSeqTuples(nodes).map(in ⇒ {
-      in.foldLeft(Map.empty[String, String])((m, t) ⇒ m ++ Map(t._1 → t._2))
+    mapToSeqTuples(nodes).map(in => {
+      in.foldLeft(Map.empty[String, String])((m, t) => m ++ Map(t._1 -> t._2))
     })
   }
 
   private def mapToSeqTuples(nodes: Seq[Node]): Seq[Seq[(String, String, Node)]] = {
-    nodes.map(in ⇒ convertToTuples(in, in.getChildNodes))
+    nodes.map(in => convertToTuples(in, in.getChildNodes))
   }
 
   def toSeqTuples(document: Document, xpath: String): Seq[Seq[(String, String, Node)]] = {
     mapToSeqTuples(toSeq(document, xpath))
   }
 
-  private def toSeqNodesF(nodeList: NodeList, nodeF: Node ⇒ Option[Node]): Seq[Node] = {
-    List.tabulate(nodeList.getLength)(i ⇒ i).map(key ⇒ nodeList.item(key)).flatMap(in ⇒ nodeF(in))
+  private def toSeqNodesF(nodeList: NodeList, nodeF: Node => Option[Node]): Seq[Node] = {
+    List.tabulate(nodeList.getLength)(i => i).map(key => nodeList.item(key)).flatMap(in => nodeF(in))
   }
 
   def toSeqNodes(nodeList: NodeList): Seq[Node] = {
@@ -107,13 +107,13 @@ object Xpath {
     val elements = nodeElements(node, xpath)
     val tuplets = mapToSeqTuples(elements)
     val o = tuplets.map(toMapOf)
-    o.foldLeft(Map.empty[String, String])((a, b) ⇒ a ++ b)
+    o.foldLeft(Map.empty[String, String])((a, b) => a ++ b)
   }
 
   def toMapOf(nodeSeq: Seq[(String, String, Node)]): Map[String, String] = {
     val markersMap: Map[String, String] = nodeSeq
-      .map(in ⇒ (in._1, in._2))
-      .map(t ⇒ (t._1, t._2.trim))
+      .map(in => (in._1, in._2))
+      .map(t => (t._1, t._2.trim))
       .foldLeft(Map.empty[String, String])(_ + _)
     markersMap
   }

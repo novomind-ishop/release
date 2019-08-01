@@ -30,52 +30,51 @@ object TestHelper {
     testResourcesRoot().resolve(folderName).toFile.getAbsoluteFile
   }
 
-  def assertComparisonFailure(expectedMsg: String, fn: () ⇒ Unit): Unit = {
+  def assertComparisonFailure(expectedMsg: String, fn: () => Unit): Unit = {
     assertAssertionError(expectedMsg, classOf[ComparisonFailure], fn)
   }
 
-  def assertAssertionError[T <: AssertionError](expectedMsg: String, clazz: Class[T], fn: () ⇒ Unit): Unit = {
+  def assertAssertionError[T <: AssertionError](expectedMsg: String, clazz: Class[T], fn: () => Unit): Unit = {
     try {
       fn.apply()
       Assert.fail("missing exception of type: " + clazz.getCanonicalName)
     } catch {
-      case e: AssertionError ⇒ {
+      case e: AssertionError => {
         try {
           Assert.assertEquals(expectedMsg, e.getMessage)
           Assert.assertEquals(clazz.getCanonicalName, e.getClass.getCanonicalName)
           Assert.assertEquals(clazz, e.getClass)
         } catch {
-          case t: Throwable ⇒ e.printStackTrace(); throw t
+          case t: Throwable => e.printStackTrace(); throw t
         }
       }
-      case e: Throwable ⇒ throw e
+      case e: Throwable => throw e
     }
   }
 
-  def assertExceptionWithCheck[T <: Exception](expection: String ⇒ Unit, clazz: Class[T], fn: () ⇒ Unit): Unit = {
+  def assertExceptionWithCheck[T <: Exception](expection: String => Unit, clazz: Class[T], fn: () => Unit): Unit = {
     try {
       fn.apply()
       Assert.fail("missing exception of type: " + clazz.getCanonicalName)
     } catch {
-      case ae: AssertionError ⇒ throw ae
-      case e: Throwable ⇒ {
+      case ae: AssertionError => throw ae
+      case e: Throwable => {
         try {
           expection.apply(e.getMessage)
           Assert.assertEquals(clazz, e.getClass)
         } catch {
-          case t: Throwable ⇒ throw t
+          case t: Throwable => throw t
         }
       }
-      case e: Throwable ⇒ throw e
     }
   }
 
-  def assertException[T <: Exception](expectedMsg: String, clazz: Class[T], fn: () ⇒ Unit): Unit = {
-    assertExceptionWithCheck(message ⇒ Assert.assertEquals(expectedMsg, message), clazz, fn)
+  def assertException[T <: Exception](expectedMsg: String, clazz: Class[T], fn: () => Unit): Unit = {
+    assertExceptionWithCheck(message => Assert.assertEquals(expectedMsg, message), clazz, fn)
   }
 
-  def assertException[T <: Exception](clazz: Class[T], fn: () ⇒ Unit): Unit = {
-    assertExceptionWithCheck(_: String ⇒ Unit, clazz, fn)
+  def assertException[T <: Exception](clazz: Class[T], fn: () => Unit): Unit = {
+    assertExceptionWithCheck(_: String => Unit, clazz, fn)
   }
 
   private lazy val git = SgitTest.workSgit()
