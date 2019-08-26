@@ -318,7 +318,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   }
 
   def findUpstreamBranch(): Option[String] = {
-    val upstreamOpt:Option[String] = gitNativeOpt(Seq("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"))
+    val upstreamOpt: Option[String] = gitNativeOpt(Seq("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"))
       .map(Util.only(_, "only one upstream expected"))
     selectUpstream(upstreamOpt)
   }
@@ -572,10 +572,9 @@ object Sgit {
     val cmd: Seq[String] = selectedGitCmd(err, gitBin)
     val git = gits.get(cmd)
     if (git.isEmpty) {
-      // git lg --tags --date=short --simplify-by-decoration --pretty=format:'(%cd)%d'
+
       val result: Unit = sgit.gitNative(Seq("--version"), useWorkdir = false).mkString("") match {
-        case v: String if v.startsWith("git version 1") =>
-          // (2014-12-17) - (tag: v1.9.5)
+        case v: String if v.startsWith("git version 1") => // (2014-12-17) - (tag: v1.9.5)
           throw new IllegalStateException("git version 1.9.5 support ended at 2016-01-01")
         case v: String if v.startsWith("git version 2.0.") =>
           throw new IllegalStateException("git version 2.0 support ended at 2017-07-01")
@@ -608,38 +607,26 @@ object Sgit {
         case v: String if v.startsWith("git version 2.14.") => // (2017-10-23) - (tag: v2.14.3)
           throw new IllegalStateException("git version 2.13 support ended at 2018-07-02")
         case v: String if v.startsWith("git version 2.15.") => // (2017-11-28) - (tag: v2.15.1)
-          if (ReleaseConfig.isTravisCi()) {
-            err.println("W: please update your git version, \"" + v + "\" support ends at 2018-11-02")
-          } else {
-            throw new IllegalStateException("git version 2.15 support ended at 2018-10-18 because of CVE-2018-17456")
-          }
+          throw new IllegalStateException("git version 2.15 support ended at 2018-10-18 because of CVE-2018-17456")
         case v: String if v.startsWith("git version 2.16.") => // (2018-02-15) - (tag: v2.16.2)
-          if (ReleaseConfig.isTravisCi()) {
-            err.println("W: please update your git version, \"" + v + "\" support ends at 2018-12-02")
-          } else {
-            throw new IllegalStateException("git version 2.16 support ended at 2018-10-18 because of CVE-2018-17456")
-          }
+          throw new IllegalStateException("git version 2.16 support ended at 2018-10-18 because of CVE-2018-17456")
         case v: String if v.startsWith("git version 2.17.") => // do nothing (2018-04-02) - (tag: v2.17.0)
-          if (!ReleaseConfig.isTravisCi()) {
-            throw new IllegalStateException("git version 2.17 support ended at 2018-10-18 because of CVE-2018-17456")
-          }
+          throw new IllegalStateException("git version 2.17 support ended at 2018-10-18 because of CVE-2018-17456")
         case v: String if v.startsWith("git version 2.18.") => // do nothing (2018-06-21) - (tag: v2.18.0)
-          if (!ReleaseConfig.isTravisCi()) {
-            throw new IllegalStateException("git version 2.18 support ended at 2018-10-18 because of CVE-2018-17456")
-          }
+          throw new IllegalStateException("git version 2.18 support ended at 2018-10-18 because of CVE-2018-17456")
         case v: String if v.startsWith("git version 2.19.0") => // do nothing (2018-09-10) - (tag: v2.19.0)
-          if (!ReleaseConfig.isTravisCi()) {
-            if (Sgit.getOs == Os.Darwin) {
-              // https://git-scm.com/download/mac
-              // latest public release is 2.19.0 from 2018-09-27
-              err.println("W: git version 2.19.0 support ended at 2018-10-18 because of CVE-2018-17456, but no newer releases are available")
-            } else {
               throw new IllegalStateException("git version 2.19.0 support ended at 2018-10-18 because of CVE-2018-17456")
-            }
-          }
         case v: String if v.startsWith("git version 2.19.") => // do nothing (2018-09-27) - (tag: v2.19.1) -- fixes CVE-2018-17456
-        case v: String if v.startsWith("git version 2.20.") => // do nothing (2018-12-09) (tag: v2.20.0)
+          throw new IllegalStateException("git version 2.19 support ended at 2019-09-03")
+        case v: String if v.startsWith("git version 2.20.") => // do nothing (2018-12-09) (tag: v2.20.0) -- no format change
+          throw new IllegalStateException("git version 2.20 support ended at 2019-09-03")
+        case v: String if v.startsWith("git version 2.21.") => // do nothing (2019-02-24) (tag: v2.21.0) -- introduce ouput change
+        case v: String if v.startsWith("git version 2.22.") => // do nothing (2019-06-07) (tag: v2.22.0)
+        case v: String if v.startsWith("git version 2.23.") => // do nothing (2019-08-16) (tag: v2.23.0)
         case v: String => out.println("W: unknown/untested git version: \"" + v + "\". Please create a ticket at ISPS.");
+        //  if (!ReleaseConfig.isTravisCi()) {
+        //    if (Sgit.getOs == Os.Darwin) {
+        // git lg --tags --date=short --simplify-by-decoration --pretty=format:'(%cd)%d'
       }
       gits = gits ++ Map(cmd -> result)
     }

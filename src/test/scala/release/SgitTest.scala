@@ -281,7 +281,7 @@ class SgitTest extends AssertionsForJUnit {
     val gitA = Sgit.init(testRepoA, SgitTest.hasCommitMsg)
 
     TestHelper.assertException("Nonzero exit value: 1; git --no-pager push -q -u origin master:refs/for/master; " +
-      "git-err: 'error: src refspec master does not match any.' " +
+      "git-err: 'error: src refspec master does not match any' " +
       "git-err: 'error: failed to push some refs to 'origin''",
       classOf[RuntimeException], () => {
         gitA.pushFor("master", "master")
@@ -298,7 +298,7 @@ class SgitTest extends AssertionsForJUnit {
         gitA.fetchAll()
       })
     TestHelper.assertException("Nonzero exit value: 1; git --no-pager push -q -u origin master:refs/heads/master; " +
-      "git-err: 'error: src refspec master does not match any.' " +
+      "git-err: 'error: src refspec master does not match any' " +
       "git-err: 'error: failed to push some refs to 'origin''",
       classOf[RuntimeException], () => {
         gitA.pushHeads("master", "master")
@@ -317,7 +317,7 @@ class SgitTest extends AssertionsForJUnit {
     }
 
     Sgit.getOs match {
-        // TODO maybe a git version change von 2.19 to 2.21
+        // TODO a git version change in 2.21
         //   failed: expected:<...r does not match any[.]' git-err: 'error: f...> but was:<...r does not match any[]' git-err: 'error: f...>
       case Os.Windows => {
         failFetchAll("Nonzero exit value: 1; git --no-pager fetch -q --all --tags; " +
