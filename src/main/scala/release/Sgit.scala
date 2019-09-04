@@ -575,51 +575,51 @@ object Sgit {
 
       val result: Unit = sgit.gitNative(Seq("--version"), useWorkdir = false).mkString("") match {
         case v: String if v.startsWith("git version 1") => // (2014-12-17) - (tag: v1.9.5)
-          throw new IllegalStateException("git version 1.9.5 support ended at 2016-01-01")
+          throw new YourGitInstallationIsToOldException("1.9.5", "2016-01-01", "n/a")
         case v: String if v.startsWith("git version 2.0.") =>
-          throw new IllegalStateException("git version 2.0 support ended at 2017-07-01")
+          throw new YourGitInstallationIsToOldException("2.0", "2017-07-01", "n/a")
         case v: String if v.startsWith("git version 2.1.") =>
-          throw new IllegalStateException("git version 2.1 support ended at 2017-07-01")
+          throw new YourGitInstallationIsToOldException("2.1", "2017-07-01", "n/a")
         case v: String if v.startsWith("git version 2.2.") =>
-          throw new IllegalStateException("git version 2.2 support ended at 2017-07-01")
+          throw new YourGitInstallationIsToOldException("2.2", "2017-07-01", "n/a")
         case v: String if v.startsWith("git version 2.3.") =>
-          throw new IllegalStateException("git version 2.3 support ended at 2017-07-01")
+          throw new YourGitInstallationIsToOldException("2.3", "2017-07-01", "n/a")
         case v: String if v.startsWith("git version 2.4.") =>
-          throw new IllegalStateException("git version 2.4 support ended at 2017-07-01")
+          throw new YourGitInstallationIsToOldException("2.4", "2017-07-01", "n/a")
         case v: String if v.startsWith("git version 2.5.") =>
-          throw new IllegalStateException("git version 2.5 support ended at 2017-07-01")
+          throw new YourGitInstallationIsToOldException("2.5", "2017-07-01", "n/a")
         case v: String if v.startsWith("git version 2.6.") => // (2017-05-05) - (tag: v2.6.7)
-          throw new IllegalStateException("git version 2.6 support ended at 2017-07-01")
+          throw new YourGitInstallationIsToOldException("2.6", "2017-07-01", "n/a")
         case v: String if v.startsWith("git version 2.7.") => // (2017-07-30) - (tag: v2.7.6)
-          throw new IllegalStateException("git version 2.7 support ended at 2017-07-01")
+          throw new YourGitInstallationIsToOldException("2.7", "2017-07-01", "n/a")
         case v: String if v.startsWith("git version 2.8.") => // (2016-06-06) - (tag: v2.8.4)
-          throw new IllegalStateException("git version 2.8 support ended at 2017-07-01")
+          throw new YourGitInstallationIsToOldException("2.8", "2017-07-01", "n/a")
         case v: String if v.startsWith("git version 2.9.") => // (2016-08-12) - (tag: v2.9.3)
-          throw new IllegalStateException("git version 2.9 support ended at 2017-08-01")
+          throw new YourGitInstallationIsToOldException("2.9", "2017-08-01", "n/a")
         case v: String if v.startsWith("git version 2.10.") => // (2016-10-28) - (tag: v2.10.2)
-          throw new IllegalStateException("git version 2.10 support ended at 2017-11-01")
+          throw new YourGitInstallationIsToOldException("2.10", "2017-11-01", "n/a")
         case v: String if v.startsWith("git version 2.11.") => // 2017-02-02) - (tag: v2.11.1)
-          throw new IllegalStateException("git version 2.11 support ended at 2017-11-01")
+          throw new YourGitInstallationIsToOldException("2.11", "2017-11-01", "n/a")
         case v: String if v.startsWith("git version 2.12.") => // (2017-03-20) - (tag: v2.12.1)
-          throw new IllegalStateException("git version 2.12 support ended at 2018-04-02")
+          throw new YourGitInstallationIsToOldException("2.12", "2018-04-02", "n/a")
         case v: String if v.startsWith("git version 2.13.") => // (2017-09-22) - (tag: v2.13.6)
-          throw new IllegalStateException("git version 2.13 support ended at 2018-05-02")
+          throw new YourGitInstallationIsToOldException("2.13", "2018-05-02", "n/a")
         case v: String if v.startsWith("git version 2.14.") => // (2017-10-23) - (tag: v2.14.3)
-          throw new IllegalStateException("git version 2.13 support ended at 2018-07-02")
+          throw new YourGitInstallationIsToOldException("2.13", "2018-07-02", "n/a")
         case v: String if v.startsWith("git version 2.15.") => // (2017-11-28) - (tag: v2.15.1)
-          throw new IllegalStateException("git version 2.15 support ended at 2018-10-18 because of CVE-2018-17456")
+          throw new YourGitInstallationIsToOldException("2.15", "2018-10-18", "n/a", " because of CVE-2018-17456")
         case v: String if v.startsWith("git version 2.16.") => // (2018-02-15) - (tag: v2.16.2)
-          throw new IllegalStateException("git version 2.16 support ended at 2018-10-18 because of CVE-2018-17456")
+          throw new YourGitInstallationIsToOldException("2.16", "2018-10-18", "n/a", " because of CVE-2018-17456")
         case v: String if v.startsWith("git version 2.17.") => // do nothing (2018-04-02) - (tag: v2.17.0)
-          throw new IllegalStateException("git version 2.17 support ended at 2018-10-18 because of CVE-2018-17456")
+          throw new YourGitInstallationIsToOldException("2.17", "2018-10-18", "n/a", " because of CVE-2018-17456")
         case v: String if v.startsWith("git version 2.18.") => // do nothing (2018-06-21) - (tag: v2.18.0)
-          throw new IllegalStateException("git version 2.18 support ended at 2018-10-18 because of CVE-2018-17456")
+          throw new YourGitInstallationIsToOldException("2.18", "2018-10-18", "n/a", " because of CVE-2018-17456")
         case v: String if v.startsWith("git version 2.19.0") => // do nothing (2018-09-10) - (tag: v2.19.0)
-              throw new IllegalStateException("git version 2.19.0 support ended at 2018-10-18 because of CVE-2018-17456")
+          throw new YourGitInstallationIsToOldException("2.19.0", "2018-10-18", "n/a", " because of CVE-2018-17456")
         case v: String if v.startsWith("git version 2.19.") => // do nothing (2018-09-27) - (tag: v2.19.1) -- fixes CVE-2018-17456
-          throw new IllegalStateException("git version 2.19 support ended at 2019-09-03")
+          throw new YourGitInstallationIsToOldException("2.19", "2019-09-03", "2019-09-03")
         case v: String if v.startsWith("git version 2.20.") => // do nothing (2018-12-09) (tag: v2.20.0) -- no format change
-          throw new IllegalStateException("git version 2.20 support ended at 2019-09-03")
+          throw new YourGitInstallationIsToOldException("2.20", "2019-09-03", "2019-09-03")
         case v: String if v.startsWith("git version 2.21.") => // do nothing (2019-02-24) (tag: v2.21.0) -- introduce ouput change
         case v: String if v.startsWith("git version 2.22.") => // do nothing (2019-06-07) (tag: v2.22.0)
         case v: String if v.startsWith("git version 2.23.") => // do nothing (2019-08-16) (tag: v2.23.0)
@@ -765,6 +765,9 @@ object Sgit {
   class TerminatedByCtrlCException(msg: String) extends RuntimeException(msg)
 
   class BranchAlreadyExistsException(msg: String) extends RuntimeException(msg)
+
+  class YourGitInstallationIsToOldException(version: String, ended: String, announced: String, msg: String = "") extends
+    RuntimeException(s"Your git version ${version} support ended at ${ended} announced at ${announced}${msg}; please update.")
 
   private[release] def findGit(start: File, in: File, checkExisting: Boolean): File = {
     if (new File(in, ".git").exists()) {
