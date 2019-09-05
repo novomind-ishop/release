@@ -85,7 +85,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
       |nothing-but-create-feature-branch    => creates a feature branch and changes pom.xmls
       |
       |Possible environment variables:
-      |export RELEASE_GIT_BIN = $PATH_TO_GIT_BIN
+      |export RELEASE_GIT_BIN=$PATH_TO_GIT_EXECUTABLE
       |
       |Your home dir is: test""".stripMargin
 

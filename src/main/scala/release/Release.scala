@@ -220,7 +220,10 @@ object Release {
     }
 
     val relevantFilteredDeps = if (releaseMajorVersion.matches("[0-9]+")) {
-      if (releaseMajorVersion.toInt >= 32) {
+      if (releaseMajorVersion.toInt > 36) {
+        relevantDeps
+          .filterNot(in => in.groupId == "com.novomind.ishop.shops" && in.artifactId == "ishop-shop-parent")
+      } else if (releaseMajorVersion.toInt >= 32) {
         relevantDeps
       } else {
         relevantDeps
@@ -309,8 +312,9 @@ object Release {
       case Nil => ""
       case found => "\nReleasetool-Prop-Skip: " + found.mkString(", ")
     }
-    if (sgit.hasNoLocalChanges) {
+    val changedVersion = if (sgit.hasNoLocalChanges) {
       out.println("skipped release commit on " + branch)
+      false
     } else {
 
       out.print("Committing pom changes ..")
@@ -334,6 +338,7 @@ object Release {
       }
 
       out.println(". done")
+      true
     }
     out.print("Checking out " + releaseBrachName + " ..")
     sgit.checkout(releaseBrachName)
@@ -390,16 +395,25 @@ object Release {
       } else {
         "git branch -D release/" + releaseWitoutSnapshot + ";"
       }
+     val resetCmd = if (changedVersion) {
+        s"git reset --hard ${headCommitId};"
+      } else {
+        ""
+      }
+
+      val pushCmd = if (changedVersion) {
+        s"git push origin ${branch}:refs/for/${selectedBranch};"
+      } else {
+        ""
+      }
+
       out.println(
         ("""commands for local rollback:
-           |  git reset --hard """ + headCommitId +
-          """; """ + deleteTagOrBranch +
+           |  """ + (resetCmd + " " + deleteTagOrBranch).trim +
           """
             |
             |commands for sending to remote:
-            |  git push origin """ + branch +
-          """:refs/for/""" + selectedBranch +
-          """; """ + pushTagOrBranch +
+            |  """ + (pushCmd + " " + pushTagOrBranch).trim +
           """
             |NOTE: the "send to remote" command pushes the HEAD via Gerrit Code Review, this might not be needed for branches != master""").stripMargin)
     }

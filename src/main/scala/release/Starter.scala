@@ -303,7 +303,7 @@ object Starter extends App with LazyLogging {
       out.println("nothing-but-create-feature-branch    => creates a feature branch and changes pom.xmls")
       out.println()
       out.println("Possible environment variables:")
-      out.println("export RELEASE_GIT_BIN = $PATH_TO_GIT_BIN")
+      out.println("export RELEASE_GIT_BIN=$PATH_TO_GIT_EXECUTABLE")
       out.println()
       out.println("Your home dir is: " + config.getUserNome())
       return 0
