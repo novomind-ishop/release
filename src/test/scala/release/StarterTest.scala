@@ -267,7 +267,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
         val errorMsgs = statuses.filter(_.getLevel != Status.INFO)
         if (errorMsgs != Nil) {
           val allStatuses: String = errorMsgs.mkString("\n")
-          fail(logbackFile + ": has errors/warnings:\n" + allStatuses)
+          fail(logbackFile.toString + ": has errors/warnings:\n" + allStatuses)
         }
       }
     }

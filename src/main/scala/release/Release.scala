@@ -537,7 +537,7 @@ object Release {
       if (snapshotProperties.nonEmpty) {
         out.println("")
         out.println("Snapshot properties found for (please fix manually in pom.xml (remove -SNAPSHOT in most cases)):")
-        snapshotProperties.map(in => "Property: " + in).foreach(println)
+        snapshotProperties.toList.map(in => "Property: " + in).foreach(println)
       }
       if (snapState.nonEmpty) {
         out.println("")
@@ -546,9 +546,9 @@ object Release {
       }
 
       def info(rel: Boolean): String = if (rel) {
-        "Release found for "
+        "  Release found for "
       } else {
-        "No Release for    "
+        "  No Release for    "
       }
 
       snapState

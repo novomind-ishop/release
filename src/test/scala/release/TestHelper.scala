@@ -74,10 +74,10 @@ object TestHelper {
   }
 
   def assertException[T <: Exception](clazz: Class[T], fn: () => Unit): Unit = {
-    assertExceptionWithCheck(_: String => Unit, clazz, fn)
+    assertExceptionWithCheck(_ => (), clazz, fn)
   }
 
-  private lazy val git = SgitTest.workSgit()
-
   def localChanges(): Seq[String] = git.localChanges()
+
+  private lazy val git = SgitTest.workSgit()
 }

@@ -4,7 +4,7 @@ version := "1.0"
 
 scalaVersion := "2.13.0"
 
-scalacOptions := Seq("-unchecked", "-deprecation")
+scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xfatal-warnings")
 
 logLevel := Level.Warn
 

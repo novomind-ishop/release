@@ -10,6 +10,7 @@ import javax.xml.bind.DatatypeConverter
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 import scala.util.Random
+import scala.language.implicitConversions
 
 object Util {
 
@@ -30,7 +31,7 @@ object Util {
     }
   }
 
-  implicit def pluralize(input: String) = new PluralString(input)
+  implicit def pluralize(input: String):PluralString = new PluralString(input)
 
   def emptyToNone(in: String): Option[String] = in match {
     case "" => None
