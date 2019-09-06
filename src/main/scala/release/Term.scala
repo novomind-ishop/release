@@ -49,10 +49,10 @@ object Term {
   }
 
   @tailrec
-  def removeSnapshot(str: String): String = {
+  def removeTrailingSnapshots(str: String): String = {
     val out = str.replaceFirst("-SNAPSHOT$", "").trim
-    if (out.contains("-SNAPSHOT")) {
-      removeSnapshot(out)
+    if (out.endsWith("-SNAPSHOT")) {
+      removeTrailingSnapshots(out)
     } else {
       out
     }

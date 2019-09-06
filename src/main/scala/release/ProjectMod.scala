@@ -139,7 +139,7 @@ object ProjectMod {
     }
 
     def parse(versionText: String): Version = {
-      val snapped = versionText.replaceFirst("-SNAPSHOT", "")
+      val snapped = Term.removeTrailingSnapshots(versionText)
 
       try {
         snapped match {

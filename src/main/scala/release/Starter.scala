@@ -427,7 +427,7 @@ object Starter extends App with LazyLogging {
         Release.checkLocalChanges(git, startBranch)
         val mod = PomMod.of(workDirFile, err, opts)
         val version = opts.versionSet.get
-        val versionWithoutSnapshot = Term.removeSnapshot(version)
+        val versionWithoutSnapshot = Term.removeTrailingSnapshots(version)
         mod.changeVersion(versionWithoutSnapshot + "-SNAPSHOT")
         mod.writeTo(workDirFile)
         out.println("You have local changes")

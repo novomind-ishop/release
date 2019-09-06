@@ -333,7 +333,6 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends ProjectMod wit
     filtered.map(_.groupId).contains("com.novomind.ishop.shops")
   }
 
-
   private def replacedVersionProperty(dep: PluginDep) = dep.copy(version = replacedPropertyOf(dep.version))
 
   def listSnapshotsDistinct: Seq[Dep] = {
@@ -614,7 +613,7 @@ object PomMod {
 
         nextNumberedReleaseIfExisting(versionTuples, Version.toVersion(withoutSnapshot).get).map(_.formatAsSnapshot())
       } else {
-        val unSnapshoted = currentVersion.replaceFirst("-SNAPSHOT", "")
+        val unSnapshoted = Term.removeTrailingSnapshots(currentVersion)
         unSnapshoted match {
           case Version.shopPattern(pre, year, week, minor, low) => {
             val version = Version.fromString(pre, year, week, minor, low)
@@ -628,7 +627,7 @@ object PomMod {
         }
       }
     } else {
-      Seq(currentVersion.replaceFirst("-SNAPSHOT$", ""))
+      Seq(Term.removeTrailingSnapshots(currentVersion))
     }
   }
 
@@ -640,9 +639,9 @@ object PomMod {
     if (currentVersion == "master-SNAPSHOT" || currentVersion == "master") {
       "master"
     } else if (currentVersion.matches("^[0-9]+x-SNAPSHOT")) {
-      currentVersion.replaceFirst("-SNAPSHOT$", "")
+      Term.removeTrailingSnapshots(currentVersion)
     } else {
-      val withoutSnapshot = releaseVersion.replaceFirst("-SNAPSHOT", "")
+      val withoutSnapshot = Term.removeTrailingSnapshots(releaseVersion)
       withoutSnapshot match {
         case Version.stableShop(pre) => pre + "-stable-RELEASE-DEMO-DELETE-ME"
         case Version.semverPatternLowdash(ma, mi, b, low) => ma + "." + mi + "." + b + "_" + (low.toInt + 1)
@@ -650,13 +649,13 @@ object PomMod {
         case Version.semverPatternNoBugfix(ma, mi) => ma + "." + (mi.toInt + 1) + ".0"
         case Version.semverPatternNoMinor(ma) => s"${ma.toInt + 1}.0.0"
         case Version.shopPattern(pre, year, week, minor, low) => {
-          currentVersion.replaceFirst("-SNAPSHOT", "") match {
+          Term.removeTrailingSnapshots(currentVersion) match {
             case Version.shopPattern(_, _, _, _, _) => {
               val verso = Version.fromString(pre, year, week, minor, low).plusWeek()
               verso.copy(patch = 0, low = "").formatShop()
             }
             case any => {
-              any.replaceFirst("-SNAPSHOT$", "")
+              Term.removeTrailingSnapshots(any)
             }
           }
         }

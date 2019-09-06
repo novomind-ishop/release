@@ -176,24 +176,24 @@ object Release {
     val releaseWithoutSnapshot = readReleaseVersions
 
     val release = if (mod.isShop) {
-      Term.removeSnapshot(releaseWithoutSnapshot) + "-SNAPSHOT"
+      Term.removeTrailingSnapshots(releaseWithoutSnapshot) + "-SNAPSHOT"
     } else {
       releaseWithoutSnapshot
     }
-    val releaseWitoutSnapshot = Term.removeSnapshot(release)
+    val releaseWitoutSnapshot = Term.removeTrailingSnapshots(release)
     if (mod.isNoShop && sgit.listTags().contains("v" + releaseWitoutSnapshot)) {
       // TODO fetch remote and try to read new version again
       throw new IllegalStateException("release " + releaseWitoutSnapshot + " already found; check your repository or change version.")
     }
 
     @tailrec
-    def readNextReleaseVersions: String = {
-      val result = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(out, "Enter the next version without -SNAPSHOT",
-        newMod.suggestNextRelease(release), opts, Console.in))
+    def readNextReleaseVersionsWithoutSnapshot: String = {
+      val result = Term.removeTrailingSnapshots(PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(out, "Enter the next version without -SNAPSHOT",
+        newMod.suggestNextRelease(release), opts, Console.in)))
       if (PomMod.isUnknownReleasePattern(result)) {
         val retryVersionEnter = Term.readFromOneOfYesNo(out, "Unknown next release version \"" + result + "\". Are you sure to continue?", opts)
         if (retryVersionEnter == "n") {
-          readNextReleaseVersions
+          readNextReleaseVersionsWithoutSnapshot
         } else {
           result
         }
@@ -203,7 +203,7 @@ object Release {
     }
 
     // TODO release a feature branch should not change the next version
-    val nextReleaseWithoutSnapshot = readNextReleaseVersions
+    val nextReleaseWithoutSnapshot = readNextReleaseVersionsWithoutSnapshot
 
     val relevantDeps = if (mod.isNoShop) {
       mod.listDependecies.filter(in => in.groupId.startsWith("com.novomind.ishop.core"))
