@@ -267,7 +267,6 @@ object Starter extends App with LazyLogging {
     }
     val config = ReleaseConfig.default(opts.useDefaults)
     val termOs: TermOs = TermOs.select(argSeq(3), argSeq(2), opts.simpleChars)
-    val showHelp = opts.showHelp
     val showUpdateCmd = opts.showUpdateCmd
     val createFeatureBranch = opts.createFeature
     val verifyGerrit = opts.useGerrit
@@ -276,7 +275,7 @@ object Starter extends App with LazyLogging {
 
     // TODO --batch ## alles mit default wählen
 
-    if (showHelp || opts.invalids != Nil) {
+    if (opts.showHelp || opts.invalids != Nil) {
       if (opts.invalids != Nil) {
         out.println("Invalid options:")
         out.println(opts.invalids.mkString(", "))
@@ -306,6 +305,16 @@ object Starter extends App with LazyLogging {
       out.println("export RELEASE_GIT_BIN=$PATH_TO_GIT_EXECUTABLE")
       out.println()
       out.println("Your home dir is: " + config.getUserNome())
+      return 0
+    }
+
+    if (opts.depUpOpts.showHelp || opts.depUpOpts.invalids != Nil) {
+      if (opts.depUpOpts.invalids != Nil) {
+        out.println("Invalid showDependencyUpdates options:")
+        out.println(opts.invalids.mkString(", "))
+        out.println()
+      }
+      out.println("Usage: release showDependencyUpdates [OPTION] [CMD] ...")
       return 0
     }
 

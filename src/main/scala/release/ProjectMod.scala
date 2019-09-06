@@ -173,13 +173,6 @@ trait ProjectMod extends LazyLogging {
   def showDependencyUpdates(shellWidth: Int, termOs: TermOs, depUpOpts: OptsDepUp, workNexusUrl: String,
                             out: PrintStream, err: PrintStream): Unit = {
 
-    if (opts.invalids != Nil) {
-      err.println("Invalid options:")
-      err.println(opts.invalids.mkString(", "))
-      err.println()
-      System.exit(1)
-    }
-
     out.println("I: checking dependecies against nexus - please wait")
     val rootDeps = listDependeciesForCheck()
 
