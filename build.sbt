@@ -20,13 +20,13 @@ libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % 
 
 libraryDependencies += "org.scala-lang.modules" %% "scala-parallel-collections" % "0.2.0"
 
-libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-connector-basic" % "1.3.1"
+libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-connector-basic" % "1.4.1"
 
-libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-transport-file" % "1.3.1"
+libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-transport-file" % "1.4.1"
 
-libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-transport-http" % "1.3.1"
+libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-transport-http" % "1.4.1"
 
-libraryDependencies += "org.apache.maven" % "maven-resolver-provider" % "3.6.0"
+libraryDependencies += "org.apache.maven" % "maven-resolver-provider" % "3.6.2"
 
 libraryDependencies += "org.jline" % "jline-terminal" % "3.9.0"
 

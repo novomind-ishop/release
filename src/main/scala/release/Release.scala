@@ -222,7 +222,12 @@ object Release {
     val relevantFilteredDeps = if (releaseMajorVersion.matches("[0-9]+")) {
       if (releaseMajorVersion.toInt > 36) {
         relevantDeps
-          .filterNot(in => in.groupId == "com.novomind.ishop.shops" && in.artifactId == "ishop-shop-parent")
+          .filterNot(in => in.groupId == "com.novomind.ishop.shops" &&
+            in.artifactId == "ishop-shop-parent" &&
+            in.version.startsWith("36")) // TODO improve to .toInt > 36 later
+          .filterNot(in => in.groupId == "com.novomind.ishop" &&
+            in.artifactId == "ishop-meta-parent" &&
+            in.version.startsWith("36")) // TODO improve to .toInt > 36 later
       } else if (releaseMajorVersion.toInt >= 32) {
         relevantDeps
       } else {
@@ -305,7 +310,6 @@ object Release {
     if (newMod.selfVersion != nextSnapshot) {
       newMod.writeTo(workDirFile)
     }
-    val toolSh1 = releaseToolGitSha1
     val headCommitId = sgit.commitIdHead()
     val releaseMod = PomMod.ofAether(workDirFile, opts, aether)
     val msgs = opts.skipProperties match {
@@ -325,7 +329,7 @@ object Release {
             |Signed-off-by: %s
             |Releasetool-sign: %s
             |Releasetool-sha1: %s""".stripMargin.format(config.releasPrefix(), nextReleaseWithoutSnapshot,
-            msgs, config.signedOfBy(), Starter.sign(), toolSh1),
+            msgs, config.signedOfBy(), Starter.sign(), releaseToolGitSha1),
           releaseMod.depTreeFilenameList())
       } else {
         sgit.doCommitPomXmlsAnd(
@@ -333,7 +337,7 @@ object Release {
             |%s
             |Releasetool-sign: %s
             |Releasetool-sha1: %s""".stripMargin.format(config.releasPrefix(), nextReleaseWithoutSnapshot,
-            msgs, Starter.sign(), toolSh1),
+            msgs, Starter.sign(), releaseToolGitSha1),
           releaseMod.depTreeFilenameList())
       }
 
@@ -360,14 +364,14 @@ object Release {
             |Signed-off-by: %s
             |Releasetool-sign: %s
             |Releasetool-sha1: %s""".stripMargin.format(config.releasPrefix(), release,
-            msgs, config.signedOfBy(), Starter.sign(), toolSh1), releaseMod.depTreeFilenameList())
+            msgs, config.signedOfBy(), Starter.sign(), releaseToolGitSha1), releaseMod.depTreeFilenameList())
       } else {
         sgit.doCommitPomXmlsAnd(
           """[%s] perform to - %s
             |%s
             |Releasetool-sign: %s
             |Releasetool-sha1: %s""".stripMargin.format(config.releasPrefix(), release,
-            msgs, Starter.sign(), toolSh1), releaseMod.depTreeFilenameList())
+            msgs, Starter.sign(), releaseToolGitSha1), releaseMod.depTreeFilenameList())
       }
       out.println(". done")
     }

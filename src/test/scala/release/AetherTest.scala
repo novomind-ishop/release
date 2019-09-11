@@ -11,10 +11,11 @@ class AetherTest extends AssertionsForJUnit {
   @Test
   def testExistsGav(): Unit = {
     val aether = new Aether(Opts())
+
     Assume.assumeTrue(aether.isReachable(false))
-    val g = "org.apache.maven.plugins"
-    val a = "maven-surefire-plugin"
-    val v = "3.0.0-M1"
+    val g = "javax.servlet.jsp"
+    val a = "jsp-api"
+    val v = "2.2"
     //println("r: " + aether.existsGav(g, a, v))
     println("r: " + aether.newerVersionsOf(g, a, v))
     // Assert.assertFalse(aether.existsGav("com.novomind.ishop.exi", "ext-b2c", "0.0.1-BERT"))
