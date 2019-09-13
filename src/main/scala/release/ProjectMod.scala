@@ -6,9 +6,9 @@ import com.typesafe.scalalogging.LazyLogging
 import release.PomMod.{abbreviate, unmanged}
 import release.ProjectMod.{Dep, Gav3, PluginDep, PomRef}
 import release.Starter.{Opts, OptsDepUp, TermOs}
-import scala.collection.parallel.CollectionConverters._
 
 import scala.annotation.tailrec
+import scala.collection.parallel.CollectionConverters._
 
 object ProjectMod {
 
@@ -38,12 +38,24 @@ object ProjectMod {
     def formatted: String = Gav.format(Seq(groupId, artifactId, version, packageing, classifier, scope))
 
     def simpleGav() = Gav3(groupId, artifactId, version)
+
+    def feelsUnusual(): Boolean = {
+      Gav.isUnu(groupId) || Gav.isUnu(artifactId) || Gav.isUnu(version) ||
+        Gav.isUnu(packageing) || Gav.isUnu(classifier) || Gav.isUnu(scope)
+    }
+
   }
 
   object Gav {
     def format(parts: Seq[String]): String = parts.mkString(":").replaceAll("[:]{2,}", ":").replaceFirst(":$", "")
 
     val empty = Gav(groupId = "", artifactId = "", version = "")
+
+    def isUnu(in: String): Boolean = {
+      val repl = in.replaceFirst("^[^\\p{Alpha}^\\p{Digit}]", "")
+        .replaceFirst("[^\\p{Alpha}^\\p{Digit}]$", "")
+      repl != in
+    }
   }
 
   case class PomRef(id: String)
@@ -157,6 +169,7 @@ object ProjectMod {
       }
     }
   }
+
 }
 
 trait ProjectMod extends LazyLogging {
@@ -355,7 +368,6 @@ trait ProjectMod extends LazyLogging {
 
   private[release] def replacedPropertyOf(string: String) = PomMod.replaceProperty(listProperties)(string)
 
-
   private[release] def replacedVersionProperties(deps: Seq[Dep]) = deps.map(dep => dep.copy(
     version = replacedPropertyOf(dep.version),
     packaging = replacedPropertyOf(dep.packaging),
@@ -372,9 +384,9 @@ trait ProjectMod extends LazyLogging {
     listPluginDependencies.map(_.fakeDep())
       .filterNot(_.version == "") // managed plugins are okay
       .map(in => in.groupId match {
-      case "" => in.copy(groupId = "org.apache.maven.plugins")
-      case _ => in
-    })
+        case "" => in.copy(groupId = "org.apache.maven.plugins")
+        case _ => in
+      })
 
   def isNoShop: Boolean = {
     !isShop

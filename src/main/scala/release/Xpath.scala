@@ -110,12 +110,12 @@ object Xpath {
     o.foldLeft(Map.empty[String, String])((a, b) => a ++ b)
   }
 
+  private def toMapOfTuple(nodeSeq: Seq[(String, String)]): Map[String, String] = {
+    nodeSeq.foldLeft(Map.empty[String, String])(_ + _)
+  }
+
   def toMapOf(nodeSeq: Seq[(String, String, Node)]): Map[String, String] = {
-    val markersMap: Map[String, String] = nodeSeq
-      .map(in => (in._1, in._2))
-      .map(t => (t._1, t._2.trim))
-      .foldLeft(Map.empty[String, String])(_ + _)
-    markersMap
+    toMapOfTuple(nodeSeq.map(in => (in._1, in._2)))
   }
 
   def nodeElements(node: Node, xpath: String): Seq[Node] = {

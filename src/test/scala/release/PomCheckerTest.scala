@@ -1,8 +1,8 @@
 package release
 
-import org.junit.Test
+import org.junit.{Assert, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
-import release.ProjectMod.{PluginDep, PluginExec, PomRef}
+import release.ProjectMod.{Gav, PluginDep, PluginExec, PomRef}
 
 class PomCheckerTest extends AssertionsForJUnit {
 
@@ -92,8 +92,8 @@ class PomCheckerTest extends AssertionsForJUnit {
       Seq("plugin", "plugins", "build", "profile", "profiles", "project")))
 
     // WHEN / THEN
-    TestHelper.assertException("please check your pom.xml's and move your ishop-maven-plugin to project/build/plugins/plugin " +
-            "your path is project/profiles/profile/build/plugins/plugin",
+    TestHelper.assertException("please check your pom.xml's and move your ishop-maven-plugin to <project>/<build>/<plugins>/<plugin>. " +
+      "Your path in xml is <project>/<profiles>/<profile>/<build>/<plugins>/<plugin>",
       classOf[PomChecker.ValidationException], () => PomChecker.checkIshopMaven(deps))
   }
 
@@ -111,7 +111,7 @@ class PomCheckerTest extends AssertionsForJUnit {
     // WHEN / THEN
     TestHelper.assertException("Please check your pom.xml's. The maven-dependency-plugin execution with id " +
       "pre-build-validate-any has no configuration-element or the outputFile-tag contains slashes",
-      classOf[PomChecker.ValidationException], () => PomChecker.check(deps))
+      classOf[PomChecker.ValidationException], () => PomChecker.checkPlugins(deps))
   }
 
   @Test
@@ -127,7 +127,7 @@ class PomCheckerTest extends AssertionsForJUnit {
 
     // WHEN / THEN
     TestHelper.assertException("maven-dependency-plugin goals tree, list must be executed on phase \"validate\"",
-      classOf[PomChecker.ValidationException], () => PomChecker.check(deps))
+      classOf[PomChecker.ValidationException], () => PomChecker.checkPlugins(deps))
   }
 
   @Test
@@ -143,7 +143,7 @@ class PomCheckerTest extends AssertionsForJUnit {
     // WHEN / THEN
     TestHelper.assertException("Please check your pom.xml's. The maven-dependency-plugin execution with id " +
       "pre-build-validate-tree has no configuration-element or the outputFile-tag contains slashes",
-      classOf[PomChecker.ValidationException], () => PomChecker.check(deps))
+      classOf[PomChecker.ValidationException], () => PomChecker.checkPlugins(deps))
   }
 
   @Test
@@ -156,7 +156,7 @@ class PomCheckerTest extends AssertionsForJUnit {
 
     // WHEN / THEN
     TestHelper.assertException("please add at least one execution to you maven-dependency-plugin",
-      classOf[PomChecker.ValidationException], () => PomChecker.check(deps))
+      classOf[PomChecker.ValidationException], () => PomChecker.checkPlugins(deps))
   }
 
   @Test
@@ -171,7 +171,7 @@ class PomCheckerTest extends AssertionsForJUnit {
       Seq("plugin", "plugins", "build", "project")))
 
     // WHEN
-    PomChecker.check(deps)
+    PomChecker.checkPlugins(deps)
     // THEN
     // - no exception
   }
@@ -188,9 +188,62 @@ class PomCheckerTest extends AssertionsForJUnit {
       Seq("plugin", "plugins", "build", "profile", "profiles", "project")))
 
     // WHEN / THEN
-    TestHelper.assertException("please check your pom.xml's and move your maven-dependency-plugin to project/build/plugins/plugin " +
-            "your path is project/profiles/profile/build/plugins/plugin",
-      classOf[PomChecker.ValidationException], () => PomChecker.check(deps))
+    TestHelper.assertException("please check your pom.xml's and move your maven-dependency-plugin to <project>/<build>/<plugins>/<plugin>. " +
+      "Your path in xml is <project>/<profiles>/<profile>/<build>/<plugins>/<plugin>",
+      classOf[PomChecker.ValidationException], () => PomChecker.checkPlugins(deps))
 
+  }
+
+  @Test
+  def testCheckGavFormat_empty(): Unit = {
+    val result = StarterTest.withOutErr[Unit]((out, _) => {
+      PomChecker.checkGavFormat(Nil, out)
+    })
+    Assert.assertEquals("", result.out)
+  }
+
+  @Test
+  def testCheckGav(): Unit = {
+    Assert.assertFalse(Gav.isUnu(""))
+    Assert.assertFalse(Gav.isUnu("a"))
+    Assert.assertFalse(Gav.isUnu("a_b"))
+    Assert.assertFalse(Gav.isUnu("a-b"))
+    Assert.assertTrue(Gav.isUnu(" "))
+    Assert.assertTrue(Gav.isUnu("a "))
+    Assert.assertTrue(Gav.isUnu("a ;"))
+    Assert.assertTrue(Gav.isUnu(" a"))
+    Assert.assertTrue(Gav.isUnu(". a"))
+    Assert.assertTrue(Gav.isUnu("a;"))
+    Assert.assertTrue(Gav.isUnu("a-"))
+    Assert.assertTrue(Gav.isUnu("a_"))
+  }
+
+  @Test
+  def testCheckGavFormat(): Unit = {
+    val result = StarterTest.withOutErr[Unit]((out, _) => {
+      val base = ProjectMod.Dep(PomRef.undef, "g", "a", "v", "t", "s", "jar", "classi")
+      PomChecker.checkGavFormat(Seq(
+        base,
+        base.copy(groupId = "g."),
+        base.copy(groupId = " g"),
+        base.copy(artifactId = "/a"),
+        base.copy(version = "v;"),
+        base.copy(typeN = "t "),
+        base.copy(scope = " s"),
+        base.copy(scope = "s "),
+        base.copy(packaging = "~p"),
+        base.copy(packaging = ""),
+        base.copy(scope = ""),
+      ), out)
+    })
+    Assert.assertEquals(
+      """Warning: Found dependencies with unusual symbols - please check your dependencies
+        |  " g:a:v:jar:classi:s"
+        |  "g.:a:v:jar:classi:s"
+        |  "g:/a:v:jar:classi:s"
+        |  "g:a:v:jar:classi: s"
+        |  "g:a:v:jar:classi:s "
+        |  "g:a:v:~p:classi:s"
+        |  "g:a:v;:jar:classi:s"""".stripMargin, result.out)
   }
 }

@@ -1,12 +1,27 @@
 package release
 
+import java.io.PrintStream
+
 import release.ProjectMod.PluginDep
 
 object PomChecker {
 
   private val path = Seq("plugin", "plugins", "build", "project")
 
-  def check(plugins: Seq[PluginDep]): Unit = {
+  def checkGavFormat(deps: Seq[ProjectMod.Dep], out: PrintStream): Unit = {
+    val unusual: Seq[ProjectMod.Gav] = deps.map(_.gav()).filter(_.feelsUnusual()).sortBy(_.formatted)
+
+    if (unusual != Nil) {
+      out.println()
+      out.println("Warning: Found dependencies with unusual symbols - please check your dependencies")
+      unusual.foreach(in => {
+        out.println("  \"" + in.formatted + "\"")
+      })
+      out.println()
+    }
+  }
+
+  def checkPlugins(plugins: Seq[PluginDep]): Unit = {
     checkIshopMaven(plugins)
     val depPlugins = PomMod.dependecyPlugins(plugins)
     depPlugins.foreach(plugin => {
@@ -52,7 +67,8 @@ object PomChecker {
   private def checkDefaultPath(plugin: PluginDep): Unit = {
     if (plugin.pomPath != path) {
       throw new ValidationException("please check your pom.xml's and move your " + plugin.artifactId + " to " +
-        path.reverse.mkString("/") + " your path is " + plugin.pomPath.reverse.mkString("/"))
+        path.reverse.map(in => s"<$in>").mkString("/") +
+        ". Your path in xml is " + plugin.pomPath.reverse.map(in => s"<$in>").mkString("/"))
     }
   }
 

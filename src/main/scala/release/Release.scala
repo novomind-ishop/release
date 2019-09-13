@@ -478,8 +478,9 @@ object Release {
     val plugins = mod.listPluginDependencies
     if (mod.isShop) {
       // TODO check if core needs this checks too
-      PomChecker.check(plugins)
+      PomChecker.checkPlugins(plugins)
     }
+    PomChecker.checkGavFormat(mod.listDependecies ++ mod.listPluginDependencies.map(_.fakeDep()), out)
 
     val snapsF = gitFiles.par
       .filterNot(in => in.endsWith(".list"))
