@@ -64,8 +64,14 @@ sealed class ReleaseConfig(map: Map[String, String]) {
     scala.util.Properties.envOrNone("RELEASE_GIT_BIN")
   }
 
-  def getUserNome(): String = {
-    System.getProperty("user.home")
+  def getUserHome(shellHome:String): String = {
+    val userHomeFromJava = System.getProperty("user.home")
+    if (userHomeFromJava == shellHome) {
+      userHomeFromJava
+    } else {
+      userHomeFromJava + ";" + shellHome
+    }
+
   }
 }
 

@@ -7,7 +7,7 @@ import java.util.regex.Pattern
 import scala.collection.parallel.CollectionConverters._
 
 import release.ProjectMod.{Dep, Gav, Version}
-import release.Starter.{Opts, PreconditionsException, TermOs}
+import release.Starter.{Opts, PreconditionsException}
 
 import scala.annotation.tailrec
 
@@ -101,7 +101,7 @@ object Release {
 
   // TODO @tailrec
   def work(workDirFile: File, out: PrintStream, err: PrintStream, rebaseFn: () => Unit, branch: String, sgit: Sgit,
-           termOs: TermOs, shellWidth: Int, releaseToolGitSha1: String, config: ReleaseConfig,
+           termOs: Term, shellWidth: Int, releaseToolGitSha1: String, config: ReleaseConfig,
            aether: Aether, opts: Opts): Seq[Unit] = {
     if (sgit.hasLocalChanges) {
       val message = localChangeMessage(sgit)

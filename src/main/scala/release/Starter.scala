@@ -22,22 +22,6 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 object Starter extends App with LazyLogging {
   logger.trace("started vm")
 
-  object TermOs {
-
-    def select(term: String, os: String, simpleChars: Boolean) = term match {
-      case "xterm" => TermOs("xterm", os, simpleChars)
-      case "xterm-256color" => TermOs("xterm-256color", os, simpleChars)
-      case "screen-256color" => TermOs("screen-256color", os, simpleChars)
-      case "cygwin" => TermOs("cygwin", os, simpleChars)
-      case t => throw new IllegalStateException(t)
-    }
-  }
-
-  case class TermOs(term: String, os: String, simpleChars: Boolean) {
-    val isCygwin: Boolean = os == "Cygwin" || term == "cygwin"
-    val isMinGw: Boolean = os.contains("MINGW")
-  }
-
   case class FutureError(msg: String, e: Exception)
 
   implicit class FutureEither[E, A](val wrapped: Future[Either[E, A]])(implicit ec: ExecutionContext) {
@@ -250,7 +234,7 @@ object Starter extends App with LazyLogging {
   def init(argSeq: Seq[String], out: PrintStream, err: PrintStream): Int = {
 
     if (argSeq.size <= 4) {
-      err.println("usage: $0 \"$(dirname $0)\" \"$(pwd)\" \"${os}\" \"${TERM}\" \"${terminal_cols}\" ${argLine}")
+      err.println("usage: $0 \"$(dirname $0)\" \"$(pwd)\" \"${os}\" \"${TERM}\" \"${terminal_cols}\" \"${HOME}\" ${argLine}")
       return 1
     }
     val releaseToolPath = argSeq.head
@@ -259,14 +243,19 @@ object Starter extends App with LazyLogging {
     val workDir = argSeq(1)
     val workDirFile = new File(workDir).getAbsoluteFile
     val shellWidth = argSeq(4).toInt
-    val otherArgs = argSeq.drop(5).filter(_ != null).map(_.trim).toList
+    val otherArgs = argSeq.drop(6).filter(_ != null).map(_.trim).toList
 
     val opts = argsRead(otherArgs, Opts())
     if (!opts.showUpdateCmd) {
       out.println(". done")
     }
     val config = ReleaseConfig.default(opts.useDefaults)
-    val termOs: TermOs = TermOs.select(argSeq(3), argSeq(2), opts.simpleChars)
+    val termOs: Term = Term.select(argSeq(3), argSeq(2), opts.simpleChars)
+
+    val home = Term.Os.current match {
+      case Term.Os.Windows => argSeq(5).replace('/', '\\')
+      case _ => argSeq(5)
+    }
     val showUpdateCmd = opts.showUpdateCmd
     val createFeatureBranch = opts.createFeature
     val verifyGerrit = opts.useGerrit
@@ -304,7 +293,7 @@ object Starter extends App with LazyLogging {
       out.println("Possible environment variables:")
       out.println("export RELEASE_GIT_BIN=$PATH_TO_GIT_EXECUTABLE")
       out.println()
-      out.println("Your home dir is: " + config.getUserNome())
+      out.println("Your home dir is: " + config.getUserHome(home))
       return 0
     }
 

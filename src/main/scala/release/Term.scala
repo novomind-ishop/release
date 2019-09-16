@@ -144,4 +144,33 @@ object Term {
       }
     }
   }
+
+  object Os {
+    lazy val current: Os = {
+      System.getProperty("os.name") match {
+        case "Windows 10" => Os.Windows
+        case "Linux" => Os.Linux
+        case "Mac OS X" => Os.Darwin
+        case other => throw new IllegalStateException("unknown os: " + other)
+      }
+    }
+    val Windows = Os("win")
+    val Linux = Os("Linux")
+    val Darwin = Os("Darwin")
+  }
+
+  sealed case class Os(name: String)
+
+  def select(term: String, os: String, simpleChars: Boolean) = term match {
+    case "xterm" => Term("xterm", os, simpleChars)
+    case "xterm-256color" => Term("xterm-256color", os, simpleChars)
+    case "screen-256color" => Term("screen-256color", os, simpleChars)
+    case "cygwin" => Term("cygwin", os, simpleChars)
+    case t => throw new IllegalStateException(t)
+  }
+}
+
+case class Term(term: String, os: String, simpleChars: Boolean) {
+  val isCygwin: Boolean = os == "Cygwin" || term == "cygwin"
+  val isMinGw: Boolean = os.contains("MINGW")
 }

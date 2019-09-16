@@ -53,13 +53,13 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
   @Test
   def test_nil_args(): Unit = {
     val result = doInit(Nil)
-    assertMessageErr("usage: $0 \"$(dirname $0)\" \"$(pwd)\" \"${os}\" \"${TERM}\" \"${terminal_cols}\" ${argLine}", result)
+    assertMessageErr("usage: $0 \"$(dirname $0)\" \"$(pwd)\" \"${os}\" \"${TERM}\" \"${terminal_cols}\" \"${HOME}\" ${argLine}", result)
   }
 
   @Test
   def test_one_arg(): Unit = {
     val result = doInit(Seq("self_dir"))
-    assertMessageErr("usage: $0 \"$(dirname $0)\" \"$(pwd)\" \"${os}\" \"${TERM}\" \"${terminal_cols}\" ${argLine}", result)
+    assertMessageErr("usage: $0 \"$(dirname $0)\" \"$(pwd)\" \"${os}\" \"${TERM}\" \"${terminal_cols}\" \"${HOME}\" ${argLine}", result)
   }
 
   private val helpMessage =

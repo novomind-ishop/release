@@ -5,7 +5,7 @@ import java.io.{File, PrintStream}
 import com.typesafe.scalalogging.LazyLogging
 import release.PomMod.{abbreviate, unmanged}
 import release.ProjectMod.{Dep, Gav3, PluginDep, PomRef}
-import release.Starter.{Opts, OptsDepUp, TermOs}
+import release.Starter.{Opts, OptsDepUp}
 
 import scala.annotation.tailrec
 import scala.collection.parallel.CollectionConverters._
@@ -183,7 +183,7 @@ trait ProjectMod extends LazyLogging {
 
   val listProperties: Map[String, String]
 
-  def showDependencyUpdates(shellWidth: Int, termOs: TermOs, depUpOpts: OptsDepUp, workNexusUrl: String,
+  def showDependencyUpdates(shellWidth: Int, termOs: Term, depUpOpts: OptsDepUp, workNexusUrl: String,
                             out: PrintStream, err: PrintStream): Unit = {
 
     out.println("I: checking dependecies against nexus - please wait")

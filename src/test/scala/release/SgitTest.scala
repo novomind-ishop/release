@@ -5,7 +5,7 @@ import java.nio.file.{Files, StandardCopyOption}
 
 import org.junit.{Assert, Assume, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
-import release.Sgit.{GitRemote, MissingGitDirException, Os}
+import release.Sgit.{GitRemote, MissingGitDirException}
 import release.SgitTest.hasCommitMsg
 import release.Starter.{Opts, PreconditionsException}
 
@@ -20,14 +20,14 @@ class SgitTest extends AssertionsForJUnit {
   def testSelectGitCmd(): Unit = {
     val git = Sgit.selectedGitCmd(System.err, None)
 
-    Sgit.getOs match {
-      case Os.Windows => {
+    Term.Os.current match {
+      case Term.Os.Windows => {
         Assert.assertEquals(Seq("C:\\Programme\\Git\\bin\\git.exe"), git)
       }
-      case Os.Linux => {
+      case Term.Os.Linux => {
         Assert.assertEquals(Seq("git"), git)
       }
-      case Os.Darwin => {
+      case Term.Os.Darwin => {
         Assert.assertEquals(Seq("git"), git)
       }
       case other => Assert.fail("unknown os: " + other + " => " + git)
@@ -316,22 +316,22 @@ class SgitTest extends AssertionsForJUnit {
         })
     }
 
-    Sgit.getOs match {
+    Term.Os.current match {
         // TODO a git version change in 2.21
         //   failed: expected:<...r does not match any[.]' git-err: 'error: f...> but was:<...r does not match any[]' git-err: 'error: f...>
-      case Os.Windows => {
+      case Term.Os.Windows => {
         failFetchAll("Nonzero exit value: 1; git --no-pager fetch -q --all --tags; " +
           "ssh: Could not resolve hostname git.example.org: Name or service not known fatal: " +
           "Could not read from remote repository. " +
           "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu")
       }
-      case Os.Linux => {
+      case Term.Os.Linux => {
         failFetchAll("Nonzero exit value: 1; git --no-pager fetch -q --all --tags; " +
           "ssh: Could not resolve hostname git.example.org: Name or service not known fatal: " +
           "Could not read from remote repository. " +
           "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu")
       }
-      case Os.Darwin => {
+      case Term.Os.Darwin => {
         failFetchAll("Nonzero exit value: 1; git --no-pager fetch -q --all --tags; " +
           "ssh: Could not resolve hostname git.example.org: nodename nor servname provided, or not known fatal: " +
           "Could not read from remote repository. " +
@@ -515,8 +515,8 @@ class SgitTest extends AssertionsForJUnit {
     gitB.addRemote("origin", "ssh://none@any-gerrit:29418/ishop/user/anyone/sonar-demo")
     val triedUnit = gitB.tryFetchAll()
     if (triedUnit.isFailure && triedUnit.failed.get.getMessage.contains("publickey")) {
-      Sgit.getOs match {
-        case Os.Darwin => {
+      Term.Os.current match {
+        case Term.Os.Darwin => {
           TestHelper.assertException("Nonzero exit value: 128; git --no-pager push -q -u origin master:refs/heads/master; " +
             "git-err: 'none@any-gerrit: Permission denied (publickey).' " +
             "git-err: 'fatal: Could not read from remote repository.' " +

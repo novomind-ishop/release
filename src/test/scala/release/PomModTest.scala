@@ -1286,8 +1286,8 @@ class PomModTest extends AssertionsForJUnit {
     val writer: BufferedWriter = new BufferedWriter(new FileWriter(file))
     writer.write("hello")
     try {
-      Sgit.getOs match {
-        case Sgit.Os.Windows => {
+      Term.Os.current match {
+        case Term.Os.Windows => {
           TestHelper.assertException("Windows tends to lock file handles." +
             " Try to find handle or DLL that locks the file. e.g. with Sysinternals Process Explorer",
             classOf[IllegalStateException], () => {
