@@ -1,7 +1,7 @@
 #!/bin/bash
-# Released sowohl Shop- als auch sonstige Artefakte mit Hilfe des CI Servers
 unset JAVA_TOOL_OPTIONS
 set -eu
+: $HOME
 trace_setup() {
   echo "$(date '+%H:%M:%S.000') shell-script - $1" >> ${HOME}/.release.log
 }
