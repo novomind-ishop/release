@@ -273,17 +273,16 @@ trait ProjectMod extends LazyLogging {
 
     // TODO move Version check to here
 
-    val checkedUpdates = updates.map(gavAndVersion => {
+    val checkedUpdates: Map[Gav3, Seq[String]] = updates.map(gavAndVersion => {
       if (gavAndVersion._2 == Nil) {
         (gavAndVersion._1, Nil) // TODO remove this, because it is invalid
       } else {
         (gavAndVersion._1, gavAndVersion._2.tail)
       }
-
     })
 
     val allWithUpdate: Seq[(GavWithRef, Seq[String])] = relevant.map(in => (GavWithRef(in.pomRef, in.gavWithDetailsFormatted),
-      checkedUpdates.getOrElse(in.gav().simpleGav(), Nil))).filterNot(in => depUpOpts.hideLatest && in._2.isEmpty)
+      checkedUpdates.getOrElse(in.gav().simpleGav(), Nil))).filterNot((in: (GavWithRef, Seq[String])) => depUpOpts.hideLatest && in._2.isEmpty)
 
     allWithUpdate.groupBy(_._1.pomRef).foreach(element => {
       val ref: PomRef = element._1
@@ -341,14 +340,14 @@ trait ProjectMod extends LazyLogging {
 
     {
       // TODO check versions before
-      val versionNotFound = updates.filter(_._2 == Nil)
+      val versionNotFound: Map[Gav3, Seq[String]] = updates.filter(_._2 == Nil)
       if (versionNotFound.nonEmpty) {
         // TODO throw new PreconditionsException
         err.println("Non existing dependencies for:\n" +
-          versionNotFound.map(in => in._1.formatted + "->" + (in._2 match {
+          versionNotFound.toList.map(in => in._1.formatted + "->" + (in._2 match {
             case Nil => "Nil"
             case e => e
-          }) + "\n  " + workNexusUrl + in._1.slashedMeta).toList.sorted.mkString("\n"))
+          }) + "\n  " + workNexusUrl + in._1.slashedMeta).sorted.mkString("\n"))
         err.println()
       }
     }

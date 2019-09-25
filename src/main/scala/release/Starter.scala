@@ -176,6 +176,8 @@ object Starter extends App with LazyLogging {
       case Nil => inOpt
       case "--help" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(showHelp = true)))
       case "-h" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(showHelp = true)))
+      case "--no-filter" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts
+        .copy(hideStageVersions = false, hideLatest = false)))
 
       // --
       case string :: Nil => argsDepRead(Nil, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(invalids = inOpt.depUpOpts.invalids :+ string)))
@@ -304,6 +306,10 @@ object Starter extends App with LazyLogging {
         out.println()
       }
       out.println("Usage: release showDependencyUpdates [OPTION] [CMD] ...")
+      out.println()
+      out.println("Possible options:")
+      out.println("--help, -h            => shows this and exits")
+      out.println("--no-filter           => do not hide unwanted updates")
       return 0
     }
 
