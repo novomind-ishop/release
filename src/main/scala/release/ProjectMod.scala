@@ -213,7 +213,7 @@ trait ProjectMod extends LazyLogging {
         .filterNot(_.contains("-atlassian-"))
         .filterNot(_.matches(".*jenkins-[0-9]+$"))
         .filterNot(_.contains("PFD"))
-        .filterNot(_.contains("-cdh"))
+        // .filterNot(_.contains("-cdh")) // Cloudera Distribution Including Apache Hadoop
         .filterNot(_.contains("darft"))
         .filterNot(_.startsWith("2003"))
         .filterNot(_.startsWith("2004"))
