@@ -5,7 +5,7 @@ import java.nio.file.{Files, StandardCopyOption}
 
 import org.junit.{Assert, Assume, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
-import release.Sgit.{GitRemote, MissingGitDirException}
+import release.Sgit.{GitRemote, GitTagWithDate, MissingGitDirException}
 import release.SgitTest.hasCommitMsg
 import release.Starter.{Opts, PreconditionsException}
 
@@ -276,6 +276,7 @@ class SgitTest extends AssertionsForJUnit {
     // GIVEN
     val testRepoA = SgitTest.ensureAbsent("a")
     val testRepoB = SgitTest.ensureAbsent("b")
+    val testRepoI = SgitTest.ensureAbsent("i")
 
     // WHEN
     val gitA = Sgit.init(testRepoA, SgitTest.hasCommitMsg)
@@ -317,8 +318,8 @@ class SgitTest extends AssertionsForJUnit {
     }
 
     Term.Os.current match {
-        // TODO a git version change in 2.21
-        //   failed: expected:<...r does not match any[.]' git-err: 'error: f...> but was:<...r does not match any[]' git-err: 'error: f...>
+      // TODO a git version change in 2.21
+      //   failed: expected:<...r does not match any[.]' git-err: 'error: f...> but was:<...r does not match any[]' git-err: 'error: f...>
       case Term.Os.Windows => {
         failFetchAll("Nonzero exit value: 1; git --no-pager fetch -q --all --tags; " +
           "ssh: Could not resolve hostname git.example.org: Name or service not known fatal: " +
@@ -355,9 +356,11 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(Seq("Change-Id: I0000000000000000000000000000000000000000"), gitA.commitMessageBody("HEAD"))
     Assert.assertEquals(Nil, gitA.localChanges())
     Assert.assertEquals("master", gitA.currentBranch)
-    Assert.assertEquals(Seq("refs/heads/master"), gitA.listBranchesLocal().map(_.branchName))
+    gitA.worktreeAdd("../" + testRepoI.getName)
+    Assert.assertEquals(Seq("refs/heads/" + testRepoI.getName, "refs/heads/master"), gitA.listBranchesLocal().map(_.branchName))
+    gitA.worktreeRemove(testRepoI.getName)
     Assert.assertEquals(None, gitA.findUpstreamBranch())
-    val gitB = Sgit.clone(testRepoA, testRepoB, SgitTest.hasCommitMsg)
+    val gitB = Sgit.doClone(testRepoA, testRepoB, SgitTest.hasCommitMsg)
     SgitTest.copyMsgHook(testRepoB)
     Assert.assertEquals(None, gitA.configGetLocalAll("receive.denyCurrentBranch"))
     gitA.configSetLocal("receive.denyCurrentBranch", "warn")
@@ -404,9 +407,19 @@ class SgitTest extends AssertionsForJUnit {
     gitB.pushFor("master", "master")
     Assert.assertEquals(Nil, gitA.listTags())
     Assert.assertEquals(Nil, gitB.listTags())
+    gitB.doTag("0.0.10")
+    val v10 = SgitTest.testFile(testRepoB, "v10")
+    gitB.add(v10)
+    gitB.commitAll("bla")
     gitB.doTag("0.0.9")
-    Assert.assertEquals(Seq("v0.0.9"), gitB.listTags())
+    v10.delete()
+    gitB.add(v10)
+    gitB.commitAll("delete v10")
+    gitB.doTag("0.0.8")
+    Assert.assertEquals(Seq("v0.0.10", "v0.0.8", "v0.0.9"), gitB.listTags())
     Assert.assertEquals(Nil, gitA.listTags())
+    Assert.assertEquals(Seq("v0.0.8", "v0.0.9", "v0.0.10"),
+      gitB.listTagsWithDate().map(_.name))
     gitB.pushTag("0.0.9")
     Assert.assertEquals(Seq("v0.0.9"), gitA.listTags())
     val pomFile = SgitTest.testFile(testRepoB, "pom.xml")
@@ -456,15 +469,16 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(Nil, gitB.localChanges())
 
     Assert.assertEquals(Seq("refs/heads/master", "refs/remotes/origin/HEAD",
-      "refs/remotes/origin/master", "refs/tags/v0.0.9"), gitB.listRefNames())
+      "refs/remotes/origin/master", "refs/tags/v0.0.10", "refs/tags/v0.0.8", "refs/tags/v0.0.9"), gitB.listRefNames())
     gitB.doTag("1.0.0")
     Assert.assertEquals(Seq("refs/heads/master", "refs/remotes/origin/HEAD",
-      "refs/remotes/origin/master", "refs/tags/v0.0.9", "refs/tags/v1.0.0"), gitB.listRefNames())
-    Assert.assertEquals(Seq("v0.0.9", "v1.0.0"), gitB.listTags())
+      "refs/remotes/origin/master", "refs/tags/v0.0.10", "refs/tags/v0.0.8", "refs/tags/v0.0.9", "refs/tags/v1.0.0"),
+      gitB.listRefNames())
+    Assert.assertEquals(Seq("v0.0.10", "v0.0.8", "v0.0.9", "v1.0.0"), gitB.listTags())
     gitB.deleteRef("refs/tags/v1.0.0")
-    Assert.assertEquals(Seq("v0.0.9"), gitB.listTags())
+    Assert.assertEquals(Seq("v0.0.10", "v0.0.8", "v0.0.9"), gitB.listTags())
     Assert.assertEquals(Seq("refs/heads/master", "refs/remotes/origin/HEAD",
-      "refs/remotes/origin/master", "refs/tags/v0.0.9"), gitB.listRefNames())
+      "refs/remotes/origin/master", "refs/tags/v0.0.10", "refs/tags/v0.0.8", "refs/tags/v0.0.9"), gitB.listRefNames())
     gitB.doTag("1.0.0")
     gitB.doTag("1.0.1")
     Assert.assertEquals(Seq("any.xml", "pom.xml", "schönes Ding", "sub/pom.xml", "test"), gitB.lsFiles())
@@ -552,6 +566,22 @@ class SgitTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testParseTagLog(): Unit = {
+    val o = Seq("2019-09-25T15:47:39+02:00 (HEAD -> master, tag: v0.0.8)",
+      "2019-09-25T15:47:30+02:00 (tag: v0.0.9, tag: v0.0.10)",
+      "2019-09-25T15:47:31+02:00 (tag: v0.0,7, tag: v0.0.6)",
+      "2019-09-99T15:99:31+02:00 (tag: v3)")
+    val result = Sgit.parseTagLog(o)
+    Assert.assertEquals(Seq(
+      GitTagWithDate("v0.0.8", Sgit.parseIsoDate("2019-09-25T15:47:39+02:00")),
+      GitTagWithDate("v0.0.9", Sgit.parseIsoDate("2019-09-25T15:47:30+02:00")),
+      GitTagWithDate("v0.0.10", Sgit.parseIsoDate("2019-09-25T15:47:30+02:00")),
+      GitTagWithDate("v0.0,7", Sgit.parseIsoDate("2019-09-25T15:47:31+02:00")),
+      GitTagWithDate("v0.0.6", Sgit.parseIsoDate("2019-09-25T15:47:31+02:00")),
+    ), result)
+  }
+
+  @Test
   def testSplitLineOnBranchlist(): Unit = {
 
     val master = Sgit.splitLineOnBranchlist("* master 915c1ce40ee979c3739e640e0a86ba68adea8681 Removed ...")
@@ -574,6 +604,14 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(None, some1.value)
     Assert.assertEquals("W: Unknown branch definition (check commit messages for second line empty, first line char limit): \"bla\nbl\". " +
       "See: git branch --list --verbose --no-abbrev", some1.err)
+  }
+
+  @Test
+  def testSplitLineOnBranchlist_worktree(): Unit = {
+    val some1 = StarterTest.withOutErr[Option[(String, String)]]((_, err) =>
+      Sgit.splitLineOnBranchlistErr(err)("+ bla                   74036668cf893e4762ab4ff24ab4de8e44b70e33 Some"))
+
+    Assert.assertEquals(("bla", "74036668cf893e4762ab4ff24ab4de8e44b70e33"), some1.value.get)
   }
 
   private def assertMsg(expected: Seq[String], sgit: Sgit): Unit = {

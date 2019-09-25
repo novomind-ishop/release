@@ -4,12 +4,12 @@ import java.io.{File, PrintStream}
 import java.nio.charset.MalformedInputException
 import java.nio.file.{Files, InvalidPathException, Path, Paths}
 import java.util.regex.Pattern
-import scala.collection.parallel.CollectionConverters._
 
 import release.ProjectMod.{Dep, Gav, Version}
 import release.Starter.{Opts, PreconditionsException}
 
 import scala.annotation.tailrec
+import scala.collection.parallel.CollectionConverters._
 
 object Release {
 
@@ -127,7 +127,7 @@ object Release {
     Starter.chooseUpstreamIfUndef(out, sgit, branch, opts, Console.in)
 
     val rootPom = PomMod.rootPom(workDirFile)
-    val mod:ProjectMod = if (rootPom.canRead) {
+    val mod: ProjectMod = if (rootPom.canRead) {
       out.print("I: Reading pom.xmls ..")
       PomMod.ofAether(workDirFile, opts, aether)
     } else {
@@ -160,6 +160,10 @@ object Release {
           out.println("I: We prefer:")
           out.println("I: RC-{YEAR}.{WEEK OF YEAR} for common releases")
           out.println("I: RC-{YEAR}.{WEEK OF YEAR}.{NUMBER} for intermediate releases")
+        }
+        val latestTags = sgit.listTagsWithDate().map(_.name).take(5)
+        if (latestTags.nonEmpty) {
+          out.println("Latest version names are: " + latestTags.mkString(", "))
         }
         val retryVersionEnter = Term.readFromOneOfYesNo(out, "Unknown release version name: \"" + result + "\"." +
           " Are you sure to continue with this name?", opts)
@@ -399,7 +403,7 @@ object Release {
       } else {
         "git branch -D release/" + releaseWitoutSnapshot + ";"
       }
-     val resetCmd = if (changedVersion) {
+      val resetCmd = if (changedVersion) {
         s"git reset --hard ${headCommitId};"
       } else {
         ""
@@ -423,7 +427,7 @@ object Release {
     }
 
     if (opts.useGerrit) {
-      val sendToGerrit = Term.readFromOneOfYesNo(out, "Push to Gerrit?", opts)
+      val sendToGerrit = Term.readFromOneOfYesNo(out, "Push to Gerrit and publish release?", opts)
       if (sendToGerrit == "y") {
         try {
           if (sgit.hasChangesToPush) {

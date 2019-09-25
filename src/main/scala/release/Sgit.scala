@@ -4,15 +4,17 @@ import java.io.{File, PrintStream}
 import java.math.BigInteger
 import java.net.URI
 import java.nio.charset.StandardCharsets
+import java.time.ZonedDateTime
 
 import com.typesafe.scalalogging.LazyLogging
 import release.Conf.Tracer
-import release.Sgit.{BranchAlreadyExistsException, GitRemote, GitShaBranch, MissingGitDirException}
+import release.Sgit._
 import release.Starter.{Opts, PreconditionsException}
 
 import scala.annotation.tailrec
 import scala.io.Source
 import scala.sys.process.ProcessLogger
+import scala.util.parsing.combinator.RegexParsers
 import scala.util.{Failure, Success, Try}
 
 case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStream,
@@ -388,6 +390,15 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     gitNative(Seq("rebase", "-q"))
   }
 
+  def worktreeAdd(f:String): Unit = {
+    gitNative(Seq("worktree", "add", f))
+  }
+
+  def worktreeRemove(f:String): Unit = {
+    gitNative(Seq("worktree", "remove", f))
+    deleteBranch(f)
+  }
+
   def hasNoLocalChanges: Boolean = {
     !hasLocalChanges
   }
@@ -411,6 +422,11 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   }
 
   def listTags(): Seq[String] = gitNative(Seq("tag", "--list"))
+
+  def listTagsWithDate(): Seq[GitTagWithDate] = {
+    Sgit.parseTagLog(gitNative(Seq("log", "--tags", "--simplify-by-decoration", "--pretty=%aI%d")))
+      .sortBy(-_.date.toEpochSecond)
+  }
 
   private def checkedTagName(tagName: String): String = {
     if (tagName.startsWith("v")) {
@@ -534,7 +550,9 @@ object Sgit {
   }
 
   private[release] def splitLineOnBranchlistErr(err: PrintStream)(in: String): Option[(String, String)] = {
-    val trimmed = in.replaceFirst("^\\*", "").trim.replaceFirst("^\\([^\\)]+", "(branch_name_replaced")
+    val trimmed = in.replaceFirst("^\\*", "")
+      .replaceFirst("^\\+", "") // worktree
+      .trim.replaceFirst("^\\([^\\)]+", "(branch_name_replaced")
     val out = trimmed.split("[ \t]+").toList
     val result = out.flatMap(in => if (in == "(branch_name_replaced)") {
       Seq(out(1))
@@ -565,6 +583,8 @@ object Sgit {
   }
 
   case class GitRemote(name: String, position: String, remoteType: String)
+
+  case class GitTagWithDate(name: String, date: ZonedDateTime)
 
   private var gits = Map.empty[Seq[String], Unit]
 
@@ -738,6 +758,61 @@ object Sgit {
     }
   }
 
+  def parseIsoDate(in: String): ZonedDateTime = {
+    ZonedDateTime.parse(in)
+  }
+
+  def parseIsoDateOpt(in: String): Option[ZonedDateTime] = {
+    try {
+      Some(parseIsoDate(in))
+    } catch {
+      case e: Exception => None
+    }
+  }
+
+  def parseTagLog(in: Seq[String]): Seq[GitTagWithDate] = {
+    object TagLogParser extends RegexParsers with LazyLogging {
+      override val skipWhitespace = false
+
+      def doParse(s: String): Seq[GitTagWithDate] = {
+        def parts = " (" ~> "[^\\)]+".r <~ ")" ^^ (term => term.split(", ").toSeq)
+
+        def isoDate = "[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]{2}:[0-9]{2}".r ^^ (term => parseIsoDateOpt(term))
+
+        val p = isoDate ~ parts
+
+        parseAll(p, s) match {
+          case Success(vp, v) => {
+            val isoDate = vp._1
+
+            val tagNames = vp._2
+              .filter(_.startsWith("tag: "))
+              .map(_.replaceFirst("^tag: ", ""))
+            if (isoDate.isDefined) {
+              tagNames.map(name => GitTagWithDate(name, isoDate.get))
+            } else {
+              Nil
+            }
+          }
+          case f: Failure => {
+            logger.warn("", new IllegalStateException("failure: " + f.toString() + " >" + in + "<"))
+            Nil
+
+          }
+          case Error(msg, next) => {
+            logger.warn("", new IllegalStateException("Syntax error - " + msg + " >" + in + "<"))
+            Nil
+
+          }
+        }
+      }
+    }
+    in.flatMap(line => {
+      TagLogParser.doParse(line)
+    })
+
+  }
+
   def unescape(str: String): String = {
     @tailrec
     def cate(in: Seq[Char], result: Seq[Byte] = Nil): Seq[Byte] = {
@@ -779,7 +854,7 @@ object Sgit {
     }
   }
 
-  private[release] def clone(src: File, dest: File, verify: Boolean = true): Sgit = {
+  private[release] def doClone(src: File, dest: File, verify: Boolean = true): Sgit = {
     val o = Sgit(dest, doVerify = verify, out = System.out, err = System.err, checkExisting = false, None, Opts())
     o.clone(src, dest)
     o.copy(doVerify = false, checkExisting = true)
