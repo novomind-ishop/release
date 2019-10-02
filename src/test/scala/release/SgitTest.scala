@@ -161,18 +161,105 @@ class SgitTest extends AssertionsForJUnit {
   }
 
   @Test
-  def testOutLoggerEmpty(): Unit = {
+  def testOutLoggerFetchFilter_fatal(): Unit = {
     var err: Seq[String] = Seq.empty[String]
     var out: Seq[String] = Seq.empty[String]
     val testee = Sgit.outLogger(syserrErrors = true, Seq("fetch"),
-      in => err = err :+ in, in => out = out :+ in, Sgit.fetchFilter)
+      in => err = err :+ in, in => out = out :+ in, Sgit.fetchFilter())
+
+    // WHEN
+    testee.err("blabla bla")
+
+    testee.err("fatal: 'failfail' does not appear to be a git repository fatal: Could not read from remote repository.")
+    testee.err("Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu")
+
+
+    // THEN
+    Assert.assertEquals(Seq(
+      "fatal: 'failfail' does not appear to be a git repository fatal: Could not read from remote repository.",
+      "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu"), err)
+    Assert.assertEquals(Nil, out)
+  }
+
+  @Test
+  def testOutLoggerFetchFilter_error(): Unit = {
+    var err: Seq[String] = Seq.empty[String]
+    var out: Seq[String] = Seq.empty[String]
+    val testee = Sgit.outLogger(syserrErrors = true, Seq("fetch"),
+      in => err = err :+ in, in => out = out :+ in, Sgit.fetchFilter())
+
+    // WHEN
+    testee.err("bla bla")
+    testee.err("error: Could not resolve hostname git.example.org: Name or service not known fatal: Could not read from remote repository." )
+    testee.err("bla bla")
+
+    // THEN
+    Assert.assertEquals(Seq(
+      "error: Could not resolve hostname git.example.org: Name or service not known fatal: Could not read from remote repository."), err)
+    Assert.assertEquals(Nil, out)
+  }
+
+  @Test
+  def testOutLoggerFetchFilter_bang(): Unit = {
+    var err: Seq[String] = Seq.empty[String]
+    var out: Seq[String] = Seq.empty[String]
+    val testee = Sgit.outLogger(syserrErrors = true, Seq("fetch"),
+      in => err = err :+ in, in => out = out :+ in, Sgit.fetchFilter())
+
+    // WHEN
+    testee.err("bla bla")
+    testee.err(" ! [rejected]        v0.0.10    -> v0.0.10  (would clobber existing tag)." )
+    testee.err("error: Could not fetch origin")
+    testee.err("bla bla")
+    // THEN
+    Assert.assertEquals(Seq(
+      " ! [rejected]        v0.0.10    -> v0.0.10  (would clobber existing tag).",
+      "error: Could not fetch origin"), err)
+    Assert.assertEquals(Nil, out)
+  }
+
+  @Test
+  def testOutLoggerFetchFilter_ssh(): Unit = {
+    var err: Seq[String] = Seq.empty[String]
+    var out: Seq[String] = Seq.empty[String]
+    val testee = Sgit.outLogger(syserrErrors = true, Seq("fetch"),
+      in => err = err :+ in, in => out = out :+ in, Sgit.fetchFilter())
+
+    // WHEN
+    testee.err("bla bla")
+    testee.err("ssh: Could not resolve hostname git.example.org: Name or service not known fatal: Could not read from remote repository." )
+    testee.err("bla bla")
+
+    // THEN
+    Assert.assertEquals(Seq(
+      "ssh: Could not resolve hostname git.example.org: Name or service not known fatal: Could not read from remote repository."), err)
+    Assert.assertEquals(Nil, out)
+  }
+
+  @Test
+  def testOutLoggerFetchFilter(): Unit = {
+    var err: Seq[String] = Seq.empty[String]
+    var out: Seq[String] = Seq.empty[String]
+    val testee = Sgit.outLogger(syserrErrors = true, Seq("fetch"),
+      in => err = err :+ in, in => out = out :+ in, Sgit.fetchFilter())
 
     // WHEN
     testee.err("Total 31 (delta 0), reused 0 (delta 0)")
     testee.err("Total 286 (delta 177), reused 278 (delta 177)")
+    testee.err("Fetching origin")
+    testee.err("  remote: Counting objects: 1569, done")
+    testee.err("remote: Finding sources: 100% (554/554)")
+    testee.err("Receiving objects: 100% (554/554), 152.53 KiB | 3.05 MiB/s, done.")
+    testee.err("  Resolving deltas: 100% (307/307), completed with 80 local objects.")
+    testee.err("  From ssh://git-ishop.novomind.com:19418/ishop/shops/ags")
+    testee.err("e404678f34..48e06ab000  master                -> origin/master")
+    testee.err("* [new branch]            feature/fb-ags-update -> origin/feature/fb-ags-update")
+    testee.err("* [new branch]            release/RC-2019.37    -> origin/release/RC-2019.37")
+    testee.err("* [new branch]            release/RC-2019.40    -> origin/release/RC-2019.40")
 
     // THEN
     Assert.assertEquals(Nil, err)
+    Assert.assertEquals(Nil, out)
   }
 
   @Test
@@ -292,7 +379,7 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(Nil, gitA.listRemotes())
     gitA.addRemote("ubglu", "failfail")
     TestHelper.assertException("Nonzero exit value: 1; " +
-      "git --no-pager fetch -q --all --tags; fatal: 'failfail' does not appear to be a git repository " +
+      "git --no-pager fetch --all --tags; fatal: 'failfail' does not appear to be a git repository " +
       "fatal: Could not read from remote repository. Please make sure you have the correct access rights " +
       "and the repository exists. error: Could not fetch ubglu",
       classOf[RuntimeException], () => {
@@ -321,19 +408,19 @@ class SgitTest extends AssertionsForJUnit {
       // TODO a git version change in 2.21
       //   failed: expected:<...r does not match any[.]' git-err: 'error: f...> but was:<...r does not match any[]' git-err: 'error: f...>
       case Term.Os.Windows => {
-        failFetchAll("Nonzero exit value: 1; git --no-pager fetch -q --all --tags; " +
+        failFetchAll("Nonzero exit value: 1; git --no-pager fetch --all --tags; " +
           "ssh: Could not resolve hostname git.example.org: Name or service not known fatal: " +
           "Could not read from remote repository. " +
           "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu")
       }
       case Term.Os.Linux => {
-        failFetchAll("Nonzero exit value: 1; git --no-pager fetch -q --all --tags; " +
+        failFetchAll("Nonzero exit value: 1; git --no-pager fetch --all --tags; " +
           "ssh: Could not resolve hostname git.example.org: Name or service not known fatal: " +
           "Could not read from remote repository. " +
           "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu")
       }
       case Term.Os.Darwin => {
-        failFetchAll("Nonzero exit value: 1; git --no-pager fetch -q --all --tags; " +
+        failFetchAll("Nonzero exit value: 1; git --no-pager fetch --all --tags; " +
           "ssh: Could not resolve hostname git.example.org: nodename nor servname provided, or not known fatal: " +
           "Could not read from remote repository. " +
           "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu")
@@ -408,6 +495,22 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(Nil, gitA.listTags())
     Assert.assertEquals(Nil, gitB.listTags())
     gitB.doTag("0.0.10")
+    gitA.doTag("0.0.10")
+
+    TestHelper.assertExceptionWithCheck(message =>
+      Assert.assertEquals("Nonzero exit value: 1; git --no-pager fetch --all --tags;" +
+        " ! [rejected]        v0.0.10    -> v0.0.10  (would clobber existing tag)" +
+        " error: Could not fetch origin",
+        message.replaceFirst(" From [^ ]+", ""))
+      , classOf[RuntimeException], () => {
+        gitB.fetchAll()
+      })
+    gitA.deleteTag("0.0.10")
+    gitA.createBranch("lulul")
+    gitB.fetchAll()
+    gitA.deleteBranch("lulul")
+    gitB.fetchAll()
+    gitB.remotePruneOrigin()
     val v10 = SgitTest.testFile(testRepoB, "v10")
     gitB.add(v10)
     gitB.commitAll("bla")
@@ -673,3 +776,4 @@ object SgitTest {
     }
   }
 }
+

@@ -196,7 +196,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   })
 
   def fetchAll(): Unit = {
-    gitNative(Seq("fetch", "-q", "--all", "--tags"), errMapper = Sgit.fetchFilter)
+    gitNative(Seq("fetch", "--all", "--tags"), errMapper = Sgit.fetchFilter())
   }
 
   def tryFetchAll(): Try[Unit] = {
@@ -205,6 +205,10 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     } catch {
       case any: Throwable => Failure(any)
     }
+  }
+
+  def remotePruneOrigin(): Unit = {
+    gitNative(Seq("remote", "prune", "origin"))
   }
 
   def addRemote(name: String, url: String): Unit = {
@@ -390,11 +394,11 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     gitNative(Seq("rebase", "-q"))
   }
 
-  def worktreeAdd(f:String): Unit = {
+  def worktreeAdd(f: String): Unit = {
     gitNative(Seq("worktree", "add", f))
   }
 
-  def worktreeRemove(f:String): Unit = {
+  def worktreeRemove(f: String): Unit = {
     gitNative(Seq("worktree", "remove", f))
     deleteBranch(f)
   }
@@ -433,6 +437,16 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
       throw new IllegalArgumentException("tags must not start with 'v', but was " + tagName)
     }
     "v" + tagName
+  }
+
+  def deleteTag(tagName: String): Unit = {
+    val deleteTag = checkedTagName(tagName)
+    val allTags = listTags()
+    if (allTags.contains(deleteTag)) {
+      gitNative(Seq("tag", "-d", deleteTag))
+    } else {
+      throw new IllegalStateException("tag " + deleteTag + " could not found")
+    }
   }
 
   def doTag(tagName: String): Unit = {
@@ -679,9 +693,21 @@ object Sgit {
     case l: String => Some(l)
   }
 
-  private[release] def fetchFilter(line: String) = line match {
-    case l: String if l.matches("Total [0-9]+ \\(delta [0-9]+\\), reused [0-9]+ \\(delta [0-9]+\\)") => None
-    case l: String => Some(l)
+  private[release] def fetchFilter(): String => Option[String] = {
+    var foundError = false
+    line =>
+      line match {
+        case l: String if l.matches("Total [0-9]+ \\(delta [0-9]+\\), reused [0-9]+ \\(delta [0-9]+\\)") => None
+        case l: String if l.startsWith("ssh: ") => Some(l)
+        case l: String if l.startsWith(" ! ") => Some(l)
+        case l: String if l.startsWith("error: ") => Some(l)
+        case l: String if l.startsWith("fatal: ") => {
+          foundError = true
+          Some(l)
+        }
+        case l: String if foundError => Some(l)
+        case _ => None
+      }
   }
 
   private[release] def gerritPushFilter(line: String): Option[String] = {
