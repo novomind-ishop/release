@@ -282,7 +282,8 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends ProjectMod wit
   def depTreeFilename(): Option[String] = {
     val depPluginConfigs: Seq[(String, String)] = mavenDependencyPluginConfigsByGoal("tree")
     if (depPluginConfigs != Nil) {
-      val treeOutputFileName: String = Util.only(depPluginConfigs.filter(_._1 == "outputFile"), "not only tree file")._2
+      val treeOutputFileName: String = Util.only(depPluginConfigs.filter(_._1 == "outputFile"),
+        "more than one tree file defintion in your pom.xmls - invalid pom parent layout")._2
       Some(treeOutputFileName)
     } else {
       None
