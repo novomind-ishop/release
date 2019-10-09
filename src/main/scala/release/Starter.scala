@@ -154,7 +154,7 @@ object Starter extends App with LazyLogging {
       result
     }
 
-    val o:Either[FutureError, (Sgit, String)] = try {
+    val o: Either[FutureError, (Sgit, String)] = try {
       Await.result(toResult(global).wrapped, Duration.Inf)
     } catch {
       case _: TimeoutException => throw new TimeoutException("git fetch failed")
@@ -425,7 +425,11 @@ object Starter extends App with LazyLogging {
         val versionWithoutSnapshot = Term.removeTrailingSnapshots(version)
         mod.changeVersion(versionWithoutSnapshot + "-SNAPSHOT")
         mod.writeTo(workDirFile)
-        out.println("You have local changes")
+        if (git.localChanges() != Nil) {
+          out.println("You have local changes")
+        } else {
+          out.println("Nothing changed")
+        }
       } else if (shopGASetMode) {
         Release.checkLocalChanges(git, startBranch)
         val mod = PomMod.of(workDirFile, err, opts)

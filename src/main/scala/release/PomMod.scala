@@ -559,7 +559,7 @@ object PomMod {
       }
     }
 
-    val allReplacemdents = props.toList.map(p => tryReplace(input, p)).toSeq
+    val allReplacemdents = props.toList.map(p => tryReplace(input, p))
       .distinct
       .filterNot(_.contains("$"))
     Util.only(allReplacemdents, "No property replacement found in pom.xmls for: \"" + input + "\" " +
@@ -574,6 +574,11 @@ object PomMod {
 
   private[release] def dependecyPlugins(plugins: Seq[PluginDep]) = findPluginsByName(plugins, "maven-dependency-plugin")
 
+  def weekOfYear(localDate: LocalDate):Int = {
+    val weekFields = WeekFields.of(Locale.getDefault())
+    localDate.get(weekFields.weekOfWeekBasedYear())
+  }
+
   def suggestReleaseBy(localDate: LocalDate, currentVersion: String, hasShopPom: Boolean,
                        branchNames: Seq[String]): Seq[String] = {
     if (hasShopPom) {
@@ -585,8 +590,8 @@ object PomMod {
 
       if (currentVersion.startsWith("master")) {
         def dateBased(localDate: LocalDate, known: Seq[Version]): String = {
-          val weekFields = WeekFields.of(Locale.getDefault())
-          Version("RC-", localDate.getYear, localDate.get(weekFields.weekOfWeekBasedYear()), 0, "")
+
+          Version("RC-", localDate.getYear, weekOfYear(localDate), 0, "")
             .nextIfKnown(knownVersions)
             .formatShopAsSnapshot()
         }

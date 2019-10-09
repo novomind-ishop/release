@@ -3,6 +3,7 @@ package release
 import java.io.{File, PrintStream}
 import java.nio.charset.MalformedInputException
 import java.nio.file.{Files, InvalidPathException, Path, Paths}
+import java.time.LocalDate
 import java.util.regex.Pattern
 
 import release.ProjectMod.{Dep, Gav, Version}
@@ -148,6 +149,8 @@ object Release {
       out.println("3. PATCH version when you make backwards-compatible bug fixes.")
       out.println("   see also: http://semver.org/")
       out.println("---------")
+    } else {
+      out.println(s"I: Current week of year: ${PomMod.weekOfYear(LocalDate.now())}")
     }
 
     val suggestedVersions = newMod.suggestReleaseVersion(sgit.listBranchNamesAll())
