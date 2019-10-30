@@ -158,7 +158,7 @@ object Release {
     @tailrec
     def readReleaseVersions: String = {
       val result = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readChooseOneOfOrType(out, "Enter the release version", suggestedVersions, opts))
-      if (PomMod.isUnknownReleasePattern(result)) {
+      if (PomMod.isUnknownVersionPattern(result)) {
         if (mod.isShop) {
           out.println("I: We prefer:")
           out.println("I: RC-{YEAR}.{WEEK OF YEAR} for common releases")
@@ -168,8 +168,11 @@ object Release {
         if (latestTags.nonEmpty) {
           out.println("Latest version names are: " + latestTags.mkString(", "))
         }
-        val retryVersionEnter = Term.readFromOneOfYesNo(out, "Unknown release version name: \"" + result + "\"." +
+        val retryVersionEnter = Term.readFromOneOfYesNo(out, "Unknown release version name: \"" + result + "\".\n" +
+          "_unknown_ versions may affect creation and cleanup of build jobs and artifacts\n" +
+          " and/or publishing of artifacts to partners.\n" +
           " Are you sure to continue with this name?", opts)
+
         if (retryVersionEnter == "n") {
           readReleaseVersions
         } else {
@@ -197,7 +200,7 @@ object Release {
     def readNextReleaseVersionsWithoutSnapshot: String = {
       val result = Term.removeTrailingSnapshots(PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(out, "Enter the next version without -SNAPSHOT",
         newMod.suggestNextRelease(release), opts, Console.in)))
-      if (PomMod.isUnknownReleasePattern(result)) {
+      if (PomMod.isUnknownVersionPattern(result)) {
         val retryVersionEnter = Term.readFromOneOfYesNo(out, "Unknown next release version \"" + result + "\". Are you sure to continue?", opts)
         if (retryVersionEnter == "n") {
           readNextReleaseVersionsWithoutSnapshot
@@ -412,7 +415,7 @@ object Release {
         ""
       }
 
-      val pushCmd = if (changedVersion) {
+      val pushCmd = if (changedVersion && sgit.isNotDetached) {
         s"git push origin ${branch}:refs/for/${selectedBranch};"
       } else {
         ""
@@ -434,13 +437,15 @@ object Release {
       if (sendToGerrit == "y") {
         try {
           if (sgit.hasChangesToPush) {
-            val pushOut = sgit.pushFor(srcBranchName = branch, targetBranchName = selectedBranch)
-            pushOut.foreach(err.println)
-            if (config.openGerritInBrowser) {
-              // TODO hier gerrit öffnen da man submit klicken muss
-              // TODO wenn man genau den change öffnen könnte wär noch cooler
-              // TODO try to exctract gerrit url from repo
-              Starter.openInDefaultBrowser(config.gerritBaseUrl() + "#/q/status:open")
+            if (sgit.isNotDetached) {
+              val pushOut = sgit.pushFor(srcBranchName = branch, targetBranchName = selectedBranch)
+              pushOut.foreach(err.println)
+              if (config.openGerritInBrowser) {
+                // TODO hier gerrit öffnen da man submit klicken muss
+                // TODO wenn man genau den change öffnen könnte wär noch cooler
+                // TODO try to exctract gerrit url from repo
+                Starter.openInDefaultBrowser(config.gerritBaseUrl() + "#/q/status:open")
+              }
             }
             if (newMod.isNoShop) {
               val pushOut = sgit.pushTag(release)
@@ -455,7 +460,7 @@ object Release {
               }
             }
           }
-          if (newMod.isShop) {
+          if (newMod.isShop && sgit.isNotDetached) {
             val pushOut = sgit.pushHeads(srcBranchName = "release/" + releaseWitoutSnapshot,
               targetBranchName = "release/" + releaseWitoutSnapshot)
             pushOut.foreach(err.println)

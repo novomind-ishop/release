@@ -637,7 +637,7 @@ object PomMod {
     }
   }
 
-  def isUnknownReleasePattern(in: String): Boolean = {
+  def isUnknownVersionPattern(in: String): Boolean = {
     suggestNextReleaseBy(in, in).endsWith("-UNDEF")
   }
 
