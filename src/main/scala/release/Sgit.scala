@@ -657,6 +657,7 @@ object Sgit {
         case v: String if v.startsWith("git version 2.21.") => // do nothing (2019-02-24) (tag: v2.21.0) -- introduce ouput change
         case v: String if v.startsWith("git version 2.22.") => // do nothing (2019-06-07) (tag: v2.22.0)
         case v: String if v.startsWith("git version 2.23.") => // do nothing (2019-08-16) (tag: v2.23.0)
+        case v: String if v.startsWith("git version 2.24.") => // do nothing (2019-11-04) (tag: v2.24.0)
         case v: String => out.println("W: unknown/untested git version: \"" + v + "\". Please create a ticket at ISPS.");
         //  if (!ReleaseConfig.isTravisCi()) {
         //    if (Sgit.getOs == Os.Darwin) {
