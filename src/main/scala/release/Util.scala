@@ -127,15 +127,16 @@ object Util {
   def toJavaList[V](map: Seq[V]): java.util.List[V] = map.asJava
 
   def hashMd5(in: String): String = {
-    val md: MessageDigest = MessageDigest.getInstance("MD5")
-    md.update(in.getBytes(StandardCharsets.UTF_8))
-    DatatypeConverter.printHexBinary(md.digest()).toLowerCase()
+    hashBy(MessageDigest.getInstance("MD5"), in)
   }
 
   def hashMd5Random(): String = Util.hashMd5(Random.nextLong().toString)
 
   def hashSha1(in: String): String = {
-    val md: MessageDigest = MessageDigest.getInstance("SHA1")
+    hashBy(MessageDigest.getInstance("SHA1"), in)
+  }
+
+  private def hashBy(md: MessageDigest, in:String):String = {
     md.update(in.getBytes(StandardCharsets.UTF_8))
     DatatypeConverter.printHexBinary(md.digest()).toLowerCase
   }

@@ -4,15 +4,17 @@ import java.io.{File, PrintStream}
 import java.nio.charset.MalformedInputException
 import java.nio.file.{Files, InvalidPathException, Path, Paths}
 import java.time.LocalDate
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.regex.Pattern
 
+import com.typesafe.scalalogging.LazyLogging
 import release.ProjectMod.{Dep, Gav, Version}
 import release.Starter.{Opts, PreconditionsException}
 
 import scala.annotation.tailrec
 import scala.collection.parallel.CollectionConverters._
 
-object Release {
+object Release extends LazyLogging{
 
   def formatVersionLinesGav(versionLines: Seq[Gav], color: Boolean = false): Seq[String] = {
     def gavLength(in: Gav) = Seq(in.groupId, in.artifactId).mkString(":").length
@@ -433,6 +435,7 @@ object Release {
     }
 
     if (opts.useGerrit) {
+      val pushed = new AtomicBoolean(false)
       val sendToGerrit = Term.readFromOneOfYesNo(out, "Push to Gerrit and publish release?", opts)
       if (sendToGerrit == "y") {
         try {
@@ -440,6 +443,12 @@ object Release {
             if (sgit.isNotDetached) {
               val pushOut = sgit.pushFor(srcBranchName = branch, targetBranchName = selectedBranch)
               pushOut.foreach(err.println)
+              pushed.set(true)
+              if (pushOut == Nil) {
+                logger.trace(s"pushed ${branch} to refs/for/${selectedBranch}")
+              } else {
+                logger.trace(s"maybe pushed ${branch} to refs/for/${selectedBranch} - ${pushOut.mkString(",")}")
+              }
               if (config.openGerritInBrowser) {
                 // TODO hier gerrit öffnen da man submit klicken muss
                 // TODO wenn man genau den change öffnen könnte wär noch cooler
@@ -449,7 +458,13 @@ object Release {
             }
             if (newMod.isNoShop) {
               val pushOut = sgit.pushTag(release)
+              pushed.set(true)
               pushOut.foreach(err.println)
+              if (pushOut == Nil) {
+                logger.trace(s"pushed tag ${release}")
+              } else {
+                logger.trace(s"maybe pushed tag ${release} - ${pushOut.mkString(",")}")
+              }
               if (config.openJenkinsInBrowser) {
                 val jenkinsBase = config.jenkinsBaseUrl()
                 val tagUrl = Starter.tagBuildUrl(sgit, jenkinsBase)
@@ -460,14 +475,24 @@ object Release {
               }
             }
           }
-          if (newMod.isShop && sgit.isNotDetached) {
+          if (newMod.isShop) {
             val pushOut = sgit.pushHeads(srcBranchName = "release/" + releaseWitoutSnapshot,
               targetBranchName = "release/" + releaseWitoutSnapshot)
             pushOut.foreach(err.println)
+            pushed.set(true)
+            if (pushOut == Nil) {
+              logger.trace(s"pushed release ${releaseWithoutSnapshot}")
+            } else {
+              logger.trace(s"maybe pushed release ${releaseWithoutSnapshot} - ${pushOut.mkString(",")}")
+            }
             // TODO try to trigger job updates for jenkins
             // TODO try to trigger job execution in loop with abort
           }
-          out.println("done.")
+          if (pushed.get()) {
+            out.println("done.")
+          } else {
+            out.println("maybe nothing done.")
+          }
         } catch {
           case e: RuntimeException => {
             err.println("E: Push failed - try manual - " + e.getMessage)
