@@ -278,6 +278,7 @@ class SgitTest extends AssertionsForJUnit {
     testee.err("remote: ")
     testee.err("remote: ")
     testee.err("remote: ")
+    testee.err("remote: SUCCESS        ")
     testee.err("remote: New Changes:")
     testee.err("remote: New Changes:        ")
     testee.err("remote:   https://any-gerrit:8443/72458 snap weg")
