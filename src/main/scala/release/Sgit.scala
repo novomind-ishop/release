@@ -644,20 +644,25 @@ object Sgit {
           throw new YourGitInstallationIsToOldException("2.15", "2018-10-18", "n/a", " because of CVE-2018-17456")
         case v: String if v.startsWith("git version 2.16.") => // (2018-02-15) - (tag: v2.16.2)
           throw new YourGitInstallationIsToOldException("2.16", "2018-10-18", "n/a", " because of CVE-2018-17456")
-        case v: String if v.startsWith("git version 2.17.") => // do nothing (2018-04-02) - (tag: v2.17.0)
+        case v: String if v.startsWith("git version 2.17.") => // (2018-04-02) - (tag: v2.17.0)
           throw new YourGitInstallationIsToOldException("2.17", "2018-10-18", "n/a", " because of CVE-2018-17456")
-        case v: String if v.startsWith("git version 2.18.") => // do nothing (2018-06-21) - (tag: v2.18.0)
+        case v: String if v.startsWith("git version 2.18.") => // (2018-06-21) - (tag: v2.18.0)
           throw new YourGitInstallationIsToOldException("2.18", "2018-10-18", "n/a", " because of CVE-2018-17456")
-        case v: String if v.startsWith("git version 2.19.0") => // do nothing (2018-09-10) - (tag: v2.19.0)
+        case v: String if v.startsWith("git version 2.19.0") => // (2018-09-10) - (tag: v2.19.0)
           throw new YourGitInstallationIsToOldException("2.19.0", "2018-10-18", "n/a", " because of CVE-2018-17456")
-        case v: String if v.startsWith("git version 2.19.") => // do nothing (2018-09-27) - (tag: v2.19.1) -- fixes CVE-2018-17456
+        case v: String if v.startsWith("git version 2.19.") => // (2018-09-27) - (tag: v2.19.1) -- fixes CVE-2018-17456
           throw new YourGitInstallationIsToOldException("2.19", "2019-09-03", "2019-09-03")
-        case v: String if v.startsWith("git version 2.20.") => // do nothing (2018-12-09) (tag: v2.20.0) -- no format change
+        case v: String if v.startsWith("git version 2.20.") => // (2018-12-09) (tag: v2.20.0) -- no format change
           throw new YourGitInstallationIsToOldException("2.20", "2019-09-03", "2019-09-03")
-        case v: String if v.startsWith("git version 2.21.") => // do nothing (2019-02-24) (tag: v2.21.0) -- introduce ouput change
-        case v: String if v.startsWith("git version 2.22.") => // do nothing (2019-06-07) (tag: v2.22.0)
-        case v: String if v.startsWith("git version 2.23.") => // do nothing (2019-08-16) (tag: v2.23.0)
-        case v: String if v.startsWith("git version 2.24.") => // do nothing (2019-11-04) (tag: v2.24.0)
+        case v: String if v.startsWith("git version 2.21.") => // (2019-02-24) (tag: v2.21.0) -- introduce output change
+          err.println("W: please update your git version, \"" + v + "\" support ends at 2020-03-07")
+        case v: String if v.startsWith("git version 2.22.") => // (2019-06-07) (tag: v2.22.0)
+          err.println("W: please update your git version, \"" + v + "\" support ends at 2020-03-07")
+        case v: String if v.startsWith("git version 2.23.") => // (2019-08-16) (tag: v2.23.0)
+          err.println("W: please update your git version, \"" + v + "\" support ends at 2020-03-07")
+        case v: String if v.startsWith("git version 2.24.") => // (2019-11-04) (tag: v2.24.0)
+          err.println("W: please update your git version, \"" + v + "\" support ends at 2020-03-07")
+        case v: String if v.startsWith("git version 2.25.") => // do nothing (2020-01-13) (tag: v2.25.0)
         case v: String => out.println("W: unknown/untested git version: \"" + v + "\". Please create a ticket at ISPS.");
         //  if (!ReleaseConfig.isTravisCi()) {
         //    if (Sgit.getOs == Os.Darwin) {
