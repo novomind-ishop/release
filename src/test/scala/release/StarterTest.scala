@@ -22,7 +22,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 
 class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging {
 
-  val _globalTimeout = new Timeout(10000)
+  val _globalTimeout = new Timeout(10000, TimeUnit.MILLISECONDS)
 
   @Rule def globalTimeout = _globalTimeout
 

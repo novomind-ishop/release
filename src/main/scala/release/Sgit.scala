@@ -663,6 +663,8 @@ object Sgit {
         case v: String if v.startsWith("git version 2.24.") => // (2019-11-04) (tag: v2.24.0)
           err.println("W: please update your git version, \"" + v + "\" support ends at 2020-03-07")
         case v: String if v.startsWith("git version 2.25.") => // do nothing (2020-01-13) (tag: v2.25.0)
+        case v: String if v.startsWith("git version 2.26.") => // do nothing (2020-04-19) (tag: v2.26.2)
+        case v: String if v.startsWith("git version 2.27.") => // do nothing (2020-05-31) (tag: v2.27.0)
         case v: String => out.println("W: unknown/untested git version: \"" + v + "\". Please create a ticket at ISPS.");
         //  if (!ReleaseConfig.isTravisCi()) {
         //    if (Sgit.getOs == Os.Darwin) {
