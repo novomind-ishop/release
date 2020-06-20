@@ -19,8 +19,7 @@ import scala.annotation.tailrec
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 
-object Starter extends App with LazyLogging {
-  logger.trace("started vm")
+object Starter extends LazyLogging {
 
   case class FutureError(msg: String, e: Exception)
 
@@ -534,6 +533,9 @@ object Starter extends App with LazyLogging {
 
   class PreconditionsException(msg: String) extends RuntimeException(msg)
 
-  System.exit(init(args.toIndexedSeq, System.out, System.err))
+  def main(args: Array[String]): Unit = {
+    logger.trace("started vm")
+    System.exit(init(args.toIndexedSeq, System.out, System.err))
+  }
 
 }

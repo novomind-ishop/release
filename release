@@ -34,8 +34,16 @@ if $(uname | egrep -iq "cygwin"); then
 else
   os="$(uname)"
 fi
+release_bin=$(dirname $0)/release.bin
 trace_setup "start vm"
-if [[ "${os}" = "Cygwin" ]]; then
+if [[ -f ${release_bin} ]]; then
+  echo ""
+  echo "W: Experimental native image ${release_bin}"
+  set +e
+  ${release_bin} "$(dirname $0)" "$(pwd)" "${os}" "${TERM}" "${terminal_cols}" "${HOME}" ${argLine}
+  java_exit=$?
+  set -e
+elif [[ "${os}" = "Cygwin" ]]; then
   set +e
   java -Dfile.encoding=UTF-8 -jar $(cygpath -aw ${release_jar}) "$(cygpath -aw $(dirname $0))" "$(cygpath -aw $(pwd))" "${os}" "${TERM}" "${terminal_cols}" "${HOME}" ${argLine}
   java_exit=$?
