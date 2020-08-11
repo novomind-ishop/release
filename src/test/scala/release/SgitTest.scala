@@ -37,7 +37,8 @@ class SgitTest extends AssertionsForJUnit {
   @Test
   def testMissingGitDir(): Unit = {
 
-    TestHelper.assertExceptionWithCheck(message => Assert.assertEquals("no .git dir in sgit-test was found",
+    TestHelper.assertExceptionWithCheck(message => Assert.assertEquals("no .git dir in sgit-test was found. " +
+      "Please change dir to the project folder.",
       message.replaceFirst("[^ ]+sgit-test-[^ ]+", "sgit-test"))
       , classOf[MissingGitDirException], () => {
         val temp = Files.createTempDirectory("sgit-test-").toFile.getAbsoluteFile

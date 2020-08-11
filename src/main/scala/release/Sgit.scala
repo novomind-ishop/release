@@ -651,20 +651,23 @@ object Sgit {
         case v: String if v.startsWith("git version 2.19.0") => // (2018-09-10) - (tag: v2.19.0)
           throw new YourGitInstallationIsToOldException("2.19.0", "2018-10-18", "n/a", " because of CVE-2018-17456")
         case v: String if v.startsWith("git version 2.19.") => // (2018-09-27) - (tag: v2.19.1) -- fixes CVE-2018-17456
-          throw new YourGitInstallationIsToOldException("2.19", "2019-09-03", "2019-09-03")
+          throw new YourGitInstallationIsToOldException("2.19", "2019-09-03", "n/a")
         case v: String if v.startsWith("git version 2.20.") => // (2018-12-09) (tag: v2.20.0) -- no format change
-          throw new YourGitInstallationIsToOldException("2.20", "2019-09-03", "2019-09-03")
+          throw new YourGitInstallationIsToOldException("2.20", "2019-09-03", "n/a")
         case v: String if v.startsWith("git version 2.21.") => // (2019-02-24) (tag: v2.21.0) -- introduce output change
-          err.println("W: please update your git version, \"" + v + "\" support ends at 2020-03-07")
+          throw new YourGitInstallationIsToOldException("2.21", "2020-03-07", "n/a")
         case v: String if v.startsWith("git version 2.22.") => // (2019-06-07) (tag: v2.22.0)
-          err.println("W: please update your git version, \"" + v + "\" support ends at 2020-03-07")
+          throw new YourGitInstallationIsToOldException("2.22", "2020-03-07", "n/a")
         case v: String if v.startsWith("git version 2.23.") => // (2019-08-16) (tag: v2.23.0)
-          err.println("W: please update your git version, \"" + v + "\" support ends at 2020-03-07")
+          throw new YourGitInstallationIsToOldException("2.23", "2020-03-07", "n/a")
         case v: String if v.startsWith("git version 2.24.") => // (2019-11-04) (tag: v2.24.0)
-          err.println("W: please update your git version, \"" + v + "\" support ends at 2020-03-07")
+          throw new YourGitInstallationIsToOldException("2.24", "2020-03-07", "n/a")
         case v: String if v.startsWith("git version 2.25.") => // do nothing (2020-01-13) (tag: v2.25.0)
+          err.println("W: please update your git version, \"" + v + "\" support ends at 2020-09-11")
+          // anaounced 2020-08-11
         case v: String if v.startsWith("git version 2.26.") => // do nothing (2020-04-19) (tag: v2.26.2)
         case v: String if v.startsWith("git version 2.27.") => // do nothing (2020-05-31) (tag: v2.27.0)
+        case v: String if v.startsWith("git version 2.28.") => // do nothing (2020-07-26) (tag: v2.28.0)
         case v: String => out.println("W: unknown/untested git version: \"" + v + "\". Please create a ticket at ISPS.");
         //  if (!ReleaseConfig.isTravisCi()) {
         //    if (Sgit.getOs == Os.Darwin) {
@@ -883,7 +886,8 @@ object Sgit {
     if (new File(in, ".git").exists()) {
       in
     } else if (checkExisting) {
-      throw new MissingGitDirException("no .git dir in " + start.getAbsolutePath + " was found")
+      throw new MissingGitDirException("no .git dir in " + start.getAbsolutePath + " was found. " +
+        "Please change dir to the project folder.")
     } else {
       in
     }
