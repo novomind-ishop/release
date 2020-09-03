@@ -195,6 +195,7 @@ trait ProjectMod extends LazyLogging {
         .filterNot(_.matches(".*[Mm][0-9]+$"))
         .filterNot(_.matches(".*-[Mm][0-9]+-.*"))
         .filterNot(_.matches(".*-rc-[0-9]+$"))
+        .filterNot(_.matches(".*-[0-9a-f]{7}$")) // used by org.typelevel:cats-effect
         .filterNot(_.matches(".*pr[0-9]+$"))
         .filterNot(_.contains("alpha"))
         .filterNot(_.contains("Alpha"))
