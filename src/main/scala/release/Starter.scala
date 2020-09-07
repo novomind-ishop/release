@@ -8,6 +8,10 @@ import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
 
 import com.typesafe.scalalogging.LazyLogging
+import japicmp.cmp.{JApiCmpArchive, JarArchiveComparator, JarArchiveComparatorOptions}
+import japicmp.config.Options
+import japicmp.output.semver.SemverOut
+import japicmp.output.stdout.StdoutOutputGenerator
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClients
 import release.Conf.Tracer
@@ -210,6 +214,7 @@ object Starter extends LazyLogging {
       case "--demo-chars" :: _ => showDemoChars(inOpt)
       case "--skip-property" :: value :: tail => argsRead(tail, inOpt.copy(skipProperties = inOpt.skipProperties ++ Seq(value)))
       // CMDs
+      case "apidiff" :: _ => apidiff(inOpt)
       case "versionSet" :: value :: _ => argsRead(Nil, inOpt.copy(versionSet = Some(value)))
       case "shopGASet" :: value :: _ => argsRead(Nil, inOpt.copy(shopGA = Some(value)))
       case "nothing-but-create-feature-branch" :: _ => argsRead(Nil, inOpt.copy(createFeature = true))
@@ -220,6 +225,24 @@ object Starter extends LazyLogging {
       case string :: tail => argsRead(tail, inOpt.copy(invalids = inOpt.invalids :+ string))
     }
 
+  }
+
+  def apidiff(inOpt: Opts): Opts = {
+    // TODO load api diff definition from file
+    val aether = new Aether(inOpt)
+    // TODO download required jars from aether
+    val options = Options.newDefault()
+    options.setIgnoreMissingClasses(true)
+    options.setOutputOnlyModifications(true)
+    val comparatorOptions: JarArchiveComparatorOptions = JarArchiveComparatorOptions.of(options)
+    val jarArchiveComparator = new JarArchiveComparator(comparatorOptions)
+    val a = new JApiCmpArchive(new File("a.jar"), "a")
+    val b = new JApiCmpArchive(new File("b.jar"), "b")
+    val jApiClasses = jarArchiveComparator.compare(a, b)
+    println(new SemverOut(options, jApiClasses).generate())
+    println(new StdoutOutputGenerator(options, jApiClasses).generate())
+    System.exit(5)
+    null
   }
 
   def showDemoChars(inOpt: Opts): Opts = {
@@ -479,7 +502,7 @@ object Starter extends LazyLogging {
             path
           } else {
             println("W: invalid response for (" + statusCode + ") " + path.get + " <- " + list)
-            println("W: > please create an ISPS ticket")
+            println("W: > please create an ISBO ticket")
             None
           }
         } finally {

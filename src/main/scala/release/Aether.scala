@@ -77,6 +77,12 @@ class Aether(opts: Opts) extends LazyLogging {
     result
   }
 
+  def vOf(groupID: String, artifactId: String, version: String): Seq[String] = {
+    val request = Seq(groupID, artifactId, "[" + version + ",)").mkString(":")
+    val result = getVersionsOf(request)
+    Nil
+  }
+
 }
 
 object Aether extends LazyLogging {
