@@ -27,6 +27,7 @@ import release.Aether.{doResolve, getVersions}
 import release.Starter.Opts
 
 import scala.jdk.CollectionConverters._
+import scala.util.{Failure, Success, Try}
 
 
 class Aether(opts: Opts) extends LazyLogging {
@@ -75,6 +76,14 @@ class Aether(opts: Opts) extends LazyLogging {
     val request = Seq(groupID, artifactId, "[" + version + ",)").mkString(":")
     val result = getVersionsOf(request).map(_.toString)
     result
+  }
+
+  def tryResolve(groupID: String, artifactId: String, version: String): Try[(File, String)] = {
+    try {
+      Success(resolve(groupID, artifactId, version))
+    } catch {
+      case e:Exception => Failure(e)
+    }
   }
 
   def resolve(groupID: String, artifactId: String, version: String): (File, String) = {

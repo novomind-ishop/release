@@ -415,7 +415,7 @@ class PomModTest extends AssertionsForJUnit {
 
     // WHEN
     TestHelper.assertException("More then one Version found in your pom.xmls: " +
-      "Dep(PomRef(any-erp),com.novomind.ishop.shops.any,any-erp,28.0.0-SNAPSHOT,,,,) (27.0.0-SNAPSHOT, 28.0.0-SNAPSHOT)",
+      "Dep(SelfRef(any-erp),com.novomind.ishop.shops.any,any-erp,28.0.0-SNAPSHOT,,,,) (27.0.0-SNAPSHOT, 28.0.0-SNAPSHOT)",
       classOf[IllegalArgumentException], () => {
         PomMod.ofAetherForTests(srcPoms, aether).selfVersion
       })
@@ -532,7 +532,7 @@ class PomModTest extends AssertionsForJUnit {
     val dep: Seq[PluginDep] = pomMod.mavenDependencyPlugins
 
     // THEN
-    assertPluginDeps(Seq(PluginDep(PomRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
+    assertPluginDeps(Seq(PluginDep(SelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
       "org.apache.maven.plugins", "maven-dependency-plugin", "2.8",
       Seq(
         PluginExec("pre-build-validate-tree", Seq("tree"), "validate", Map("outputFile" -> "dep.tree")),
@@ -586,26 +586,26 @@ class PomModTest extends AssertionsForJUnit {
     val orgMod = PomMod.ofAetherForTests(orgPoms, aether)
 
     assertDeps(Seq(
-      Dep(PomRef("any:a-parent:1.0.0-SNAPSHOT"),
+      Dep(SelfRef("any:a-parent:1.0.0-SNAPSHOT"),
         "", "", "", "", "", "", ""),
-      Dep(PomRef("other:a:1.0.0-SNAPSHOT"),
+      Dep(SelfRef("other:a:1.0.0-SNAPSHOT"),
         "any", "a-parent", "1.0.0-SNAPSHOT", "", "", "", ""),
-      Dep(PomRef("any:bparent:1.0.0-SNAPSHOT"),
+      Dep(SelfRef("any:bparent:1.0.0-SNAPSHOT"),
         "any", "a-parent", "1.0.0-SNAPSHOT", "", "", "", ""),
-      Dep(PomRef("any:bsub:1.0.0-SNAPSHOT"),
+      Dep(SelfRef("any:bsub:1.0.0-SNAPSHOT"),
         "any", "bparent", "1.0.0-SNAPSHOT", "", "", "", ""),
-      Dep(PomRef("bsub:1.0.0-SNAPSHOT"),
+      Dep(SelfRef("bsub:1.0.0-SNAPSHOT"),
         "other", "a", "1.0.0-SNAPSHOT", "", "", "", ""),
-      Dep(PomRef("any:c:1.0.0-SNAPSHOT"),
+      Dep(SelfRef("any:c:1.0.0-SNAPSHOT"),
         "any", "a-parent", "1.0.0-SNAPSHOT", "", "", "", ""),
-      Dep(PomRef("c:1.0.0-SNAPSHOT"),
+      Dep(SelfRef("c:1.0.0-SNAPSHOT"),
         "any", "bsub", "1.0.0-SNAPSHOT", "", "", "", ""),
-      Dep(PomRef("c:1.0.0-SNAPSHOT"),
+      Dep(SelfRef("c:1.0.0-SNAPSHOT"),
         "any", "other", "1.0.0-SNAPSHOT", "", "", "", ""),
-      Dep(PomRef("c:1.0.0-SNAPSHOT"),
+      Dep(SelfRef("c:1.0.0-SNAPSHOT"),
         "any", "final", "1.0.1", "", "", "", "")
     ), orgMod.listDependecies)
-    assertDeps(Seq(Dep(PomRef("c:1.0.0-SNAPSHOT"), "any", "other", "1.0.0-SNAPSHOT", "", "", "", "")), orgMod.listSnapshots)
+    assertDeps(Seq(Dep(SelfRef("c:1.0.0-SNAPSHOT"), "any", "other", "1.0.0-SNAPSHOT", "", "", "", "")), orgMod.listSnapshots)
     orgMod.changeVersion("master-SNAPSHOT")
     orgMod.writeTo(orgPoms)
     val orgMod1 = PomMod.ofAetherForTests(orgPoms, aether)
@@ -638,7 +638,7 @@ class PomModTest extends AssertionsForJUnit {
       } else {
         dep
       }).map(dep =>
-      dep.copy(pomRef = PomRef(dep.pomRef.id.replace("27.0.0-SNAPSHOT", "RC-2017.01-SNAPSHOT")))
+      dep.copy(pomRef = SelfRef(dep.pomRef.id.replace("27.0.0-SNAPSHOT", "RC-2017.01-SNAPSHOT")))
     )
 
     // THEN
@@ -707,11 +707,11 @@ class PomModTest extends AssertionsForJUnit {
 
     // THEN
     val s = Seq(
-      Dep(PomRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
+      Dep(SelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
         "com.novomind.ishop.shops.anyshop", "anyshop-projects", "27.0.0-SNAPSHOT", "", "", "pom", ""),
-      Dep(PomRef("anyshop-erp"),
+      Dep(SelfRef("anyshop-erp"),
         "com.novomind.ishop.shops.anyshop", "anyshop-erp", "27.0.0-SNAPSHOT", "", "", "", ""),
-      Dep(PomRef("com.novomind.ishop.shops:anyshop"),
+      Dep(SelfRef("com.novomind.ishop.shops:anyshop"),
         "com.novomind.ishop.shops", "anyshop", "27.0.0-SNAPSHOT", "", "", "war", "")
     )
     val newMod = PomMod.ofAetherForTests(srcPoms, aether)
@@ -1177,7 +1177,7 @@ class PomModTest extends AssertionsForJUnit {
     val deps = PomMod.ofAetherForTests(srcPoms, aether).listSnapshots
 
     // THEN
-    assertDeps(Seq(Dep(PomRef("com.novomind.ishop.any:any:0.11-SNAPSHOT"),
+    assertDeps(Seq(Dep(SelfRef("com.novomind.ishop.any:any:0.11-SNAPSHOT"),
       "org.springframework", "spring-other", "0.11-SNAPSHOT", "", "", "", "")), deps)
   }
 
@@ -1189,7 +1189,7 @@ class PomModTest extends AssertionsForJUnit {
     val deps = PomMod.ofAetherForTests(srcPoms, aether).listSnapshots
 
     // THEN
-    assertDeps(Seq(Dep(PomRef("com.novomind.ishop.core:ishop-core-parent"),
+    assertDeps(Seq(Dep(SelfRef("com.novomind.ishop.core:ishop-core-parent"),
       "com.novomind.ishop", "meta", "29.0.0-SNAPSHOT", "pom", "", "", "tests")), deps)
   }
 

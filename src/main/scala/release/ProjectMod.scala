@@ -4,7 +4,7 @@ import java.io.{File, PrintStream}
 
 import com.typesafe.scalalogging.LazyLogging
 import release.PomMod.{abbreviate, unmanged}
-import release.ProjectMod.{Dep, Gav3, PluginDep, PomRef}
+import release.ProjectMod.{Dep, Gav3, PluginDep, SelfRef}
 import release.Starter.{Opts, OptsDepUp}
 
 import scala.annotation.tailrec
@@ -12,7 +12,7 @@ import scala.collection.parallel.CollectionConverters._
 
 object ProjectMod {
 
-  case class Dep(pomRef: PomRef, groupId: String, artifactId: String, version: String, typeN: String,
+  case class Dep(pomRef: SelfRef, groupId: String, artifactId: String, version: String, typeN: String,
                  scope: String, packaging: String, classifier: String) {
     val gavWithDetailsFormatted: String = Gav.format(Seq(groupId, artifactId, version, typeN, scope, packaging, classifier))
 
@@ -21,7 +21,7 @@ object ProjectMod {
 
   case class PluginExec(id: String, goals: Seq[String], phase: String, config: Map[String, String])
 
-  case class PluginDep(pomRef: PomRef, groupId: String, artifactId: String, version: String, execs: Seq[PluginExec], pomPath: Seq[String]) {
+  case class PluginDep(pomRef: SelfRef, groupId: String, artifactId: String, version: String, execs: Seq[PluginExec], pomPath: Seq[String]) {
 
     def fakeDep() = Dep(pomRef, groupId, artifactId, version, "", "", "", "")
 
@@ -58,10 +58,10 @@ object ProjectMod {
     }
   }
 
-  case class PomRef(id: String)
+  case class SelfRef(id: String)
 
-  object PomRef {
-    val undef = PomRef("X")
+  object SelfRef {
+    val undef = SelfRef("X")
   }
 
   case class Version(pre: String, major: Int, minor: Int, patch: Int, low: String) {
@@ -271,7 +271,7 @@ trait ProjectMod extends LazyLogging {
 
     aetherFetch.finish()
 
-    case class GavWithRef(pomRef: PomRef, gavWithDetailsFormatted: String)
+    case class GavWithRef(pomRef: SelfRef, gavWithDetailsFormatted: String)
 
     // TODO move Version check to here
 
@@ -287,7 +287,7 @@ trait ProjectMod extends LazyLogging {
       checkedUpdates.getOrElse(in.gav().simpleGav(), Nil))).filterNot((in: (GavWithRef, Seq[String])) => depUpOpts.hideLatest && in._2.isEmpty)
 
     allWithUpdate.groupBy(_._1.pomRef).foreach(element => {
-      val ref: PomRef = element._1
+      val ref: SelfRef = element._1
       val mods: Seq[(GavWithRef, Seq[String])] = element._2
 
       def ch(pretty: String, simple: String) = if (!termOs.isCygwin || termOs.isMinGw) {

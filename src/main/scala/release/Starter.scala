@@ -11,9 +11,11 @@ import java.util.concurrent.atomic.AtomicBoolean
 import com.typesafe.scalalogging.LazyLogging
 import japicmp.cmp.{JApiCmpArchive, JarArchiveComparator, JarArchiveComparatorOptions}
 import japicmp.config.Options
+import japicmp.filter.ClassFilter
 import japicmp.model.JApiClass
 import japicmp.output.semver.SemverOut
 import japicmp.output.stdout.StdoutOutputGenerator
+import javassist.CtClass
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClients
 import org.eclipse.aether.resolution.ArtifactResolutionException
@@ -233,20 +235,31 @@ object Starter extends LazyLogging {
 
   }
 
+
   def apidiff(inOpt: Opts, left: String, right: String): Opts = {
     println("")
     // TODO load api diff definition from file
     val aether = new Aether(inOpt)
     val workDirFile = new File(".").getAbsoluteFile // TODO get this from other location
+
+
+
     val pommod = PomMod.ofAether(workDirFile, inOpt, aether)
     val gavs = pommod.listSelf.map(mo => mo.gav())
-
 
 
     val options = Options.newDefault()
     options.setIgnoreMissingClasses(true)
     options.setOutputOnlyModifications(true)
     options.setOutputOnlyBinaryIncompatibleModifications(true)
+
+    val exclStartsWith = Set()
+    val eStF = exclStartsWith.map(fv => new ClassFilter {
+      override def matches(ctClass: CtClass): Boolean = ctClass.getPackageName.startsWith(fv)
+    })
+    val comparatorOptions: JarArchiveComparatorOptions = JarArchiveComparatorOptions.of(options)
+    comparatorOptions.getFilters.getExcludes.addAll(eStF.asJava)
+
     val gas = gavs
       .filterNot(_.packageing == "pom")
       .map(gav => (gav.groupId, gav.artifactId))
@@ -259,31 +272,40 @@ object Starter extends LazyLogging {
         try {
           val groupId = ga._1
           val artifactId = ga._2
-          val ar = aether.resolve(groupId, artifactId, left)
-          val a = new JApiCmpArchive(ar._1, ar._2)
-
-          val br = aether.resolve(groupId, artifactId, right)
-          val b = new JApiCmpArchive(br._1, br._2)
 
           println(s"diff of: ${groupId}:${artifactId}:(${left}..${right})")
 
+          val ar = aether.tryResolve(groupId, artifactId, left)
+          val br = aether.tryResolve(groupId, artifactId, right)
+          if (ar.isSuccess && br.isSuccess) {
+            val a = new JApiCmpArchive(ar.get._1, ar.get._2)
+            val b = new JApiCmpArchive(br.get._1, br.get._2)
 
-          val comparatorOptions: JarArchiveComparatorOptions = JarArchiveComparatorOptions.of(options)
-          val jarArchiveComparator = new JarArchiveComparator(comparatorOptions)
 
-          jarArchiveComparator.compare(a, b).asScala
+            val jarArchiveComparator = new JarArchiveComparator(comparatorOptions)
+            val out = jarArchiveComparator.compare(a, b)
+            println(new XoutOutputGenerator(options, out).generate())
+            out.asScala
+          } else {
+              if (ar.isFailure) {
+                println("W: " + ar.failed.get.getMessage)
+              }
+              if (br.isFailure) {
+                println("W: " + br.failed.get.getMessage)
+              }
+            Nil
+          }
         } catch {
 
-          case e:ArtifactResolutionException => {
+          case e: Exception => {
             e.printStackTrace()
             Nil
-          } // TODO handle better
+          }
         }
 
       }).asJava
 
 
-    println(new StdoutOutputGenerator(options, new util.ArrayList[JApiClass](jApiClasses)).generate())
     println("Semver change: " + new SemverOut(options, new util.ArrayList[JApiClass](jApiClasses)).generate())
     System.exit(5)
     null

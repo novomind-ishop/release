@@ -129,12 +129,14 @@ object Release extends LazyLogging{
     sgit.checkout(branch)
     Starter.chooseUpstreamIfUndef(out, sgit, branch, opts, Console.in)
 
-    val rootPom = PomMod.rootPom(workDirFile)
-    val mod: ProjectMod = if (rootPom.canRead) {
+    val mod: ProjectMod = if (PomMod.rootPom(workDirFile).canRead) {
       out.print("I: Reading pom.xmls ..")
       PomMod.ofAether(workDirFile, opts, aether)
+    } else if (SbtMod.buildSbt(workDirFile).canRead) {
+      out.print("I: Reading build.sbt ..")
+      SbtMod.ofAether(workDirFile, opts, aether)
     } else {
-      throw new PreconditionsException(workDirFile.toString + " is no maven project")
+      throw new PreconditionsException(workDirFile.toString + " is no maven or sbt project")
     }
 
     out.println(". done")

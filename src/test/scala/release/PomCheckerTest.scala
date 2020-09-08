@@ -2,14 +2,14 @@ package release
 
 import org.junit.{Assert, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
-import release.ProjectMod.{Gav, PluginDep, PluginExec, PomRef}
+import release.ProjectMod.{Gav, PluginDep, PluginExec, SelfRef}
 
 class PomCheckerTest extends AssertionsForJUnit {
 
   @Test
   def testCheck_ishop_maven_changes_before(): Unit = {
     // GIVEN
-    val deps: Seq[PluginDep] = Seq(PluginDep(PomRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war"),
+    val deps: Seq[PluginDep] = Seq(PluginDep(SelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war"),
       "com.novomind.ishop.maven", "ishop-maven-plugin", "", Seq(PluginExec("", Seq("check-for-changes-package"), "", Map())),
       Seq("plugin", "plugins", "build", "project")))
 
@@ -22,7 +22,7 @@ class PomCheckerTest extends AssertionsForJUnit {
   @Test
   def testCheck_ishop_maven_changes_package(): Unit = {
     // GIVEN
-    val deps: Seq[PluginDep] = Seq(PluginDep(PomRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war"),
+    val deps: Seq[PluginDep] = Seq(PluginDep(SelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war"),
       "com.novomind.ishop.maven", "ishop-maven-plugin", "", Seq(PluginExec("", Seq("check-for-changes-before"), "", Map())),
       Seq("plugin", "plugins", "build", "project")))
 
@@ -35,7 +35,7 @@ class PomCheckerTest extends AssertionsForJUnit {
   @Test
   def testCheck_ishop_maven(): Unit = {
     // GIVEN
-    val deps: Seq[PluginDep] = Seq(PluginDep(PomRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war"),
+    val deps: Seq[PluginDep] = Seq(PluginDep(SelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war"),
       "com.novomind.ishop.maven", "ishop-maven-plugin", "",
       Seq(PluginExec("", Seq("check-for-changes-before", "check-for-changes-package"), "", Map())),
       Seq("plugin", "plugins", "build", "project")))
@@ -50,12 +50,12 @@ class PomCheckerTest extends AssertionsForJUnit {
   @Test
   def testCheck_ishop_maven_managed(): Unit = {
     // GIVEN
-    val deps: Seq[PluginDep] = Seq(PluginDep(PomRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war"),
+    val deps: Seq[PluginDep] = Seq(PluginDep(SelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war"),
       "com.novomind.ishop.maven", "ishop-maven-plugin", "",
       Seq(PluginExec("", Seq("check-for-changes-before", "check-for-changes-package"), "", Map())),
       Seq("plugin", "plugins", "build", "project")),
 
-      PluginDep(PomRef("com.novomind.ishop.shops:anyshop-any:27.0.0-SNAPSHOT:jar"),
+      PluginDep(SelfRef("com.novomind.ishop.shops:anyshop-any:27.0.0-SNAPSHOT:jar"),
         "com.novomind.ishop.maven", "ishop-maven-plugin", "", Nil,
         Seq("plugin", "plugins", "pluginManagement", "build", "project")))
 
@@ -69,12 +69,12 @@ class PomCheckerTest extends AssertionsForJUnit {
   @Test
   def testCheck_ishop_maven_multiple_no_exec(): Unit = {
     // GIVEN
-    val deps: Seq[PluginDep] = Seq(PluginDep(PomRef("c.n.i.s:n:0.0.1-SNAPSHOT:war"),
+    val deps: Seq[PluginDep] = Seq(PluginDep(SelfRef("c.n.i.s:n:0.0.1-SNAPSHOT:war"),
       "com.novomind.ishop.maven", "ishop-maven-plugin", "", Seq(PluginExec("",
         Seq("check-for-changes-before", "check-for-changes-package"), "", Map())),
       Seq("plugin", "plugins", "build", "project")),
 
-      PluginDep(PomRef("c.n.i.s:n-any:0.0.1-SNAPSHOT:jar"),
+      PluginDep(SelfRef("c.n.i.s:n-any:0.0.1-SNAPSHOT:jar"),
         "com.novomind.ishop.maven", "ishop-maven-plugin", "", Nil,
         Seq("plugin", "plugins", "build", "project")))
 
@@ -86,7 +86,7 @@ class PomCheckerTest extends AssertionsForJUnit {
   @Test
   def testCheck_ishop_maven_pom_path(): Unit = {
     // GIVEN
-    val deps: Seq[PluginDep] = Seq(PluginDep(PomRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war"),
+    val deps: Seq[PluginDep] = Seq(PluginDep(SelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war"),
       "com.novomind.ishop.maven", "ishop-maven-plugin", "",
       Seq(PluginExec("", Seq("check-for-changes-before", "check-for-changes-package"), "", Map())),
       Seq("plugin", "plugins", "build", "profile", "profiles", "project")))
@@ -101,7 +101,7 @@ class PomCheckerTest extends AssertionsForJUnit {
   def testCheck_maven_dependecy_plugin_invalid_output_position(): Unit = {
 
     // GIVEN
-    val deps = Seq(PluginDep(PomRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
+    val deps = Seq(PluginDep(SelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
       "org.apache.maven.plugins", "maven-dependency-plugin", "2.8",
       Seq(
         PluginExec("pre-build-validate-any", Seq("tree"), "validate", Map("outputFile" -> "target/dependency-tree")),
@@ -118,7 +118,7 @@ class PomCheckerTest extends AssertionsForJUnit {
   def testCheck_maven_dependecy_plugin_invalid_phase(): Unit = {
 
     // GIVEN
-    val deps = Seq(PluginDep(PomRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
+    val deps = Seq(PluginDep(SelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
       "org.apache.maven.plugins", "maven-dependency-plugin", "2.8",
       Seq(
         PluginExec("pre-build-validate-tree", Seq("tree"), "test", Map("outputFile" -> "target/dependency-tree")),
@@ -134,7 +134,7 @@ class PomCheckerTest extends AssertionsForJUnit {
   def testCheck_maven_dependecy_plugin_empty_config(): Unit = {
 
     // GIVEN
-    val deps = Seq(PluginDep(PomRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
+    val deps = Seq(PluginDep(SelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
       "org.apache.maven.plugins", "maven-dependency-plugin", "2.8",
       Seq(
         PluginExec("pre-build-validate-tree", Seq("tree"), "validate", Map())),
@@ -150,7 +150,7 @@ class PomCheckerTest extends AssertionsForJUnit {
   def testCheck_maven_dependecy_plugin_invalid_exec(): Unit = {
 
     // GIVEN
-    val deps = Seq(PluginDep(PomRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
+    val deps = Seq(PluginDep(SelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
       "org.apache.maven.plugins", "maven-dependency-plugin", "2.8", Nil,
       Seq("plugin", "plugins", "build", "project")))
 
@@ -163,7 +163,7 @@ class PomCheckerTest extends AssertionsForJUnit {
   def testCheck_maven_dependecy_plugin_valid(): Unit = {
 
     // GIVEN
-    val deps = Seq(PluginDep(PomRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
+    val deps = Seq(PluginDep(SelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
       "org.apache.maven.plugins", "maven-dependency-plugin", "2.8",
       Seq(
         PluginExec("pre-build-validate-tree", Seq("tree"), "validate", Map("outputFile" -> "dep.tree")),
@@ -180,7 +180,7 @@ class PomCheckerTest extends AssertionsForJUnit {
   def testCheck_maven_dependecy_plugin_pomPath(): Unit = {
 
     // GIVEN
-    val deps = Seq(PluginDep(PomRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
+    val deps = Seq(PluginDep(SelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
       "org.apache.maven.plugins", "maven-dependency-plugin", "2.8",
       Seq(
         PluginExec("pre-build-validate-tree", Seq("tree"), "validate", Map("outputFile" -> "dep.tree")),
@@ -221,7 +221,7 @@ class PomCheckerTest extends AssertionsForJUnit {
   @Test
   def testCheckGavFormat(): Unit = {
     val result = StarterTest.withOutErr[Unit]((out, _) => {
-      val base = ProjectMod.Dep(PomRef.undef, "g", "a", "v", "t", "s", "jar", "classi")
+      val base = ProjectMod.Dep(SelfRef.undef, "g", "a", "v", "t", "s", "jar", "classi")
       PomChecker.checkGavFormat(Seq(
         base,
         base.copy(groupId = "g."),

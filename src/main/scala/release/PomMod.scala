@@ -152,7 +152,7 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends ProjectMod wit
       PluginExec(id, goals, phase, configNodes)
     })
 
-    replacedVersionProperty(PluginDep(PomRef(id), groupId, artifactId, version, execs, nodePath(node)))
+    replacedVersionProperty(PluginDep(SelfRef(id), groupId, artifactId, version, execs, nodePath(node)))
   }
 
   private def mavenDependencyPluginConfigsByGoal(goalname: String): Seq[(String, String)] = {
@@ -324,7 +324,7 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends ProjectMod wit
     val pomMods = selfDeps.map(_.copy(typeN = "pom"))
     val pomModsImport = pomMods.map(_.copy(scope = "import"))
     (pomMods ++ pomModsImport ++ selfDeps)
-      .map(_.copy(pomRef = PomRef.undef))
+      .map(_.copy(pomRef = SelfRef.undef))
       .distinct
       .sortBy(_.toString)
   }
@@ -337,14 +337,14 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends ProjectMod wit
   private def replacedVersionProperty(dep: PluginDep) = dep.copy(version = replacedPropertyOf(dep.version))
 
   def listSnapshotsDistinct: Seq[Dep] = {
-    Util.distinctOn[Dep, Dep](listSnapshots, _.copy(pomRef = PomRef.undef))
+    Util.distinctOn[Dep, Dep](listSnapshots, _.copy(pomRef = SelfRef.undef))
   }
 
   def listSnapshots: Seq[Dep] = {
     val deps = listDependecies
     val selfMods = selfDepsMod
     val filteredDeps = deps.filterNot(dep => {
-      val mod = dep.copy(pomRef = PomRef.undef)
+      val mod = dep.copy(pomRef = SelfRef.undef)
       //      if (mod.toString.contains("runtime")) {
       //        println("chech dep: " + mod)
       //        println("inn " + selfMods.filter(_.toString.contains("runtime")))
@@ -466,7 +466,7 @@ object PomMod {
 
   private def depFrom(id: String, dfn: Map[Dep, Node] => Unit)(depSeq: Seq[(String, String, Node)]): Dep = {
     val deps = Xpath.toMapOf(depSeq)
-    val dep = Dep(pomRef = PomRef(id),
+    val dep = Dep(pomRef = SelfRef(id),
       groupId = deps.getOrElse("groupId", ""),
       artifactId = deps.getOrElse("artifactId", ""),
       version = deps.getOrElse("version", ""),

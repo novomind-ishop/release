@@ -34,6 +34,8 @@ libraryDependencies += "org.jline" % "jline-reader" % "3.15.0"
 
 libraryDependencies += "com.github.siom79.japicmp" % "japicmp" % "0.14.3"
 
+libraryDependencies += "com.typesafe" % "config" % "1.4.0"
+
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.1.2" % "test"
 
 libraryDependencies += "org.scalatestplus" %% "junit-4-12" % "3.1.2.0" % Test

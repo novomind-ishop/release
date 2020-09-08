@@ -5,7 +5,7 @@ import java.io.File
 import org.junit.rules.TemporaryFolder
 import org.junit.{Assert, Rule, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
-import release.ProjectMod.{Dep, PomRef}
+import release.ProjectMod.{Dep, SelfRef}
 import release.PomModTest._
 import release.Starter.Opts
 
@@ -164,22 +164,22 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
 
     // WHEN
     val newpom = PomMod.ofAetherForTests(srcPoms, aether)
-    assertDeps(Seq(Dep(PomRef("com.novomind.ishop.shops.any:any-projects:28.0.0-SNAPSHOT"),
+    assertDeps(Seq(Dep(SelfRef("com.novomind.ishop.shops.any:any-projects:28.0.0-SNAPSHOT"),
       "", "", "", "", "", "", ""),
-      Dep(PomRef("com.novomind.ishop.shops.any:any-erp:28.0.0-SNAPSHOT"),
+      Dep(SelfRef("com.novomind.ishop.shops.any:any-erp:28.0.0-SNAPSHOT"),
         "com.novomind.ishop.shops.any", "any-projects", "28.0.0-SNAPSHOT", "", "", "", ""),
-      Dep(PomRef("com.novomind.any:any:28.0.0-SNAPSHOT"),
+      Dep(SelfRef("com.novomind.any:any:28.0.0-SNAPSHOT"),
         "com.novomind.any", "any-projects", "27.0.0", "", "", "", "")), newpom.listDependecies)
 
     Assert.assertEquals(Map.empty, depTreeMap(newpom))
 
     newpom.changeVersion("12.12")
     newpom.writeTo(srcPoms)
-    assertDeps(Seq(Dep(PomRef("com.novomind.ishop.shops.any:any-projects:12.12"),
+    assertDeps(Seq(Dep(SelfRef("com.novomind.ishop.shops.any:any-projects:12.12"),
       "", "", "", "", "", "", ""),
-      Dep(PomRef("com.novomind.ishop.shops.any:any-erp:12.12"),
+      Dep(SelfRef("com.novomind.ishop.shops.any:any-erp:12.12"),
         "com.novomind.ishop.shops.any", "any-projects", "12.12", "", "", "", ""),
-      Dep(PomRef("com.novomind.any:any:12.12"),
+      Dep(SelfRef("com.novomind.any:any:12.12"),
         "com.novomind.any", "any-projects", "27.0.0", "", "", "", "")),
       PomMod.ofAetherForTests(srcPoms, aether).listDependecies)
     Assert.assertEquals(3, newpom.allPomsDocs.size)
@@ -279,13 +279,13 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
 
     // WHEN
     val newpom = PomMod.ofAetherForTests(srcPoms, aether)
-    assertDeps(Seq(Dep(PomRef("com.novomind.ishop.shops.any:any-projects:28.0.0-SNAPSHOT"),
+    assertDeps(Seq(Dep(SelfRef("com.novomind.ishop.shops.any:any-projects:28.0.0-SNAPSHOT"),
       "", "", "", "", "", "", ""),
-      Dep(PomRef("com.novomind.ishop.shops.any:any-erp:28.0.0-SNAPSHOT"),
+      Dep(SelfRef("com.novomind.ishop.shops.any:any-erp:28.0.0-SNAPSHOT"),
         "com.novomind.ishop.shops.any", "any-projects", "28.0.0-SNAPSHOT", "", "", "", ""),
-      Dep(PomRef("com.novomind.ishop.shops.any:any-parent:28.0.0-SNAPSHOT"),
+      Dep(SelfRef("com.novomind.ishop.shops.any:any-parent:28.0.0-SNAPSHOT"),
         "com.novomind.ishop.shops.any", "any-projects", "28.0.0-SNAPSHOT", "", "", "", ""),
-      Dep(PomRef("com.novomind.ishop.shops.any:any:28.0.0-SNAPSHOT"),
+      Dep(SelfRef("com.novomind.ishop.shops.any:any:28.0.0-SNAPSHOT"),
         "com.novomind.ishop.shops.any", "any-parent", "28.0.0-SNAPSHOT", "", "", "", "")), newpom.listDependecies)
 
     Assert.assertEquals(Map.empty, depTreeMap(newpom))
@@ -293,13 +293,13 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
 
     newpom.changeVersion("12.12")
     newpom.writeTo(srcPoms)
-    assertDeps(Seq(Dep(PomRef("com.novomind.ishop.shops.any:any-projects:12.12"),
+    assertDeps(Seq(Dep(SelfRef("com.novomind.ishop.shops.any:any-projects:12.12"),
       "", "", "", "", "", "", ""),
-      Dep(PomRef("com.novomind.ishop.shops.any:any-erp:12.12"),
+      Dep(SelfRef("com.novomind.ishop.shops.any:any-erp:12.12"),
         "com.novomind.ishop.shops.any", "any-projects", "12.12", "", "", "", ""),
-      Dep(PomRef("com.novomind.ishop.shops.any:any-parent:12.12"),
+      Dep(SelfRef("com.novomind.ishop.shops.any:any-parent:12.12"),
         "com.novomind.ishop.shops.any", "any-projects", "12.12", "", "", "", ""),
-      Dep(PomRef("com.novomind.ishop.shops.any:any:12.12"),
+      Dep(SelfRef("com.novomind.ishop.shops.any:any:12.12"),
         "com.novomind.ishop.shops.any", "any-parent", "12.12", "", "", "", "")),
       PomMod.ofAetherForTests(srcPoms, aether).listDependecies)
     Assert.assertEquals(4, newpom.allPomsDocs.size)
