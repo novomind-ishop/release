@@ -1,6 +1,6 @@
 package release
 
-import java.io.{IOException, PrintStream}
+import java.io.{File, IOException, PrintStream}
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{FileVisitResult, FileVisitor, Files, Path}
 import java.text.{DecimalFormat, DecimalFormatSymbols}
@@ -15,7 +15,7 @@ import org.eclipse.aether.artifact.DefaultArtifact
 import org.eclipse.aether.connector.basic.BasicRepositoryConnectorFactory
 import org.eclipse.aether.impl.DefaultServiceLocator
 import org.eclipse.aether.repository.{LocalRepository, RemoteRepository}
-import org.eclipse.aether.resolution.{VersionRangeRequest, VersionRangeResolutionException}
+import org.eclipse.aether.resolution.{ArtifactRequest, VersionRangeRequest, VersionRangeResolutionException}
 import org.eclipse.aether.spi.connector.RepositoryConnectorFactory
 import org.eclipse.aether.spi.connector.transport.TransporterFactory
 import org.eclipse.aether.transfer._
@@ -23,7 +23,7 @@ import org.eclipse.aether.transport.file.FileTransporterFactory
 import org.eclipse.aether.transport.http.HttpTransporterFactory
 import org.eclipse.aether.version.Version
 import org.eclipse.aether.{DefaultRepositorySystemSession, RepositorySystem}
-import release.Aether.getVersions
+import release.Aether.{doResolve, getVersions}
 import release.Starter.Opts
 
 import scala.jdk.CollectionConverters._
@@ -77,10 +77,9 @@ class Aether(opts: Opts) extends LazyLogging {
     result
   }
 
-  def vOf(groupID: String, artifactId: String, version: String): Seq[String] = {
-    val request = Seq(groupID, artifactId, "[" + version + ",)").mkString(":")
-    val result = getVersionsOf(request)
-    Nil
+  def resolve(groupID: String, artifactId: String, version: String): (File, String) = {
+    val request = Seq(groupID, artifactId, version).mkString(":")
+    doResolve(workNexus)(request)
   }
 
 }
@@ -102,6 +101,17 @@ object Aether extends LazyLogging {
     rangeRequest.setRepositories(Util.toJavaList(Seq(repository)))
     val rangeResult = system.resolveVersionRange(session, rangeRequest)
     rangeResult.getVersions.asScala.toList
+  }
+
+  def doResolve(repository: RemoteRepository)(request: String): (File, String) = {
+    val system = ArtifactRepos.newRepositorySystem
+    val session = ArtifactRepos.newRepositorySystemSession(system)
+    val artifact = new DefaultArtifact(request)
+    val artifactRequest = new ArtifactRequest
+    artifactRequest.setArtifact(artifact)
+    artifactRequest.setRepositories(Util.toJavaList(Seq(repository)))
+    val result = system.resolveArtifact(session, artifactRequest)
+    (result.getArtifact.getFile, result.getArtifact.getVersion)
   }
 
   private class ManualRepositorySystemFactory {

@@ -4,16 +4,19 @@ import java.awt.Desktop
 import java.io.{BufferedReader, File, PrintStream}
 import java.net.URI
 import java.time.LocalDateTime
+import java.util
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
 
 import com.typesafe.scalalogging.LazyLogging
 import japicmp.cmp.{JApiCmpArchive, JarArchiveComparator, JarArchiveComparatorOptions}
 import japicmp.config.Options
+import japicmp.model.JApiClass
 import japicmp.output.semver.SemverOut
 import japicmp.output.stdout.StdoutOutputGenerator
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClients
+import org.eclipse.aether.resolution.ArtifactResolutionException
 import release.Conf.Tracer
 import release.Sgit.GitRemote
 import release.Util.pluralize
@@ -22,6 +25,7 @@ import release.Xpath.InvalidPomXmlException
 import scala.annotation.tailrec
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.jdk.CollectionConverters._
 
 object Starter extends LazyLogging {
 
@@ -208,13 +212,15 @@ object Starter extends LazyLogging {
       case "--defaults" :: tail => argsRead(tail, inOpt.copy(useDefaults = true))
       case "--no-jline" :: tail => argsRead(tail, inOpt.copy(useJlineInput = false))
       case "--no-color" :: tail => argsRead(tail, inOpt.copy(colors = false))
+      // TODO no color env propertie
       case "--100" :: _ => throw new UnsupportedOperationException("major increment not implemented")
       case "--010" :: _ => throw new UnsupportedOperationException("minor increment not implemented")
       case "--001" :: _ => throw new UnsupportedOperationException("patch increment not implemented")
       case "--demo-chars" :: _ => showDemoChars(inOpt)
       case "--skip-property" :: value :: tail => argsRead(tail, inOpt.copy(skipProperties = inOpt.skipProperties ++ Seq(value)))
       // CMDs
-      case "apidiff" :: _ => apidiff(inOpt)
+      case "apidiff" :: leftVersion :: rightVersion :: _ =>
+        apidiff(inOpt, leftVersion, rightVersion)
       case "versionSet" :: value :: _ => argsRead(Nil, inOpt.copy(versionSet = Some(value)))
       case "shopGASet" :: value :: _ => argsRead(Nil, inOpt.copy(shopGA = Some(value)))
       case "nothing-but-create-feature-branch" :: _ => argsRead(Nil, inOpt.copy(createFeature = true))
@@ -227,30 +233,71 @@ object Starter extends LazyLogging {
 
   }
 
-  def apidiff(inOpt: Opts): Opts = {
+  def apidiff(inOpt: Opts, left: String, right: String): Opts = {
+    println("")
     // TODO load api diff definition from file
     val aether = new Aether(inOpt)
-    // TODO download required jars from aether
+    val workDirFile = new File(".").getAbsoluteFile // TODO get this from other location
+    val pommod = PomMod.ofAether(workDirFile, inOpt, aether)
+    val gavs = pommod.listSelf.map(mo => mo.gav())
+
+
+
     val options = Options.newDefault()
     options.setIgnoreMissingClasses(true)
     options.setOutputOnlyModifications(true)
-    val comparatorOptions: JarArchiveComparatorOptions = JarArchiveComparatorOptions.of(options)
-    val jarArchiveComparator = new JarArchiveComparator(comparatorOptions)
-    val a = new JApiCmpArchive(new File("a.jar"), "a")
-    val b = new JApiCmpArchive(new File("b.jar"), "b")
-    val jApiClasses = jarArchiveComparator.compare(a, b)
-    println(new SemverOut(options, jApiClasses).generate())
-    println(new StdoutOutputGenerator(options, jApiClasses).generate())
+    options.setOutputOnlyBinaryIncompatibleModifications(true)
+    val gas = gavs
+      .filterNot(_.packageing == "pom")
+      .map(gav => (gav.groupId, gav.artifactId))
+      .sorted
+      .distinct
+    gas.foreach(println)
+    println("")
+    val jApiClasses = gas
+      .flatMap(ga => {
+        try {
+          val groupId = ga._1
+          val artifactId = ga._2
+          val ar = aether.resolve(groupId, artifactId, left)
+          val a = new JApiCmpArchive(ar._1, ar._2)
+
+          val br = aether.resolve(groupId, artifactId, right)
+          val b = new JApiCmpArchive(br._1, br._2)
+
+          println(s"diff of: ${groupId}:${artifactId}:(${left}..${right})")
+
+
+          val comparatorOptions: JarArchiveComparatorOptions = JarArchiveComparatorOptions.of(options)
+          val jarArchiveComparator = new JarArchiveComparator(comparatorOptions)
+
+          jarArchiveComparator.compare(a, b).asScala
+        } catch {
+
+          case e:ArtifactResolutionException => {
+            e.printStackTrace()
+            Nil
+          } // TODO handle better
+        }
+
+      }).asJava
+
+
+    println(new StdoutOutputGenerator(options, new util.ArrayList[JApiClass](jApiClasses)).generate())
+    println("Semver change: " + new SemverOut(options, new util.ArrayList[JApiClass](jApiClasses)).generate())
     System.exit(5)
     null
   }
 
   def showDemoChars(inOpt: Opts): Opts = {
     println()
-    val r = Term.readFrom(Console.out, "test",
+    println("\u001B[31m" + "This text is red!" + "\u001B[0m")
+    val r = Term.readFrom(Console.out, "test press enter",
       "u200B(\u200B),u0009(\u0009),u00A0(\u00A0),u1680(\u1680),,,u2012(\u2012),u2013(\u2013)",
       inOpt, Console.in)
+    print("\u001B[30;45m")
     println("demo: " + r)
+    print("\u001B[0m")
     System.exit(3)
     null
   }
