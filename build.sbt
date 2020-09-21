@@ -2,7 +2,7 @@ name := "release"
 
 version := "1.0"
 
-scalaVersion := "2.13.2"
+scalaVersion := "2.13.3"
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xfatal-warnings")
 
@@ -20,27 +20,27 @@ libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % 
 
 libraryDependencies += "org.scala-lang.modules" %% "scala-parallel-collections" % "0.2.0"
 
-libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-connector-basic" % "1.4.2"
+libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-connector-basic" % "1.6.1"
 
-libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-transport-file" % "1.4.2"
+libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-transport-file" % "1.6.1"
 
-libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-transport-http" % "1.4.2"
+libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-transport-http" % "1.6.1"
 
 libraryDependencies += "org.apache.maven" % "maven-resolver-provider" % "3.6.3"
 
-libraryDependencies += "org.jline" % "jline-terminal" % "3.15.0"
+libraryDependencies += "org.jline" % "jline-terminal" % "3.16.0"
 
-libraryDependencies += "org.jline" % "jline-reader" % "3.15.0"
+libraryDependencies += "org.jline" % "jline-reader" % "3.16.0"
 
-libraryDependencies += "com.github.siom79.japicmp" % "japicmp" % "0.14.3"
+libraryDependencies += "com.github.siom79.japicmp" % "japicmp" % "0.14.4"
 
 libraryDependencies += "com.typesafe" % "config" % "1.4.0"
 
-libraryDependencies += "org.scalatest" %% "scalatest" % "3.1.2" % "test"
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.2" % "test"
 
-libraryDependencies += "org.scalatestplus" %% "junit-4-12" % "3.1.2.0" % Test
+libraryDependencies += "org.scalatestplus" %% "junit-4-12" % "3.2.2.0" % Test
 
-libraryDependencies += "org.mockito" %% "mockito-scala" % "1.14.3" % "test"
+libraryDependencies += "org.mockito" %% "mockito-scala" % "1.16.0" % "test"
 
 libraryDependencies += "com.novocode" % "junit-interface" % "0.11" % "test"
 

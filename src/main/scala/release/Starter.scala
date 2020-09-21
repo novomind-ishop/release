@@ -558,7 +558,7 @@ object Starter extends LazyLogging {
 
   def tagBuildUrl(git: Sgit, jenkinsBase: String): Option[String] = {
     // TODO write intial jenkins url to ${HOME}/.nm-release-config; else read
-    val list: Seq[GitRemote] = git.listRemotes
+    val list: Seq[GitRemote] = git.listRemotes()
     val path = transformRemoteToBuildUrl(list, jenkinsBase)
     if (path.isDefined) {
       try {

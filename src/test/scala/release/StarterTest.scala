@@ -321,7 +321,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
   def testFutures(): Unit = {
     implicit val global = ExecutionContext.global
 
-    def aString(in: String, fail: Boolean)(): String = {
+    def aString(in: String, fail: Boolean): String = {
       if (fail) {
         throw new IllegalStateException("doof")
       } else {

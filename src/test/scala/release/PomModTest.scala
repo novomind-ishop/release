@@ -892,6 +892,26 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def suggestNextRelease_lowdash_with_letters(): Unit = {
+
+    // GIVEN/WHEN
+    val next = suggestNextReleaseBy("28.0.0_tc8.5.58")
+
+    // THEN
+    assert("28.0.1_tc8.5.58" === next)
+  }
+
+  @Test
+  def suggestNextRelease_dash_with_letters(): Unit = {
+
+    // GIVEN/WHEN
+    val next = suggestNextReleaseBy("28.0.0-tc8.5.58")
+
+    // THEN
+    assert("28.0.1-tc8.5.58" === next)
+  }
+
+  @Test
   def suggestNextRelease_no_bugfix(): Unit = {
 
     // GIVEN/WHEN

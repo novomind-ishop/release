@@ -121,6 +121,7 @@ object ProjectMod {
     private[release] val semverPatternNoMinor = "^([0-9]+)$".r
     private[release] val semverPatternLowdash = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)_([0-9]+)$".r
     private[release] val semverPatternLowdashString = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)_(.+)$".r
+    private[release] val semverPatternPreRelease = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)-([0-9a-zA-Z\\.]+)$".r
     private[release] val stableShop = "^([0-9]+x)-stable.*$".r
     private[release] val shopPattern = "^(RC-)([0-9]{4})\\.([0-9]+)?(?:\\.([0-9]+[0-9]*))?(?:_([0-9]+[0-9]*))?$".r
 
@@ -196,6 +197,7 @@ trait ProjectMod extends LazyLogging {
         .filterNot(_.matches(".*-[Mm][0-9]+-.*"))
         .filterNot(_.matches(".*-rc-[0-9]+$"))
         .filterNot(_.matches(".*-[0-9a-f]{7}$")) // used by org.typelevel:cats-effect
+        .filterNot(_.matches(".*-dev$")) // used by commons-discovery:commons-discovery
         .filterNot(_.matches(".*pr[0-9]+$"))
         .filterNot(_.contains("alpha"))
         .filterNot(_.contains("Alpha"))
