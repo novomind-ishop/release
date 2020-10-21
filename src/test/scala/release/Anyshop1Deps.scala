@@ -64,9 +64,10 @@ object Anyshop1Deps {
     )
   }
 
-  def selfMod(): Seq[Dep] = Seq(
+  def selfMod(): Seq[Dep] = Seq(Dep(SelfRef("X"),
+    "com.novomind.ishop.shops", "anyshop", "27.0.0-SNAPSHOT", "", "", "", ""),
     Dep(SelfRef("X"),
-      "com.novomind.ishop.shops", "anyshop", "27.0.0-SNAPSHOT", "", "", "", ""),
+      "com.novomind.ishop.shops", "anyshop", "27.0.0-SNAPSHOT", "", "", "", "tests"),
     Dep(SelfRef("X"),
       "com.novomind.ishop.shops", "anyshop", "27.0.0-SNAPSHOT", "", "", "war", ""),
     Dep(SelfRef("X"),
@@ -83,6 +84,8 @@ object Anyshop1Deps {
       "com.novomind.ishop.shops", "anyshop", "27.0.0-SNAPSHOT", "", "test", "war", "tests"),
     Dep(SelfRef("X"),
       "com.novomind.ishop.shops", "anyshop", "27.0.0-SNAPSHOT", "pom", "", "", ""),
+    Dep(SelfRef("X"),
+      "com.novomind.ishop.shops", "anyshop", "27.0.0-SNAPSHOT", "pom", "", "", "tests"),
     Dep(SelfRef("X"),
       "com.novomind.ishop.shops", "anyshop", "27.0.0-SNAPSHOT", "pom", "", "war", ""),
     Dep(SelfRef("X"),
@@ -144,6 +147,8 @@ object Anyshop1Deps {
     Dep(SelfRef("X"),
       "com.novomind.ishop.shops.anyshop", "anyshop-projects", "27.0.0-SNAPSHOT", "", "", "", ""),
     Dep(SelfRef("X"),
+      "com.novomind.ishop.shops.anyshop", "anyshop-projects", "27.0.0-SNAPSHOT", "", "", "", "tests"),
+    Dep(SelfRef("X"),
       "com.novomind.ishop.shops.anyshop", "anyshop-projects", "27.0.0-SNAPSHOT", "", "", "pom", ""),
     Dep(SelfRef("X"),
       "com.novomind.ishop.shops.anyshop", "anyshop-projects", "27.0.0-SNAPSHOT", "", "", "pom", "sources"),
@@ -159,6 +164,8 @@ object Anyshop1Deps {
       "com.novomind.ishop.shops.anyshop", "anyshop-projects", "27.0.0-SNAPSHOT", "", "test", "pom", "tests"),
     Dep(SelfRef("X"),
       "com.novomind.ishop.shops.anyshop", "anyshop-projects", "27.0.0-SNAPSHOT", "pom", "", "", ""),
+    Dep(SelfRef("X"),
+      "com.novomind.ishop.shops.anyshop", "anyshop-projects", "27.0.0-SNAPSHOT", "pom", "", "", "tests"),
     Dep(SelfRef("X"),
       "com.novomind.ishop.shops.anyshop", "anyshop-projects", "27.0.0-SNAPSHOT", "pom", "", "pom", ""),
     Dep(SelfRef("X"),

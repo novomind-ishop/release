@@ -12,6 +12,20 @@ import scala.collection.parallel.CollectionConverters._
 
 object ProjectMod {
 
+  def groupSortReleases(o: Seq[String]): Seq[(String, Seq[String])] = {
+    o.map(vs => Version.parseSloppy(vs)).groupBy(_.major).toSeq
+      .sortBy(_._1)
+      .map(e => e.copy(_1 = e._1.toString, _2 = e._2.sorted.map(_.orginal)))
+      .reverse
+
+  }
+
+  def scalaDeps(gavs: Seq[Gav3])(gav: Gav3): Seq[Gav3] = {
+    // TODO expand scala version with artifact names with lowdash
+    Seq(gav)
+  }
+
+
   case class Dep(pomRef: SelfRef, groupId: String, artifactId: String, version: String, typeN: String,
                  scope: String, packaging: String, classifier: String) {
     val gavWithDetailsFormatted: String = Gav.format(Seq(groupId, artifactId, version, typeN, scope, packaging, classifier))
@@ -64,7 +78,7 @@ object ProjectMod {
     val undef = SelfRef("X")
   }
 
-  case class Version(pre: String, major: Int, minor: Int, patch: Int, low: String) {
+  case class Version(pre: String, major: Int, minor: Int, patch: Int, low: String, orginal: String) {
 
     private val lowF = if (Util.isNullOrEmpty(low)) {
       ""
@@ -124,10 +138,12 @@ object ProjectMod {
     private[release] val semverPatternPreRelease = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)-([0-9a-zA-Z\\.]+)$".r
     private[release] val stableShop = "^([0-9]+x)-stable.*$".r
     private[release] val shopPattern = "^(RC-)([0-9]{4})\\.([0-9]+)?(?:\\.([0-9]+[0-9]*))?(?:_([0-9]+[0-9]*))?$".r
+    private[release] val number = "^([0-9]+)(.*)".r
 
-    implicit def ordering[A <: Version]: Ordering[A] = Ordering.by(e => (e.major, e.minor, e.patch))
+    implicit def ordering[A <: Version]: Ordering[A] =
+      Ordering.by(e => (e.major, e.minor, e.patch, e.low, e.pre))
 
-    val undef: Version = Version("n/a", -1, -1, -1, "")
+    val undef: Version = Version("n/a", -1, -1, -1, "", "")
 
     private def nullToZero(in: String) = if (in == null || in == "") {
       0
@@ -137,18 +153,37 @@ object ProjectMod {
       -1
     }
 
-    def fromStringOpt(pre: String, major: String, minor: String, patch: String, low: String): Option[Version] = {
-      Some(fromString(pre, major, minor, patch, low))
+    def fromStringOpt(pre: String, major: String, minor: String, patch: String, low: String, original: String): Option[Version] = {
+      Some(fromString(pre, major, minor, patch, low, original))
     }
 
-    def fromString(pre: String, major: String, minor: String, patch: String, low: String): Version = {
-      Version(pre, nullToZero(major), nullToZero(minor), nullToZero(patch), Util.nullToEmpty(low))
+    def fromString(pre: String, major: String, minor: String, patch: String, low: String, original: String): Version = {
+      Version(pre, nullToZero(major), nullToZero(minor), nullToZero(patch), Util.nullToEmpty(low), original)
     }
 
     def toVersion(m: String): Option[Version] = m match {
-      case semverPattern(ma, mi, b) => Version.fromStringOpt("", ma, mi, b, "")
-      case semverPatternLowdash(ma, mi, b, low) => Version.fromStringOpt("", ma, mi, b, low)
+      case semverPattern(ma, mi, b) => Version.fromStringOpt("", ma, mi, b, "", m)
+      case semverPatternLowdash(ma, mi, b, low) => Version.fromStringOpt("", ma, mi, b, low, m)
       case _ => None
+    }
+
+    def parseSloppy(versionText: String): Version = {
+
+      try {
+        versionText match {
+          case semverPatternLowdash(major, minor, patch, low) => Version.fromString("", major, minor, patch, low, versionText)
+          case semverPatternLowdashString(major, minor, patch, low) => Version.fromString("", major, minor, patch, low, versionText)
+          case semverPattern(major, minor, patch) => Version.fromString("", major, minor, patch, "", versionText)
+          case semverPatternNoBugfix(major, minor) => Version.fromString("", major, minor, "", "", versionText)
+          case semverPatternNoMinor(major) => Version.fromString("", major, "", "", "", versionText)
+          case shopPattern(pre, year, week, minor, low) => Version.fromString(pre, year, week, minor, low, versionText)
+          case number(major, low) => Version.fromString("", major, "", "", low, versionText)
+
+          case any => undef.copy(orginal = any)
+        }
+      } catch {
+        case e: Exception => e.printStackTrace(); undef.copy(orginal = versionText)
+      }
     }
 
     def parse(versionText: String): Version = {
@@ -157,12 +192,12 @@ object ProjectMod {
       try {
         snapped match {
           case stableShop(pre) => undef
-          case semverPatternLowdash(ma, mi, b, low) => Version.fromString("", ma, mi, b, low)
-          case semverPatternLowdashString(ma, mi, b, low) => Version.fromString("", ma, mi, b, low)
-          case semverPattern(ma, mi, b) => Version.fromString("", ma, mi, b, "")
-          case semverPatternNoBugfix(ma, mi) => Version.fromString("", ma, mi, "", "")
-          case semverPatternNoMinor(ma) => Version.fromString("", ma, "", "", "")
-          case shopPattern(pre, year, week, minor, low) => Version.fromString(pre, year, week, minor, low)
+          case semverPatternLowdash(ma, mi, b, low) => Version.fromString("", ma, mi, b, low, "")
+          case semverPatternLowdashString(ma, mi, b, low) => Version.fromString("", ma, mi, b, low, "")
+          case semverPattern(ma, mi, b) => Version.fromString("", ma, mi, b, "", "")
+          case semverPatternNoBugfix(ma, mi) => Version.fromString("", ma, mi, "", "", "")
+          case semverPatternNoMinor(ma) => Version.fromString("", ma, "", "", "", "")
+          case shopPattern(pre, year, week, minor, low) => Version.fromString(pre, year, week, minor, low, "")
           case any => undef
         }
       } catch {
@@ -249,7 +284,7 @@ trait ProjectMod extends LazyLogging {
       .distinct
 
     val aetherFetch = StatusLine(relevantGav.size, shellWidth)
-    val updates: Map[Gav3, Seq[String]] = relevantGav.par.map(_.simpleGav())
+    val prepared = relevantGav.map(_.simpleGav())
       .map(in => {
         if (in.version.isEmpty || in.artifactId.isEmpty || in.groupId.isEmpty) {
           throw new IllegalStateException("gav has empty parts: " + in)
@@ -257,6 +292,9 @@ trait ProjectMod extends LazyLogging {
           in
         }
       })
+    val updates: Map[Gav3, Seq[String]] = prepared
+      .flatMap(ProjectMod.scalaDeps(prepared))
+      .par
       .map(dep => (dep, {
         aetherFetch.start()
         val result = aether.newerVersionsOf(dep.groupId, dep.artifactId, dep.version)
@@ -307,17 +345,7 @@ trait ProjectMod extends LazyLogging {
 
         val o: Seq[String] = subElement._2
 
-        def majorGrouping(in: String): String = {
-          val major = in.replaceFirst("\\..*", "")
-          if (in == major) {
-            "_"
-          } else {
-            major
-          }
-        }
-
-        val majorVersions: Seq[(String, Seq[String])] = o.groupBy(majorGrouping).toSeq
-          .sortBy(_._1).reverse
+        val majorVersions: Seq[(String, Seq[String])] = ProjectMod.groupSortReleases(o)
         if (majorVersions != Nil) {
           out.println(ch("╠═╦═ ", "+-+- ") + subElement._1.gavWithDetailsFormatted)
         } else {

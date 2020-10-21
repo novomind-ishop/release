@@ -318,6 +318,7 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends ProjectMod wit
       listSelf.map(_.copy(scope = "test", classifier = "tests", packaging = "")) ++
       listSelf.map(_.copy(scope = "test", packaging = "")) ++
       listSelf.map(_.copy(classifier = "tests")) ++
+      listSelf.map(_.copy(classifier = "tests", packaging = "")) ++
       listSelf.map(_.copy(classifier = "sources")) ++ // for bo-client
       listSelf.map(_.copy(classifier = "", typeN = "war", scope = "runtime", packaging = "")) ++ // for bo-client
       listSelf.map(_.copy(packaging = ""))
@@ -584,14 +585,14 @@ object PomMod {
     if (hasShopPom) {
       val releaseBranchNames = branchNames.filter(_.startsWith("release/")).map(_.replaceFirst("^release/", ""))
       val knownVersions: Seq[Version] = releaseBranchNames.map {
-        case Version.shopPattern(pre, year, week, minor, low) => Version.fromString(pre, year, week, minor, low)
+        case Version.shopPattern(pre, year, week, minor, low) => Version.fromString(pre, year, week, minor, low, "")
         case _ => Version.undef
       }
 
       if (currentVersion.startsWith("master")) {
         def dateBased(localDate: LocalDate, known: Seq[Version]): String = {
 
-          Version("RC-", localDate.getYear, weekOfYear(localDate), 0, "")
+          Version("RC-", localDate.getYear, weekOfYear(localDate), 0, "", "")
             .nextIfKnown(knownVersions)
             .formatShopAsSnapshot()
         }
@@ -622,7 +623,7 @@ object PomMod {
         val unSnapshoted = Term.removeTrailingSnapshots(currentVersion)
         unSnapshoted match {
           case Version.shopPattern(pre, year, week, minor, low) => {
-            val version = Version.fromString(pre, year, week, minor, low)
+            val version = Version.fromString(pre, year, week, minor, low, "")
             if (knownVersions.contains(version)) {
               Seq(version.nextIfKnown(knownVersions).formatShopAsSnapshot())
             } else {
@@ -659,7 +660,7 @@ object PomMod {
         case Version.shopPattern(pre, year, week, minor, low) => {
           Term.removeTrailingSnapshots(currentVersion) match {
             case Version.shopPattern(_, _, _, _, _) => {
-              val verso = Version.fromString(pre, year, week, minor, low).plusWeek()
+              val verso = Version.fromString(pre, year, week, minor, low, "").plusWeek()
               verso.copy(patch = 0, low = "").formatShop()
             }
             case any => {
