@@ -14,7 +14,7 @@ import release.Starter.{Opts, PreconditionsException}
 import scala.annotation.tailrec
 import scala.collection.parallel.CollectionConverters._
 
-object Release extends LazyLogging{
+object Release extends LazyLogging {
 
   def formatVersionLinesGav(versionLines: Seq[Gav], color: Boolean = false): Seq[String] = {
     def gavLength(in: Gav) = Seq(in.groupId, in.artifactId).mkString(":").length
@@ -129,15 +129,7 @@ object Release extends LazyLogging{
     sgit.checkout(branch)
     Starter.chooseUpstreamIfUndef(out, sgit, branch, opts, Console.in)
 
-    val mod: ProjectMod = if (PomMod.rootPom(workDirFile).canRead) {
-      out.print("I: Reading pom.xmls ..")
-      PomMod.ofAether(workDirFile, opts, aether)
-    } else if (SbtMod.buildSbt(workDirFile).canRead) {
-      out.print("I: Reading build.sbt ..")
-      SbtMod.ofAether(workDirFile, opts, aether)
-    } else {
-      throw new PreconditionsException(workDirFile.toString + " is no maven or sbt project")
-    }
+    val mod: ProjectMod = ProjectMod.read(workDirFile, out, opts, aether)
 
     out.println(". done")
     if (opts.depUpOpts.showDependencyUpdates) {
@@ -145,20 +137,21 @@ object Release extends LazyLogging{
       System.exit(0)
     }
 
-    val newMod = offerAutoFixForReleaseSnapshots(out, mod, sgit.lsFiles(), shellWidth, err, aether, opts)
+    val wipMod = offerAutoFixForReleaseSnapshots(out, mod, sgit.lsFiles(), shellWidth, err, aether, opts)
 
-    @tailrec
-    def checkLocalChangesAfterSnapshots(): Unit = {
+    def checkLocalChangesAfterSnapshots(mod: ProjectMod): ProjectMod = {
       if (sgit.hasLocalChanges) {
         val retryLocalChanges = Term.readFromOneOfYesNo(out, "Found local changes - commit manual please. Retry?", opts)
         if (retryLocalChanges == "n") {
           System.exit(0)
         } else {
-          checkLocalChangesAfterSnapshots()
+          checkLocalChangesAfterSnapshots(ProjectMod.read(mod.file, out, opts, aether, showRead = false))
         }
       }
+      mod
     }
-    checkLocalChangesAfterSnapshots()
+
+    val newMod = checkLocalChangesAfterSnapshots(wipMod)
 
     if (newMod.isNoShop) {
       out.println("---------")
@@ -314,6 +307,8 @@ object Release extends LazyLogging{
       }
     }
 
+    // TODO hier könnte man jetzt die snapshots aus "mod" in "newMod" suchen und sie auf den folgesnapshot setzen
+
     val nextSnapshot = nextReleaseWithoutSnapshot + "-SNAPSHOT"
     if (newMod.selfVersion != nextSnapshot) {
       newMod.changeVersion(nextSnapshot)
@@ -339,7 +334,7 @@ object Release extends LazyLogging{
       newMod.writeTo(workDirFile)
     }
     val headCommitId = sgit.commitIdHead()
-    val releaseMod = PomMod.ofAether(workDirFile, opts, aether)
+    val releaseMod = ProjectMod.read(workDirFile, out, opts, aether, showRead = false)
     val msgs = opts.skipProperties match {
       case Nil => ""
       case found => "\nReleasetool-Prop-Skip: " + found.mkString(", ")
@@ -619,7 +614,7 @@ object Release extends LazyLogging{
       if (again == "n") {
         System.exit(1)
       } else {
-        offerAutoFixForReleaseSnapshots(out, PomMod.ofAether(mod.file, opts, aether), gitFiles, shellWidth, err, aether, opts)
+        offerAutoFixForReleaseSnapshots(out, ProjectMod.read(mod.file, out, opts, aether, showRead = false), gitFiles, shellWidth, err, aether, opts)
       }
     }
     mod

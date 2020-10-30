@@ -37,6 +37,8 @@ case class SbtMod(file: File, aether: Aether, opts: Opts) extends ProjectMod {
   def writeTo(targetFolder: File): Unit = throw new UnsupportedOperationException()
 
   def changeVersion(newVersion: String): Unit = throw new UnsupportedOperationException()
+
+  def depTreeFilenameList(): Seq[String] = throw new UnsupportedOperationException()
 }
 
 object SbtMod {

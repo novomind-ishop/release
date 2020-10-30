@@ -5,12 +5,28 @@ import java.io.{File, PrintStream}
 import com.typesafe.scalalogging.LazyLogging
 import release.PomMod.{abbreviate, unmanged}
 import release.ProjectMod.{Dep, Gav3, PluginDep, SelfRef}
-import release.Starter.{Opts, OptsDepUp}
+import release.Starter.{Opts, OptsDepUp, PreconditionsException}
 
 import scala.annotation.tailrec
 import scala.collection.parallel.CollectionConverters._
 
 object ProjectMod {
+
+  def read(workDirFile: File, out: PrintStream, opts: Opts, aether: Aether, showRead: Boolean = true): ProjectMod = {
+    if (PomMod.rootPom(workDirFile).canRead) {
+      if (showRead) {
+        out.print("I: Reading pom.xmls ..")
+      }
+      PomMod.ofAether(workDirFile, opts, aether)
+    } else if (SbtMod.buildSbt(workDirFile).canRead) {
+      if (showRead) {
+        out.print("I: Reading build.sbt ..")
+      }
+      SbtMod.ofAether(workDirFile, opts, aether)
+    } else {
+      throw new PreconditionsException(workDirFile.toString + " is no maven or sbt project")
+    }
+  }
 
   def groupSortReleases(o: Seq[String]): Seq[(String, Seq[String])] = {
     o.map(vs => Version.parseSloppy(vs)).groupBy(_.major).toSeq
@@ -436,4 +452,6 @@ trait ProjectMod extends LazyLogging {
   def writeTo(targetFolder: File): Unit
 
   def changeVersion(newVersion: String): Unit
+
+  def depTreeFilenameList(): Seq[String]
 }
