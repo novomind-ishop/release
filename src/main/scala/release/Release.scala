@@ -146,6 +146,20 @@ object Release extends LazyLogging{
     }
 
     val newMod = offerAutoFixForReleaseSnapshots(out, mod, sgit.lsFiles(), shellWidth, err, aether, opts)
+
+    @tailrec
+    def checkLocalChangesAfterSnapshots(): Unit = {
+      if (sgit.hasLocalChanges) {
+        val retryLocalChanges = Term.readFromOneOfYesNo(out, "Found local changes - commit manual please. Retry?", opts)
+        if (retryLocalChanges == "n") {
+          System.exit(0)
+        } else {
+          checkLocalChangesAfterSnapshots()
+        }
+      }
+    }
+    checkLocalChangesAfterSnapshots()
+
     if (newMod.isNoShop) {
       out.println("---------")
       out.println("1. MAJOR version when you make incompatible API changes,")
