@@ -151,7 +151,7 @@ object Release extends LazyLogging {
           checkLocalChangesAfterSnapshots(ProjectMod.read(mod.file, out, opts, aether, showRead = false))
         }
       } else {
-        checkLocalChangesAfterSnapshots(ProjectMod.read(mod.file, out, opts, aether, showRead = false))
+        ProjectMod.read(mod.file, out, opts, aether, showRead = false)
       }
 
     }
