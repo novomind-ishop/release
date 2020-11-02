@@ -139,16 +139,21 @@ object Release extends LazyLogging {
 
     val wipMod = offerAutoFixForReleaseSnapshots(out, mod, sgit.lsFiles(), shellWidth, err, aether, opts)
 
+    @tailrec
     def checkLocalChangesAfterSnapshots(mod: ProjectMod): ProjectMod = {
       if (sgit.hasLocalChanges) {
+        out.println(localChangeMessage(sgit))
         val retryLocalChanges = Term.readFromOneOfYesNo(out, "Found local changes - commit manual please. Retry?", opts)
         if (retryLocalChanges == "n") {
           System.exit(0)
+          mod
         } else {
           checkLocalChangesAfterSnapshots(ProjectMod.read(mod.file, out, opts, aether, showRead = false))
         }
+      } else {
+        mod
       }
-      mod
+
     }
 
     val newMod = checkLocalChangesAfterSnapshots(wipMod)
