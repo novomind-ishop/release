@@ -1,6 +1,7 @@
 package release
 
 import java.io.{File, PrintStream}
+import java.time.{Duration, LocalDate, Period}
 
 import com.typesafe.scalalogging.LazyLogging
 import release.PomMod.{abbreviate, unmanged}
@@ -286,7 +287,7 @@ trait ProjectMod extends LazyLogging {
     }
 
     val selfSimple = selfDepsMod.map(_.gav().simpleGav()).distinct
-    val relevant = rootDeps
+    val relevant: Seq[Dep] = rootDeps
       .filterNot(_.version == "")
       .filterNot(in => selfSimple.contains(in.gav().simpleGav()))
 
@@ -308,21 +309,40 @@ trait ProjectMod extends LazyLogging {
           in
         }
       })
-    val updates: Map[Gav3, Seq[String]] = prepared
+    val updates: Map[Gav3, (Seq[String], Duration)] = prepared
       .flatMap(ProjectMod.scalaDeps(prepared))
       .par
       .map(dep => (dep, {
         aetherFetch.start()
-        val result = aether.newerVersionsOf(dep.groupId, dep.artifactId, dep.version)
+        val tr = aether.newerVersionsOf(dep.groupId, dep.artifactId, dep.version)
+        val result = if (depUpOpts.hideStageVersions) {
+          normalizeUnwanted(dep, tr)
+        } else {
+          tr
+        }
+        val d = if (depUpOpts.showLibYears && result.nonEmpty) {
+          val latest = result.last // TODO version sort
+          if (dep != dep.copy(version = latest)) {
+            val currentDate = aether.depDate(dep.groupId, dep.artifactId, dep.version)
+            val latestDate = aether.depDate(dep.groupId, dep.artifactId, latest)
+            if (currentDate.isDefined && latestDate.isDefined) {
+              logger.trace(s"libyear - ${dep.groupId}:${dep.artifactId}:(${dep.version},${result.last}) => ${currentDate.get} to ${latestDate.get}")
+              Duration.between(currentDate.get, latestDate.get)
+            } else {
+              Duration.ofDays(-1)
+            }
+          } else {
+            Duration.ZERO
+          }
+
+
+        } else {
+          Duration.ofDays(-2)
+        }
         aetherFetch.end()
-        result
+        (result, d)
       }))
       .seq
-      .map(in => if (depUpOpts.hideStageVersions) {
-        in.copy(_2 = normalizeUnwanted(in._1, in._2))
-      } else {
-        in
-      })
       .toMap
 
     aetherFetch.finish()
@@ -331,20 +351,25 @@ trait ProjectMod extends LazyLogging {
 
     // TODO move Version check to here
 
-    val checkedUpdates: Map[Gav3, Seq[String]] = updates.map(gavAndVersion => {
-      if (gavAndVersion._2 == Nil) {
-        (gavAndVersion._1, Nil) // TODO remove this, because it is invalid
+    val checkedUpdates: Map[Gav3, (Seq[String], Duration)] = updates.map(gavAndVersion => {
+      if (gavAndVersion._2._1 == Nil) {
+        (gavAndVersion._1, (Nil, gavAndVersion._2._2)) // TODO remove this, because it is invalid
       } else {
-        (gavAndVersion._1, gavAndVersion._2.tail)
+        (gavAndVersion._1, (gavAndVersion._2._1.tail, gavAndVersion._2._2))
       }
     })
 
-    val allWithUpdate: Seq[(GavWithRef, Seq[String])] = relevant.map(in => (GavWithRef(in.pomRef, in.gavWithDetailsFormatted),
-      checkedUpdates.getOrElse(in.gav().simpleGav(), Nil))).filterNot((in: (GavWithRef, Seq[String])) => depUpOpts.hideLatest && in._2.isEmpty)
+    val allWithUpdate: Seq[(GavWithRef, (Seq[String], Duration))] = relevant
+      .map(in => {
+        val ref = GavWithRef(in.pomRef, in.gavWithDetailsFormatted)
+        val a: (Seq[String], Duration) = checkedUpdates.getOrElse(in.gav().simpleGav(), (Nil, Duration.ZERO))
+        (ref, a)
+      })
+      .filterNot((in: (GavWithRef, (Seq[String], Duration))) => depUpOpts.hideLatest && in._2._1.isEmpty)
 
     allWithUpdate.groupBy(_._1.pomRef).foreach(element => {
       val ref: SelfRef = element._1
-      val mods: Seq[(GavWithRef, Seq[String])] = element._2
+      val mods: Seq[(GavWithRef, (Seq[String], Duration))] = element._2
 
       def ch(pretty: String, simple: String) = if (!termOs.isCygwin || termOs.isMinGw) {
         if (termOs.simpleChars) {
@@ -357,28 +382,33 @@ trait ProjectMod extends LazyLogging {
       }
 
       out.println(ch("║ ", "| ") + "Project GAV: " + ref.id)
-      mods.sortBy(_._1.toString).foreach((subElement: (GavWithRef, Seq[String])) => {
+      mods.sortBy(_._1.toString).foreach((subElement: (GavWithRef, (Seq[String], Duration))) => {
 
-        val o: Seq[String] = subElement._2
+        val o: Seq[String] = subElement._2._1
 
         val majorVersions: Seq[(String, Seq[String])] = ProjectMod.groupSortReleases(o)
-        if (majorVersions != Nil) {
-          out.println(ch("╠═╦═ ", "+-+- ") + subElement._1.gavWithDetailsFormatted)
+        val libyear = if (depUpOpts.showLibYears) {
+          s" (libyear ${subElement._2._2.toDays} days)"
         } else {
-          out.println(ch("╠═══ ", "+--- ") + subElement._1.gavWithDetailsFormatted)
+          ""
+        }
+        if (majorVersions != Nil) {
+          out.println(ch("╠═╦═ ", "+-+- ") + subElement._1.gavWithDetailsFormatted + libyear)
+        } else {
+          out.println(ch("╠═══ ", "+--- ") + subElement._1.gavWithDetailsFormatted + libyear)
         }
 
         if (majorVersions.size == 1) {
           out.println(ch("║ ╚═══ ", "| +--- ") +
-            abbreviate(depUpOpts.comactVersionRangeTo)(majorVersions.head._2).mkString(", "))
+            abbreviate(depUpOpts.versionRangeLimit)(majorVersions.head._2).mkString(", "))
         } else {
           if (majorVersions != Nil) {
             majorVersions.tail.reverse.foreach(el => {
               out.println(ch("║ ╠═══ ", "| +--- ") + "(" + el._1 + ") " +
-                abbreviate(depUpOpts.comactVersionRangeTo)(el._2).mkString(", "))
+                abbreviate(depUpOpts.versionRangeLimit)(el._2).mkString(", "))
             })
             out.println(ch("║ ╚═══ ", "| +--- ") + "(" + majorVersions.head._1 + ") " +
-              abbreviate(depUpOpts.comactVersionRangeTo)(majorVersions.head._2).mkString(", "))
+              abbreviate(depUpOpts.versionRangeLimit)(majorVersions.head._2).mkString(", "))
           }
         }
 
@@ -388,11 +418,11 @@ trait ProjectMod extends LazyLogging {
 
     {
       // TODO check versions before
-      val versionNotFound: Map[Gav3, Seq[String]] = updates.filter(_._2 == Nil)
+      val versionNotFound: Map[Gav3, (Seq[String], Duration)] = updates.filter(_._2._1 == Nil)
       if (versionNotFound.nonEmpty) {
         // TODO throw new PreconditionsException
         err.println("Non existing dependencies for:\n" +
-          versionNotFound.toList.map(in => in._1.formatted + "->" + (in._2 match {
+          versionNotFound.toList.map(in => in._1.formatted + "->" + (in._2._1 match {
             case Nil => "Nil"
             case e => e
           }) + "\n  " + workNexusUrl + in._1.slashedMeta).sorted.mkString("\n"))
@@ -410,6 +440,20 @@ trait ProjectMod extends LazyLogging {
     }
 
     out.println("term: " + termOs)
+    if (depUpOpts.showLibYears) {
+      // https://libyear.com/
+      // https://ericbouwers.github.io/papers/icse15.pdf
+      out.println()
+      val durations = updates.map(_._2._2)
+      val sum = durations.foldLeft(Duration.ZERO)((a, b) => a.plus(b))
+      val now = LocalDate.now()
+      val period: Period = Period.between(now, now.plusDays(sum.toDays))
+      if (durations.exists(_.isNegative)) {
+        out.println("WARN: negative durations for:")
+        updates.filter(_._2._2.isNegative).foreach(e => println(s"${e._1} ${e._2._2.toString}"))
+      }
+      out.println(s"libyears: ${period.getYears}.${period.getMonths} (${sum.toDays} days)")
+    }
 
   }
 

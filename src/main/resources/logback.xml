@@ -30,6 +30,7 @@
     <appender-ref ref="FILE_IN_HOME" />
   </logger>
 
+  <logger name="org.eclipse.aether.internal.impl.WarnChecksumPolicy" level="ERROR" additivity="false" />
   <root>
     <level value="WARN" />
     <appender-ref ref="CONSOLE" />

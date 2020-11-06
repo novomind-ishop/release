@@ -4,9 +4,15 @@ import java.io.{File, IOException, PrintStream}
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{FileVisitResult, FileVisitor, Files, Path}
 import java.text.{DecimalFormat, DecimalFormatSymbols}
+import java.time.format.{DateTimeFormatterBuilder, SignStyle, TextStyle}
+import java.time.temporal.ChronoField
+import java.time.temporal.ChronoField._
+import java.time.{ZoneOffset, ZonedDateTime}
+import java.util
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 
+import com.google.common.collect.ImmutableList
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.http.client.methods.{CloseableHttpResponse, HttpGet}
 import org.apache.http.impl.client.HttpClients
@@ -14,8 +20,10 @@ import org.apache.maven.repository.internal.MavenRepositorySystemUtils
 import org.eclipse.aether.artifact.DefaultArtifact
 import org.eclipse.aether.connector.basic.BasicRepositoryConnectorFactory
 import org.eclipse.aether.impl.DefaultServiceLocator
+import org.eclipse.aether.metadata.DefaultMetadata
+import org.eclipse.aether.metadata.Metadata.Nature
 import org.eclipse.aether.repository.{LocalRepository, RemoteRepository}
-import org.eclipse.aether.resolution.{ArtifactRequest, VersionRangeRequest, VersionRangeResolutionException}
+import org.eclipse.aether.resolution.{ArtifactRequest, MetadataRequest, VersionRangeRequest, VersionRangeResolutionException}
 import org.eclipse.aether.spi.connector.RepositoryConnectorFactory
 import org.eclipse.aether.spi.connector.transport.TransporterFactory
 import org.eclipse.aether.transfer._
@@ -23,7 +31,7 @@ import org.eclipse.aether.transport.file.FileTransporterFactory
 import org.eclipse.aether.transport.http.HttpTransporterFactory
 import org.eclipse.aether.version.Version
 import org.eclipse.aether.{DefaultRepositorySystemSession, RepositorySystem}
-import release.Aether.{doResolve, getVersions}
+import release.Aether.doResolve
 import release.Starter.Opts
 
 import scala.jdk.CollectionConverters._
@@ -40,7 +48,10 @@ class Aether(opts: Opts) extends LazyLogging {
 
   lazy val allRepos: Seq[RemoteRepository] = Seq(workNexus, mirrorNexus)
 
-  private def getVersionsOf(req: String) = getVersions(workNexus)(req)
+  private def getVersionsOf(req: String) = Aether.getVersions(workNexus)(req)
+
+  def depDate(groupId: String, artifactId: String, version: String) =
+    Aether.depDate(workNexus)(groupId, artifactId, version)
 
   private[release] def isReachable(showTrace: Boolean = true): Boolean = {
     val httpclient = HttpClients.createDefault
@@ -82,7 +93,7 @@ class Aether(opts: Opts) extends LazyLogging {
     try {
       Success(resolve(groupID, artifactId, version))
     } catch {
-      case e:Exception => Failure(e)
+      case e: Exception => Failure(e)
     }
   }
 
@@ -112,6 +123,85 @@ object Aether extends LazyLogging {
     rangeResult.getVersions.asScala.toList
   }
 
+
+  def parseNexusDate(input: String): Option[ZonedDateTime] = {
+    try {
+
+      val dow: util.Map[Long, String] = new util.HashMap[Long, String]
+      dow.put(1L, "Mon")
+      dow.put(2L, "Tue")
+      dow.put(3L, "Wed")
+      dow.put(4L, "Thu")
+      dow.put(5L, "Fri")
+      dow.put(6L, "Sat")
+      dow.put(7L, "Sun")
+      val moy: util.Map[Long, String] = new util.HashMap[Long, String]
+      moy.put(1L, "Jan")
+      moy.put(2L, "Feb")
+      moy.put(3L, "Mar")
+      moy.put(4L, "Apr")
+      moy.put(5L, "May")
+      moy.put(6L, "Jun")
+      moy.put(7L, "Jul")
+      moy.put(8L, "Aug")
+      moy.put(9L, "Sep")
+      moy.put(10L, "Oct")
+      moy.put(11L, "Nov")
+      moy.put(12L, "Dec")
+      val fmtb = new DateTimeFormatterBuilder()
+        .parseCaseInsensitive
+        .parseLenient
+
+        .optionalStart
+        .appendText(DAY_OF_WEEK) // TODO dow
+        .appendLiteral(" ")
+        .optionalEnd
+
+        .appendText(ChronoField.MONTH_OF_YEAR, TextStyle.SHORT) // TODO moy
+        .appendLiteral(' ')
+        .appendValue(DAY_OF_MONTH, 1, 2, SignStyle.NOT_NEGATIVE)
+        .appendLiteral(' ')
+        .appendValue(HOUR_OF_DAY, 2)
+        .appendLiteral(':')
+        .appendValue(MINUTE_OF_HOUR, 2)
+        .appendLiteral(':')
+        .appendValue(SECOND_OF_MINUTE, 2)
+        .appendLiteral(' ')
+        .appendZoneText(TextStyle.FULL)
+        .appendLiteral(' ')
+        .appendValue(YEAR, 4)
+        .toFormatter
+      Some(ZonedDateTime.parse(input, fmtb).withZoneSameInstant(ZoneOffset.UTC))
+    } catch {
+      case e: Exception => None
+    }
+  }
+
+  private def depDate(repository: RemoteRepository)(groupId: String, artifactId: String, version: String): Option[ZonedDateTime] = {
+    val system = ArtifactRepos.newRepositorySystem
+    val session = ArtifactRepos.newRepositorySystemSession(system)
+    val req = new MetadataRequest()
+    req.setMetadata(new DefaultMetadata(groupId, artifactId, version, "", Nature.RELEASE_OR_SNAPSHOT))
+    req.setRepository(repository)
+    val owet = system.resolveMetadata(session, ImmutableList.of(req))
+    owet.asScala.flatMap(e => {
+      if (!e.isResolved) {
+        Nil
+      } else {
+        val file = e.getMetadata.getFile
+        Util.readLines(file)
+          .map(l => l.replaceAll("\\<.*?\\>", ""))
+          .filter(l => l.matches(".*[0-9].*") && l.matches(".*[a-zA-Z].*"))
+          .map(_.trim)
+          .filterNot(_.isEmpty)
+          .flatMap(line => {
+            parseNexusDate(line)
+          })
+          .distinct
+      }
+    }).toSeq.minOption
+  }
+
   def doResolve(repository: RemoteRepository)(request: String): (File, String) = {
     val system = ArtifactRepos.newRepositorySystem
     val session = ArtifactRepos.newRepositorySystemSession(system)
@@ -120,6 +210,7 @@ object Aether extends LazyLogging {
     artifactRequest.setArtifact(artifact)
     artifactRequest.setRepositories(Util.toJavaList(Seq(repository)))
     val result = system.resolveArtifact(session, artifactRequest)
+
     (result.getArtifact.getFile, result.getArtifact.getVersion)
   }
 

@@ -176,7 +176,8 @@ object Starter extends LazyLogging {
   }
 
   case class OptsDepUp(showDependencyUpdates: Boolean = false, showHelp: Boolean = false,
-                       hideLatest: Boolean = true, comactVersionRangeTo: Integer = 3, hideStageVersions: Boolean = true,
+                       hideLatest: Boolean = true, versionRangeLimit: Integer = 3,
+                       hideStageVersions: Boolean = true, showLibYears:Boolean = false,
                        invalids: Seq[String] = Nil)
 
   @tailrec
@@ -187,7 +188,7 @@ object Starter extends LazyLogging {
       case "-h" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(showHelp = true)))
       case "--no-filter" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts
         .copy(hideStageVersions = false, hideLatest = false)))
-
+      case "--show-libyears" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(showLibYears = true)))
       // --
       case string :: Nil => argsDepRead(Nil, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(invalids = inOpt.depUpOpts.invalids :+ string)))
       case string :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(invalids = inOpt.depUpOpts.invalids :+ string)))
@@ -401,6 +402,7 @@ object Starter extends LazyLogging {
       out.println("Possible options:")
       out.println("--help, -h            => shows this and exits")
       out.println("--no-filter           => do not hide unwanted updates")
+      out.println("--show-libyears       => see https://libyear.com/")
       return 0
     }
 
