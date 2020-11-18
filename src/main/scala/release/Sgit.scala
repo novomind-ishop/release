@@ -24,6 +24,10 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
   private val dotGit = new File(gitRoot, ".git")
 
+  def version(): String = {
+    gitNative(Seq("--version"), useWorkdir = false).mkString("")
+  }
+
   private def init(): Unit = {
     gitNative(Seq("init", file.getAbsolutePath), useWorkdir = false)
   }
@@ -607,7 +611,7 @@ object Sgit {
     val git = gits.get(cmd)
     if (git.isEmpty) {
 
-      val result: Unit = sgit.gitNative(Seq("--version"), useWorkdir = false).mkString("") match {
+      val result: Unit = sgit.version() match {
         case v: String if v.startsWith("git version 1") => // (2014-12-17) - (tag: v1.9.5)
           throw new YourGitInstallationIsToOldException("1.9.5", "2016-01-01", "n/a")
         case v: String if v.startsWith("git version 2.0.") =>

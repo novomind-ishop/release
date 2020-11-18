@@ -152,10 +152,13 @@ object ProjectMod {
     private[release] val semverPatternNoMinor = "^([0-9]+)$".r
     private[release] val semverPatternLowdash = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)_([0-9]+)$".r
     private[release] val semverPatternLowdashString = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)_(.+)$".r
-    private[release] val semverPatternPreRelease = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)-([0-9a-zA-Z\\.]+)$".r
+    private[release] val semverPatternRCEnd = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)-((?:RC|M)[1-9][0-9]*)$".r
+    private[release] val semverPatternLetterEnd = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)-([0-9a-zA-Z\\.]+)$".r
     private[release] val stableShop = "^([0-9]+x)-stable.*$".r
     private[release] val shopPattern = "^(RC-)([0-9]{4})\\.([0-9]+)?(?:\\.([0-9]+[0-9]*))?(?:_([0-9]+[0-9]*))?$".r
     private[release] val number = "^([0-9]+)(.*)".r
+    private[release] val number2 = "^([0-9]+)\\.([0-9]+)(.*)".r
+    private[release] val number3 = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)(.*)".r
 
     implicit def ordering[A <: Version]: Ordering[A] =
       Ordering.by(e => (e.major, e.minor, e.patch, e.low, e.pre))
@@ -194,6 +197,8 @@ object ProjectMod {
           case semverPatternNoBugfix(major, minor) => Version.fromString("", major, minor, "", "", versionText)
           case semverPatternNoMinor(major) => Version.fromString("", major, "", "", "", versionText)
           case shopPattern(pre, year, week, minor, low) => Version.fromString(pre, year, week, minor, low, versionText)
+          case number3(major, minor, patch, low) => Version.fromString("", major, minor, patch, low, versionText)
+          case number2(major, minor, low) => Version.fromString("", major, minor, "", low, versionText)
           case number(major, low) => Version.fromString("", major, "", "", low, versionText)
 
           case any => undef.copy(orginal = any)
@@ -269,10 +274,12 @@ trait ProjectMod extends LazyLogging {
         .filterNot(_.contains("-atlassian-"))
         .filterNot(_.matches(".*jenkins-[0-9]+$"))
         .filterNot(_.contains("PFD"))
+        .filterNot(_.matches(".*\\.CR[0-9]+$")) // hibernate-validator
         // .filterNot(_.contains("-cdh")) // Cloudera Distribution Including Apache Hadoop
         .filterNot(_.contains("darft"))
         .filterNot(_.startsWith("2003"))
         .filterNot(_.startsWith("2004"))
+        .filterNot(_.endsWith("0.11.0-sshd-314-1")) // org.apache.sshd:sshd-sftp
         .filterNot(_.endsWith("-PUBLISHED-BY-MISTAKE"))
 
       val result = if (inVersions.contains(gav.version)) {

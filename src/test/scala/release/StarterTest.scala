@@ -108,9 +108,13 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
 
   def testRepo(originDir: File, workDir: File): File = {
     val gitOrigin = Sgit.init(originDir, verify = false)
+    gitOrigin.configSetLocal("user.email", "you@example.com")
+    gitOrigin.configSetLocal("user.name", "Your Name")
     gitOrigin.add(SgitTest.testFile(originDir, "test"))
     gitOrigin.commitAll("init")
     val git = Sgit.doClone(originDir, workDir, verify = false)
+    git.configSetLocal("user.email", "you@example.com")
+    git.configSetLocal("user.name", "Your Name")
     Assert.assertEquals(Seq("test"), git.lsFiles())
     workDir
   }

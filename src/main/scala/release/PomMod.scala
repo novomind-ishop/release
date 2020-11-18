@@ -651,7 +651,8 @@ object PomMod {
       val withoutSnapshot = Term.removeTrailingSnapshots(releaseVersion)
       withoutSnapshot match {
         case Version.stableShop(pre) => pre + "-stable-RELEASE-DEMO-DELETE-ME"
-        case Version.semverPatternPreRelease(ma, mi, b, pre) => ma + "." + mi + "." + (b.toInt + 1) + "-" + pre
+        case Version.semverPatternRCEnd(ma, mi, b, pre) => ma + "." + mi + "." + b
+        case Version.semverPatternLetterEnd(ma, mi, b, pre) => ma + "." + mi + "." + (b.toInt + 1) + "-" + pre
         case Version.semverPatternLowdash(ma, mi, b, low) => ma + "." + mi + "." + b + "_" + (low.toInt + 1)
         case Version.semverPatternLowdashString(ma, mi, b, low) => ma + "." + mi + "." + (b.toInt + 1) + "_" + low
         case Version.semverPattern(ma, mi, b) => ma + "." + mi + "." + (b.toInt + 1)

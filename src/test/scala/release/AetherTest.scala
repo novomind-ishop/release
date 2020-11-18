@@ -22,11 +22,12 @@ class AetherTest extends AssertionsForJUnit {
     //println("r: " + aether.existsGav(g, a, v))
     // println("r: " + aether.newerVersionsOf(g, a, v))
 
-    val g1 = "com.novomind.ishop"
-    val a1 = "ishop-commons-light"
-    val v1 = "39.0.0"
+    val g1 = "org.scalatest"
+    val a1 = "scalatest_2.13"
+    val v1 = "3.2.3"
     // ///39.0.0/: Checksum validation failed, no checksums available
     println(aether.depDate(g1, a1, v1))
+    // Some(2020-08-21T13:40:36Z)
     // Assert.assertFalse(aether.existsGav("com.novomind.ishop.exi", "ext-b2c", "0.0.1-BERT"))
   }
 

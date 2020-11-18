@@ -276,8 +276,8 @@ object Starter extends LazyLogging {
 
           println(s"diff of: ${groupId}:${artifactId}:(${left}..${right})")
 
-          val ar = aether.tryResolve(groupId, artifactId, left)
-          val br = aether.tryResolve(groupId, artifactId, right)
+          val ar = Aether.tryResolve(aether.workNexus)(groupId, artifactId, left)
+          val br = Aether.tryResolve(aether.workNexus)(groupId, artifactId, right)
           if (ar.isSuccess && br.isSuccess) {
             val a = new JApiCmpArchive(ar.get._1, ar.get._2)
             val b = new JApiCmpArchive(br.get._1, br.get._2)

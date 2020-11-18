@@ -369,6 +369,8 @@ class SgitTest extends AssertionsForJUnit {
 
     // WHEN
     val gitA = Sgit.init(testRepoA, SgitTest.hasCommitMsg)
+    gitA.configSetLocal("user.email", "you@example.com")
+    gitA.configSetLocal("user.name", "Your Name")
 
     TestHelper.assertException("Nonzero exit value: 1; git --no-pager push -q -u origin master:refs/for/master; " +
       "git-err: 'error: src refspec master does not match any' " +
@@ -416,10 +418,21 @@ class SgitTest extends AssertionsForJUnit {
           "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu")
       }
       case Term.Os.Linux => {
-        failFetchAll("Nonzero exit value: 1; git --no-pager fetch --all --tags; " +
-          "ssh: Could not resolve hostname git.example.org: Name or service not known fatal: " +
-          "Could not read from remote repository. " +
-          "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu")
+        gitA.version() match {
+          case gv:String if gv.startsWith("git version 2.29")  ||  gv.startsWith("git version 2.30") => {
+            failFetchAll("Nonzero exit value: 1; git --no-pager fetch --all --tags; " +
+              "ssh: Could not resolve hostname git.example.org: Temporary failure in name resolution fatal: " +
+              "Could not read from remote repository. " +
+              "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu")
+          }
+          case _ => {
+            failFetchAll("Nonzero exit value: 1; git --no-pager fetch --all --tags; " +
+              "ssh: Could not resolve hostname git.example.org: Name or service not known fatal: " +
+              "Could not read from remote repository. " +
+              "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu")
+          }
+        }
+
       }
       case Term.Os.Darwin => {
         failFetchAll("Nonzero exit value: 1; git --no-pager fetch --all --tags; " +
@@ -450,6 +463,8 @@ class SgitTest extends AssertionsForJUnit {
     gitA.worktreeRemove(testRepoI.getName)
     Assert.assertEquals(None, gitA.findUpstreamBranch())
     val gitB = Sgit.doClone(testRepoA, testRepoB, SgitTest.hasCommitMsg)
+    gitB.configSetLocal("user.email", "you@example.com")
+    gitB.configSetLocal("user.name", "Your Name")
     SgitTest.copyMsgHook(testRepoB)
     Assert.assertEquals(None, gitA.configGetLocalAll("receive.denyCurrentBranch"))
     gitA.configSetLocal("receive.denyCurrentBranch", "warn")

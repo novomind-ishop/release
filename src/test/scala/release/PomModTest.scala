@@ -902,6 +902,26 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def suggestNextRelease_dash_with_letters_RC(): Unit = {
+
+    // GIVEN/WHEN
+    val next = suggestNextReleaseBy("28.0.0-RC1")
+
+    // THEN
+    assert("28.0.0" === next)
+  }
+
+  @Test
+  def suggestNextRelease_dash_with_letters_milestone(): Unit = {
+
+    // GIVEN/WHEN
+    val next = suggestNextReleaseBy("28.0.0-M1")
+
+    // THEN
+    assert("28.0.0" === next)
+  }
+
+  @Test
   def suggestNextRelease_dash_with_letters(): Unit = {
 
     // GIVEN/WHEN

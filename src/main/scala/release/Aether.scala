@@ -31,7 +31,6 @@ import org.eclipse.aether.transport.file.FileTransporterFactory
 import org.eclipse.aether.transport.http.HttpTransporterFactory
 import org.eclipse.aether.version.Version
 import org.eclipse.aether.{DefaultRepositorySystemSession, RepositorySystem}
-import release.Aether.doResolve
 import release.Starter.Opts
 
 import scala.jdk.CollectionConverters._
@@ -89,19 +88,6 @@ class Aether(opts: Opts) extends LazyLogging {
     result
   }
 
-  def tryResolve(groupID: String, artifactId: String, version: String): Try[(File, String)] = {
-    try {
-      Success(resolve(groupID, artifactId, version))
-    } catch {
-      case e: Exception => Failure(e)
-    }
-  }
-
-  def resolve(groupID: String, artifactId: String, version: String): (File, String) = {
-    val request = Seq(groupID, artifactId, version).mkString(":")
-    doResolve(workNexus)(request)
-  }
-
 }
 
 object Aether extends LazyLogging {
@@ -122,7 +108,6 @@ object Aether extends LazyLogging {
     val rangeResult = system.resolveVersionRange(session, rangeRequest)
     rangeResult.getVersions.asScala.toList
   }
-
 
   def parseNexusDate(input: String): Option[ZonedDateTime] = {
     try {
@@ -177,16 +162,22 @@ object Aether extends LazyLogging {
     }
   }
 
-  private def depDate(repository: RemoteRepository)(groupId: String, artifactId: String, version: String): Option[ZonedDateTime] = {
+  private def depDate(repository: RemoteRepository)(groupId: String, artifactId: String, version: String, retry: Boolean = true): Option[ZonedDateTime] = {
     val system = ArtifactRepos.newRepositorySystem
-    val session = ArtifactRepos.newRepositorySystemSession(system)
+    val session = ArtifactRepos.newRepositorySystemSession(system, silent = false)
     val req = new MetadataRequest()
     req.setMetadata(new DefaultMetadata(groupId, artifactId, version, "", Nature.RELEASE_OR_SNAPSHOT))
     req.setRepository(repository)
+
     val owet = system.resolveMetadata(session, ImmutableList.of(req))
     owet.asScala.flatMap(e => {
       if (!e.isResolved) {
-        Nil
+        if (retry) {
+          tryResolveReq(repository)(groupId + ":" + artifactId + ":pom:" + version)
+          depDate(repository)(groupId, artifactId, version, retry = false)
+        } else {
+          Nil
+        }
       } else {
         val file = e.getMetadata.getFile
         Util.readLines(file)
@@ -202,9 +193,32 @@ object Aether extends LazyLogging {
     }).toSeq.minOption
   }
 
+  def tryResolve(repository: RemoteRepository)(groupID: String, artifactId: String, version: String): Try[(File, String)] = {
+    try {
+      Success(resolve(repository)(groupID, artifactId, version))
+    } catch {
+      case e: Exception => Failure(e)
+    }
+  }
+
+  def tryResolveReq(repository: RemoteRepository)(request: String): Try[(File, String)] = {
+    try {
+      Success(doResolve(repository)(request))
+    } catch {
+      case e: Exception => Failure(e)
+    }
+  }
+
+  def resolve(repository: RemoteRepository)(groupID: String, artifactId: String, version: String): (File, String) = {
+    val request = Seq(groupID, artifactId, version).mkString(":")
+    doResolve(repository)(request)
+  }
+
+
   def doResolve(repository: RemoteRepository)(request: String): (File, String) = {
+    // expected format is <groupId>:<artifactId>[:<extension>[:<classifier>]]:<version>
     val system = ArtifactRepos.newRepositorySystem
-    val session = ArtifactRepos.newRepositorySystemSession(system)
+    val session = ArtifactRepos.newRepositorySystemSession(system, silent = false)
     val artifact = new DefaultArtifact(request)
     val artifactRequest = new ArtifactRequest
     artifactRequest.setArtifact(artifact)
@@ -279,20 +293,31 @@ object Aether extends LazyLogging {
       }
     }
 
-    private def newRepositorySystemSession(system: RepositorySystem, silent: Boolean): DefaultRepositorySystemSession = {
+    def newRepositorySystemSession(system: RepositorySystem, silent: Boolean): DefaultRepositorySystemSession = {
       val session = MavenRepositorySystemUtils.newSession
       val localRepo = new LocalRepository("target/local-repo/" + Util.hashMd5Random())
       localRepo.getBasedir.getAbsoluteFile.getParentFile.mkdir()
       localRepo.getBasedir.getAbsoluteFile.mkdir()
       delete(localRepo.getBasedir.getAbsoluteFile.toPath)
       session.setLocalRepositoryManager(system.newLocalRepositoryManager(session, localRepo))
-      if (!silent) session.setTransferListener(new ConsoleTransferListener)
+      if (!silent) session.setTransferListener(new TraceTransferListener)
       //   session.setRepositoryListener(new ConsoleRepositoryListener());
       // uncomment to generate dirty trees
       // session.setDependencyGraphTransformer( null );
       session
     }
 
+  }
+
+  private class TraceTransferListener extends AbstractTransferListener with LazyLogging {
+    override def transferInitiated(event: TransferEvent): Unit = {
+      val message = if (event.getRequestType eq TransferEvent.RequestType.PUT) {
+        "Uploading"
+      } else {
+        "Downloading"
+      }
+      logger.trace(message + ": " + event.getResource.getRepositoryUrl + event.getResource.getResourceName)
+    }
   }
 
   private class ConsoleTransferListener(_out: PrintStream = null) extends AbstractTransferListener {
