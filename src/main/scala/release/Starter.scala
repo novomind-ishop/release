@@ -519,9 +519,9 @@ object Starter extends LazyLogging {
         mod.changeVersion(versionWithoutSnapshot + "-SNAPSHOT")
         mod.writeTo(workDirFile)
         if (git.localChanges() != Nil) {
-          out.println("You have local changes")
+          out.println("I: Version successfully changed. You have local changes")
         } else {
-          out.println("Nothing changed")
+          out.println("I: Nothing changed")
         }
       } else if (shopGASetMode) {
         Release.checkLocalChanges(git, startBranch)
@@ -529,7 +529,7 @@ object Starter extends LazyLogging {
         val groupIdArtifactIdLine = opts.shopGA.get
         mod.changeShopGroupArtifact(groupIdArtifactIdLine)
         mod.writeTo(workDirFile)
-        out.println("You have local changes")
+        out.println("I: GroupId and ArtifactId successfully changed. You have local changes")
       } else if (createFeatureBranch) {
         FeatureBranch.work(workDirFile, out, err, git, startBranch, askForRebase, releaseToolGit.headStatusValue(), config, opts)
       } else {
