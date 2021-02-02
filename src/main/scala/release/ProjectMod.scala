@@ -252,6 +252,7 @@ trait ProjectMod extends LazyLogging {
         .filterNot(_.contains("patch"))
         .filterNot(_.matches(".*[Mm][0-9]+$"))
         .filterNot(_.matches(".*-[Mm][0-9]+-.*"))
+        .filterNot(_.matches(".*-ea-[0-9]+$")) // used by org.immutables
         .filterNot(_.matches(".*-rc-[0-9]+$"))
         .filterNot(_.matches(".*-[0-9a-f]{7}$")) // used by org.typelevel:cats-effect
         .filterNot(_.matches(".*-dev$")) // used by commons-discovery:commons-discovery
