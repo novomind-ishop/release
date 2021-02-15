@@ -1,17 +1,5 @@
 package release
 
-import java.io.{File, IOException, PrintStream}
-import java.nio.file.attribute.BasicFileAttributes
-import java.nio.file.{FileVisitResult, FileVisitor, Files, Path}
-import java.text.{DecimalFormat, DecimalFormatSymbols}
-import java.time.format.{DateTimeFormatterBuilder, SignStyle, TextStyle}
-import java.time.temporal.ChronoField
-import java.time.temporal.ChronoField._
-import java.time.{ZoneOffset, ZonedDateTime}
-import java.util
-import java.util.Locale
-import java.util.concurrent.ConcurrentHashMap
-
 import com.google.common.collect.ImmutableList
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.http.client.methods.{CloseableHttpResponse, HttpGet}
@@ -33,6 +21,17 @@ import org.eclipse.aether.version.Version
 import org.eclipse.aether.{DefaultRepositorySystemSession, RepositorySystem}
 import release.Starter.Opts
 
+import java.io.{File, IOException, PrintStream}
+import java.nio.file.attribute.BasicFileAttributes
+import java.nio.file.{FileVisitResult, FileVisitor, Files, Path}
+import java.text.{DecimalFormat, DecimalFormatSymbols}
+import java.time.format.{DateTimeFormatterBuilder, SignStyle, TextStyle}
+import java.time.temporal.ChronoField
+import java.time.temporal.ChronoField._
+import java.time.{ZoneOffset, ZonedDateTime}
+import java.util
+import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
@@ -93,7 +92,7 @@ class Aether(opts: Opts) extends LazyLogging {
 object Aether extends LazyLogging {
   logger.debug("init aether to suppress replayed slf4j logging - See also http://www.slf4j.org/codes.html#replay")
 
-  val centralUrl = "http://central.maven.org/maven2/"
+  val centralUrl = "https://repo1.maven.org/maven2/"
 
   def newDefaultRepository(url: String) = new RemoteRepository.Builder("central", "default", url).build
 
@@ -107,6 +106,42 @@ object Aether extends LazyLogging {
     rangeRequest.setRepositories(Util.toJavaList(Seq(repository)))
     val rangeResult = system.resolveVersionRange(session, rangeRequest)
     rangeResult.getVersions.asScala.toList
+  }
+
+  def parseCentralDate(line: String): Option[ZonedDateTime] = {
+    if (line.matches(".*[0-9]{4}-[0-9]{2}-[0-9]{2}.*")) {
+      try {
+        val spl = line.replaceAll("[ ]+", " ").split(" ")
+        val input = spl(1) + " " + spl(2)+ " Z"
+        val fmtb = new DateTimeFormatterBuilder()
+          .parseCaseInsensitive
+          .parseLenient
+          .appendValue(YEAR, 4)
+          .appendLiteral('-')
+          .appendValue(ChronoField.MONTH_OF_YEAR)
+          .appendLiteral('-')
+          .appendValue(DAY_OF_MONTH, 1, 2, SignStyle.NOT_NEGATIVE)
+          .appendLiteral(' ')
+          .appendValue(HOUR_OF_DAY, 2)
+          .appendLiteral(':')
+          .appendValue(MINUTE_OF_HOUR, 2)
+
+          .optionalStart
+          .appendLiteral(":")
+          .appendText(SECOND_OF_MINUTE)
+          .optionalEnd
+
+          .appendLiteral(' ')
+          .appendZoneText(TextStyle.FULL)
+
+          .toFormatter
+        Some(ZonedDateTime.parse(input, fmtb).withZoneSameInstant(ZoneOffset.UTC))
+      } catch {
+        case e: Exception => None
+      }
+    } else {
+      None
+    }
   }
 
   def parseNexusDate(input: String): Option[ZonedDateTime] = {
@@ -187,6 +222,7 @@ object Aether extends LazyLogging {
           .filterNot(_.isEmpty)
           .flatMap(line => {
             parseNexusDate(line)
+              .orElse(parseCentralDate(line))
           })
           .distinct
       }

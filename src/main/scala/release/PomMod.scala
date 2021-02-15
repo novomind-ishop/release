@@ -93,7 +93,7 @@ case class PomMod(file: File, aether: Aether, opts: Opts) extends ProjectMod wit
   }
 
   val listDependecies: Seq[Dep] = {
-    replacedVersionProperties(allPomsDocs.flatMap(deps)).distinct
+    replacedVersionProperties(allPomsDocs.flatMap(deps)).distinct // TODO distinct?
   }
 
   val listPluginDependencies: Seq[PluginDep] = {
