@@ -35,6 +35,26 @@ release
 ```
 If you want to learn other options of ```release``` try ```release --help```.
 
+### Show libyears of dependency updates
+See https://libyear.com/ for details. It works for maven projects ```pom.xml``` and SBT ```build.sbt```.
+```
+release showDependencyUpdates --show-libyears
+[...]
+╠═╦═ com.typesafe:config:1.4.0 (libyears: 1.0 [376 days])
+║ ╚═══ 1.4.1
+╠═╦═ org.jline:jline-reader:3.16.0 (libyears: 0.6 [185 days])
+║ ╚═══ 3.17.0, .., 3.18.0, 3.19.0
+╠═╦═ org.jline:jline-terminal:3.16.0 (libyears: 0.6 [185 days])
+║ ╚═══ 3.17.0, .., 3.18.0, 3.19.0
+╠═╦═ org.scala-lang:scala-library:2.13.3 (libyears: 0.7 [242 days])
+║ ╚═══ 2.13.4, 2.13.5
+╠═╦═ org.scalatest:scalatest_2.13:3.2.2 (libyears: 0.5 [181 days])
+║ ╚═══ 3.2.3, 3.2.4, 3.2.5
+║
+[...]
+libyears: 6.3 (2304 days)
+```
+
 ### Config
 The default config is located in ```${HOME}/.ishop-release```. ```${HOME}``` should be equal with
 ```System.getProperty("user.home")```; to check this see ```release --help``` where the path to your home directory is shown.

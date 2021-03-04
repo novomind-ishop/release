@@ -1,13 +1,15 @@
 package release
 
+import com.google.common.base.Stopwatch
+
 import java.io.{File, PrintStream}
 import java.time.{Duration, LocalDate, Period}
-
 import com.typesafe.scalalogging.LazyLogging
 import release.PomMod.{abbreviate, unmanged}
 import release.ProjectMod.{Dep, Gav3, PluginDep, SelfRef}
 import release.Starter.{Opts, OptsDepUp, PreconditionsException}
 
+import java.util.concurrent.TimeUnit
 import scala.annotation.tailrec
 import scala.collection.parallel.CollectionConverters._
 
@@ -243,7 +245,8 @@ trait ProjectMod extends LazyLogging {
 
   def showDependencyUpdates(shellWidth: Int, termOs: Term, depUpOpts: OptsDepUp, workNexusUrl: String,
                             out: PrintStream, err: PrintStream): Unit = {
-
+    val now = LocalDate.now()
+    val stopw = Stopwatch.createStarted()
     out.println("I: checking dependecies against nexus - please wait")
     val rootDeps = listDependeciesForCheck()
 
@@ -317,8 +320,9 @@ trait ProjectMod extends LazyLogging {
           in
         }
       })
-    val updates: Map[Gav3, (Seq[String], Duration)] = prepared
+    val value :Seq[Gav3]= prepared
       .flatMap(ProjectMod.scalaDeps(prepared))
+    val updates: Map[Gav3, (Seq[String], Duration)] = value
       .par
       .map(dep => (dep, {
         aetherFetch.start()
@@ -354,6 +358,7 @@ trait ProjectMod extends LazyLogging {
       .toMap
 
     aetherFetch.finish()
+    out.println(s"I: checked ${value.size} dependecies in ${stopw.elapsed(TimeUnit.MILLISECONDS)}ms")
 
     case class GavWithRef(pomRef: SelfRef, gavWithDetailsFormatted: String)
 
@@ -389,6 +394,7 @@ trait ProjectMod extends LazyLogging {
         simple
       }
 
+
       out.println(ch("║ ", "| ") + "Project GAV: " + ref.id)
       mods.sortBy(_._1.toString).foreach((subElement: (GavWithRef, (Seq[String], Duration))) => {
 
@@ -396,7 +402,8 @@ trait ProjectMod extends LazyLogging {
 
         val majorVersions: Seq[(String, Seq[String])] = ProjectMod.groupSortReleases(o)
         val libyear = if (depUpOpts.showLibYears) {
-          s" (libyear ${subElement._2._2.toDays} days)"
+          val period: Period = Period.between(now, now.plusDays(subElement._2._2.toDays))
+          s" (libyears: ${period.getYears}.${period.getMonths} [${subElement._2._2.toDays} days])"
         } else {
           ""
         }
@@ -454,7 +461,6 @@ trait ProjectMod extends LazyLogging {
       out.println()
       val durations = updates.map(_._2._2)
       val sum = durations.foldLeft(Duration.ZERO)((a, b) => a.plus(b))
-      val now = LocalDate.now()
       val period: Period = Period.between(now, now.plusDays(sum.toDays))
       if (durations.exists(_.isNegative)) {
         out.println("WARN: negative durations for:")

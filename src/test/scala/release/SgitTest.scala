@@ -401,8 +401,16 @@ class SgitTest extends AssertionsForJUnit {
     gitA.removeRemote("ubglu")
     gitA.addRemote("ubglu", "ssh://git.example.org/ubglu")
 
-    def failFetchAll(msg: String): Unit = {
-      TestHelper.assertException(msg,
+    def failFetchAll(expectedMsg: String*): Unit = {
+      TestHelper.assertExceptionWithCheck(message => {
+        val selected = expectedMsg.find(_ == message)
+        if (selected.isDefined) {
+          Assert.assertEquals(selected.get, message)
+        } else {
+          Assert.assertEquals(expectedMsg.head, message)
+        }
+
+      },
         classOf[RuntimeException], () => {
           gitA.fetchAll()
         })
@@ -420,10 +428,15 @@ class SgitTest extends AssertionsForJUnit {
       case Term.Os.Linux => {
         gitA.version() match {
           case gv:String if gv.startsWith("git version 2.29")  ||  gv.startsWith("git version 2.30") => {
-            failFetchAll("Nonzero exit value: 1; git --no-pager fetch --all --tags; " +
+            val var1 = "Nonzero exit value: 1; git --no-pager fetch --all --tags; " +
+              "ssh: Could not resolve hostname git.example.org: Name or service not known fatal: " +
+              "Could not read from remote repository. " +
+              "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu"
+            val var2 = "Nonzero exit value: 1; git --no-pager fetch --all --tags; " +
               "ssh: Could not resolve hostname git.example.org: Temporary failure in name resolution fatal: " +
               "Could not read from remote repository. " +
-              "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu")
+              "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu"
+            failFetchAll(var1, var2)
           }
           case _ => {
             failFetchAll("Nonzero exit value: 1; git --no-pager fetch --all --tags; " +
