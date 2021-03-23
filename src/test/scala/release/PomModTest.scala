@@ -1,9 +1,5 @@
 package release
 
-import java.io.{BufferedWriter, File, FileWriter}
-import java.nio.file.Paths
-import java.time.{LocalDate, Month}
-
 import org.junit.rules.TemporaryFolder
 import org.junit.{Assert, ComparisonFailure, Rule, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
@@ -13,6 +9,9 @@ import release.PomModTest.{assertDeps, document, pomfile, _}
 import release.ProjectMod._
 import release.Starter.Opts
 
+import java.io.{BufferedWriter, File, FileWriter}
+import java.nio.file.Paths
+import java.time.{LocalDate, Month}
 import scala.xml.Elem
 
 class PomModTest extends AssertionsForJUnit {
@@ -645,6 +644,29 @@ class PomModTest extends AssertionsForJUnit {
     val newMod = PomMod.ofAetherForTests(srcPoms, aether)
     assertDeps(allMod, newMod.listDependecies)
   }
+
+
+  @Test
+  def replacePropertySloppy(): Unit = {
+    Assert.assertEquals("a${a}", PomMod.replaceProperty(Map("a" -> "b"), sloppy = true)("a${a}"))
+
+    TestHelper.assertException("unbalanced curly braces: a${",
+      classOf[IllegalArgumentException], () => {
+        PomMod.replaceProperty(Map("a" -> "b"), sloppy = true)("a${")
+      })
+
+    Assert.assertEquals("a${b}", PomMod.replaceProperty(Map("a" -> "b"), sloppy = true)("a${b}"))
+
+    TestHelper.assertException("empty curly braces: a${}",
+      classOf[IllegalArgumentException], () => {
+        PomMod.replaceProperty(Map("a" -> "b"), sloppy = true)("a${}")
+      })
+
+    Assert.assertEquals("${u}", PomMod.replaceProperty(Map("a" -> "b"), sloppy = true)("${u}"))
+
+    Assert.assertEquals("a${b}", PomMod.replaceProperty(Map.empty, sloppy = true)("a${b}"))
+  }
+
 
   @Test
   def replaceProperty(): Unit = {

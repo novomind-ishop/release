@@ -1,33 +1,35 @@
 package release
 
-import java.awt.Desktop
-import java.io.{BufferedReader, File, PrintStream}
-import java.net.URI
-import java.time.LocalDateTime
-import java.util
-import java.util.concurrent.TimeoutException
-import java.util.concurrent.atomic.AtomicBoolean
-
 import com.typesafe.scalalogging.LazyLogging
 import japicmp.cmp.{JApiCmpArchive, JarArchiveComparator, JarArchiveComparatorOptions}
 import japicmp.config.Options
 import japicmp.filter.ClassFilter
 import japicmp.model.JApiClass
 import japicmp.output.semver.SemverOut
-import japicmp.output.stdout.StdoutOutputGenerator
 import javassist.CtClass
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClients
-import org.eclipse.aether.resolution.ArtifactResolutionException
+import release.Aether.VersionString
 import release.Conf.Tracer
+import release.ProjectMod.Gav
 import release.Sgit.GitRemote
 import release.Util.pluralize
 import release.Xpath.InvalidPomXmlException
 
+import java.awt.Desktop
+import java.io.{BufferedReader, File, FileNotFoundException, FileOutputStream, PrintStream}
+import java.net.URI
+import java.nio.file.Files
+import java.time.LocalDateTime
+import java.util
+import java.util.concurrent.TimeoutException
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.jar.{JarEntry, JarFile}
 import scala.annotation.tailrec
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
+import scala.util.{Try, Using}
 
 object Starter extends LazyLogging {
 
@@ -175,9 +177,32 @@ object Starter extends LazyLogging {
     }
   }
 
+  case class OptsApidiff(showApiDiff: Boolean = false, showHelp: Boolean = false,
+                         pomOnly: Boolean = false,
+                         left: String = null, right: String = null,
+                         invalids: Seq[String] = Nil) {
+    val isEmpty = left.blank() || right.blank()
+  }
+
+  @tailrec
+  def argsApiDiffRead(params: Seq[String], inOpt: Opts): Opts = {
+    params.filter(in => in.trim.nonEmpty) match {
+      case Nil => inOpt
+
+      case "--pom-only" :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(pomOnly = true)))
+      case "--help" :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(showHelp = true)))
+      case "-h" :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(showHelp = true)))
+      case string1 :: string2 :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff =
+        inOpt.apiDiff.copy(left = string1, right = string2)))
+      // --
+      case string :: Nil => argsApiDiffRead(Nil, inOpt.copy(apiDiff = inOpt.apiDiff.copy(invalids = inOpt.apiDiff.invalids :+ string)))
+      case string :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(invalids = inOpt.apiDiff.invalids :+ string)))
+    }
+  }
+
   case class OptsDepUp(showDependencyUpdates: Boolean = false, showHelp: Boolean = false,
                        hideLatest: Boolean = true, versionRangeLimit: Integer = 3,
-                       hideStageVersions: Boolean = true, showLibYears:Boolean = false,
+                       hideStageVersions: Boolean = true, showLibYears: Boolean = false,
                        invalids: Seq[String] = Nil)
 
   @tailrec
@@ -198,7 +223,8 @@ object Starter extends LazyLogging {
   case class Opts(simpleChars: Boolean = false, invalids: Seq[String] = Nil, showHelp: Boolean = false,
                   showUpdateCmd: Boolean = false, versionSet: Option[String] = None, shopGA: Option[String] = None,
                   createFeature: Boolean = false, useGerrit: Boolean = true, doUpdate: Boolean = true,
-                  depUpOpts: OptsDepUp = OptsDepUp(), useJlineInput: Boolean = true, skipProperties: Seq[String] = Nil,
+                  depUpOpts: OptsDepUp = OptsDepUp(), apiDiff: OptsApidiff = OptsApidiff(),
+                  useJlineInput: Boolean = true, skipProperties: Seq[String] = Nil,
                   colors: Boolean = true, useDefaults: Boolean = false)
 
   @tailrec
@@ -222,8 +248,9 @@ object Starter extends LazyLogging {
       case "--demo-chars" :: _ => showDemoChars(inOpt)
       case "--skip-property" :: value :: tail => argsRead(tail, inOpt.copy(skipProperties = inOpt.skipProperties ++ Seq(value)))
       // CMDs
-      case "apidiff" :: leftVersion :: rightVersion :: _ =>
-        apidiff(inOpt, leftVersion, rightVersion)
+      case "apidiff" :: tail =>
+        argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(showApiDiff = true)))
+
       case "versionSet" :: value :: _ => argsRead(Nil, inOpt.copy(versionSet = Some(value)))
       case "shopGASet" :: value :: _ => argsRead(Nil, inOpt.copy(shopGA = Some(value)))
       case "nothing-but-create-feature-branch" :: _ => argsRead(Nil, inOpt.copy(createFeature = true))
@@ -244,7 +271,6 @@ object Starter extends LazyLogging {
     val workDirFile = new File(".").getAbsoluteFile // TODO get this from other location
 
 
-
     val pommod = PomMod.ofAether(workDirFile, inOpt, aether)
     val gavs = pommod.listSelf.map(mo => mo.gav())
 
@@ -262,52 +288,143 @@ object Starter extends LazyLogging {
     comparatorOptions.getFilters.getExcludes.addAll(eStF.asJava)
 
     val gas = gavs
-      .filterNot(_.packageing == "pom")
-      .map(gav => (gav.groupId, gav.artifactId))
+      .map(gav => (gav.groupId, gav.artifactId, gav.packageing))
       .sorted
       .distinct
-    gas.foreach(println)
-    println("")
-    val jApiClasses = gas
-      .flatMap(ga => {
-        try {
-          val groupId = ga._1
-          val artifactId = ga._2
+    val gasResolved: Seq[(Try[(File, VersionString, String)], Try[(File, VersionString, String)])] = gas
+      .map(ga => {
+        val groupId = ga._1
+        val artifactId = ga._2
+        println(s"download artifacts for diff of: ${groupId}:${artifactId}:(${left}..${right})")
 
-          println(s"diff of: ${groupId}:${artifactId}:(${left}..${right})")
+        val ar = Aether.tryResolve(aether.workNexus)(groupId, artifactId, left).map(t => (t._1, t._2, ga._3))
+        val br = Aether.tryResolve(aether.workNexus)(groupId, artifactId, right).map(t => (t._1, t._2, ga._3))
+        (ar, br)
+      })
+    if (inOpt.apiDiff.pomOnly) {
+      println("pom-only-mode")
 
-          val ar = Aether.tryResolve(aether.workNexus)(groupId, artifactId, left)
-          val br = Aether.tryResolve(aether.workNexus)(groupId, artifactId, right)
-          if (ar.isSuccess && br.isSuccess) {
-            val a = new JApiCmpArchive(ar.get._1, ar.get._2)
-            val b = new JApiCmpArchive(br.get._1, br.get._2)
-
-
-            val jarArchiveComparator = new JarArchiveComparator(comparatorOptions)
-            val out = jarArchiveComparator.compare(a, b)
-            println(new XoutOutputGenerator(options, out).generate())
-            out.asScala
+      def extractJarTo(jarFile: File, destFile: File): File = {
+        destFile.mkdir()
+        val jar = new JarFile(jarFile)
+        val enumEntries = jar.entries
+        var fSide = Seq.empty[File]
+        while (enumEntries.hasMoreElements) {
+          val file: JarEntry = enumEntries.nextElement
+          val f = new File(destFile, file.getName)
+          if (file.isDirectory) {
+            val mkd = f.mkdirs
+            if (!mkd) {
+              System.exit(1)
+            }
           } else {
-              if (ar.isFailure) {
-                println("W: " + ar.failed.get.getMessage)
+            try {
+              if (file.getName.endsWith("pom.xml")) {
+                Using.resource(jar.getInputStream(file))(is => {
+                  Using.resource(new FileOutputStream(f))(fos => {
+                    while (is.available > 0) {
+                      fos.write(is.read)
+                    }
+                  })
+                })
+                fSide = fSide :+ f
               }
-              if (br.isFailure) {
-                println("W: " + br.failed.get.getMessage)
-              }
+
+            } catch {
+              case e: FileNotFoundException => println(e.getMessage) // TODO handle
+              case e: Exception => e.printStackTrace() // TODO handle
+            }
+
+          }
+        }
+
+        fSide.headOption.map(_.getParentFile).get
+      }
+
+      val oo = gasResolved.flatMap(abr => {
+        try {
+          val ar = abr._1
+          val br = abr._2
+          if (ar.isSuccess && br.isSuccess) {
+
+
+            val aPoms = extractJarTo(ar.get._1, Files.createTempDirectory("release-").toFile)
+            val bPoms = extractJarTo(br.get._1, Files.createTempDirectory("release-").toFile)
+            val modA = PomMod.ofAether(aPoms, inOpt, aether, skipPropertyReplacement = true)
+            val aDeps = modA.listDependecies
+            val modB = PomMod.ofAether(bPoms, inOpt, aether, skipPropertyReplacement = true)
+            val bDeps = modB.listDependecies
+            Seq((aDeps, bDeps))
+          } else {
+            if (ar.isFailure) {
+              println("W: " + ar.failed.get.getMessage)
+            }
+            if (br.isFailure) {
+              println("W: " + br.failed.get.getMessage)
+            }
             Nil
           }
         } catch {
-
           case e: Exception => {
             e.printStackTrace()
             Nil
           }
         }
 
-      }).asJava
+      })
+
+      val t: (Seq[ProjectMod.Gav3], Seq[ProjectMod.Gav3]) = (
+        oo.flatMap(_._1).map(_.gav().simpleGav()).sortBy(_.toString).distinct,
+        oo.flatMap(_._2).map(_.gav().simpleGav()).sortBy(_.toString).distinct
+      )
+      println("left:")
+      t._1.foreach(println)
+      println("right:")
+      t._2.foreach(println)
+      Nil
+    } else {
+      val jApiClasses = gasResolved
+        .flatMap(abr => {
+          try {
+            val ar = abr._1
+            val br = abr._2
+            if (ar.isSuccess && br.isSuccess) {
+              if (ar.get._3 == "pom") {
+                Nil
+              } else {
+                // TODO extract all poms and diff
+                val a = new JApiCmpArchive(ar.get._1, ar.get._2)
+                val b = new JApiCmpArchive(br.get._1, br.get._2)
 
 
-    println("Semver change: " + new SemverOut(options, new util.ArrayList[JApiClass](jApiClasses)).generate())
+                val jarArchiveComparator = new JarArchiveComparator(comparatorOptions)
+                val out = jarArchiveComparator.compare(a, b)
+                println(new XoutOutputGenerator(options, out).generate())
+                out.asScala
+              }
+            } else {
+              if (ar.isFailure) {
+                println("W: " + ar.failed.get.getMessage)
+              }
+              if (br.isFailure) {
+                println("W: " + br.failed.get.getMessage)
+              }
+              Nil
+            }
+          } catch {
+
+            case e: Exception => {
+              e.printStackTrace()
+              Nil
+            }
+          }
+
+        })
+
+
+      println("Semver change: " + new SemverOut(options, new util.ArrayList[JApiClass](jApiClasses.asJava)).generate())
+    }
+
     System.exit(5)
     null
   }
@@ -394,7 +511,7 @@ object Starter extends LazyLogging {
     if (opts.depUpOpts.showHelp || opts.depUpOpts.invalids != Nil) {
       if (opts.depUpOpts.invalids != Nil) {
         out.println("Invalid showDependencyUpdates options:")
-        out.println(opts.invalids.mkString(", "))
+        out.println(opts.depUpOpts.invalids.mkString(", "))
         out.println()
       }
       out.println("Usage: release showDependencyUpdates [OPTION] [CMD] ...")
@@ -403,6 +520,19 @@ object Starter extends LazyLogging {
       out.println("--help, -h            => shows this and exits")
       out.println("--no-filter           => do not hide unwanted updates")
       out.println("--show-libyears       => see https://libyear.com/")
+      return 0
+    }
+
+    if (opts.apiDiff.showHelp || opts.apiDiff.invalids != Nil || opts.apiDiff.showApiDiff && opts.apiDiff.isEmpty) {
+      if (opts.apiDiff.invalids != Nil) {
+        out.println("Invalid apidiff options:")
+        out.println(opts.apiDiff.invalids.mkString(", "))
+        out.println()
+      }
+      out.println("Usage: release apidiff [OPTION] [VERSION_A] [VERSION_B]")
+      out.println()
+      out.println("Possible options:")
+      out.println("--help, -h            => shows this and exits")
       return 0
     }
 
@@ -462,6 +592,10 @@ object Starter extends LazyLogging {
 
     }
 
+    if (opts.apiDiff.showApiDiff) {
+      apidiff(opts, opts.apiDiff.left, opts.apiDiff.right)
+      return 0
+    }
     try {
       val gitAndBranchname = fetchGitAndAskForBranch(out, err, verifyGerrit, gitBinEnv, workDirFile, Console.in, opts)
 

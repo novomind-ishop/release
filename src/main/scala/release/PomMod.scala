@@ -1,16 +1,6 @@
 package release
 
-import java.io.{ByteArrayOutputStream, File, PrintStream}
-import java.nio.charset.StandardCharsets
-import java.nio.file.Files
-import java.time.LocalDate
-import java.time.temporal.WeekFields
-import java.util.Locale
-
 import com.typesafe.scalalogging.LazyLogging
-import javax.xml.transform.dom.DOMSource
-import javax.xml.transform.stream.StreamResult
-import javax.xml.transform.{OutputKeys, TransformerFactory}
 import org.w3c.dom.{Document, Node}
 import release.Conf.Tracer
 import release.PomChecker.ValidationException
@@ -19,10 +9,20 @@ import release.ProjectMod._
 import release.Starter.{Opts, PreconditionsException}
 import release.Util.pluralize
 
+import java.io.{ByteArrayOutputStream, File, PrintStream}
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.time.LocalDate
+import java.time.temporal.WeekFields
+import java.util.Locale
+import javax.xml.transform.dom.DOMSource
+import javax.xml.transform.stream.StreamResult
+import javax.xml.transform.{OutputKeys, TransformerFactory}
 import scala.annotation.tailrec
 import scala.collection.parallel.CollectionConverters._
 
-case class PomMod(file: File, aether: Aether, opts: Opts) extends ProjectMod with LazyLogging {
+case class PomMod(file: File, aether: Aether, opts: Opts,
+                  skipPropertyReplacement: Boolean = false) extends ProjectMod with LazyLogging {
   logger.trace("init pomMod")
   private var depMap: Map[Dep, Node] = Map.empty
 
@@ -413,12 +413,12 @@ object PomMod {
     ofAether(file, opts, aether)
   }
 
-  def ofAetherForTests(file: File, aether: Aether): PomMod = {
-    PomMod(file, aether, Opts())
+  def ofAetherForTests(file: File, aether: Aether, skipPropertyReplacement: Boolean = false): PomMod = {
+    PomMod(file, aether, Opts(), skipPropertyReplacement)
   }
 
-  def ofAether(file: File, opts: Opts, aether: Aether): PomMod = {
-    PomMod(file, aether, opts)
+  def ofAether(file: File, opts: Opts, aether: Aether, skipPropertyReplacement: Boolean = false): PomMod = {
+    PomMod(file, aether, opts, skipPropertyReplacement)
   }
 
   private val xPathToProjectGroupId = "//project/groupId"
@@ -547,8 +547,8 @@ object PomMod {
       "version" -> parentVersion.getOrElse("")).toSeq.map(t => (t._1, t._2, null)))
   }
 
-  private[release] def replaceProperty(props: Map[String, String])(input: String) = {
-    if (props.isEmpty) {
+  private[release] def replaceProperty(props: Map[String, String], sloppy: Boolean = false)(input: String):String = {
+    if (!sloppy && props.isEmpty) {
       throw new IllegalStateException("property map is empty")
     }
 
@@ -563,8 +563,20 @@ object PomMod {
     val allReplacemdents = props.toList.map(p => tryReplace(input, p))
       .distinct
       .filterNot(_.contains("$"))
-    Util.only(allReplacemdents, "No property replacement found in pom.xmls for: \"" + input + "\" " +
-      "- define properties where they are required and not in parent pom.xml")
+    if (sloppy) {
+      val braces = input.count(_ == '{') + input.count(_ == '}')
+      if (Math.floorMod(braces, 2) != 0) {
+        throw new IllegalArgumentException("unbalanced curly braces: " + input)
+      } else if(input.contains("${}")) {
+        throw new IllegalArgumentException("empty curly braces: " + input)
+      } else {
+        input
+      }
+
+    } else {
+      Util.only(allReplacemdents, "No property replacement found in pom.xmls for: \"" + input + "\" " +
+        "- define properties where they are required and not in parent pom.xml")
+    }
   }
 
   private[release] def findPluginsByName(plugins: Seq[PluginDep], name: String) = {
@@ -575,7 +587,7 @@ object PomMod {
 
   private[release] def dependecyPlugins(plugins: Seq[PluginDep]) = findPluginsByName(plugins, "maven-dependency-plugin")
 
-  def weekOfYear(localDate: LocalDate):Int = {
+  def weekOfYear(localDate: LocalDate): Int = {
     val weekFields = WeekFields.of(Locale.getDefault())
     localDate.get(weekFields.weekOfWeekBasedYear())
   }

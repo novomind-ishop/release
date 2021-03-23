@@ -242,6 +242,7 @@ trait ProjectMod extends LazyLogging {
   val listPluginDependencies: Seq[PluginDep]
 
   val listProperties: Map[String, String]
+  val skipPropertyReplacement: Boolean
 
   def showDependencyUpdates(shellWidth: Int, termOs: Term, depUpOpts: OptsDepUp, workNexusUrl: String,
                             out: PrintStream, err: PrintStream): Unit = {
@@ -408,14 +409,14 @@ trait ProjectMod extends LazyLogging {
           ""
         }
         if (majorVersions != Nil) {
-          out.println(ch("╠═╦═ ", "+-+- ") + subElement._1.gavWithDetailsFormatted + libyear)
+          out.println(ch("╠═╦═ ", "+-+- ") + subElement._1.gavWithDetailsFormatted)
         } else {
-          out.println(ch("╠═══ ", "+--- ") + subElement._1.gavWithDetailsFormatted + libyear)
+          out.println(ch("╠═══ ", "+--- ") + subElement._1.gavWithDetailsFormatted)
         }
 
         if (majorVersions.size == 1) {
           out.println(ch("║ ╚═══ ", "| +--- ") +
-            abbreviate(depUpOpts.versionRangeLimit)(majorVersions.head._2).mkString(", "))
+            abbreviate(depUpOpts.versionRangeLimit)(majorVersions.head._2).mkString(", ") + libyear)
         } else {
           if (majorVersions != Nil) {
             majorVersions.tail.reverse.foreach(el => {
@@ -423,7 +424,7 @@ trait ProjectMod extends LazyLogging {
                 abbreviate(depUpOpts.versionRangeLimit)(el._2).mkString(", "))
             })
             out.println(ch("║ ╚═══ ", "| +--- ") + "(" + majorVersions.head._1 + ") " +
-              abbreviate(depUpOpts.versionRangeLimit)(majorVersions.head._2).mkString(", "))
+              abbreviate(depUpOpts.versionRangeLimit)(majorVersions.head._2).mkString(", ") + libyear)
           }
         }
 
@@ -471,7 +472,9 @@ trait ProjectMod extends LazyLogging {
 
   }
 
-  private[release] def replacedPropertyOf(string: String) = PomMod.replaceProperty(listProperties)(string)
+  private[release] def replacedPropertyOf(string: String) = {
+    PomMod.replaceProperty(listProperties, skipPropertyReplacement)(string)
+  }
 
   private[release] def replacedVersionProperties(deps: Seq[Dep]) = deps.map(dep => dep.copy(
     version = replacedPropertyOf(dep.version),
@@ -479,7 +482,7 @@ trait ProjectMod extends LazyLogging {
     typeN = replacedPropertyOf(dep.typeN),
     scope = replacedPropertyOf(dep.scope))
   ).map(in => {
-    if (in.toString.contains("$")) {
+    if (in.toString.contains("$") && !skipPropertyReplacement) {
       throw new IllegalStateException("missing var in " + in)
     }
     in

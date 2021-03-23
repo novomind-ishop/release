@@ -55,6 +55,8 @@ class UtilTest extends AssertionsForJUnit {
   @Test
   def testBlank(): Unit = {
     import Util.pluralize
+    val in:String = null
+    Assert.assertTrue(in.blank())
     Assert.assertFalse("value".blank())
     Assert.assertTrue(" ".blank())
     Assert.assertTrue(" \t".blank())

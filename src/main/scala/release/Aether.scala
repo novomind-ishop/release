@@ -112,7 +112,7 @@ object Aether extends LazyLogging {
     if (line.matches(".*[0-9]{4}-[0-9]{2}-[0-9]{2}.*")) {
       try {
         val spl = line.replaceAll("[ ]+", " ").split(" ")
-        val input = spl(1) + " " + spl(2)+ " Z"
+        val input = spl(1) + " " + spl(2) + " Z"
         val fmtb = new DateTimeFormatterBuilder()
           .parseCaseInsensitive
           .parseLenient
@@ -229,7 +229,9 @@ object Aether extends LazyLogging {
     }).toSeq.minOption
   }
 
-  def tryResolve(repository: RemoteRepository)(groupID: String, artifactId: String, version: String): Try[(File, String)] = {
+  type VersionString = String
+
+  def tryResolve(repository: RemoteRepository)(groupID: String, artifactId: String, version: String): Try[(File, VersionString)] = {
     try {
       Success(resolve(repository)(groupID, artifactId, version))
     } catch {
@@ -237,7 +239,7 @@ object Aether extends LazyLogging {
     }
   }
 
-  def tryResolveReq(repository: RemoteRepository)(request: String): Try[(File, String)] = {
+  def tryResolveReq(repository: RemoteRepository)(request: String): Try[(File, VersionString)] = {
     try {
       Success(doResolve(repository)(request))
     } catch {
@@ -245,13 +247,13 @@ object Aether extends LazyLogging {
     }
   }
 
-  def resolve(repository: RemoteRepository)(groupID: String, artifactId: String, version: String): (File, String) = {
+  def resolve(repository: RemoteRepository)(groupID: String, artifactId: String, version: String): (File, VersionString) = {
     val request = Seq(groupID, artifactId, version).mkString(":")
     doResolve(repository)(request)
   }
 
 
-  def doResolve(repository: RemoteRepository)(request: String): (File, String) = {
+  def doResolve(repository: RemoteRepository)(request: String): (File, VersionString) = {
     // expected format is <groupId>:<artifactId>[:<extension>[:<classifier>]]:<version>
     val system = ArtifactRepos.newRepositorySystem
     val session = ArtifactRepos.newRepositorySystemSession(system, silent = false)

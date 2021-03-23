@@ -24,6 +24,8 @@ case class SbtMod(file: File, aether: Aether, opts: Opts) extends ProjectMod {
 
   val listProperties: Map[String, String] = Map("value-for-check" -> "TODO") // TODO
 
+  val skipPropertyReplacement: Boolean = false
+
   def isShop: Boolean = false
 
   def selfDepsMod: Seq[ProjectMod.Dep] = Nil // TODO

@@ -40,16 +40,16 @@ See https://libyear.com/ for details. It works for maven projects ```pom.xml``` 
 ```
 release showDependencyUpdates --show-libyears
 [...]
-╠═╦═ com.typesafe:config:1.4.0 (libyears: 1.0 [376 days])
-║ ╚═══ 1.4.1
-╠═╦═ org.jline:jline-reader:3.16.0 (libyears: 0.6 [185 days])
-║ ╚═══ 3.17.0, .., 3.18.0, 3.19.0
-╠═╦═ org.jline:jline-terminal:3.16.0 (libyears: 0.6 [185 days])
-║ ╚═══ 3.17.0, .., 3.18.0, 3.19.0
-╠═╦═ org.scala-lang:scala-library:2.13.3 (libyears: 0.7 [242 days])
-║ ╚═══ 2.13.4, 2.13.5
-╠═╦═ org.scalatest:scalatest_2.13:3.2.2 (libyears: 0.5 [181 days])
-║ ╚═══ 3.2.3, 3.2.4, 3.2.5
+╠═╦═ com.typesafe:config:1.4.0
+║ ╚═══ 1.4.1 (libyears: 1.0 [376 days])
+╠═╦═ org.jline:jline-reader:3.16.0
+║ ╚═══ 3.17.0, .., 3.18.0, 3.19.0 (libyears: 0.6 [185 days])
+╠═╦═ org.jline:jline-terminal:3.16.0
+║ ╚═══ 3.17.0, .., 3.18.0, 3.19.0 (libyears: 0.6 [185 days])
+╠═╦═ org.scala-lang:scala-library:2.13.3
+║ ╚═══ 2.13.4, 2.13.5 (libyears: 0.7 [242 days])
+╠═╦═ org.scalatest:scalatest_2.13:3.2.2
+║ ╚═══ 3.2.3, 3.2.4, 3.2.5 (libyears: 0.5 [181 days])
 ║
 [...]
 libyears: 6.3 (2304 days)
