@@ -648,7 +648,17 @@ class PomModTest extends AssertionsForJUnit {
 
   @Test
   def replacePropertySloppy(): Unit = {
-    Assert.assertEquals("a${a}", PomMod.replaceProperty(Map("a" -> "b"), sloppy = true)("a${a}"))
+    Assert.assertEquals("ab",
+      PomMod.replaceProperty(Map("a" -> "b", "x" -> "x"), sloppy = true)("a${a}"))
+
+    Assert.assertEquals("ab${b}",
+      PomMod.replaceProperty(Map("a" -> "b", "x" -> "x"), sloppy = true)("a${a}${b}"))
+
+    Assert.assertEquals("ab${b}b",
+      PomMod.replaceProperty(Map("a" -> "b", "x" -> "x"), sloppy = true)("a${a}${b}${a}"))
+
+    Assert.assertEquals("ab${b}b${b}",
+      PomMod.replaceProperty(Map("a" -> "b", "x" -> "x"), sloppy = true)("a${a}${b}${a}${b}"))
 
     TestHelper.assertException("unbalanced curly braces: a${",
       classOf[IllegalArgumentException], () => {

@@ -1,5 +1,6 @@
 package release
 
+import com.google.common.base.Strings
 import com.typesafe.scalalogging.LazyLogging
 import org.w3c.dom.{Document, Node}
 import release.Conf.Tracer
@@ -547,36 +548,47 @@ object PomMod {
       "version" -> parentVersion.getOrElse("")).toSeq.map(t => (t._1, t._2, null)))
   }
 
-  private[release] def replaceProperty(props: Map[String, String], sloppy: Boolean = false)(input: String):String = {
+  def replaceProperty(props: Map[String, String], sloppy: Boolean = false)(input: String): String = {
     if (!sloppy && props.isEmpty) {
       throw new IllegalStateException("property map is empty")
     }
 
     def tryReplace(in: String, p: (String, String)): String = {
       try {
-        in.replace("${" + p._1 + "}", p._2)
+        Strings.nullToEmpty(in).replace("${" + p._1 + "}", p._2)
       } catch {
         case e: IllegalArgumentException => throw new IllegalStateException(e.getMessage + " in " + in)
       }
     }
 
-    val allReplacemdents = props.toList.map(p => tryReplace(input, p))
-      .distinct
-      .filterNot(_.contains("$"))
-    if (sloppy) {
-      val braces = input.count(_ == '{') + input.count(_ == '}')
-      if (Math.floorMod(braces, 2) != 0) {
-        throw new IllegalArgumentException("unbalanced curly braces: " + input)
-      } else if(input.contains("${}")) {
-        throw new IllegalArgumentException("empty curly braces: " + input)
-      } else {
-        input
-      }
-
+    if (input == null) {
+      null
     } else {
-      Util.only(allReplacemdents, "No property replacement found in pom.xmls for: \"" + input + "\" " +
-        "- define properties where they are required and not in parent pom.xml")
+      val distinct = props.toList.map(p => tryReplace(input, p)).distinct
+      val allReplacemdents = distinct
+        .filterNot(_.contains("$"))
+      if (sloppy) {
+        val bracesCount = input.count(_ == '{') + input.count(_ == '}')
+        if (Math.floorMod(bracesCount, 2) != 0) {
+          throw new IllegalArgumentException("unbalanced curly braces: " + input)
+        } else if (input.contains("${}")) {
+          throw new IllegalArgumentException("empty curly braces: " + input)
+        } else {
+          if (distinct.isEmpty) {
+            input
+          }  else if (allReplacemdents.size == 1) {
+            Util.only(allReplacemdents, "should never happen")
+          } else {
+            Util.only(distinct.sortBy(_.count(_ == '$')).headOption.toList, "should not happen")
+          }
+        }
+
+      } else {
+        Util.only(allReplacemdents, "No property replacement found in pom.xmls for: \"" + input + "\" " +
+          "- define properties where they are required and not in parent pom.xml")
+      }
     }
+
   }
 
   private[release] def findPluginsByName(plugins: Seq[PluginDep], name: String) = {

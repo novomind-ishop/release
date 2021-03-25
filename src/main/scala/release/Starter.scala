@@ -11,7 +11,6 @@ import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClients
 import release.Aether.VersionString
 import release.Conf.Tracer
-import release.ProjectMod.Gav
 import release.Sgit.GitRemote
 import release.Util.pluralize
 import release.Xpath.InvalidPomXmlException
@@ -263,6 +262,33 @@ object Starter extends LazyLogging {
 
   }
 
+  def connectLeftRight(in: (Seq[ProjectMod.Gav3], Seq[ProjectMod.Gav3])): Seq[(Seq[ProjectMod.Gav3], Seq[ProjectMod.Gav3])] = {
+    val changed = Util.symmetricDiff(in._1, in._2)
+      .sortBy(_.toString)
+    val changedLeft = in._1.filter(s => changed.contains(s))
+    val changedRight = in._2.filter(s => changed.contains(s))
+
+    val groupedLeft = changedLeft.groupBy(x => (x.groupId, x.artifactId))
+    val groupedRight = changedRight.groupBy(x => (x.groupId, x.artifactId))
+    val gav2s = changed.map(x => (x.groupId, x.artifactId)).distinct
+    val oo = gav2s.map(g2 => (groupedLeft.getOrElse(g2, Nil), groupedRight.getOrElse(g2, Nil)))
+
+    oo
+  }
+
+  def compressToGav(self: Seq[ProjectMod.Gav3], properties:Map[String, String])(in: Seq[ProjectMod.Dep]): Seq[ProjectMod.Gav3] = {
+    val rep = PomMod.replaceProperty(properties, true) _
+    val all = in.map(_.gav())
+      .filterNot(_.scope == "test")
+      .map(_.simpleGav())
+      .sortBy(_.toString).distinct.map(g => {
+      g.copy(groupId = rep(g.groupId),artifactId = rep(g.artifactId), version = rep(g.version) )
+    })
+    val blankVersions = all.filter(_.version.blank())
+    val noBlankVersions = all.filterNot(_.version.blank()).map(_.copy(version = ""))
+    val remove = blankVersions.filter(bg => noBlankVersions.contains(bg.copy(version = "")))
+    all.filterNot(g => remove.contains(g)).filterNot(x => self.contains(x))
+  }
 
   def apidiff(inOpt: Opts, left: String, right: String): Opts = {
     println("")
@@ -297,64 +323,83 @@ object Starter extends LazyLogging {
         val artifactId = ga._2
         println(s"download artifacts for diff of: ${groupId}:${artifactId}:(${left}..${right})")
 
-        val ar = Aether.tryResolve(aether.workNexus)(groupId, artifactId, left).map(t => (t._1, t._2, ga._3))
-        val br = Aether.tryResolve(aether.workNexus)(groupId, artifactId, right).map(t => (t._1, t._2, ga._3))
+        val ty = s":${ga._3}:"
+        val ar = Aether.tryResolveReq(aether.workNexus)(groupId + ":" + artifactId + ty + left).map(t => (t._1, t._2, ga._3))
+        val br = Aether.tryResolveReq(aether.workNexus)(groupId + ":" + artifactId + ty + right).map(t => (t._1, t._2, ga._3))
         (ar, br)
       })
     if (inOpt.apiDiff.pomOnly) {
       println("pom-only-mode")
 
-      def extractJarTo(jarFile: File, destFile: File): File = {
+      def extractPomFile(inFile: File, destFile: File): File = {
         destFile.mkdir()
-        val jar = new JarFile(jarFile)
-        val enumEntries = jar.entries
-        var fSide = Seq.empty[File]
-        while (enumEntries.hasMoreElements) {
-          val file: JarEntry = enumEntries.nextElement
-          val f = new File(destFile, file.getName)
-          if (file.isDirectory) {
-            val mkd = f.mkdirs
-            if (!mkd) {
-              System.exit(1)
-            }
-          } else {
-            try {
-              if (file.getName.endsWith("pom.xml")) {
-                Using.resource(jar.getInputStream(file))(is => {
-                  Using.resource(new FileOutputStream(f))(fos => {
-                    while (is.available > 0) {
-                      fos.write(is.read)
-                    }
+        if (inFile.getName.endsWith(".jar")) {
+          val jar = new JarFile(inFile)
+          val enumEntries = jar.entries
+          var fSide = Seq.empty[File]
+          while (enumEntries.hasMoreElements) {
+            val file: JarEntry = enumEntries.nextElement
+            val f = new File(destFile, file.getName)
+            if (file.isDirectory) {
+              val mkd = f.mkdirs
+              if (!mkd) {
+                System.exit(1)
+              }
+            } else {
+              try {
+                if (file.getName.endsWith("pom.xml")) {
+                  Using.resource(jar.getInputStream(file))(is => {
+                    Using.resource(new FileOutputStream(f))(fos => {
+                      while (is.available > 0) {
+                        fos.write(is.read)
+                      }
+                    })
                   })
-                })
-                fSide = fSide :+ f
+                  fSide = fSide :+ f
+                }
+
+              } catch {
+                case e: FileNotFoundException => println(e.getMessage) // TODO handle
+                case e: Exception => e.printStackTrace() // TODO handle
               }
 
-            } catch {
-              case e: FileNotFoundException => println(e.getMessage) // TODO handle
-              case e: Exception => e.printStackTrace() // TODO handle
             }
-
           }
+
+          fSide.headOption.map(_.getParentFile).get
+        } else if (inFile.getName.endsWith(".pom")) {
+          if (inFile.exists()) {
+            Files.move(inFile.toPath, new File(inFile.getParentFile, "pom.xml").toPath)
+            inFile.getParentFile
+          } else {
+            throw new IllegalStateException("file not found " + inFile.getAbsolutePath)
+          }
+
+        } else {
+          throw new IllegalStateException("unknown file " + inFile.getAbsolutePath)
         }
 
-        fSide.headOption.map(_.getParentFile).get
       }
 
-      val oo = gasResolved.flatMap(abr => {
+      val oo: Seq[(
+        (Seq[ProjectMod.Dep], Seq[ProjectMod.Gav3], Map[String, String]),
+          (Seq[ProjectMod.Dep], Seq[ProjectMod.Gav3],  Map[String, String]))] = gasResolved.flatMap(abr => {
         try {
           val ar = abr._1
           val br = abr._2
           if (ar.isSuccess && br.isSuccess) {
 
 
-            val aPoms = extractJarTo(ar.get._1, Files.createTempDirectory("release-").toFile)
-            val bPoms = extractJarTo(br.get._1, Files.createTempDirectory("release-").toFile)
+            val aPoms = extractPomFile(ar.get._1, Files.createTempDirectory("release-").toFile)
+            val bPoms = extractPomFile(br.get._1, Files.createTempDirectory("release-").toFile)
             val modA = PomMod.ofAether(aPoms, inOpt, aether, skipPropertyReplacement = true)
             val aDeps = modA.listDependecies
+            val selfA = modA.selfDepsMod.map(_.gav().simpleGav())
             val modB = PomMod.ofAether(bPoms, inOpt, aether, skipPropertyReplacement = true)
             val bDeps = modB.listDependecies
-            Seq((aDeps, bDeps))
+
+            val selfB = modB.selfDepsMod.map(_.gav().simpleGav())
+            Seq(((aDeps, selfA, modA.listProperties), (bDeps, selfB, modB.listProperties)))
           } else {
             if (ar.isFailure) {
               println("W: " + ar.failed.get.getMessage)
@@ -373,14 +418,22 @@ object Starter extends LazyLogging {
 
       })
 
-      val t: (Seq[ProjectMod.Gav3], Seq[ProjectMod.Gav3]) = (
-        oo.flatMap(_._1).map(_.gav().simpleGav()).sortBy(_.toString).distinct,
-        oo.flatMap(_._2).map(_.gav().simpleGav()).sortBy(_.toString).distinct
-      )
-      println("left:")
-      t._1.foreach(println)
-      println("right:")
-      t._2.foreach(println)
+      val allSelf = (oo.flatMap(_._1._2) ++ oo.flatMap(_._2._2)).distinct
+      val allProps:Map[String, String] = (oo.flatMap(_._1._3) ++ oo.flatMap(_._2._3)).distinct.toMap
+
+      val t: (Seq[ProjectMod.Gav3], Seq[ProjectMod.Gav3]) = (compressToGav(allSelf, allProps)(oo.flatMap(_._1._1)),
+        compressToGav(allSelf, allProps)(oo.flatMap(_._2._1)))
+
+      println("diff:")
+      val xDiff = connectLeftRight(t)
+      def emptyTo(in:Seq[String], fill:String) = in match {
+        case Nil => Seq(fill)
+        case o => o
+      }
+      xDiff
+        .map(line => emptyTo(line._1.map(_.formatted), "NEW").mkString(", ") + " => " +
+          emptyTo(line._2.map(_.formatted), "REMOVED").mkString(", "))
+        .foreach(println)
       Nil
     } else {
       val jApiClasses = gasResolved

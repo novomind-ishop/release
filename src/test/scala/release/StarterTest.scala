@@ -1,9 +1,5 @@
 package release
 
-import java.io._
-import java.nio.charset.StandardCharsets
-import java.util.concurrent.{TimeUnit, TimeoutException}
-
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.joran.JoranConfigurator
 import ch.qos.logback.core.BasicStatusManager
@@ -14,9 +10,13 @@ import org.junit.rules.Timeout
 import org.junit.{Assert, Ignore, Rule, Test}
 import org.mockito.MockitoSugar
 import org.scalatestplus.junit.AssertionsForJUnit
+import release.ProjectMod.Gav3
 import release.Sgit.GitRemote
 import release.Starter.{FutureEither, FutureError, Opts, OptsDepUp}
 
+import java.io._
+import java.nio.charset.StandardCharsets
+import java.util.concurrent.{TimeUnit, TimeoutException}
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 
@@ -253,6 +253,56 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
 
     verify(sgit).checkout("test")
   }
+
+  @Test
+  def testCompressToGav(): Unit = {
+
+    val dep0 = ProjectMod.Dep(ProjectMod.SelfRef.undef, "groupId", "artifactId", "", "", "", "jar", "")
+    val dep1 = ProjectMod.Dep(ProjectMod.SelfRef.undef, "groupId", "artifactId", "version${a}${b}", "", "", "jar", "")
+    val dep2 = ProjectMod.Dep(ProjectMod.SelfRef.undef, "groupId2", "artifactId", "version${a}${b}", "", "", "jar", "")
+    val dep3 = ProjectMod.Dep(ProjectMod.SelfRef.undef, "groupId2", "artifactId", "", "", "", "", "")
+    val dep4 = ProjectMod.Dep(ProjectMod.SelfRef.undef, "groupId2", "artifactId", null, "", "", "", "")
+    val dep5 = ProjectMod.Dep(ProjectMod.SelfRef.undef, "groupId5", "artifactId", null, "", "", "", "")
+    val dep6 = ProjectMod.Dep(ProjectMod.SelfRef.undef, "groupId", "artifactId-Self", "version", "", "", "jar", "")
+    val dep7 = ProjectMod.Dep(ProjectMod.SelfRef.undef, "groupId", "artifactId-test", "version", "", "test", "jar", "")
+
+    val gavSelf = dep6.gav().simpleGav()
+    val prop = Map("a" -> "-1.2.3")
+    val out = Starter.compressToGav(Seq(gavSelf), prop)(Seq(dep0, dep1, dep2, dep3, dep4, dep5, dep6, dep7))
+
+    val gav0 = Gav3("groupId", "artifactId", "version-1.2.3${b}")
+    val gav1 = Gav3("groupId2", "artifactId", "version-1.2.3${b}")
+    val gav3 = Gav3("groupId5", "artifactId", null)
+    Assert.assertEquals(Seq(gav0, gav1, gav3), out)
+  }
+
+  @Test
+  def testConnectLeftRight(): Unit = {
+    val gav0 = Gav3("groupId", "artifactIdNoChange", "a")
+    val gavUp0 = Gav3("groupId", "artifactIdUp", "1")
+    val gavUp1 = Gav3("groupId", "artifactIdUp", "2")
+    val gavNew = Gav3("groupId", "artifactIdNew", "1")
+    val gavRemove = Gav3("groupId", "artifactIdRemove", "1")
+
+    val gavUpMore0 = Gav3("groupId", "artifactIdUpMore", "1")
+    val gavUpMore1 = Gav3("groupId", "artifactIdUpMore", "2")
+    val gavUpMore2 = Gav3("groupId", "artifactIdUpMore", "3")
+    val gavUpMore3 = Gav3("groupId", "artifactIdUpMore", "4")
+
+    val out = Starter.connectLeftRight((
+      Seq(gav0, gavUp0, gavRemove,gavUpMore0, gavUpMore1),
+      Seq(gav0, gavUp1, gavNew,gavUpMore2, gavUpMore3)))
+
+
+    Assert.assertEquals(Seq(
+      (Nil, Seq(gavNew)),
+      (Seq(gavRemove), Nil),
+      (Seq(gavUp0), Seq(gavUp1)),
+      (Seq(gavUpMore0, gavUpMore1), Seq(gavUpMore2, gavUpMore3)),
+    ), out)
+
+  }
+
 
   @Test
   def testLogback(): Unit = {
