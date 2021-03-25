@@ -1,0 +1,135 @@
+default:release_2.13:1.0 [S]
+  +-ch.qos.logback:logback-classic:1.2.3
+  | +-ch.qos.logback:logback-core:1.2.3
+  | +-org.slf4j:slf4j-api:1.7.25 (evicted by: 1.7.30)
+  | +-org.slf4j:slf4j-api:1.7.30
+  | 
+  +-com.github.siom79.japicmp:japicmp:0.14.4
+  | +-com.google.guava:guava:18.0
+  | +-com.sun.xml.bind:jaxb-core:2.2.7
+  | | +-com.sun.istack:istack-commons-runtime:2.16
+  | | +-javax.xml.bind:jaxb-api:2.2.7 (evicted by: 2.3.1)
+  | | +-javax.xml.bind:jaxb-api:2.3.1
+  | |   +-javax.activation:javax.activation-api:1.2.0
+  | |   
+  | +-com.sun.xml.bind:jaxb-impl:2.2.7
+  | | +-com.sun.xml.bind:jaxb-core:2.2.7
+  | | | +-com.sun.istack:istack-commons-runtime:2.16
+  | | | +-javax.xml.bind:jaxb-api:2.2.7 (evicted by: 2.3.1)
+  | | | +-javax.xml.bind:jaxb-api:2.3.1
+  | | |   +-javax.activation:javax.activation-api:1.2.0
+  | | |   
+  | | +-com.sun.xml.fastinfoset:FastInfoset:1.2.12
+  | |   +-javax.xml.bind:jsr173_api:1.0
+  | |   
+  | +-javax.activation:activation:1.1
+  | +-javax.xml.bind:jaxb-api:2.2.7 (evicted by: 2.3.1)
+  | +-javax.xml.bind:jaxb-api:2.3.1
+  | | +-javax.activation:javax.activation-api:1.2.0
+  | | 
+  | +-org.javassist:javassist:3.24.0-GA
+  | 
+  +-com.typesafe.scala-logging:scala-logging_2.13:3.9.2 [S]
+  | +-org.scala-lang:scala-reflect:2.13.3 [S]
+  | +-org.slf4j:slf4j-api:1.7.26 (evicted by: 1.7.30)
+  | +-org.slf4j:slf4j-api:1.7.30
+  | 
+  +-com.typesafe:config:1.4.0
+  +-javax.xml.bind:jaxb-api:2.3.1
+  | +-javax.activation:javax.activation-api:1.2.0
+  | 
+  +-org.apache.maven.resolver:maven-resolver-connector-basic:1.6.1
+  | +-org.apache.maven.resolver:maven-resolver-api:1.6.1
+  | +-org.apache.maven.resolver:maven-resolver-spi:1.6.1
+  | | +-org.apache.maven.resolver:maven-resolver-api:1.6.1
+  | | 
+  | +-org.apache.maven.resolver:maven-resolver-util:1.6.1
+  | | +-org.apache.maven.resolver:maven-resolver-api:1.6.1
+  | | 
+  | +-org.slf4j:slf4j-api:1.7.30
+  | 
+  +-org.apache.maven.resolver:maven-resolver-transport-file:1.6.1
+  | +-org.apache.maven.resolver:maven-resolver-api:1.6.1
+  | +-org.apache.maven.resolver:maven-resolver-spi:1.6.1
+  | | +-org.apache.maven.resolver:maven-resolver-api:1.6.1
+  | | 
+  | +-org.slf4j:slf4j-api:1.7.30
+  | 
+  +-org.apache.maven.resolver:maven-resolver-transport-http:1.6.1
+  | +-org.apache.httpcomponents:httpclient:4.5.12
+  | | +-commons-codec:commons-codec:1.11
+  | | +-org.apache.httpcomponents:httpcore:4.4.13
+  | | 
+  | +-org.apache.httpcomponents:httpcore:4.4.13
+  | +-org.apache.maven.resolver:maven-resolver-api:1.6.1
+  | +-org.apache.maven.resolver:maven-resolver-spi:1.6.1
+  | | +-org.apache.maven.resolver:maven-resolver-api:1.6.1
+  | | 
+  | +-org.apache.maven.resolver:maven-resolver-util:1.6.1
+  | | +-org.apache.maven.resolver:maven-resolver-api:1.6.1
+  | | 
+  | +-org.slf4j:jcl-over-slf4j:1.7.30
+  | | +-org.slf4j:slf4j-api:1.7.30
+  | | 
+  | +-org.slf4j:slf4j-api:1.7.30
+  | 
+  +-org.apache.maven:maven-resolver-provider:3.6.3
+  | +-javax.inject:javax.inject:1
+  | +-org.apache.maven.resolver:maven-resolver-api:1.4.1 (evicted by: 1.6.1)
+  | +-org.apache.maven.resolver:maven-resolver-api:1.6.1
+  | +-org.apache.maven.resolver:maven-resolver-impl:1.4.1
+  | | +-org.apache.maven.resolver:maven-resolver-api:1.4.1 (evicted by: 1.6.1)
+  | | +-org.apache.maven.resolver:maven-resolver-api:1.6.1
+  | | +-org.apache.maven.resolver:maven-resolver-spi:1.4.1 (evicted by: 1.6.1)
+  | | +-org.apache.maven.resolver:maven-resolver-spi:1.6.1
+  | | | +-org.apache.maven.resolver:maven-resolver-api:1.6.1
+  | | | 
+  | | +-org.apache.maven.resolver:maven-resolver-util:1.4.1 (evicted by: 1.6.1)
+  | | +-org.apache.maven.resolver:maven-resolver-util:1.6.1
+  | | | +-org.apache.maven.resolver:maven-resolver-api:1.6.1
+  | | | 
+  | | +-org.slf4j:slf4j-api:1.7.25 (evicted by: 1.7.30)
+  | | +-org.slf4j:slf4j-api:1.7.30
+  | | 
+  | +-org.apache.maven.resolver:maven-resolver-spi:1.4.1 (evicted by: 1.6.1)
+  | +-org.apache.maven.resolver:maven-resolver-spi:1.6.1
+  | | +-org.apache.maven.resolver:maven-resolver-api:1.6.1
+  | | 
+  | +-org.apache.maven.resolver:maven-resolver-util:1.4.1 (evicted by: 1.6.1)
+  | +-org.apache.maven.resolver:maven-resolver-util:1.6.1
+  | | +-org.apache.maven.resolver:maven-resolver-api:1.6.1
+  | | 
+  | +-org.apache.maven:maven-model-builder:3.6.3
+  | | +-javax.inject:javax.inject:1
+  | | +-org.apache.maven:maven-artifact:3.6.3
+  | | | +-org.apache.commons:commons-lang3:3.8.1
+  | | | +-org.codehaus.plexus:plexus-utils:3.2.1
+  | | | 
+  | | +-org.apache.maven:maven-builder-support:3.6.3
+  | | +-org.apache.maven:maven-model:3.6.3
+  | | | +-org.codehaus.plexus:plexus-utils:3.2.1
+  | | | 
+  | | +-org.codehaus.plexus:plexus-interpolation:1.25
+  | | +-org.codehaus.plexus:plexus-utils:3.2.1
+  | | +-org.eclipse.sisu:org.eclipse.sisu.inject:0.3.4
+  | | 
+  | +-org.apache.maven:maven-model:3.6.3
+  | | +-org.codehaus.plexus:plexus-utils:3.2.1
+  | | 
+  | +-org.apache.maven:maven-repository-metadata:3.6.3
+  | | +-org.codehaus.plexus:plexus-utils:3.2.1
+  | | 
+  | +-org.codehaus.plexus:plexus-utils:3.2.1
+  | +-org.slf4j:slf4j-api:1.7.29 (evicted by: 1.7.30)
+  | +-org.slf4j:slf4j-api:1.7.30
+  | 
+  +-org.jline:jline-reader:3.16.0
+  | +-org.jline:jline-terminal:3.16.0
+  | 
+  +-org.jline:jline-terminal:3.16.0
+  +-org.scala-lang.modules:scala-parallel-collections_2.13:0.2.0 [S]
+  +-org.scala-lang.modules:scala-parser-combinators_2.13:1.1.2 [S]
+  +-redis.clients:jedis:3.3.0
+    +-org.apache.commons:commons-pool2:2.6.2
+    +-org.slf4j:slf4j-api:1.7.30
+    
