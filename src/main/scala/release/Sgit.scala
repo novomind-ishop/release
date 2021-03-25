@@ -49,6 +49,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
       case None => // do nothing
       case s: Some[Seq[String]] if s.get.size == 1 => gitNative(Seq("config", "--local", "--unset", key, value))
       case s: Some[Seq[String]] if s.get.size > 1 => configRemoveLocalAll(key, value)
+      case s: Some[Seq[String]] => throw new IllegalStateException(s.toString)
     }
 
   }
