@@ -14,6 +14,7 @@ import release.Conf.Tracer
 import release.Sgit.GitRemote
 import release.Util.pluralize
 import release.Xpath.InvalidPomXmlException
+import scala.collection.parallel.CollectionConverters._
 
 import java.awt.Desktop
 import java.io.{BufferedReader, File, FileNotFoundException, FileOutputStream, PrintStream}
@@ -317,7 +318,7 @@ object Starter extends LazyLogging {
       .map(gav => (gav.groupId, gav.artifactId, gav.packageing))
       .sorted
       .distinct
-    val gasResolved: Seq[(Try[(File, VersionString, String)], Try[(File, VersionString, String)])] = gas
+    val gasResolved: Seq[(Try[(File, VersionString, String)], Try[(File, VersionString, String)])] = gas.par
       .map(ga => {
         val groupId = ga._1
         val artifactId = ga._2
@@ -327,13 +328,13 @@ object Starter extends LazyLogging {
         val ar = Aether.tryResolveReq(aether.workNexus)(groupId + ":" + artifactId + ty + left).map(t => (t._1, t._2, ga._3))
         val br = Aether.tryResolveReq(aether.workNexus)(groupId + ":" + artifactId + ty + right).map(t => (t._1, t._2, ga._3))
         (ar, br)
-      })
+      }).seq
     if (inOpt.apiDiff.pomOnly) {
       println("pom-only-mode")
 
       def extractPomFile(inFile: File, destFile: File): File = {
         destFile.mkdir()
-        if (inFile.getName.endsWith(".jar")) {
+        if (inFile.getName.endsWith(".jar") || inFile.getName.endsWith(".war")) {
           val jar = new JarFile(inFile)
           val enumEntries = jar.entries
           var fSide = Seq.empty[File]
