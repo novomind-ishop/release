@@ -5,6 +5,7 @@ import org.junit.{Assert, ComparisonFailure, Rule, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
 import org.w3c.dom._
 import release.PomChecker.ValidationException
+import release.PomMod.DepTree
 import release.PomModTest.{assertDeps, document, pomfile, _}
 import release.ProjectMod._
 import release.Starter.Opts
@@ -546,18 +547,22 @@ class PomModTest extends AssertionsForJUnit {
     val orgMod = PomMod.ofAetherForTests(orgPoms, aether)
     Assert.assertEquals("27.0.0-SNAPSHOT", orgMod.selfVersion)
     assertDeps(Anyshop1Deps.ownDeps(), orgMod.listDependecies.filter(_.artifactId.contains("anyshop")))
-
-    val targetPoms = TestHelper.testResources("shop4")
-    orgMod.writeTo(targetPoms)
-    val targetMod = PomMod.ofAetherForTests(targetPoms, aether)
-    val newVersion = "any-SNAPSHOT"
-    // WHEN
-    Assert.assertEquals(Map("dep.tree" -> Nil,
+    val value = Map("dep.tree" -> Nil,
       "anyshop-erp" -> Seq("com.novomind.ishop.shops.anyshop:anyshop-erp:jar:27.0.0-SNAPSHOT"),
       "anyshop-shop" -> Seq("+- com.novomind.ishop.shops.anyshop:anyshop-erp:jar:tests:27.0.0-SNAPSHOT:test",
-        "+- com.novomind.ishop.shops.anyshop:anyshop-erp:jar:27.0.0-SNAPSHOT:compile")),
-      depTreeMap(targetMod))
+        "+- com.novomind.ishop.shops.anyshop:anyshop-erp:jar:27.0.0-SNAPSHOT:compile"))
+    Assert.assertEquals(value, depTreeMap(orgMod))
+    val targetPoms = TestHelper.testResources("shop4")
+    Util.deleteRecursive(targetPoms)
+    orgMod.writeTo(targetPoms)
+    val targetMod = PomMod.ofAetherForTests(targetPoms, aether)
+
+    // WHEN
+    Assert.assertEquals(value, depTreeMap(targetMod))
+
+    val newVersion = "ubglu-SNAPSHOT"
     targetMod.findNodesAndChangeVersion("com.novomind.ishop.shops.anyshop", "anyshop-erp", "27.0.0-SNAPSHOT", newVersion)
+
 
     Assert.assertEquals(Map("dep.tree" -> Nil,
       "anyshop-erp" -> Seq("com.novomind.ishop.shops.anyshop:anyshop-erp:jar:" + newVersion),
@@ -575,6 +580,8 @@ class PomModTest extends AssertionsForJUnit {
       in
     })
     assertDeps(erpVersionChanged, newTargetMod.listDependecies.filter(_.artifactId.contains("anyshop")))
+    targetMod.findNodesAndChangeVersion("com.novomind.ishop.shops.anyshop", "anyshop-erp",  newVersion, "27.0.0-SNAPSHOT")
+    targetMod.writeTo(targetPoms)
 
   }
 
@@ -1535,27 +1542,36 @@ class PomModTest extends AssertionsForJUnit {
     Assert.assertEquals(Nil, PomMod.unmanged(Seq(Gav.empty.copy(artifactId = "a")), Seq(Gav.empty.copy(artifactId = "a"))))
   }
 
+  def mockEntry(content:String):(File, DepTree) = {
+    (new File("mock"),DepTree(content) )
+  }
+
   @Test
   def testReplacedDepTreesVersionSnapshot(): Unit = {
-    val out = PomMod.replacedDepTreesVersion("com.any:any-some:jar:1.0.0",
+    val out = PomMod.replacedDepTreesVersion(mockEntry("com.any:any-some:jar:1.0.0"),
       "com.any", "any-some", "1.0.0",
       "1.0.0-SNAPSHOT")
     Assert.assertEquals("com.any:any-some:jar:1.0.0-SNAPSHOT\n", out)
 
-    val out2 = PomMod.replacedDepTreesVersion(out,
+    val out2 = PomMod.replacedDepTreesVersion(mockEntry(out),
       "com.any", "any-some", "1.0.0",
       "1.0.0-SNAPSHOT")
     Assert.assertEquals("com.any:any-some:jar:1.0.0-SNAPSHOT\n", out2)
+
+    val out3 = PomMod.replacedDepTreesVersion(mockEntry("com.novomind.ishop.backoffice:bo-client:war:40.1.4-SNAPSHOT"),
+      "com.novomind.ishop.backoffice", "bo-client", "40.1.4-SNAPSHOT",
+      "40.1.4")
+    Assert.assertEquals("com.novomind.ishop.backoffice:bo-client:war:40.1.4\n", out3)
   }
 
   @Test
   def testReplacedDepTreesVersion(): Unit = {
-    val out = PomMod.replacedDepTreesVersion("com.any:any-some:jar:1.0.0",
+    val out = PomMod.replacedDepTreesVersion(mockEntry("com.any:any-some:jar:1.0.0"),
       "com.any", "any-some", "1.0.0",
       "1.0.1")
     Assert.assertEquals("com.any:any-some:jar:1.0.1\n", out)
 
-    val out2 = PomMod.replacedDepTreesVersion(out,
+    val out2 = PomMod.replacedDepTreesVersion(mockEntry(out),
       "com.any", "any-some", "1.0.1",
       "1.0.0-SNAPSHOT")
     Assert.assertEquals("com.any:any-some:jar:1.0.0-SNAPSHOT\n", out2)
@@ -1563,7 +1579,7 @@ class PomModTest extends AssertionsForJUnit {
 
   @Test
   def testReplacedDepTreesVersion_noChange(): Unit = {
-    val out = PomMod.replacedDepTreesVersion("com.any:any-some:jar:1.0.0",
+    val out = PomMod.replacedDepTreesVersion(mockEntry("com.any:any-some:jar:1.0.0"),
       "com.any", "any-some", "1.0.1",
       "1.0.1")
     Assert.assertEquals("com.any:any-some:jar:1.0.0\n", out)

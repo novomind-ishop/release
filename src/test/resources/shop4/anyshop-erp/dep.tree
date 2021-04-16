@@ -1,4 +1,4 @@
-com.novomind.ishop.shops.anyshop:anyshop-erp:jar:any-SNAPSHOT
+com.novomind.ishop.shops.anyshop:anyshop-erp:jar:27.0.0-SNAPSHOT
 +- com.novomind.ishop.core:ishop-core-all-tests:pom:28.2.2:test
 |  +- javax.servlet:javax.servlet-api:jar:3.0.1:provided
 |  +- junit:junit:jar:4.12:test

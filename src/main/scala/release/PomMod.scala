@@ -5,7 +5,7 @@ import com.typesafe.scalalogging.LazyLogging
 import org.w3c.dom.{Document, Node}
 import release.Conf.Tracer
 import release.PomChecker.ValidationException
-import release.PomMod._
+import release.PomMod.{DepTree, _}
 import release.ProjectMod._
 import release.Starter.{Opts, PreconditionsException}
 import release.Util.pluralize
@@ -35,8 +35,6 @@ case class PomMod(file: File, aether: Aether, opts: Opts,
 
   private val raws: Seq[RawPomFile] = toRawPoms(allRawPomFiles)
   private[release] val allPomsDocs: Seq[Document] = raws.map(_.document).toList
-
-  case class DepTree(content: String)
 
   private def depU(d: Map[Dep, Node]): Unit = {
     depMap = depMap ++ d
@@ -171,9 +169,12 @@ case class PomMod(file: File, aether: Aether, opts: Opts,
   }
 
   private[release] def changeDepTreesVersion(groupId: String, artifactId: String, version: String, newVersion: String): Unit = {
-    depTreeFileContents = depTreeFileContents.toList.map(entry => {
-      (entry._1, entry._2.copy(PomMod.replacedDepTreesVersion(entry._2.content, groupId, artifactId, version, newVersion)))
-    }).foldLeft(Map.empty[File, DepTree])(_ + _)
+    val edited = depTreeFileContents.toList
+      .map(entry => {
+        (entry._1, entry._2.copy(PomMod.replacedDepTreesVersion(entry, groupId, artifactId, version, newVersion)))
+      })
+    val folded = edited.foldLeft(Map.empty[File, DepTree])(_ + _)
+    depTreeFileContents = folded
   }
 
   private[release] def changeDepTreesGA(groupId: String, artifactId: String, version: String,
@@ -303,12 +304,9 @@ case class PomMod(file: File, aether: Aether, opts: Opts,
 
     depTreeFileContents
       .foreach(fe => {
-        val content = fe._2.content
-        if (fe._1.getParentFile.getName == file.getName) {
-          PomMod.writeContent(new File(targetFolder, fe._1.getName), content)
-        } else {
-          PomMod.writeContent(new File(new File(targetFolder, fe._1.getParentFile.getName), fe._1.getName), content)
-        }
+        val path = file.toPath.relativize(fe._1.toPath)
+        val tF = targetFolder.toPath.resolve(path).toFile
+        PomMod.writeContent(tF, fe._2.content)
       })
   }
 
@@ -421,6 +419,7 @@ object PomMod {
   def ofAether(file: File, opts: Opts, aether: Aether, skipPropertyReplacement: Boolean = false): PomMod = {
     PomMod(file, aether, opts, skipPropertyReplacement)
   }
+  case class DepTree(content: String)
 
   private val xPathToProjectGroupId = "//project/groupId"
   private val xPathToProjectArtifactId = "//project/artifactId"
@@ -437,8 +436,8 @@ object PomMod {
   private val xPathToDependeciesScopeCompile = "//dependencies/dependency/scope[text() = 'compile']"
   private val xPathToDependeciesTypeJar = "//dependencies/dependency/type[text() = 'jar']"
 
-  private[release] def replacedDepTreesVersion(in: String, groupId: String, artifactId: String, version: String, newVersion: String) = {
-    in.linesIterator
+  private[release] def replacedDepTreesVersion(entry: (File, PomMod.DepTree), groupId: String, artifactId: String, version: String, newVersion: String) = {
+    entry._2.content.linesIterator
       .map(_.replaceFirst(groupId + ":" + artifactId + ":([^:]*):([^:]*):" + version, groupId + ":" + artifactId + ":$1:$2:" + newVersion))
       .map(_.replaceFirst(groupId + ":" + artifactId + ":([^:]*):" + version, groupId + ":" + artifactId + ":$1:" + newVersion))
       .map(_.replaceFirst("-SNAPSHOT-SNAPSHOT", "-SNAPSHOT"))
