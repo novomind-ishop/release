@@ -258,6 +258,7 @@ trait ProjectMod extends LazyLogging {
         .filterNot(_.matches(".*-[Mm][0-9]+-.*"))
         .filterNot(_.matches(".*-ea-[0-9]+$")) // used by org.immutables
         .filterNot(_.matches(".*-rc-[0-9]+$"))
+        .filterNot(_.matches(".*-rc\\.[0-9]+$")) // nosqlunit-redis 1.0.0-rc.4, 1.0.0-rc.5
         .filterNot(_.matches(".*-[0-9a-f]{7}$")) // used by org.typelevel:cats-effect
         .filterNot(_.matches(".*-dev$")) // used by commons-discovery:commons-discovery
         .filterNot(_.matches(".*pr[0-9]+$"))
@@ -359,7 +360,7 @@ trait ProjectMod extends LazyLogging {
       .toMap
 
     aetherFetch.finish()
-    out.println(s"I: checked ${value.size} dependecies in ${stopw.elapsed(TimeUnit.MILLISECONDS)}ms")
+    out.println(s"I: checked ${value.size} dependecies in ${stopw.elapsed(TimeUnit.MILLISECONDS)}ms (${now.toString})")
 
     case class GavWithRef(pomRef: SelfRef, gavWithDetailsFormatted: String)
 
