@@ -14,7 +14,6 @@ import release.Conf.Tracer
 import release.Sgit.GitRemote
 import release.Util.pluralize
 import release.Xpath.InvalidPomXmlException
-import scala.collection.parallel.CollectionConverters._
 
 import java.awt.Desktop
 import java.io.{BufferedReader, File, FileNotFoundException, FileOutputStream, PrintStream}
@@ -26,6 +25,7 @@ import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.jar.{JarEntry, JarFile}
 import scala.annotation.tailrec
+import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
@@ -179,9 +179,11 @@ object Starter extends LazyLogging {
 
   case class OptsApidiff(showApiDiff: Boolean = false, showHelp: Boolean = false,
                          pomOnly: Boolean = false,
+                         allModifications: Boolean = false,
                          left: String = null, right: String = null,
                          invalids: Seq[String] = Nil) {
     val isEmpty = left.blank() || right.blank()
+    val incompatibleModifications = !allModifications
   }
 
   @tailrec
@@ -190,6 +192,7 @@ object Starter extends LazyLogging {
       case Nil => inOpt
 
       case "--pom-only" :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(pomOnly = true)))
+      case "--all" :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(allModifications = true)))
       case "--help" :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(showHelp = true)))
       case "-h" :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(showHelp = true)))
       case string1 :: string2 :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff =
@@ -277,13 +280,13 @@ object Starter extends LazyLogging {
     oo
   }
 
-  def compressToGav(self: Seq[ProjectMod.Gav3], properties:Map[String, String])(in: Seq[ProjectMod.Dep]): Seq[ProjectMod.Gav3] = {
+  def compressToGav(self: Seq[ProjectMod.Gav3], properties: Map[String, String])(in: Seq[ProjectMod.Dep]): Seq[ProjectMod.Gav3] = {
     val rep = PomMod.replaceProperty(properties, true) _
     val all = in.map(_.gav())
       .filterNot(_.scope == "test")
       .map(_.simpleGav())
       .sortBy(_.toString).distinct.map(g => {
-      g.copy(groupId = rep(g.groupId),artifactId = rep(g.artifactId), version = rep(g.version) )
+      g.copy(groupId = rep(g.groupId), artifactId = rep(g.artifactId), version = rep(g.version))
     })
     val blankVersions = all.filter(_.version.blank())
     val noBlankVersions = all.filterNot(_.version.blank()).map(_.copy(version = ""))
@@ -297,22 +300,8 @@ object Starter extends LazyLogging {
     val aether = new Aether(inOpt)
     val workDirFile = new File(".").getAbsoluteFile // TODO get this from other location
 
-
     val pommod = PomMod.ofAether(workDirFile, inOpt, aether)
     val gavs = pommod.listSelf.map(mo => mo.gav())
-
-
-    val options = Options.newDefault()
-    options.setIgnoreMissingClasses(true)
-    options.setOutputOnlyModifications(true)
-    options.setOutputOnlyBinaryIncompatibleModifications(true)
-
-    val exclStartsWith = Set()
-    val eStF = exclStartsWith.map(fv => new ClassFilter {
-      override def matches(ctClass: CtClass): Boolean = ctClass.getPackageName.startsWith(fv)
-    })
-    val comparatorOptions: JarArchiveComparatorOptions = JarArchiveComparatorOptions.of(options)
-    comparatorOptions.getFilters.getExcludes.addAll(eStF.asJava)
 
     val gas = gavs
       .map(gav => (gav.groupId, gav.artifactId, gav.packageing))
@@ -384,7 +373,7 @@ object Starter extends LazyLogging {
 
       val oo: Seq[(
         (Seq[ProjectMod.Dep], Seq[ProjectMod.Gav3], Map[String, String]),
-          (Seq[ProjectMod.Dep], Seq[ProjectMod.Gav3],  Map[String, String]))] = gasResolved.flatMap(abr => {
+          (Seq[ProjectMod.Dep], Seq[ProjectMod.Gav3], Map[String, String]))] = gasResolved.flatMap(abr => {
         try {
           val ar = abr._1
           val br = abr._2
@@ -420,23 +409,37 @@ object Starter extends LazyLogging {
       })
 
       val allSelf = (oo.flatMap(_._1._2) ++ oo.flatMap(_._2._2)).distinct
-      val allProps:Map[String, String] = (oo.flatMap(_._1._3) ++ oo.flatMap(_._2._3)).distinct.toMap
+      val allProps: Map[String, String] = (oo.flatMap(_._1._3) ++ oo.flatMap(_._2._3)).distinct.toMap
 
       val t: (Seq[ProjectMod.Gav3], Seq[ProjectMod.Gav3]) = (compressToGav(allSelf, allProps)(oo.flatMap(_._1._1)),
         compressToGav(allSelf, allProps)(oo.flatMap(_._2._1)))
 
       println("diff:")
       val xDiff = connectLeftRight(t)
-      def emptyTo(in:Seq[String], fill:String) = in match {
+
+      def emptyTo(in: Seq[String], fill: String) = in match {
         case Nil => Seq(fill)
         case o => o
       }
+
       xDiff
         .map(line => emptyTo(line._1.map(_.formatted), "NEW").mkString(", ") + " => " +
           emptyTo(line._2.map(_.formatted), "REMOVED").mkString(", "))
         .foreach(println)
       Nil
     } else {
+      val options = Options.newDefault()
+      options.setIgnoreMissingClasses(true)
+      options.setOutputOnlyModifications(true)
+
+      options.setOutputOnlyBinaryIncompatibleModifications(inOpt.apiDiff.incompatibleModifications)
+
+      val exclStartsWith = Set()
+      val eStF = exclStartsWith.map(fv => new ClassFilter {
+        override def matches(ctClass: CtClass): Boolean = ctClass.getPackageName.startsWith(fv)
+      })
+      val comparatorOptions: JarArchiveComparatorOptions = JarArchiveComparatorOptions.of(options)
+      comparatorOptions.getFilters.getExcludes.addAll(eStF.asJava)
       val jApiClasses = gasResolved
         .flatMap(abr => {
           try {
