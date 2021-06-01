@@ -485,7 +485,7 @@ object Release extends LazyLogging {
                 val jenkinsBase = config.jenkinsBaseUrl()
                 val tagUrl = Starter.tagBuildUrl(sgit, jenkinsBase)
                 // TODO hier erstmal nur den browser auf machen damit man build tag klicken kann
-                Starter.openInDefaultBrowser(tagUrl.getOrElse(jenkinsBase + "/search/?q=-tag"))
+                Starter.openInDefaultBrowser(tagUrl.getOrElse(jenkinsBase + "/search/?q=-tag&max=1000"))
                 // try to notify jenkins about tag builds
                 // TODO try to wait for successful tag builds ... subscribe to logs
               }
