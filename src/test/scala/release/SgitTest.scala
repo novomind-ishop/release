@@ -1,13 +1,13 @@
 package release
 
-import java.io.File
-import java.nio.file.{Files, StandardCopyOption}
-
 import org.junit.{Assert, Assume, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.Sgit.{GitRemote, GitTagWithDate, MissingGitDirException}
 import release.SgitTest.hasCommitMsg
 import release.Starter.{Opts, PreconditionsException}
+
+import java.io.File
+import java.nio.file.{Files, StandardCopyOption}
 
 class SgitTest extends AssertionsForJUnit {
 
@@ -191,7 +191,7 @@ class SgitTest extends AssertionsForJUnit {
 
     // WHEN
     testee.err("bla bla")
-    testee.err("error: Could not resolve hostname git.example.org: Name or service not known fatal: Could not read from remote repository." )
+    testee.err("error: Could not resolve hostname git.example.org: Name or service not known fatal: Could not read from remote repository.")
     testee.err("bla bla")
 
     // THEN
@@ -209,7 +209,7 @@ class SgitTest extends AssertionsForJUnit {
 
     // WHEN
     testee.err("bla bla")
-    testee.err(" ! [rejected]        v0.0.10    -> v0.0.10  (would clobber existing tag)." )
+    testee.err(" ! [rejected]        v0.0.10    -> v0.0.10  (would clobber existing tag).")
     testee.err("error: Could not fetch origin")
     testee.err("bla bla")
     // THEN
@@ -228,7 +228,7 @@ class SgitTest extends AssertionsForJUnit {
 
     // WHEN
     testee.err("bla bla")
-    testee.err("ssh: Could not resolve hostname git.example.org: Name or service not known fatal: Could not read from remote repository." )
+    testee.err("ssh: Could not resolve hostname git.example.org: Name or service not known fatal: Could not read from remote repository.")
     testee.err("bla bla")
 
     // THEN
@@ -427,7 +427,11 @@ class SgitTest extends AssertionsForJUnit {
       }
       case Term.Os.Linux => {
         gitA.version() match {
-          case gv:String if gv.startsWith("git version 2.29")  ||  gv.startsWith("git version 2.30") => {
+          // TODO change default later
+          case gv: String if gv.startsWith("git version 2.29") ||
+            gv.startsWith("git version 2.30") ||
+            gv.startsWith("git version 2.31") ||
+            gv.startsWith("git version 2.32") => {
             val var1 = "Nonzero exit value: 1; git --no-pager fetch --all --tags; " +
               "ssh: Could not resolve hostname git.example.org: Name or service not known fatal: " +
               "Could not read from remote repository. " +

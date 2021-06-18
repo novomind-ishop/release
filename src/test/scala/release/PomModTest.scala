@@ -580,7 +580,7 @@ class PomModTest extends AssertionsForJUnit {
       in
     })
     assertDeps(erpVersionChanged, newTargetMod.listDependecies.filter(_.artifactId.contains("anyshop")))
-    targetMod.findNodesAndChangeVersion("com.novomind.ishop.shops.anyshop", "anyshop-erp",  newVersion, "27.0.0-SNAPSHOT")
+    targetMod.findNodesAndChangeVersion("com.novomind.ishop.shops.anyshop", "anyshop-erp", newVersion, "27.0.0-SNAPSHOT")
     targetMod.writeTo(targetPoms)
 
   }
@@ -1542,8 +1542,8 @@ class PomModTest extends AssertionsForJUnit {
     Assert.assertEquals(Nil, PomMod.unmanged(Seq(Gav.empty.copy(artifactId = "a")), Seq(Gav.empty.copy(artifactId = "a"))))
   }
 
-  def mockEntry(content:String):(File, DepTree) = {
-    (new File("mock"),DepTree(content) )
+  def mockEntry(content: String): (File, DepTree) = {
+    (new File("mock"), DepTree(content))
   }
 
   @Test
@@ -1610,6 +1610,12 @@ class PomModTest extends AssertionsForJUnit {
       })
   }
 
+  @Test
+  def testNormalizeUnwanted(): Unit = {
+    val gav = Gav3("some.group", "artifcat", "version")
+    val result = ProjectMod.normalizeUnwantedVersions(gav, Seq("a", "beta"))
+    Assert.assertEquals(Seq("a"), result)
+  }
 }
 
 object PomModTest {

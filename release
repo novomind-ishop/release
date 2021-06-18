@@ -8,7 +8,7 @@ trace_setup() {
 trace_setup "init scripting"
 echo -n "I: Starting release vm .."
 argLine="${*:-}"
-
+# TODO test java installation # java -v
 if [[ -n $(echo "${argLine}" | egrep -- "--replace") ]]; then
   pushd .  > /dev/null
   cd $(dirname $0)

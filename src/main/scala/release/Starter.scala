@@ -29,6 +29,7 @@ import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
+import scala.util.matching.Regex
 import scala.util.{Try, Using}
 
 object Starter extends LazyLogging {
@@ -90,7 +91,8 @@ object Starter extends LazyLogging {
   }
 
   def fetchGitAndAskForBranch(out: PrintStream, err: PrintStream, noVerify: Boolean,
-                              gitBinEnv: Option[String], workDirFile: File, in: BufferedReader, opts: Opts): (Sgit, String) = {
+                              gitBinEnv: Option[String], workDirFile: File, in: BufferedReader, opts: Opts,
+                              skipFetch: Boolean): (Sgit, String) = {
     val global = ExecutionContext.global
 
     def fetchGit(file: File): Sgit = {
@@ -139,20 +141,23 @@ object Starter extends LazyLogging {
     val startBranchF = futureOf(global, askReleaseBranch())
 
     val gitFetchStatusF = futureOf(global, {
-      val printFetching = new AtomicBoolean(true)
-      while (!gitFetchF.wrapped.isCompleted) {
-        Thread.sleep(100)
-        if (printFetching.get() && !gitFetchF.wrapped.isCompleted && startBranchF.wrapped.isCompleted) {
-          out.print("I: Fetching from remote ")
-          printFetching.set(false)
+      if(!skipFetch) {
+        val printFetching = new AtomicBoolean(true)
+        while (!gitFetchF.wrapped.isCompleted) {
+          Thread.sleep(100)
+          if (printFetching.get() && !gitFetchF.wrapped.isCompleted && startBranchF.wrapped.isCompleted) {
+            out.print("I: Fetching from remote ")
+            printFetching.set(false)
+          }
+          if (!gitFetchF.wrapped.isCompleted && startBranchF.wrapped.isCompleted) {
+            out.print(".")
+          }
         }
-        if (!gitFetchF.wrapped.isCompleted && startBranchF.wrapped.isCompleted) {
-          out.print(".")
+        if (gitFetchF.wrapped.isCompleted && startBranchF.wrapped.isCompleted && !printFetching.get()) {
+          out.println(". done")
         }
       }
-      if (gitFetchF.wrapped.isCompleted && startBranchF.wrapped.isCompleted && !printFetching.get()) {
-        out.println(". done")
-      }
+
 
     })
 
@@ -206,6 +211,7 @@ object Starter extends LazyLogging {
   case class OptsDepUp(showDependencyUpdates: Boolean = false, showHelp: Boolean = false,
                        hideLatest: Boolean = true, versionRangeLimit: Integer = 3,
                        hideStageVersions: Boolean = true, showLibYears: Boolean = false,
+                       filter: Option[Regex] = None,
                        invalids: Seq[String] = Nil)
 
   @tailrec
@@ -214,6 +220,7 @@ object Starter extends LazyLogging {
       case Nil => inOpt
       case "--help" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(showHelp = true)))
       case "-h" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(showHelp = true)))
+      case "--matches" :: pattern :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(filter = Some(pattern.r))))
       case "--no-filter" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts
         .copy(hideStageVersions = false, hideLatest = false)))
       case "--show-libyears" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(showLibYears = true)))
@@ -654,7 +661,8 @@ object Starter extends LazyLogging {
       return 0
     }
     try {
-      val gitAndBranchname = fetchGitAndAskForBranch(out, err, verifyGerrit, gitBinEnv, workDirFile, Console.in, opts)
+      val gitAndBranchname = fetchGitAndAskForBranch(out, err, verifyGerrit, gitBinEnv, workDirFile,
+        Console.in, opts, skipFetch = false)
 
       def suggestLocalNotesReviewRemoval(activeGit: Sgit): Unit = {
         // git config --add remote.origin.fetch refs/notes/review:refs/notes/review

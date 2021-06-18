@@ -128,7 +128,8 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
     TestHelper.assertExceptionWithCheck(in => Assert.assertEquals("E: please download a commit-message hook and retry",
       in.linesIterator.toSeq(1)),
       classOf[Sgit.MissingCommitHookException], () => {
-        StarterTest.withOutErr[Unit]((out, err) => Starter.fetchGitAndAskForBranch(out, err, noVerify = true, None, testRepoD, in, Opts()))
+        StarterTest.withOutErr[Unit]((out, err) => Starter.fetchGitAndAskForBranch(out, err, noVerify = true, None,
+          testRepoD, in, Opts(), skipFetch = true))
       })
   }
 
@@ -139,7 +140,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
     // WHEN
     val in = StarterTest.willReadFrom("master\n")
     val result = StarterTest.withOutErr[Unit]((out, err) => Starter.fetchGitAndAskForBranch(out, err,
-      noVerify = SgitTest.hasCommitMsg, None, testRepoD, in, Opts(useJlineInput = false)))
+      noVerify = SgitTest.hasCommitMsg, None, testRepoD, in, Opts(useJlineInput = false), skipFetch = true))
 
     // THEN
     Assert.assertEquals("Enter branch name where to start from [master]:", result.out)
@@ -152,7 +153,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
     // WHEN
     val in = StarterTest.willReadFrom("master\n")
     val result = StarterTest.withOutErr[Unit]((out, err) => Starter.fetchGitAndAskForBranch(out, err, noVerify = false,
-      None, testRepoD, in, Opts(useJlineInput = false)))
+      None, testRepoD, in, Opts(useJlineInput = false), skipFetch = true))
 
     // THEN
     Assert.assertEquals("Enter branch name where to start from [master]:", result.out)

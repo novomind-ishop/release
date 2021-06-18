@@ -1,19 +1,19 @@
 package release
 
 import com.google.common.base.Stopwatch
-
-import java.io.{File, PrintStream}
-import java.time.{Duration, LocalDate, Period}
 import com.typesafe.scalalogging.LazyLogging
 import release.PomMod.{abbreviate, unmanged}
 import release.ProjectMod.{Dep, Gav3, PluginDep, SelfRef}
 import release.Starter.{Opts, OptsDepUp, PreconditionsException}
 
+import java.io.{File, PrintStream}
+import java.time.{Duration, LocalDate, Period}
 import java.util.concurrent.TimeUnit
 import scala.annotation.tailrec
 import scala.collection.parallel.CollectionConverters._
+import scala.util.matching.Regex
 
-object ProjectMod {
+object ProjectMod extends LazyLogging {
 
   def read(workDirFile: File, out: PrintStream, opts: Opts, aether: Aether, showRead: Boolean = true): ProjectMod = {
     if (PomMod.rootPom(workDirFile).canRead) {
@@ -43,6 +43,55 @@ object ProjectMod {
     // TODO expand scala version with artifact names with lowdash
     Seq(gav)
   }
+
+  def normalizeUnwantedVersions(gav: Gav3, inVersions: Seq[String]): Seq[String] = {
+    val out: Seq[String] = inVersions.filterNot(_.endsWith("-SNAPSHOT"))
+      .filterNot(_.contains("patch"))
+      .filterNot(_.matches(".*[Mm][0-9]+$"))
+      .filterNot(_.matches(".*-[Mm][0-9]+-.*"))
+      .filterNot(_.matches(".*-ea-[0-9]+$")) // used by org.immutables
+      .filterNot(_.matches(".*-rc-[0-9]+$"))
+      .filterNot(_.matches(".*-rc\\.[0-9]+$")) // nosqlunit-redis 1.0.0-rc.4, 1.0.0-rc.5
+      .filterNot(_.matches(".*-[0-9a-f]{7}$")) // used by org.typelevel:cats-effect
+      .filterNot(_.matches(".*-dev$")) // used by commons-discovery:commons-discovery
+      .filterNot(_.matches(".*pr[0-9]+$"))
+      .filterNot(_.contains("alpha"))
+      .filterNot(_.contains("Alpha"))
+      .filterNot(_.contains("ALPHA"))
+      .filterNot(_.contains("BETA"))
+      .filterNot(_.contains("Beta"))
+      .filterNot(_.contains("beta"))
+      .filterNot(_.contains("brew"))
+      .filterNot(_.matches(".*b[0-9]+.*"))
+      .filterNot(_.matches(".*\\-beta$"))
+      .filterNot(_.matches(".*SP[0-9]+$"))
+      .filterNot(_.matches(".*-SNAP[0-9]+$"))
+      .filterNot(_.matches(".*[(sec|SEC)][0-9]+$"))
+      .filterNot(_.endsWith("-incubating"))
+      .filterNot(_.endsWith("SONATYPE"))
+      .filterNot(_.contains("jbossorg"))
+      .filterNot(_.contains("-atlassian-"))
+      .filterNot(_.matches(".*jenkins-[0-9]+$"))
+      .filterNot(_.contains("PFD"))
+      .filterNot(_.matches(".*\\.CR[0-9]+$")) // hibernate-validator
+      // .filterNot(_.contains("-cdh")) // Cloudera Distribution Including Apache Hadoop
+      .filterNot(_.contains("darft"))
+      .filterNot(_.startsWith("2003"))
+      .filterNot(_.startsWith("2004"))
+      .filterNot(_.endsWith("0.11.0-sshd-314-1")) // org.apache.sshd:sshd-sftp
+      .filterNot(_.endsWith("-PUBLISHED-BY-MISTAKE"))
+
+    val result = if (inVersions.contains(gav.version)) {
+      (Seq(gav.version) ++ out).distinct
+    } else {
+      out
+    }
+    if (result != inVersions) {
+      logger.debug("filtered for " + gav.formatted + ": " + Util.symmetricDiff(result, inVersions))
+    }
+    result
+  }
+
 
 
   case class Dep(pomRef: SelfRef, groupId: String, artifactId: String, version: String, typeN: String,
@@ -251,54 +300,6 @@ trait ProjectMod extends LazyLogging {
     out.println("I: checking dependecies against nexus - please wait")
     val rootDeps = listDependeciesForCheck()
 
-    def normalizeUnwanted(gav: Gav3, inVersions: Seq[String]): Seq[String] = {
-      val out: Seq[String] = inVersions.filterNot(_.endsWith("-SNAPSHOT"))
-        .filterNot(_.contains("patch"))
-        .filterNot(_.matches(".*[Mm][0-9]+$"))
-        .filterNot(_.matches(".*-[Mm][0-9]+-.*"))
-        .filterNot(_.matches(".*-ea-[0-9]+$")) // used by org.immutables
-        .filterNot(_.matches(".*-rc-[0-9]+$"))
-        .filterNot(_.matches(".*-rc\\.[0-9]+$")) // nosqlunit-redis 1.0.0-rc.4, 1.0.0-rc.5
-        .filterNot(_.matches(".*-[0-9a-f]{7}$")) // used by org.typelevel:cats-effect
-        .filterNot(_.matches(".*-dev$")) // used by commons-discovery:commons-discovery
-        .filterNot(_.matches(".*pr[0-9]+$"))
-        .filterNot(_.contains("alpha"))
-        .filterNot(_.contains("Alpha"))
-        .filterNot(_.contains("ALPHA"))
-        .filterNot(_.contains("BETA"))
-        .filterNot(_.contains("Beta"))
-        .filterNot(_.contains("beta"))
-        .filterNot(_.contains("brew"))
-        .filterNot(_.matches(".*b[0-9]+.*"))
-        .filterNot(_.matches(".*\\-beta$"))
-        .filterNot(_.matches(".*SP[0-9]+$"))
-        .filterNot(_.matches(".*-SNAP[0-9]+$"))
-        .filterNot(_.matches(".*[(sec|SEC)][0-9]+$"))
-        .filterNot(_.endsWith("-incubating"))
-        .filterNot(_.endsWith("SONATYPE"))
-        .filterNot(_.contains("jbossorg"))
-        .filterNot(_.contains("-atlassian-"))
-        .filterNot(_.matches(".*jenkins-[0-9]+$"))
-        .filterNot(_.contains("PFD"))
-        .filterNot(_.matches(".*\\.CR[0-9]+$")) // hibernate-validator
-        // .filterNot(_.contains("-cdh")) // Cloudera Distribution Including Apache Hadoop
-        .filterNot(_.contains("darft"))
-        .filterNot(_.startsWith("2003"))
-        .filterNot(_.startsWith("2004"))
-        .filterNot(_.endsWith("0.11.0-sshd-314-1")) // org.apache.sshd:sshd-sftp
-        .filterNot(_.endsWith("-PUBLISHED-BY-MISTAKE"))
-
-      val result = if (inVersions.contains(gav.version)) {
-        (Seq(gav.version) ++ out).distinct
-      } else {
-        out
-      }
-      if (result != inVersions) {
-        logger.debug("filtered for " + gav.formatted + ": " + Util.symmetricDiff(result, inVersions))
-      }
-      result
-    }
-
     val selfSimple = selfDepsMod.map(_.gav().simpleGav()).distinct
     val relevant: Seq[Dep] = rootDeps
       .filterNot(_.version == "")
@@ -322,25 +323,34 @@ trait ProjectMod extends LazyLogging {
           in
         }
       })
-    val value :Seq[Gav3]= prepared
+    val value: Seq[Gav3] = prepared
       .flatMap(ProjectMod.scalaDeps(prepared))
     val updates: Map[Gav3, (Seq[String], Duration)] = value
       .par
       .map(dep => (dep, {
         aetherFetch.start()
-        val tr = aether.newerVersionsOf(dep.groupId, dep.artifactId, dep.version)
-        val result = if (depUpOpts.hideStageVersions) {
-          normalizeUnwanted(dep, tr)
+        val newerVersions = if (depUpOpts.filter.isDefined && !depUpOpts.filter.get.matches(dep.formatted)) {
+          aether.newerVersionsOf(dep.groupId, dep.artifactId, dep.version).headOption.toSeq
         } else {
-          tr
+          aether.newerVersionsOf(dep.groupId, dep.artifactId, dep.version)
         }
-        val d = if (depUpOpts.showLibYears && result.nonEmpty) {
-          val latest = result.last // TODO version sort
+
+        val selectedVersions = if (depUpOpts.filter.isDefined) {
+          newerVersions.map(v => dep.copy(version = v))
+            .filter(gav => depUpOpts.filter.get.matches(gav.formatted))
+            .map(_.version)
+        } else if (depUpOpts.hideStageVersions) {
+          ProjectMod.normalizeUnwantedVersions(dep, newerVersions)
+        } else {
+          newerVersions
+        }
+        val d = if (depUpOpts.showLibYears && selectedVersions.nonEmpty) {
+          val latest = selectedVersions.last // TODO version sort
           if (dep != dep.copy(version = latest)) {
             val currentDate = aether.depDate(dep.groupId, dep.artifactId, dep.version)
             val latestDate = aether.depDate(dep.groupId, dep.artifactId, latest)
             if (currentDate.isDefined && latestDate.isDefined) {
-              logger.trace(s"libyear - ${dep.groupId}:${dep.artifactId}:(${dep.version},${result.last}) => ${currentDate.get} to ${latestDate.get}")
+              logger.trace(s"libyear - ${dep.groupId}:${dep.artifactId}:(${dep.version},${selectedVersions.last}) => ${currentDate.get} to ${latestDate.get}")
               Duration.between(currentDate.get, latestDate.get)
             } else {
               Duration.ofDays(-1)
@@ -354,7 +364,7 @@ trait ProjectMod extends LazyLogging {
           Duration.ofDays(-2)
         }
         aetherFetch.end()
-        (result, d)
+        (selectedVersions, d)
       }))
       .seq
       .toMap
@@ -435,7 +445,13 @@ trait ProjectMod extends LazyLogging {
 
     {
       // TODO check versions before
-      val versionNotFound: Map[Gav3, (Seq[String], Duration)] = updates.filter(_._2._1 == Nil)
+      val versionNotFound: Map[Gav3, (Seq[String], Duration)] = updates
+        .filterNot(t => if (depUpOpts.filter.isEmpty) {
+          false
+        } else {
+          !depUpOpts.filter.get.matches(t._1.formatted)
+        })
+        .filter(_._2._1 == Nil)
       if (versionNotFound.nonEmpty) {
         // TODO throw new PreconditionsException
         err.println("Non existing dependencies for:\n" +
@@ -461,12 +477,20 @@ trait ProjectMod extends LazyLogging {
       // https://libyear.com/
       // https://ericbouwers.github.io/papers/icse15.pdf
       out.println()
-      val durations = updates.map(_._2._2)
+      val durations = updates
+        .filter(t => if (depUpOpts.filter.isEmpty) {
+          true
+        } else {
+          depUpOpts.filter.get.matches(t._1.formatted)
+        })
+        .map(_._2._2)
       val sum = durations.foldLeft(Duration.ZERO)((a, b) => a.plus(b))
       val period: Period = Period.between(now, now.plusDays(sum.toDays))
       if (durations.exists(_.isNegative)) {
         out.println("WARN: negative durations for:")
-        updates.filter(_._2._2.isNegative).foreach(e => println(s"${e._1} ${e._2._2.toString}"))
+        updates
+          .filter(_._2._2.isNegative)
+          .foreach(e => println(s"${e._1} ${e._2._2.toString}"))
       }
       out.println(s"libyears: ${period.getYears}.${period.getMonths} (${sum.toDays} days)")
     }
