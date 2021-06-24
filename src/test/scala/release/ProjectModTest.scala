@@ -1,7 +1,9 @@
 package release
 
 import org.junit.{Assert, Test}
+import org.mockito.MockitoSugar.mock
 import org.scalatestplus.junit.AssertionsForJUnit
+import release.Starter.OptsDepUp
 
 class ProjectModTest extends AssertionsForJUnit {
 
@@ -28,6 +30,36 @@ class ProjectModTest extends AssertionsForJUnit {
       ("1", Seq("1-alpha", "1.1")),
       ("-1", Seq("a")),
     ), result)
+  }
+
+  @Test
+  def testShowDependencyUpdates_empty(): Unit = {
+    val term = Term.select("xterm", "os", simpleChars = false)
+    val rootDeps: Seq[ProjectMod.Dep] = Nil
+    val selfDepsMod: Seq[ProjectMod.Dep] = Nil
+    val aether = mock[Aether]
+    val result = StarterTest.withOutErr[Unit]((out, err) => {
+      ProjectMod.showDependencyUpdates(100, term,
+        OptsDepUp(), "workingNExusUrl", rootDeps, selfDepsMod, aether, out, err)
+    })
+    Assert.assertEquals("", result.err)
+    val filteredOut = result.out
+      .linesIterator
+      .map(line => {
+        if (line.matches(".* dependecies in [0-9]+ms \\(20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]\\)$")){
+          line.replaceFirst(" in.*", " in ...")
+        } else {
+          line
+        }
+      })
+      .mkString("\n")
+    Assert.assertEquals(
+      """
+        |I: checking dependecies against nexus - please wait
+        |I: checked 0 dependecies in ...
+        |term: Term(xterm,os,false)
+        |""".stripMargin.trim, filteredOut)
+
   }
 
 }

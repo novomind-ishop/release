@@ -3,7 +3,7 @@ package release
 import com.google.common.base.Stopwatch
 import com.typesafe.scalalogging.LazyLogging
 import release.PomMod.{abbreviate, unmanged}
-import release.ProjectMod.{Dep, Gav3, PluginDep, SelfRef}
+import release.ProjectMod.{Dep, PluginDep}
 import release.Starter.{Opts, OptsDepUp, PreconditionsException}
 
 import java.io.{File, PrintStream}
@@ -11,7 +11,6 @@ import java.time.{Duration, LocalDate, Period}
 import java.util.concurrent.TimeUnit
 import scala.annotation.tailrec
 import scala.collection.parallel.CollectionConverters._
-import scala.util.matching.Regex
 
 object ProjectMod extends LazyLogging {
 
@@ -40,8 +39,21 @@ object ProjectMod extends LazyLogging {
   }
 
   def scalaDeps(gavs: Seq[Gav3])(gav: Gav3): Seq[Gav3] = {
-    // TODO expand scala version with artifact names with lowdash
-    Seq(gav)
+    val sGroupId = "org.scala-lang"
+    val sArtifactId = "scala-library"
+    if (gavs.exists(gavk => gavk.groupId == sGroupId && gavk.artifactId == sArtifactId)) {
+      val scalaLib = gavs.find(gavk => gavk.groupId == sGroupId && gavk.artifactId == sArtifactId).get
+      val scalaMinor = scalaLib.version.replaceFirst("\\.[0-9]+$", "")
+      val scalaDepRegex = "^(.*_)[1-9][0-9]*\\.[1-9][0-9]*.*$".r
+      if (scalaDepRegex.matches(gav.artifactId)) {
+        val newA = scalaDepRegex.replaceAllIn(gav.artifactId, "$1" + scalaMinor)
+        Seq(gav, gav.copy(artifactId = newA)).distinct
+      } else {
+        Seq(gav)
+      }
+    } else {
+      Seq(gav)
+    }
   }
 
   def normalizeUnwantedVersions(gav: Gav3, inVersions: Seq[String]): Seq[String] = {
@@ -91,7 +103,6 @@ object ProjectMod extends LazyLogging {
     }
     result
   }
-
 
 
   case class Dep(pomRef: SelfRef, groupId: String, artifactId: String, version: String, typeN: String,
@@ -279,53 +290,10 @@ object ProjectMod extends LazyLogging {
     }
   }
 
-}
+  def checkForUpdates(in: Seq[Gav3], shellWidth: Int, depUpOpts: OptsDepUp, aether: Aether): Map[Gav3, (Seq[String], Duration)] = {
 
-trait ProjectMod extends LazyLogging {
-  val file: File
-  val aether: Aether
-  val opts: Opts
-  val selfVersion: String
-
-  val listDependecies: Seq[Dep]
-  val listPluginDependencies: Seq[PluginDep]
-
-  val listProperties: Map[String, String]
-  val skipPropertyReplacement: Boolean
-
-  def showDependencyUpdates(shellWidth: Int, termOs: Term, depUpOpts: OptsDepUp, workNexusUrl: String,
-                            out: PrintStream, err: PrintStream): Unit = {
-    val now = LocalDate.now()
-    val stopw = Stopwatch.createStarted()
-    out.println("I: checking dependecies against nexus - please wait")
-    val rootDeps = listDependeciesForCheck()
-
-    val selfSimple = selfDepsMod.map(_.gav().simpleGav()).distinct
-    val relevant: Seq[Dep] = rootDeps
-      .filterNot(_.version == "")
-      .filterNot(in => selfSimple.contains(in.gav().simpleGav()))
-
-    val relevantGav = relevant
-      .map(_.gav())
-      .distinct
-
-    val emptyVersions = rootDeps
-      .filter(_.version == "")
-      .map(_.gav())
-      .distinct
-
-    val aetherFetch = StatusLine(relevantGav.size, shellWidth)
-    val prepared = relevantGav.map(_.simpleGav())
-      .map(in => {
-        if (in.version.isEmpty || in.artifactId.isEmpty || in.groupId.isEmpty) {
-          throw new IllegalStateException("gav has empty parts: " + in)
-        } else {
-          in
-        }
-      })
-    val value: Seq[Gav3] = prepared
-      .flatMap(ProjectMod.scalaDeps(prepared))
-    val updates: Map[Gav3, (Seq[String], Duration)] = value
+    val aetherFetch = StatusLine(in.size, shellWidth)
+    val updates: Map[Gav3, (Seq[String], Duration)] = in
       .par
       .map(dep => (dep, {
         aetherFetch.start()
@@ -370,6 +338,44 @@ trait ProjectMod extends LazyLogging {
       .toMap
 
     aetherFetch.finish()
+    updates
+  }
+
+  def showDependencyUpdates(shellWidth: Int, termOs: Term, depUpOpts: OptsDepUp, workNexusUrl: String,
+                            rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], aether: Aether,
+                            out: PrintStream, err: PrintStream): Unit = {
+    val now = LocalDate.now()
+    val stopw = Stopwatch.createStarted()
+    out.println("I: checking dependecies against nexus - please wait")
+
+    val selfSimple = selfDepsMod.map(_.gav().simpleGav()).distinct
+    val relevant: Seq[Dep] = rootDeps
+      .filterNot(_.version == "")
+      .filterNot(in => selfSimple.contains(in.gav().simpleGav()))
+
+    val relevantGav = relevant
+      .map(_.gav())
+      .distinct
+
+    val emptyVersions = rootDeps
+      .filter(_.version == "")
+      .map(_.gav())
+      .distinct
+
+
+    val prepared = relevantGav.map(_.simpleGav())
+      .map(in => {
+        if (in.version.isEmpty || in.artifactId.isEmpty || in.groupId.isEmpty) {
+          throw new IllegalStateException("gav has empty parts: " + in)
+        } else {
+          in
+        }
+      })
+    val value: Seq[Gav3] = prepared
+      .flatMap(ProjectMod.scalaDeps(prepared))
+    val updates = checkForUpdates(value, shellWidth, depUpOpts, aether)
+    // TODO check again if found scala deps (lowdash)
+
     out.println(s"I: checked ${value.size} dependecies in ${stopw.elapsed(TimeUnit.MILLISECONDS)}ms (${now.toString})")
 
     case class GavWithRef(pomRef: SelfRef, gavWithDetailsFormatted: String)
@@ -495,6 +501,29 @@ trait ProjectMod extends LazyLogging {
       out.println(s"libyears: ${period.getYears}.${period.getMonths} (${sum.toDays} days)")
     }
 
+  }
+
+}
+
+trait ProjectMod extends LazyLogging {
+  val file: File
+  val aether: Aether
+  val opts: Opts
+  val selfVersion: String
+
+  val listDependecies: Seq[Dep]
+  val listPluginDependencies: Seq[PluginDep]
+
+  val listProperties: Map[String, String]
+  val skipPropertyReplacement: Boolean
+
+  def showDependencyUpdates(shellWidth: Int, termOs: Term, depUpOpts: OptsDepUp, workNexusUrl: String,
+                            out: PrintStream, err: PrintStream): Unit = {
+    val depForCheck: Seq[Dep] = listDependeciesForCheck()
+    val sdm = selfDepsMod
+    ProjectMod.showDependencyUpdates(shellWidth, termOs, depUpOpts, workNexusUrl,
+      depForCheck, sdm, aether,
+      out, err)
   }
 
   private[release] def replacedPropertyOf(string: String) = {

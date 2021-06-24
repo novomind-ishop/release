@@ -670,18 +670,26 @@ object Sgit {
         case v: String if v.startsWith("git version 2.25.") => // (2020-01-13) (tag: v2.25.0)
           throw new YourGitInstallationIsToOldException(version = "2.25", ended = "2020-09-11", announced = "2020-08-11",
             msg = "", gitPath = cmdLine)
-        case v: String if v.startsWith("git version 2.26.") => // do nothing (2020-04-19) (tag: v2.26.2)
-          err.println("W: please update your git version, \"" + v + "\" support ends at 2021-03-11")
-        // anaounced 2021-02-01
-        case v: String if v.startsWith("git version 2.27.") => // do nothing (2020-05-31) (tag: v2.27.0)
-          err.println("W: please update your git version, \"" + v + "\" support ends at 2021-03-11")
-        // anaounced 2021-02-01
-        case v: String if v.startsWith("git version 2.28.") => // do nothing (2020-07-26) (tag: v2.28.0)
-          err.println("W: please update your git version, \"" + v + "\" support ends at 2021-03-11")
-        // anaounced 2021-02-01
-        case v: String if v.startsWith("git version 2.29.") => // do nothing (2020-10-19) (tag: v2.29.0)
-        case v: String if v.startsWith("git version 2.30.") => // do nothing (2020-12-27) (tag: v2.30.0)
+        case v: String if v.startsWith("git version 2.26.") => // (2020-04-19) (tag: v2.26.2)
+          throw new YourGitInstallationIsToOldException(version = "2.26",
+            ended = "2021-06-24", announced = "2021-02-11", announcedEnd = "2021-03-11",
+            msg = "", gitPath = cmdLine)
+        case v: String if v.startsWith("git version 2.27.") => // (2020-05-31) (tag: v2.27.0)
+          throw new YourGitInstallationIsToOldException(version = "2.27",
+            ended = "2021-06-24", announced = "2021-02-11", announcedEnd = "2021-03-11",
+            msg = "", gitPath = cmdLine)
+        case v: String if v.startsWith("git version 2.28.") => // (2020-07-26) (tag: v2.28.0)
+          throw new YourGitInstallationIsToOldException(version = "2.28",
+            ended = "2021-06-24", announced = "2021-02-11", announcedEnd = "2021-03-11",
+            msg = "", gitPath = cmdLine)
+        case v: String if v.startsWith("git version 2.29.") => // (2020-10-19) (tag: v2.29.0)
+          err.println("W: please update your git version, \"" + v + "\" support ends at 2021-09-11")
+        // anaounced 2021-06-24
+        case v: String if v.startsWith("git version 2.30.") => // (2020-12-27) (tag: v2.30.0)
+          err.println("W: please update your git version, \"" + v + "\" support ends at 2021-09-11")
+        // anaounced 2021-06-24
         case v: String if v.startsWith("git version 2.31.") => // do nothing (2021-03-15) (tag: v2.31.0)
+        case v: String if v.startsWith("git version 2.32.") => // do nothing (2021-06-06) (tag: v2.32.0)
         case v: String => out.println("W: unknown/untested git version: \"" + v + "\". Please create a ticket at ISBO.");
         //  if (!ReleaseConfig.isTravisCi()) {
         //    if (Sgit.getOs == Os.Darwin) {
@@ -893,7 +901,7 @@ object Sgit {
 
   class BranchAlreadyExistsException(msg: String) extends RuntimeException(msg)
 
-  class YourGitInstallationIsToOldException(version: String, ended: String, announced: String, msg: String = "", gitPath: String) extends
+  class YourGitInstallationIsToOldException(version: String, ended: String, announced: String, msg: String = "", gitPath: String, announcedEnd: String = "") extends
     RuntimeException(s"Your git version ${version} support ended at ${ended} announced at ${announced}${msg}; please update. " + gitPath)
 
   private[release] def findGit(start: File, in: File, checkExisting: Boolean): File = {
