@@ -15,7 +15,7 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
 
   @Rule def temp = _temporarayFolder
 
-  lazy val aether = new Aether(Opts())
+  lazy val aether = new Repo(Opts())
 
   @Test
   def testStrip(): Unit = {

@@ -14,7 +14,7 @@ import scala.collection.parallel.CollectionConverters._
 
 object ProjectMod extends LazyLogging {
 
-  def read(workDirFile: File, out: PrintStream, opts: Opts, aether: Aether, showRead: Boolean = true): ProjectMod = {
+  def read(workDirFile: File, out: PrintStream, opts: Opts, aether: Repo, showRead: Boolean = true): ProjectMod = {
     if (PomMod.rootPom(workDirFile).canRead) {
       if (showRead) {
         out.print("I: Reading pom.xmls ..")
@@ -35,15 +35,22 @@ object ProjectMod extends LazyLogging {
       .sortBy(_._1)
       .map(e => e.copy(_1 = e._1.toString, _2 = e._2.sorted.map(_.orginal)))
       .reverse
-
   }
 
   def scalaDeps(gavs: Seq[Gav3])(gav: Gav3): Seq[Gav3] = {
+    // TODO check build.properties - https://mvnrepository.com/artifact/org.scala-sbt/sbt
+    // TODO plugins.sbt - name ?
     val sGroupId = "org.scala-lang"
     val sArtifactId = "scala-library"
-    if (gavs.exists(gavk => gavk.groupId == sGroupId && gavk.artifactId == sArtifactId)) {
-      val scalaLib = gavs.find(gavk => gavk.groupId == sGroupId && gavk.artifactId == sArtifactId).get
-      val scalaMinor = scalaLib.version.replaceFirst("\\.[0-9]+$", "")
+    val s3ArtifactId = "scala3-library"
+    val sFind = gavs.find(gavk => gavk.groupId == sGroupId &&
+      (gavk.artifactId == sArtifactId || gavk.artifactId == s3ArtifactId))
+    if (sFind.isDefined) {
+      val scalaLib = sFind.get
+      val scalaMinor = scalaLib.version match {
+        case o if o.startsWith("3") => o.replaceFirst("\\.[0-9]+\\.[0-9]+$", "")
+        case o => o.replaceFirst("\\.[0-9]+$", "")
+      }
       val scalaDepRegex = "^(.*_)[1-9][0-9]*\\.[1-9][0-9]*.*$".r
       if (scalaDepRegex.matches(gav.artifactId)) {
         val newA = scalaDepRegex.replaceAllIn(gav.artifactId, "$1" + scalaMinor)
@@ -290,7 +297,7 @@ object ProjectMod extends LazyLogging {
     }
   }
 
-  def checkForUpdates(in: Seq[Gav3], shellWidth: Int, depUpOpts: OptsDepUp, aether: Aether): Map[Gav3, (Seq[String], Duration)] = {
+  def checkForUpdates(in: Seq[Gav3], shellWidth: Int, depUpOpts: OptsDepUp, aether: Repo): Map[Gav3, (Seq[String], Duration)] = {
 
     val aetherFetch = StatusLine(in.size, shellWidth)
     val updates: Map[Gav3, (Seq[String], Duration)] = in
@@ -342,7 +349,7 @@ object ProjectMod extends LazyLogging {
   }
 
   def showDependencyUpdates(shellWidth: Int, termOs: Term, depUpOpts: OptsDepUp, workNexusUrl: String,
-                            rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], aether: Aether,
+                            rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], aether: Repo,
                             out: PrintStream, err: PrintStream): Unit = {
     val now = LocalDate.now()
     val stopw = Stopwatch.createStarted()
@@ -507,7 +514,7 @@ object ProjectMod extends LazyLogging {
 
 trait ProjectMod extends LazyLogging {
   val file: File
-  val aether: Aether
+  val aether: Repo
   val opts: Opts
   val selfVersion: String
 

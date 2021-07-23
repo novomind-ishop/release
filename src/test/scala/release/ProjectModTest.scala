@@ -37,7 +37,7 @@ class ProjectModTest extends AssertionsForJUnit {
     val term = Term.select("xterm", "os", simpleChars = false)
     val rootDeps: Seq[ProjectMod.Dep] = Nil
     val selfDepsMod: Seq[ProjectMod.Dep] = Nil
-    val aether = mock[Aether]
+    val aether = mock[Repo]
     val result = StarterTest.withOutErr[Unit]((out, err) => {
       ProjectMod.showDependencyUpdates(100, term,
         OptsDepUp(), "workingNExusUrl", rootDeps, selfDepsMod, aether, out, err)

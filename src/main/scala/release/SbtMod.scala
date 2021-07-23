@@ -1,17 +1,16 @@
 package release
 
-import java.io.File
-import java.nio.charset.StandardCharsets
-import java.nio.file.Files
-
 import com.typesafe.scalalogging.LazyLogging
 import release.ProjectMod.{Dep, SelfRef}
 import release.Starter.Opts
 
+import java.io.File
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
 import scala.jdk.CollectionConverters._
 import scala.util.parsing.combinator.RegexParsers
 
-case class SbtMod(file: File, aether: Aether, opts: Opts) extends ProjectMod {
+case class SbtMod(file: File, aether: Repo, opts: Opts) extends ProjectMod {
 
   val selfVersion: String = "n/a" // TODO
 
@@ -48,7 +47,7 @@ object SbtMod {
     new File(file, "build.sbt")
   }
 
-  def ofAether(workfolder: File, opts: Opts, aether: Aether): SbtMod = {
+  def ofAether(workfolder: File, opts: Opts, aether: Repo): SbtMod = {
     SbtMod(buildSbt(workfolder), aether, opts)
   }
 
@@ -71,8 +70,6 @@ object SbtMod {
         } else {
           (b, None)
         }
-
-
       })
 
       def test = "[ ]+".r ~> "Test".r ^^ (term => (term, None))
@@ -87,7 +84,13 @@ object SbtMod {
       def dep = "libraryDependencies +=" ~> rep(qWord | test) <~ opt("[ ]+//.*".r) ~ nl ^^ (term => {
         if (term.size >= 3) {
           val addVersion = term.find(_._2.isDefined)
-            .map(_ => "_" + sVersion.replaceFirst("\\.[0-9]+$", ""))
+            .map(_ => {
+              val suf = sVersion match {
+                case lv if lv.startsWith("3")=> sVersion.replaceFirst("\\.[0-9]+\\.[0-9]+$", "")
+                case lv => sVersion.replaceFirst("\\.[0-9]+$", "")
+              }
+              "_" + suf
+            })
           ProjectMod.Dep(SelfRef.undef,
             groupId = term(0)._1,
             artifactId = term(1)._1 + addVersion.getOrElse(""),
@@ -108,11 +111,18 @@ object SbtMod {
       val str = "\n" + in.linesIterator.map(_.trim).mkString("\n") + "\n"
       parseAll(p, str) match {
         case Success(vp, v) => {
-          val scala = Dep(SelfRef.undef,
-            groupId = "org.scala-lang",
-            artifactId = "scala-library",
-            version = sVersion,
-            "", "", "", "")
+          val scala = sVersion match {
+            case lv if lv.startsWith("3") => Dep(SelfRef.undef,
+              groupId = "org.scala-lang",
+              artifactId = "scala3-library",
+              version = sVersion,
+              "", "", "", "")
+            case lv => Dep(SelfRef.undef,
+              groupId = "org.scala-lang",
+              artifactId = "scala-library",
+              version = lv,
+              "", "", "", "")
+          }
           val result = vp
             .filter(o => o.isInstanceOf[ProjectMod.Dep])
             .map(o => o.asInstanceOf[ProjectMod.Dep])

@@ -105,7 +105,7 @@ object Release extends LazyLogging {
   // TODO @tailrec
   def work(workDirFile: File, out: PrintStream, err: PrintStream, rebaseFn: () => Unit, branch: String, sgit: Sgit,
            termOs: Term, shellWidth: Int, releaseToolGitSha1: String, config: ReleaseConfig,
-           aether: Aether, opts: Opts): Seq[Unit] = {
+           aether: Repo, opts: Opts): Seq[Unit] = {
     if (sgit.hasLocalChanges) {
       val message = localChangeMessage(sgit)
       out.println(message)
@@ -483,7 +483,7 @@ object Release extends LazyLogging {
               }
               if (config.openJenkinsInBrowser) {
                 val jenkinsBase = config.jenkinsBaseUrl()
-                val tagUrl = Starter.tagBuildUrl(sgit, jenkinsBase)
+                val tagUrl = Starter.tagBuildUrl(sgit, jenkinsBase, release)
                 // TODO hier erstmal nur den browser auf machen damit man build tag klicken kann
                 Starter.openInDefaultBrowser(tagUrl.getOrElse(jenkinsBase + "/search/?q=-tag&max=1000"))
                 // try to notify jenkins about tag builds
@@ -527,7 +527,7 @@ object Release extends LazyLogging {
 
   // TODO @tailrec
   def offerAutoFixForReleaseSnapshots(out: PrintStream, mod: ProjectMod, gitFiles: Seq[String], shellWidth: Int, err: PrintStream,
-                                      aether: Aether, opts: Opts): ProjectMod = {
+                                      aether: Repo, opts: Opts): ProjectMod = {
     val plugins = mod.listPluginDependencies
     if (mod.isShop) {
       // TODO check if core needs this checks too

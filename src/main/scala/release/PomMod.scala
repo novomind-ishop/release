@@ -22,7 +22,7 @@ import javax.xml.transform.{OutputKeys, TransformerFactory}
 import scala.annotation.tailrec
 import scala.collection.parallel.CollectionConverters._
 
-case class PomMod(file: File, aether: Aether, opts: Opts,
+case class PomMod(file: File, aether: Repo, opts: Opts,
                   skipPropertyReplacement: Boolean = false) extends ProjectMod with LazyLogging {
   logger.trace("init pomMod")
   private var depMap: Map[Dep, Node] = Map.empty
@@ -408,15 +408,15 @@ case class RawPomFile(pomFile: File, document: Document, file: File) {
 object PomMod {
 
   def of(file: File, unnused: PrintStream, opts: Opts): PomMod = {
-    lazy val aether = new Aether(opts)
+    lazy val aether = new Repo(opts)
     ofAether(file, opts, aether)
   }
 
-  def ofAetherForTests(file: File, aether: Aether, skipPropertyReplacement: Boolean = false): PomMod = {
+  def ofAetherForTests(file: File, aether: Repo, skipPropertyReplacement: Boolean = false): PomMod = {
     PomMod(file, aether, Opts(), skipPropertyReplacement)
   }
 
-  def ofAether(file: File, opts: Opts, aether: Aether, skipPropertyReplacement: Boolean = false): PomMod = {
+  def ofAether(file: File, opts: Opts, aether: Repo, skipPropertyReplacement: Boolean = false): PomMod = {
     PomMod(file, aether, opts, skipPropertyReplacement)
   }
   case class DepTree(content: String)

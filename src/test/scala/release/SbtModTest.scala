@@ -24,6 +24,21 @@ class SbtModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def scalaDeps3(): Unit = {
+    val scalaLib = Gav3("org.scala-lang", "scala3-library", "3.0.1")
+    val catsEffectM3 = Gav3("org.typelevel", "cats-effect_2.13.0-M5", "1.4.0")
+    val catsCore = Gav3("org.typelevel", "cats-core_2.12", "1.4.0")
+    val gavs: Seq[Gav3] = Seq(scalaLib, catsEffectM3, catsCore)
+
+    val result = gavs.map(gav => ProjectMod.scalaDeps(gavs)(gav))
+    val extra = Seq(
+      catsCore.copy(artifactId = "cats-core_3"),
+      catsEffectM3.copy(artifactId = "cats-effect_3"),
+    )
+    Assert.assertEquals((gavs ++ extra).sortBy(_.toString), result.flatten.sortBy(_.toString))
+  }
+
+  @Test
   def scalaDeps_not(): Unit = {
     val guava = Gav3("com.google.guava", "guava", "30.1.1-jre")
     val gavs: Seq[Gav3] = Seq(guava)
@@ -64,6 +79,28 @@ class SbtModTest extends AssertionsForJUnit {
       d("org.scalatestplus", "junit-4-12_2.13", "3.1.2.0"),
       d("org.scalatestplus", "junit-4-12_2.13", "3.1.2.1"),
       d("org.typelevel", "cats-effect_2.13.0-M5", "1.4.0"),
+
+    ), value)
+  }
+
+  @Test
+  def testDoParse3(): Unit = {
+    val value = SbtMod.SimpleParser.doParse(
+      """
+        |version := "1.0"
+        |
+        |scalaVersion := "3.0.1"
+        |
+        |libraryDependencies += "org.scalatestplus" %% "junit-4-12" % "3.1.2.1" % Test
+        |
+        |""".stripMargin.trim)
+
+    def d(g: String, a: String, v: String, scope: String = "") =
+      Dep(SelfRef.undef, g, a, v, "", scope, "", "")
+
+    Assert.assertEquals(Seq(
+      d("org.scala-lang", "scala3-library", "3.0.1"),
+      d("org.scalatestplus", "junit-4-12_3", "3.1.2.1"),
 
     ), value)
   }

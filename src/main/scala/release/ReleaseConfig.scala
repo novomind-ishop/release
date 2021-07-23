@@ -99,8 +99,8 @@ object ReleaseConfig extends LazyLogging {
     keyGerritSignedOfBy -> "Ishop Release <release@example.org>",
     keyReleasePrefix -> "release",
     keyBranchPrefix -> "branch",
-    keyNexusWorkUrl -> Aether.centralUrl, // "https://nexus-work/"
-    keyNexusMirrorUrl -> Aether.centralUrl //"https://nexus-mirror/"
+    keyNexusWorkUrl -> Repo.centralUrl, // "https://nexus-work/"
+    keyNexusMirrorUrl -> Repo.centralUrl //"https://nexus-mirror/"
   )
 
   def parseConfig(str: String): Map[String, String] = {

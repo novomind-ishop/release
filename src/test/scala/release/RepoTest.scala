@@ -6,13 +6,13 @@ import org.junit.{Assert, Assume, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.Starter.Opts
 
-class AetherTest extends AssertionsForJUnit {
+class RepoTest extends AssertionsForJUnit {
 
   // convert to IT
 
   @Test
   def testExistsGav(): Unit = {
-    val aether = new Aether(Opts(useDefaults = true))
+    val aether = new Repo(Opts(useDefaults = true))
 
     Assume.assumeTrue(aether.isReachable(false))
     val g = "javax.servlet.jsp"
@@ -36,28 +36,28 @@ class AetherTest extends AssertionsForJUnit {
   @Test
   def testParseNexusDateNoWeekday(): Unit = {
     val input = "May 20 00:48:50 UTC 2010"
-    val out = Aether.parseNexusDate(input)
+    val out = Repo.parseNexusDate(input)
     Assert.assertEquals(ZonedDateTime.parse("2010-05-20T00:48:50+00:00"), out.get)
   }
 
   @Test
   def testParseNexusDate(): Unit = {
     val input = "Thu May 20 00:48:50 UTC 2010"
-    val out = Aether.parseNexusDate(input)
+    val out = Repo.parseNexusDate(input)
     Assert.assertEquals(ZonedDateTime.parse("2010-05-20T00:48:50+00:00"), out.get)
   }
 
   @Test
   def testParseCentralDate(): Unit = {
     val input = "scalatest_2.13-3.2.3-javadoc.jar                  2020-11-07 10:27       189"
-    val out = Aether.parseCentralDate(input)
+    val out = Repo.parseCentralDate(input)
     Assert.assertEquals(ZonedDateTime.parse("2020-11-07T10:27:00+00:00"), out.get)
   }
 
   @Test
   def testParseCentralDate2(): Unit = {
     val input = "scalatest_2.13-3.2.3-javadoc.jar                  2021-10-02 11:17:01       189"
-    val out = Aether.parseCentralDate(input)
+    val out = Repo.parseCentralDate(input)
     Assert.assertEquals(ZonedDateTime.parse("2021-10-02T11:17:01+00:00"), out.get)
   }
 

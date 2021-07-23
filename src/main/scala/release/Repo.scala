@@ -36,20 +36,20 @@ import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
 
-class Aether(opts: Opts) extends LazyLogging {
+class Repo(opts: Opts) extends LazyLogging {
 
-  lazy val newRepositoriesCentral: RemoteRepository = Aether.newDefaultRepository(Aether.centralUrl)
+  lazy val newRepositoriesCentral: RemoteRepository = Repo.newDefaultRepository(Repo.centralUrl)
 
-  lazy val mirrorNexus: RemoteRepository = Aether.newDefaultRepository(ReleaseConfig.default(opts.useDefaults).mirrorNexusUrl())
+  lazy val mirrorNexus: RemoteRepository = Repo.newDefaultRepository(ReleaseConfig.default(opts.useDefaults).mirrorNexusUrl())
 
-  lazy val workNexus: RemoteRepository = Aether.newDefaultRepository(ReleaseConfig.default(opts.useDefaults).workNexusUrl())
+  lazy val workNexus: RemoteRepository = Repo.newDefaultRepository(ReleaseConfig.default(opts.useDefaults).workNexusUrl())
 
   lazy val allRepos: Seq[RemoteRepository] = Seq(workNexus, mirrorNexus)
 
-  private def getVersionsOf(req: String) = Aether.getVersions(workNexus)(req)
+  private def getVersionsOf(req: String) = Repo.getVersions(workNexus)(req)
 
   def depDate(groupId: String, artifactId: String, version: String) =
-    Aether.depDate(workNexus)(groupId, artifactId, version)
+    Repo.depDate(workNexus)(groupId, artifactId, version)
 
   private[release] def isReachable(showTrace: Boolean = true): Boolean = {
     val httpclient = HttpClients.createDefault
@@ -89,7 +89,7 @@ class Aether(opts: Opts) extends LazyLogging {
 
 }
 
-object Aether extends LazyLogging {
+object Repo extends LazyLogging {
   logger.debug("init aether to suppress replayed slf4j logging - See also http://www.slf4j.org/codes.html#replay")
 
   val centralUrl = "https://repo1.maven.org/maven2/"

@@ -9,8 +9,8 @@ import japicmp.output.semver.SemverOut
 import javassist.CtClass
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClients
-import release.Aether.VersionString
 import release.Conf.Tracer
+import release.Repo.VersionString
 import release.Sgit.GitRemote
 import release.Util.pluralize
 import release.Xpath.InvalidPomXmlException
@@ -141,7 +141,7 @@ object Starter extends LazyLogging {
     val startBranchF = futureOf(global, askReleaseBranch())
 
     val gitFetchStatusF = futureOf(global, {
-      if(!skipFetch) {
+      if (!skipFetch) {
         val printFetching = new AtomicBoolean(true)
         while (!gitFetchF.wrapped.isCompleted) {
           Thread.sleep(100)
@@ -304,7 +304,7 @@ object Starter extends LazyLogging {
   def apidiff(inOpt: Opts, left: String, right: String): Opts = {
     println("")
     // TODO load api diff definition from file
-    val aether = new Aether(inOpt)
+    val aether = new Repo(inOpt)
     val workDirFile = new File(".").getAbsoluteFile // TODO get this from other location
 
     val pommod = PomMod.ofAether(workDirFile, inOpt, aether)
@@ -321,14 +321,15 @@ object Starter extends LazyLogging {
         println(s"download artifacts for diff of: ${groupId}:${artifactId}:(${left}..${right})")
 
         val ty = s":${ga._3}:"
-        val ar = Aether.tryResolveReq(aether.workNexus)(groupId + ":" + artifactId + ty + left).map(t => (t._1, t._2, ga._3))
-        val br = Aether.tryResolveReq(aether.workNexus)(groupId + ":" + artifactId + ty + right).map(t => (t._1, t._2, ga._3))
+        val ar = Repo.tryResolveReq(aether.workNexus)(groupId + ":" + artifactId + ty + left).map(t => (t._1, t._2, ga._3))
+        val br = Repo.tryResolveReq(aether.workNexus)(groupId + ":" + artifactId + ty + right).map(t => (t._1, t._2, ga._3))
         (ar, br)
       }).seq
     if (inOpt.apiDiff.pomOnly) {
       println("pom-only-mode")
 
       def extractPomFile(inFile: File, destFile: File): File = {
+        println(inFile.getAbsolutePath)
         destFile.mkdir()
         if (inFile.getName.endsWith(".jar") || inFile.getName.endsWith(".war")) {
           val jar = new JarFile(inFile)
@@ -732,7 +733,7 @@ object Starter extends LazyLogging {
       } else if (createFeatureBranch) {
         FeatureBranch.work(workDirFile, out, err, git, startBranch, askForRebase, releaseToolGit.headStatusValue(), config, opts)
       } else {
-        lazy val aether = new Aether(opts)
+        lazy val aether = new Repo(opts)
         Release.work(workDirFile, out, err, askForRebase, startBranch,
           git, termOs, shellWidth, releaseToolGit.headStatusValue(), config, aether, opts)
       }
@@ -746,6 +747,22 @@ object Starter extends LazyLogging {
 
   }
 
+  def transformRemoteToBuildUrls(list: Seq[Sgit.GitRemote], jenkinsBase: String, releaseName: String): Seq[String] = {
+    transformRemoteToBuildUrl(list, jenkinsBase).toSeq ++
+      transformRemoteToBuildUrlVersion(list, jenkinsBase, releaseName).toSeq
+  }
+
+  def transformRemoteToBuildUrlVersion(list: Seq[Sgit.GitRemote], jenkinsBase: String, releaseName: String): Option[String] = {
+    val extract = releaseName.replaceFirst("^[^0-9]", "").replaceFirst("[^0-9].*", "")
+    if (extract.isEmpty){
+      None
+    }  else {
+      transformRemoteToBuildUrl(list, jenkinsBase).map(r => {
+        r.replaceFirst("/$", s"-${extract}/")
+      })
+    }
+  }
+
   def transformRemoteToBuildUrl(list: Seq[Sgit.GitRemote], jenkinsBase: String): Option[String] = {
     val origin = list.find(_.name == "origin")
     val remote = origin.map(_.position)
@@ -757,29 +774,42 @@ object Starter extends LazyLogging {
       .map(in => jenkinsBase + "/job/" + in + "-tag/")
   }
 
-  def tagBuildUrl(git: Sgit, jenkinsBase: String): Option[String] = {
+  def preCheck(path: String): Option[String] = {
+
+    try {
+      val httpclient = HttpClients.createDefault
+      val httpGet = new HttpGet(path)
+      val response = httpclient.execute(httpGet)
+      try {
+        val statusCode = response.getStatusLine.getStatusCode
+        if (statusCode == 200) {
+          Some(path)
+        } else {
+          None
+        }
+      } finally {
+        response.close()
+      }
+    } catch {
+      case e: Exception => println("W: http problem: " + e.getClass.getCanonicalName + " => " + e.getMessage); None
+    }
+
+
+  }
+
+
+  def tagBuildUrl(git: Sgit, jenkinsBase: String, releaseName: String): Option[String] = {
     // TODO write intial jenkins url to ${HOME}/.nm-release-config; else read
     val list: Seq[GitRemote] = git.listRemotes()
-    val path = transformRemoteToBuildUrl(list, jenkinsBase)
-    if (path.isDefined) {
-      try {
-        val httpclient = HttpClients.createDefault
-        val httpGet = new HttpGet(path.get)
-        val response = httpclient.execute(httpGet)
-        try {
-          val statusCode = response.getStatusLine.getStatusCode
-          if (statusCode == 200) {
-            path
-          } else {
-            println("W: invalid response for (" + statusCode + ") " + path.get + " <- " + list)
-            println("W: > please create an ISBO ticket")
-            None
-          }
-        } finally {
-          response.close()
-        }
-      } catch {
-        case e: Exception => println("W: http problem: " + e.getClass.getCanonicalName + " => " + e.getMessage); None
+    val paths = transformRemoteToBuildUrls(list, jenkinsBase, releaseName)
+    if (paths.nonEmpty) {
+      val checked = paths.flatMap(preCheck)
+      if (checked.isEmpty) {
+        println("W: invalid response for " + paths + " <- " + list)
+        println("W: > please create an ISBO ticket")
+        None
+      } else {
+        Some(checked.head)
       }
     } else {
       None

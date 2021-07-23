@@ -51,6 +51,22 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
   }
 
   @Test
+  def testTransformRemoteToBuildUrl_core_version(): Unit = {
+    val result = Starter.transformRemoteToBuildUrlVersion(
+      Seq(GitRemote("origin", "ssh://someone@local-gerrit:29418/ishop/core/ishop-core-projects", "(fetch)")),
+      "https://jenkins-url", "v4444.43.43")
+    Assert.assertEquals("https://jenkins-url/job/ishop-core-ishop-core-projects-tag-4444/", result.get)
+  }
+
+  @Test
+  def testTransformRemoteToBuildUrl_core_version_None(): Unit = {
+    val result = Starter.transformRemoteToBuildUrlVersion(
+      Seq(GitRemote("origin", "ssh://someone@local-gerrit:29418/ishop/core/ishop-core-projects", "(fetch)")),
+      "https://jenkins-url", "v")
+    Assert.assertEquals(None, result)
+  }
+
+  @Test
   def test_nil_args(): Unit = {
     val result = doInit(Nil)
     assertMessageErr("usage: $0 \"$(dirname $0)\" \"$(pwd)\" \"${os}\" \"${TERM}\" \"${terminal_cols}\" \"${HOME}\" ${argLine}", result)
@@ -291,8 +307,8 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
     val gavUpMore3 = Gav3("groupId", "artifactIdUpMore", "4")
 
     val out = Starter.connectLeftRight((
-      Seq(gav0, gavUp0, gavRemove,gavUpMore0, gavUpMore1),
-      Seq(gav0, gavUp1, gavNew,gavUpMore2, gavUpMore3)))
+      Seq(gav0, gavUp0, gavRemove, gavUpMore0, gavUpMore1),
+      Seq(gav0, gavUp1, gavNew, gavUpMore2, gavUpMore3)))
 
 
     Assert.assertEquals(Seq(

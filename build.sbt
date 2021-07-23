@@ -44,20 +44,18 @@ libraryDependencies += "org.mockito" %% "mockito-scala" % "1.16.32" % "test"
 
 libraryDependencies += "com.novocode" % "junit-interface" % "0.11" % "test"
 
-unmanagedSourceDirectories in Compile := (scalaSource in Compile).value :: Nil
-
-assemblyMergeStrategy in assembly := {
+assembly / assemblyMergeStrategy := {
   case PathList("META-INF", _ @ _*) => MergeStrategy.discard
   case x => MergeStrategy.first
 }
 
-logLevel in assembly := Level.Warn
+assembly / logLevel := Level.Warn
 
-mainClass in assembly := Some("release.Starter")
+assembly / mainClass := Some("release.Starter")
 
-assemblyJarName in assembly := "release.jar"
+assembly / assemblyJarName := "release.jar"
 
-skip in publish := true
+publish / skip:= true
 
 // https://github.com/sbt/sbt-dependency-graph
 // sbt 'dependencyTree::toFile dep.tree -f'
