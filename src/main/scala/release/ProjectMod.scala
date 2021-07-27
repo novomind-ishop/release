@@ -19,7 +19,7 @@ object ProjectMod extends LazyLogging {
       if (showRead) {
         out.print("I: Reading pom.xmls ..")
       }
-      PomMod.ofAether(workDirFile, opts, aether)
+      PomMod.withRepo(workDirFile, opts, aether)
     } else if (SbtMod.buildSbt(workDirFile).canRead) {
       if (showRead) {
         out.print("I: Reading build.sbt ..")

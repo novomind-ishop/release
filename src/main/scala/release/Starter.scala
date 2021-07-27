@@ -304,10 +304,10 @@ object Starter extends LazyLogging {
   def apidiff(inOpt: Opts, left: String, right: String): Opts = {
     println("")
     // TODO load api diff definition from file
-    val aether = new Repo(inOpt)
+    val repo = new Repo(inOpt)
     val workDirFile = new File(".").getAbsoluteFile // TODO get this from other location
 
-    val pommod = PomMod.ofAether(workDirFile, inOpt, aether)
+    val pommod = PomMod.withRepo(workDirFile, inOpt, repo)
     val gavs = pommod.listSelf.map(mo => mo.gav())
 
     val gas = gavs
@@ -321,15 +321,14 @@ object Starter extends LazyLogging {
         println(s"download artifacts for diff of: ${groupId}:${artifactId}:(${left}..${right})")
 
         val ty = s":${ga._3}:"
-        val ar = Repo.tryResolveReq(aether.workNexus)(groupId + ":" + artifactId + ty + left).map(t => (t._1, t._2, ga._3))
-        val br = Repo.tryResolveReq(aether.workNexus)(groupId + ":" + artifactId + ty + right).map(t => (t._1, t._2, ga._3))
+        val ar = Repo.tryResolveReq(repo.workNexus)(groupId + ":" + artifactId + ty + left).map(t => (t._1, t._2, ga._3))
+        val br = Repo.tryResolveReq(repo.workNexus)(groupId + ":" + artifactId + ty + right).map(t => (t._1, t._2, ga._3))
         (ar, br)
       }).seq
     if (inOpt.apiDiff.pomOnly) {
       println("pom-only-mode")
 
       def extractPomFile(inFile: File, destFile: File): File = {
-        println(inFile.getAbsolutePath)
         destFile.mkdir()
         if (inFile.getName.endsWith(".jar") || inFile.getName.endsWith(".war")) {
           val jar = new JarFile(inFile)
@@ -367,8 +366,10 @@ object Starter extends LazyLogging {
           fSide.headOption.map(_.getParentFile).get
         } else if (inFile.getName.endsWith(".pom")) {
           if (inFile.exists()) {
-            Files.move(inFile.toPath, new File(inFile.getParentFile, "pom.xml").toPath)
-            inFile.getParentFile
+            val src = inFile.toPath
+            val target = new File(inFile.getParentFile, "pom.xml").toPath
+            Files.move(src, target)
+            target.toFile.getParentFile
           } else {
             throw new IllegalStateException("file not found " + inFile.getAbsolutePath)
           }
@@ -390,10 +391,10 @@ object Starter extends LazyLogging {
 
             val aPoms = extractPomFile(ar.get._1, Files.createTempDirectory("release-").toFile)
             val bPoms = extractPomFile(br.get._1, Files.createTempDirectory("release-").toFile)
-            val modA = PomMod.ofAether(aPoms, inOpt, aether, skipPropertyReplacement = true)
+            val modA = PomMod.withRepo(aPoms, inOpt, repo, skipPropertyReplacement = true, withSubPoms = false)
             val aDeps = modA.listDependecies
             val selfA = modA.selfDepsMod.map(_.gav().simpleGav())
-            val modB = PomMod.ofAether(bPoms, inOpt, aether, skipPropertyReplacement = true)
+            val modB = PomMod.withRepo(bPoms, inOpt, repo, skipPropertyReplacement = true, withSubPoms = false)
             val bDeps = modB.listDependecies
 
             val selfB = modB.selfDepsMod.map(_.gav().simpleGav())
@@ -801,7 +802,7 @@ object Starter extends LazyLogging {
   def tagBuildUrl(git: Sgit, jenkinsBase: String, releaseName: String): Option[String] = {
     // TODO write intial jenkins url to ${HOME}/.nm-release-config; else read
     val list: Seq[GitRemote] = git.listRemotes()
-    val paths = transformRemoteToBuildUrls(list, jenkinsBase, releaseName)
+    val paths = transformRemoteToBuildUrls(list, jenkinsBase, releaseName).distinct
     if (paths.nonEmpty) {
       val checked = paths.flatMap(preCheck)
       if (checked.isEmpty) {

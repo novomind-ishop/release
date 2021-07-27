@@ -23,7 +23,7 @@ import scala.annotation.tailrec
 import scala.collection.parallel.CollectionConverters._
 
 case class PomMod(file: File, aether: Repo, opts: Opts,
-                  skipPropertyReplacement: Boolean = false) extends ProjectMod with LazyLogging {
+                  skipPropertyReplacement: Boolean = false, withSubPoms: Boolean) extends ProjectMod with LazyLogging {
   logger.trace("init pomMod")
   private var depMap: Map[Dep, Node] = Map.empty
 
@@ -31,7 +31,8 @@ case class PomMod(file: File, aether: Repo, opts: Opts,
   if (!rootPom.canRead) {
     throw new PreconditionsException(file.toString + " seems to be no maven project")
   }
-  private val allRawPomFiles = Tracer.msgAround("read all poms", logger, () => allRawModulePomsFiles(Seq(file)))
+  private val allRawPomFiles = Tracer.msgAround("read all poms", logger,
+    () => PomMod.allRawModulePomsFiles(Seq(file), withSubPoms))
 
   private val raws: Seq[RawPomFile] = toRawPoms(allRawPomFiles)
   private[release] val allPomsDocs: Seq[Document] = raws.map(_.document).toList
@@ -408,16 +409,18 @@ case class RawPomFile(pomFile: File, document: Document, file: File) {
 object PomMod {
 
   def of(file: File, unnused: PrintStream, opts: Opts): PomMod = {
-    lazy val aether = new Repo(opts)
-    ofAether(file, opts, aether)
+    lazy val repo = new Repo(opts)
+    withRepo(file, opts, repo)
   }
 
-  def ofAetherForTests(file: File, aether: Repo, skipPropertyReplacement: Boolean = false): PomMod = {
-    PomMod(file, aether, Opts(), skipPropertyReplacement)
+  def withRepoForTests(file: File, repo: Repo, skipPropertyReplacement: Boolean = false,
+                       withSubPoms: Boolean= true): PomMod = {
+    PomMod(file, repo, Opts(), skipPropertyReplacement, withSubPoms)
   }
 
-  def ofAether(file: File, opts: Opts, aether: Repo, skipPropertyReplacement: Boolean = false): PomMod = {
-    PomMod(file, aether, opts, skipPropertyReplacement)
+  def withRepo(file: File, opts: Opts, repo: Repo, skipPropertyReplacement: Boolean = false,
+               withSubPoms: Boolean = true): PomMod = {
+    PomMod(file, repo, opts, skipPropertyReplacement, withSubPoms)
   }
   case class DepTree(content: String)
 
@@ -481,7 +484,7 @@ object PomMod {
     dep
   }
 
-  private[release] def allRawModulePomsFiles(rootFolders: Seq[File]): Seq[File] = {
+  private[release] def allRawModulePomsFiles(rootFolders: Seq[File], withSubPoms:Boolean): Seq[File] = {
 
     def subModuleNames(document: Document): Seq[String] = {
       Xpath.toSeq(document, "//project/modules/module").map(_.getTextContent)
@@ -499,12 +502,12 @@ object PomMod {
           new File(rootFolder, "pom.xml")
         }
         val document: Document = Xpath.pomDoc(pomFile)
-        if (isPomPacked(document)) {
+        if (withSubPoms && isPomPacked(document)) {
           val subModules = subModuleNames(document)
           val s = subModules.par.map(subModuleName => {
             new File(pomFile.getParentFile, subModuleName).getAbsoluteFile
           }).seq
-          pomFile +: allRawModulePomsFiles(s)
+          pomFile +: allRawModulePomsFiles(s, withSubPoms)
         } else {
           Seq(pomFile)
         }
