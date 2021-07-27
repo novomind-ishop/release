@@ -6,6 +6,9 @@ import release.ProjectMod.{Dep, Gav3, SelfRef}
 
 class SbtModTest extends AssertionsForJUnit {
 
+  def d(g: String, a: String, v: String, scope: String = "") =
+    Dep(SelfRef.undef, g, a, v, "", scope, "", "")
+
   @Test
   def scalaDeps(): Unit = {
     val scalaLib = Gav3("org.scala-lang", "scala-library", "2.13.6")
@@ -69,9 +72,6 @@ class SbtModTest extends AssertionsForJUnit {
         |
         |""".stripMargin.trim)
 
-    def d(g: String, a: String, v: String, scope: String = "") =
-      Dep(SelfRef.undef, g, a, v, "", scope, "", "")
-
     Assert.assertEquals(Seq(
       d("org.scala-lang", "scala-library", "2.13.0"),
       d("redis.clients", "jedis", "3"),
@@ -95,13 +95,23 @@ class SbtModTest extends AssertionsForJUnit {
         |
         |""".stripMargin.trim)
 
-    def d(g: String, a: String, v: String, scope: String = "") =
-      Dep(SelfRef.undef, g, a, v, "", scope, "", "")
-
     Assert.assertEquals(Seq(
       d("org.scala-lang", "scala3-library", "3.0.1"),
       d("org.scalatestplus", "junit-4-12_3", "3.1.2.1"),
 
+    ), value)
+  }
+
+  @Test
+  def testDoParseBuildProperties(): Unit = {
+    val value = SbtMod.SimpleParser.doParse(
+      """
+        |sbt.version=1.5.5
+        |
+        |""".stripMargin.trim)
+
+    Assert.assertEquals(Seq(
+      d("org.scala-sbt", "sbt", "1.5.5"),
     ), value)
   }
 

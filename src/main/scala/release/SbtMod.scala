@@ -10,14 +10,23 @@ import java.nio.file.Files
 import scala.jdk.CollectionConverters._
 import scala.util.parsing.combinator.RegexParsers
 
-case class SbtMod(file: File, aether: Repo, opts: Opts) extends ProjectMod {
+case class SbtMod(file: File, repo: Repo, opts: Opts) extends ProjectMod {
 
   val selfVersion: String = "n/a" // TODO
 
-  val listDependecies: Seq[ProjectMod.Dep] = Some(file)
-    .map(f => Files.readAllLines(f.toPath, StandardCharsets.UTF_8).asScala.mkString("\n"))
-    .map(SbtMod.SimpleParser.doParse)
-    .getOrElse(Nil)
+  def sbtFile(file: File): Seq[File] = {
+    val props = new File(new File(file.getParentFile, "project"), "build.properties")
+    if (props.exists()) {
+      Seq(props)
+    } else {
+      Nil
+    }
+  }
+
+  val listDependecies: Seq[ProjectMod.Dep] = (Seq(file) ++ sbtFile(file))
+    .map(f => Files.readAllLines(f.toPath, StandardCharsets.UTF_8)
+      .asScala.mkString("\n"))
+    .flatMap(SbtMod.SimpleParser.doParse)
 
   val listPluginDependencies: Seq[ProjectMod.PluginDep] = Nil // TODO
 
@@ -47,7 +56,7 @@ object SbtMod {
     new File(file, "build.sbt")
   }
 
-  def ofAether(workfolder: File, opts: Opts, aether: Repo): SbtMod = {
+  def withRepo(workfolder: File, opts: Opts, aether: Repo): SbtMod = {
     SbtMod(buildSbt(workfolder), aether, opts)
   }
 
@@ -62,6 +71,10 @@ object SbtMod {
 
       def sep = "[%]{1,2}".r ^^ (term => term)
 
+      def word = "[^ ]+".r ^^ (term => {
+        term
+      })
+
       def qWord = "[ ]+\"".r ~> "[^\"]+".r ~ "\"" ~ opt("[ ]+".r ~ sep) ^^ (term => {
         val a = term._2.map(_._2)
         val b = term._1._1
@@ -74,10 +87,16 @@ object SbtMod {
 
       def test = "[ ]+".r ~> "Test".r ^^ (term => (term, None))
 
-      var sVersion = "NNNAAAA"
+      var sVersion: Option[String] = None
+      var sbtVersionL: Option[String] = None
 
       def scalaVersion = "scalaVersion :=" ~> qWord ^^ (term => {
-        sVersion = term._1 // XXX side effect
+        sVersion = Some(term._1) // XXX side effect
+        term
+      })
+
+      def sbtVersion = "sbt.version=" ~> word ^^ (term => {
+        sbtVersionL = Some(term.stripLineEnd) // XXX side effect
         term
       })
 
@@ -86,8 +105,8 @@ object SbtMod {
           val addVersion = term.find(_._2.isDefined)
             .map(_ => {
               val suf = sVersion match {
-                case lv if lv.startsWith("3")=> sVersion.replaceFirst("\\.[0-9]+\\.[0-9]+$", "")
-                case lv => sVersion.replaceFirst("\\.[0-9]+$", "")
+                case lv if lv.get.startsWith("3") => lv.get.replaceFirst("\\.[0-9]+\\.[0-9]+$", "")
+                case lv => lv.get.replaceFirst("\\.[0-9]+$", "")
               }
               "_" + suf
             })
@@ -106,27 +125,37 @@ object SbtMod {
 
       })
 
-      val p = rep(scalaVersion | dep | ignore)
+      val p = rep(sbtVersion | scalaVersion | dep | ignore)
 
       val str = "\n" + in.linesIterator.map(_.trim).mkString("\n") + "\n"
       parseAll(p, str) match {
         case Success(vp, v) => {
           val scala = sVersion match {
-            case lv if lv.startsWith("3") => Dep(SelfRef.undef,
+            case None => Nil
+            case lv if lv.get.startsWith("3") => Seq(Dep(SelfRef.undef,
               groupId = "org.scala-lang",
               artifactId = "scala3-library",
-              version = sVersion,
-              "", "", "", "")
-            case lv => Dep(SelfRef.undef,
+              version = lv.get,
+              "", "", "", ""))
+            case lv => Seq(Dep(SelfRef.undef,
               groupId = "org.scala-lang",
               artifactId = "scala-library",
-              version = lv,
-              "", "", "", "")
+              version = lv.get,
+              "", "", "", ""))
+          }
+
+          val sbt = sbtVersionL match {
+            case None => Nil
+            case lv => Seq(Dep(SelfRef.undef,
+              groupId = "org.scala-sbt",
+              artifactId = "sbt",
+              version = lv.get,
+              "", "", "", ""))
           }
           val result = vp
             .filter(o => o.isInstanceOf[ProjectMod.Dep])
             .map(o => o.asInstanceOf[ProjectMod.Dep])
-          scala +: result
+          sbt ++ scala ++ result
         }
         case f: Failure => {
           logger.warn("", new IllegalStateException("failure: " + f.toString() + " >" + in + "<"))

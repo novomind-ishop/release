@@ -14,17 +14,17 @@ import scala.collection.parallel.CollectionConverters._
 
 object ProjectMod extends LazyLogging {
 
-  def read(workDirFile: File, out: PrintStream, opts: Opts, aether: Repo, showRead: Boolean = true): ProjectMod = {
+  def read(workDirFile: File, out: PrintStream, opts: Opts, repo: Repo, showRead: Boolean = true): ProjectMod = {
     if (PomMod.rootPom(workDirFile).canRead) {
       if (showRead) {
         out.print("I: Reading pom.xmls ..")
       }
-      PomMod.withRepo(workDirFile, opts, aether)
+      PomMod.withRepo(workDirFile, opts, repo)
     } else if (SbtMod.buildSbt(workDirFile).canRead) {
       if (showRead) {
         out.print("I: Reading build.sbt ..")
       }
-      SbtMod.ofAether(workDirFile, opts, aether)
+      SbtMod.withRepo(workDirFile, opts, repo)
     } else {
       throw new PreconditionsException(workDirFile.toString + " is no maven or sbt project")
     }
@@ -38,7 +38,6 @@ object ProjectMod extends LazyLogging {
   }
 
   def scalaDeps(gavs: Seq[Gav3])(gav: Gav3): Seq[Gav3] = {
-    // TODO check build.properties - https://mvnrepository.com/artifact/org.scala-sbt/sbt
     // TODO plugins.sbt - name ?
     val sGroupId = "org.scala-lang"
     val sArtifactId = "scala-library"
@@ -514,7 +513,7 @@ object ProjectMod extends LazyLogging {
 
 trait ProjectMod extends LazyLogging {
   val file: File
-  val aether: Repo
+  val repo: Repo
   val opts: Opts
   val selfVersion: String
 
@@ -529,7 +528,7 @@ trait ProjectMod extends LazyLogging {
     val depForCheck: Seq[Dep] = listDependeciesForCheck()
     val sdm = selfDepsMod
     ProjectMod.showDependencyUpdates(shellWidth, termOs, depUpOpts, workNexusUrl,
-      depForCheck, sdm, aether,
+      depForCheck, sdm, repo,
       out, err)
   }
 

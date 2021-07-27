@@ -21,9 +21,11 @@ import java.net.URI
 import java.nio.file.Files
 import java.time.LocalDateTime
 import java.util
+import java.util.Collections
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.jar.{JarEntry, JarFile}
+import java.util.zip.ZipException
 import scala.annotation.tailrec
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration.Duration
@@ -328,11 +330,29 @@ object Starter extends LazyLogging {
     if (inOpt.apiDiff.pomOnly) {
       println("pom-only-mode")
 
+      def jarElements(jf: File): Option[(JarFile, util.Enumeration[JarEntry])] = {
+        try {
+          val jar = new JarFile(jf)
+          val enumEntries = jar.entries
+          Some(jar, enumEntries)
+        } catch {
+          case e: ZipException => {
+            System.err.println("E: ZipException: " + e.getMessage + " " + jf.getAbsolutePath)
+            None
+          }
+          case e: Exception => {
+            e.printStackTrace()
+            None
+          }
+        }
+
+      }
+
       def extractPomFile(inFile: File, destFile: File): File = {
         destFile.mkdir()
         if (inFile.getName.endsWith(".jar") || inFile.getName.endsWith(".war")) {
-          val jar = new JarFile(inFile)
-          val enumEntries = jar.entries
+          val jO = jarElements(inFile).getOrElse((null, Collections.enumeration(Nil.asJava)))
+          val enumEntries = jO._2
           var fSide = Seq.empty[File]
           while (enumEntries.hasMoreElements) {
             val file: JarEntry = enumEntries.nextElement
@@ -345,7 +365,7 @@ object Starter extends LazyLogging {
             } else {
               try {
                 if (file.getName.endsWith("pom.xml")) {
-                  Using.resource(jar.getInputStream(file))(is => {
+                  Using.resource(jO._1.getInputStream(file))(is => {
                     Using.resource(new FileOutputStream(f))(fos => {
                       while (is.available > 0) {
                         fos.write(is.read)
@@ -755,9 +775,9 @@ object Starter extends LazyLogging {
 
   def transformRemoteToBuildUrlVersion(list: Seq[Sgit.GitRemote], jenkinsBase: String, releaseName: String): Option[String] = {
     val extract = releaseName.replaceFirst("^[^0-9]", "").replaceFirst("[^0-9].*", "")
-    if (extract.isEmpty){
+    if (extract.isEmpty) {
       None
-    }  else {
+    } else {
       transformRemoteToBuildUrl(list, jenkinsBase).map(r => {
         r.replaceFirst("/$", s"-${extract}/")
       })

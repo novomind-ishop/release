@@ -22,7 +22,7 @@ import javax.xml.transform.{OutputKeys, TransformerFactory}
 import scala.annotation.tailrec
 import scala.collection.parallel.CollectionConverters._
 
-case class PomMod(file: File, aether: Repo, opts: Opts,
+case class PomMod(file: File, repo: Repo, opts: Opts,
                   skipPropertyReplacement: Boolean = false, withSubPoms: Boolean) extends ProjectMod with LazyLogging {
   logger.trace("init pomMod")
   private var depMap: Map[Dep, Node] = Map.empty
