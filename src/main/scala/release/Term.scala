@@ -146,7 +146,7 @@ object Term {
   }
 
   object Os {
-    lazy val current: Os = {
+    lazy val getCurrent: Os = {
       System.getProperty("os.name") match {
         case "Windows 10" => Os.Windows
         case "Linux" => Os.Linux

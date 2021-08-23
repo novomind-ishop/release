@@ -1,12 +1,12 @@
 package release
 
 import org.junit.rules.TemporaryFolder
-import org.junit.{Assert, ComparisonFailure, Rule, Test}
+import org.junit.{Assert, ComparisonFailure, Ignore, Rule, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
 import org.w3c.dom._
 import release.PomChecker.ValidationException
 import release.PomMod.DepTree
-import release.PomModTest.{assertDeps, document, pomfile, _}
+import release.PomModTest._
 import release.ProjectMod._
 import release.Starter.Opts
 
@@ -423,17 +423,28 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
-  def writeSelf(): Unit = {
+  def writeSelf_sub_sub_tree(): Unit = {
     // GIVEN
-    val srcPoms = TestHelper.testResources("shop1")
-    val targetPoms = TestHelper.testResources("shop1")
+    val srcPoms = TestHelper.testResources("sub-sub-tree")
 
     // WHEN
-    PomMod.withRepoForTests(srcPoms, aether)
-      .writeTo(targetPoms)
+    val mod = PomMod.withRepoForTests(srcPoms, aether)
+    Util.deleteRecursive(srcPoms)
+    mod.writeTo(srcPoms)
 
-    // THEN
-    assert(Nil === TestHelper.localChanges())
+  }
+
+  @Test
+  @Ignore
+  def writeSelf(): Unit = {
+    // GIVEN
+    val srcPoms = new File("/Users/thomas/git/iscore")
+
+    // WHEN
+    val mod = PomMod.withRepoForTests(srcPoms, aether)
+    mod.changeVersion("BERT-SNAPSHOT")
+    mod.writeTo(srcPoms)
+
   }
 
   @Test
@@ -484,6 +495,7 @@ class PomModTest extends AssertionsForJUnit {
   @Test
   def depTreeFilename(): Unit = {
     // GIVEN
+    val path = new File(".").toPath.toAbsolutePath.normalize()
     val srcPoms = TestHelper.testResources("shop1")
     val pomMod = PomMod.withRepoForTests(srcPoms, aether)
 
@@ -491,8 +503,11 @@ class PomModTest extends AssertionsForJUnit {
     val treeFile: Option[String] = pomMod.depTreeFilename()
 
     // THEN
-    Assert.assertEquals(Seq("dep.tree", "anyshop-erp/dep.tree", "anyshop-shop/dep.tree"), pomMod.depTreeFilenames())
     Assert.assertEquals(Some("dep.tree"), treeFile)
+    Assert.assertEquals(Seq("src/test/resources/shop1/dep.tree",
+      "src/test/resources/shop1/anyshop-erp/dep.tree",
+      "src/test/resources/shop1/anyshop-shop/dep.tree"),
+      pomMod.depTreeFiles(treeFile, pomMod.rawSub).map(f => path.relativize(f.toPath).toString))
   }
 
   @Test
@@ -506,7 +521,7 @@ class PomModTest extends AssertionsForJUnit {
 
     // THEN
     Assert.assertEquals(Some("target/dep.tree"), treeFile)
-    Assert.assertEquals(Seq(), pomMod.depTreeFilenames())
+    Assert.assertEquals(Seq(), pomMod.depTreeFiles(treeFile, pomMod.rawSub))
   }
 
   @Test
@@ -1364,12 +1379,12 @@ class PomModTest extends AssertionsForJUnit {
     val writer: BufferedWriter = new BufferedWriter(new FileWriter(file))
     writer.write("hello")
     try {
-      Term.Os.current match {
+      Term.Os.getCurrent match {
         case Term.Os.Windows => {
           TestHelper.assertException("Windows tends to lock file handles." +
             " Try to find handle or DLL that locks the file. e.g. with Sysinternals Process Explorer",
             classOf[IllegalStateException], () => {
-              PomMod.writeContent(file, "asdf")
+              PomMod.writeContent(file.getParentFile)(file, "asdf")
             })
         }
         case _ => // do not test
@@ -1380,6 +1395,24 @@ class PomModTest extends AssertionsForJUnit {
       Assert.assertTrue("delete of file failed", file.delete())
     }
 
+  }
+
+  @Test
+  def testWriteParent(): Unit = {
+
+    TestHelper.assertException("/b must start with /a",
+      classOf[IllegalStateException], () => {
+        PomMod.writeContent(new File("/a"))(new File("/b"), "asdf")
+      })
+  }
+
+  @Test
+  def testWriteParent_relative(): Unit = {
+
+    TestHelper.assertException("/a/b/../.././a/b/. must start with /a/b/../.././b/a/.",
+      classOf[IllegalStateException], () => {
+        PomMod.writeContent(new File("/a/b/../.././b/a/."))(new File("/a/b/../.././a/b/."), "asdf")
+      })
   }
 
   @Test
@@ -1665,25 +1698,25 @@ object PomModTest {
 
     def create(): File = {
       val rootDir = temp.newFolder("release-pom-mod-test")
-      PomMod.writePom(new File(rootDir, "pom.xml"), root)
+      PomMod.writePom(rootDir)(new File(rootDir, "pom.xml"), root)
       if (treeFileContent != "") {
-        PomMod.writeContent(new File(rootDir, "dep.tree"), treeFileContent)
+        PomMod.writeContent(rootDir)(new File(rootDir, "dep.tree"), treeFileContent)
       }
       subs.foreach(in => {
         val sub = new File(rootDir, in._1)
         sub.mkdir()
-        PomMod.writePom(new File(sub, "pom.xml"), in._2)
+        PomMod.writePom(rootDir)(new File(sub, "pom.xml"), in._2)
         if (treeFileContent != "") {
-          PomMod.writeContent(new File(sub, "dep.tree"), in._3)
+          PomMod.writeContent(rootDir)(new File(sub, "dep.tree"), in._3)
         }
 
         if (in._4 != Nil) {
           in._4.foreach(in => {
             val subsub = new File(sub, in._1)
             subsub.mkdir()
-            PomMod.writePom(new File(subsub, "pom.xml"), in._2)
+            PomMod.writePom(rootDir)(new File(subsub, "pom.xml"), in._2)
             if (treeFileContent != "") {
-              PomMod.writeContent(new File(subsub, "dep.tree"), in._3)
+              PomMod.writeContent(rootDir)(new File(subsub, "dep.tree"), in._3)
             }
           })
 

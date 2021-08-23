@@ -549,7 +549,7 @@ object Starter extends LazyLogging {
     val config = ReleaseConfig.default(opts.useDefaults)
     val termOs: Term = Term.select(argSeq(3), argSeq(2), opts.simpleChars)
 
-    val home = Term.Os.current match {
+    val home = Term.Os.getCurrent match {
       case Term.Os.Windows => argSeq(5).replace('/', '\\')
       case _ => argSeq(5)
     }

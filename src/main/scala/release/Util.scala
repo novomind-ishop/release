@@ -109,7 +109,7 @@ object Util {
     try {
       fn.apply(())
     } catch {
-      case e@(_: FileSystemException | _: IOException) => Term.Os.current match {
+      case e@(_: FileSystemException | _: IOException) => Term.Os.getCurrent match {
         case Term.Os.Windows => throw new IllegalStateException("Windows tends to lock file handles." +
           " Try to find handle or DLL that locks the file. e.g. with Sysinternals Process Explorer", e)
         case _ => throw e;

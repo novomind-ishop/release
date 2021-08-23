@@ -8,7 +8,7 @@ scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xfatal-warning
 
 logLevel := Level.Warn
 
-libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.4-groovyless" // 283 k
+libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.5" // 283 k
 
 libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.9.4" // 30 k
 
@@ -24,7 +24,7 @@ libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-transport-f
 
 libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-transport-http" % "1.7.1"
 
-libraryDependencies += "org.apache.maven" % "maven-resolver-provider" % "3.8.1"
+libraryDependencies += "org.apache.maven" % "maven-resolver-provider" % "3.8.2"
 
 libraryDependencies += "org.jline" % "jline-terminal" % "3.20.0"
 

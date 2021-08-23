@@ -5,14 +5,14 @@ import com.typesafe.scalalogging.LazyLogging
 import org.w3c.dom.{Document, Node}
 import release.Conf.Tracer
 import release.PomChecker.ValidationException
-import release.PomMod.{DepTree, _}
+import release.PomMod._
 import release.ProjectMod._
 import release.Starter.{Opts, PreconditionsException}
 import release.Util.pluralize
 
 import java.io.{ByteArrayOutputStream, File, PrintStream}
 import java.nio.charset.StandardCharsets
-import java.nio.file.Files
+import java.nio.file.{Files, Path}
 import java.time.LocalDate
 import java.time.temporal.WeekFields
 import java.util.Locale
@@ -34,7 +34,7 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
   private val allRawPomFiles = Tracer.msgAround("read all poms", logger,
     () => PomMod.allRawModulePomsFiles(Seq(file), withSubPoms))
 
-  private val raws: Seq[RawPomFile] = toRawPoms(allRawPomFiles)
+  private[release] val raws: Seq[RawPomFile] = toRawPoms(allRawPomFiles)
   private[release] val allPomsDocs: Seq[Document] = raws.map(_.document).toList
 
   private def depU(d: Map[Dep, Node]): Unit = {
@@ -113,9 +113,15 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
     PomMod.dependecyPlugins(listPluginDependencies)
   }
 
-  private[release] var depTreeFileContents: Map[File, DepTree] = depTreeFiles()
+  private[release] def rawSub(f: String): Seq[String] = {
+    val ouu = raws.map(_.subfolder + "/" + f)
+    ouu
+  }
+
+  private[release] var depTreeFileContents: Map[File, DepTree] = depTreeFiles(depTreeFilename(), rawSub)
     .map(f => (f, DepTree(Util.read(f))))
     .filterNot(in => in._1.getParentFile.getName == ".")
+    .sortBy(_._1)
     .foldLeft(Map.empty[File, DepTree])(_ + _)
 
   logger.trace("pomMod val/var init")
@@ -258,24 +264,15 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
 
   }
 
-  def depTreeFilenames(): Seq[String] = {
-    depTreeFiles().map(f => {
-      if (f.getParentFile.getName != file.getName) {
-        val prefix = f.getParentFile.getName + "/" match {
-          case "./" => ""
-          case other => other
-        }
-        prefix + f.getName
-      } else {
-        f.getName
-      }
-    }).distinct
-  }
-
-  def depTreeFiles(): Seq[File] = {
-    depTreeFilename().map(f => Seq(f) ++ raws.map(_.subfolder + "/" + f))
-      .map(in => in.map(f => new File(file, f).getAbsoluteFile).filter(_.exists()))
+  def depTreeFiles(theDepTreeFilename: Option[String], allFn: String => Seq[String]): Seq[File] = {
+    val result = theDepTreeFilename
+      .map(f => allFn.apply(f))
+      .map(in => in.map(f => new File(f).getAbsoluteFile).filter(_.exists()))
       .getOrElse(Nil)
+      .map(c => c.toPath.normalize())
+      .distinct
+      .map(_.toFile)
+    result
   }
 
   def depTreeFilenameList(): Seq[String] = {
@@ -300,14 +297,14 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
   def writeTo(targetFolder: File): Unit = {
     raws.par.foreach(sub => {
       val path = file.toPath.relativize(sub.pomFile.toPath)
-      PomMod.writePom(targetFolder.toPath.resolve(path).toFile, sub.document)
+      PomMod.writePom(targetFolder)(targetFolder.toPath.resolve(path).toFile, sub.document)
     })
 
     depTreeFileContents
       .foreach(fe => {
-        val path = file.toPath.relativize(fe._1.toPath)
-        val tF = targetFolder.toPath.resolve(path).toFile
-        PomMod.writeContent(tF, fe._2.content)
+        val path = file.toPath.normalize().relativize(fe._1.toPath.normalize()).normalize()
+        val tF = targetFolder.toPath.resolve(path).toAbsolutePath.normalize().toFile
+        PomMod.writeContent(targetFolder)(tF, fe._2.content)
       })
   }
 
@@ -395,9 +392,10 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
 
 case class RawPomFile(pomFile: File, document: Document, file: File) {
   val subfolder: String = if (pomFile.getParentFile == file) {
-    "."
+    file.toPath.toAbsolutePath.normalize().toFile.getAbsolutePath
   } else {
-    pomFile.getAbsoluteFile.getParentFile.getName
+    pomFile.toPath.toAbsolutePath
+      .getParent.normalize().toFile.getAbsolutePath
   }
 
   lazy val selfDep: Dep = PomMod.selfDep(_ => ())(document)
@@ -414,7 +412,7 @@ object PomMod {
   }
 
   def withRepoForTests(file: File, repo: Repo, skipPropertyReplacement: Boolean = false,
-                       withSubPoms: Boolean= true): PomMod = {
+                       withSubPoms: Boolean = true): PomMod = {
     PomMod(file, repo, Opts(), skipPropertyReplacement, withSubPoms)
   }
 
@@ -422,6 +420,7 @@ object PomMod {
                withSubPoms: Boolean = true): PomMod = {
     PomMod(file, repo, opts, skipPropertyReplacement, withSubPoms)
   }
+
   case class DepTree(content: String)
 
   private val xPathToProjectGroupId = "//project/groupId"
@@ -484,7 +483,7 @@ object PomMod {
     dep
   }
 
-  private[release] def allRawModulePomsFiles(rootFolders: Seq[File], withSubPoms:Boolean): Seq[File] = {
+  private[release] def allRawModulePomsFiles(rootFolders: Seq[File], withSubPoms: Boolean): Seq[File] = {
 
     def subModuleNames(document: Document): Seq[String] = {
       Xpath.toSeq(document, "//project/modules/module").map(_.getTextContent)
@@ -501,7 +500,7 @@ object PomMod {
         } else {
           new File(rootFolder, "pom.xml")
         }
-        val document: Document = Xpath.pomDoc(pomFile)
+        val document: Document = Xpath.pomDoc(pomFile.toPath.normalize().toFile)
         if (withSubPoms && isPomPacked(document)) {
           val subModules = subModuleNames(document)
           val s = subModules.par.map(subModuleName => {
@@ -578,7 +577,7 @@ object PomMod {
         } else {
           if (distinct.isEmpty) {
             input
-          }  else if (allReplacemdents.size == 1) {
+          } else if (allReplacemdents.size == 1) {
             Util.only(allReplacemdents, "should never happen")
           } else {
             Util.only(distinct.sortBy(_.count(_ == '$')).headOption.toList, "should not happen")
@@ -736,8 +735,8 @@ object PomMod {
     toString(doc)
   }
 
-  private[release] def writePom(file: File, document: Document): Unit = {
-    PomMod.writeContent(file, PomMod.toString(document) + "\n")
+  private[release] def writePom(targetFolder:File)(file: File, document: Document): Unit = {
+    PomMod.writeContent(targetFolder)(file, PomMod.toString(document) + "\n")
   }
 
   private[release] def toString(doc: Document): String = {
@@ -901,7 +900,10 @@ object PomMod {
     }
   }
 
-  private[release] def writeContent(file: File, text: String): Unit = {
+  private[release] def writeContent(parent:File)(file: File, text: String): Unit = {
+   if (!file.toPath.toAbsolutePath.normalize().startsWith(parent.toPath.toAbsolutePath().normalize())) {
+    throw new IllegalStateException(s"${file.getAbsolutePath} must start with ${parent.getAbsolutePath}")
+   }
     Util.handleWindowsFilesystem { _ =>
       if (Files.exists(file.toPath)) {
         Files.delete(file.toPath)

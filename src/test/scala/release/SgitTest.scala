@@ -20,7 +20,7 @@ class SgitTest extends AssertionsForJUnit {
   def testSelectGitCmd(): Unit = {
     val git = Sgit.selectedGitCmd(System.err, None)
 
-    Term.Os.current match {
+    Term.Os.getCurrent match {
       case Term.Os.Windows => {
         Assert.assertEquals(Seq("C:\\Programme\\Git\\bin\\git.exe"), git)
       }
@@ -416,7 +416,7 @@ class SgitTest extends AssertionsForJUnit {
         })
     }
 
-    Term.Os.current match {
+    Term.Os.getCurrent match {
       // TODO a git version change in 2.21
       //   failed: expected:<...r does not match any[.]' git-err: 'error: f...> but was:<...r does not match any[]' git-err: 'error: f...>
       case Term.Os.Windows => {
@@ -666,7 +666,7 @@ class SgitTest extends AssertionsForJUnit {
     gitB.addRemote("origin", "ssh://none@any-gerrit:29418/ishop/user/anyone/sonar-demo")
     val triedUnit = gitB.tryFetchAll()
     if (triedUnit.isFailure && triedUnit.failed.get.getMessage.contains("publickey")) {
-      Term.Os.current match {
+      Term.Os.getCurrent match {
         case Term.Os.Darwin => {
           TestHelper.assertException("Nonzero exit value: 128; git --no-pager push -q -u origin master:refs/heads/master; " +
             "git-err: 'none@any-gerrit: Permission denied (publickey).' " +
