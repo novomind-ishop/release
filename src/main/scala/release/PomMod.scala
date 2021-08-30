@@ -12,7 +12,7 @@ import release.Util.pluralize
 
 import java.io.{ByteArrayOutputStream, File, PrintStream}
 import java.nio.charset.StandardCharsets
-import java.nio.file.{Files, Path}
+import java.nio.file.Files
 import java.time.LocalDate
 import java.time.temporal.WeekFields
 import java.util.Locale
@@ -245,6 +245,27 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
     })
   }
 
+  def changeDependecyVersion(patch: Seq[(Gav3, String)]): Unit = {
+    println("@Beta: update all dependecies to latest")
+    val allTo = listDependeciesForCheck()
+    val toUp = allTo.flatMap(d => {
+      val ups = patch.filter(pe => pe._1 == d.gav().simpleGav())
+      if (ups.isEmpty) {
+        None
+      } else {
+        Some((d, Util.only(ups.map(_._2),  "only one update expected")))
+      }
+    })
+
+    raws.foreach(d => {
+      toUp.foreach(pc => {
+        PomMod.applyVersionTo(d, Seq(pc._1), pc._2)
+      })
+    })
+    println("HINT: you have uncommited changes")
+    println("HINT: create trees manually")
+  }
+
   def changeVersion(newVersion: String): Unit = {
     raws.foreach(d => {
       if (d.pomFile.getParentFile == file) {
@@ -409,11 +430,6 @@ object PomMod {
   def of(file: File, unnused: PrintStream, opts: Opts): PomMod = {
     lazy val repo = new Repo(opts)
     withRepo(file, opts, repo)
-  }
-
-  def withRepoForTests(file: File, repo: Repo, skipPropertyReplacement: Boolean = false,
-                       withSubPoms: Boolean = true): PomMod = {
-    PomMod(file, repo, Opts(), skipPropertyReplacement, withSubPoms)
   }
 
   def withRepo(file: File, opts: Opts, repo: Repo, skipPropertyReplacement: Boolean = false,
@@ -735,7 +751,7 @@ object PomMod {
     toString(doc)
   }
 
-  private[release] def writePom(targetFolder:File)(file: File, document: Document): Unit = {
+  private[release] def writePom(targetFolder: File)(file: File, document: Document): Unit = {
     PomMod.writeContent(targetFolder)(file, PomMod.toString(document) + "\n")
   }
 
@@ -900,10 +916,10 @@ object PomMod {
     }
   }
 
-  private[release] def writeContent(parent:File)(file: File, text: String): Unit = {
-   if (!file.toPath.toAbsolutePath.normalize().startsWith(parent.toPath.toAbsolutePath().normalize())) {
-    throw new IllegalStateException(s"${file.getAbsolutePath} must start with ${parent.getAbsolutePath}")
-   }
+  private[release] def writeContent(parent: File)(file: File, text: String): Unit = {
+    if (!file.toPath.toAbsolutePath.normalize().startsWith(parent.toPath.toAbsolutePath().normalize())) {
+      throw new IllegalStateException(s"${file.getAbsolutePath} must start with ${parent.getAbsolutePath}")
+    }
     Util.handleWindowsFilesystem { _ =>
       if (Files.exists(file.toPath)) {
         Files.delete(file.toPath)

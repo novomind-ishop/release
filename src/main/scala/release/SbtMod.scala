@@ -1,7 +1,7 @@
 package release
 
 import com.typesafe.scalalogging.LazyLogging
-import release.ProjectMod.SelfRef
+import release.ProjectMod.{Gav3, SelfRef}
 import release.Starter.Opts
 
 import java.io.File
@@ -48,6 +48,8 @@ case class SbtMod(file: File, repo: Repo, opts: Opts) extends ProjectMod {
   def writeTo(targetFolder: File): Unit = throw new UnsupportedOperationException()
 
   def changeVersion(newVersion: String): Unit = throw new UnsupportedOperationException()
+
+  def changeDependecyVersion(patch: Seq[(Gav3, String)]): Unit = throw new UnsupportedOperationException()
 
   def depTreeFilenameList(): Seq[String] = throw new UnsupportedOperationException()
 }
@@ -208,6 +210,7 @@ object SbtMod {
               case _ => throw new IllegalStateException("sdf")
             }
           }
+
           val firstWarn = new AtomicBoolean(true)
           val result = vp
             .map(o => {
@@ -233,7 +236,7 @@ object SbtMod {
               }
               o
             })
-            .collect({case e:SbtMod.Dep => e})
+            .collect({ case e: SbtMod.Dep => e })
             .map(d => ProjectMod.Dep(SelfRef.undef,
               groupId = eval(allVals)(d.groupId),
               artifactId = eval(allVals)(d.artifactId),

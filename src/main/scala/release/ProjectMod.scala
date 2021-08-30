@@ -3,7 +3,7 @@ package release
 import com.google.common.base.Stopwatch
 import com.typesafe.scalalogging.LazyLogging
 import release.PomMod.{abbreviate, unmanged}
-import release.ProjectMod.{Dep, PluginDep}
+import release.ProjectMod.{Dep, Gav3, PluginDep}
 import release.Starter.{Opts, OptsDepUp, PreconditionsException}
 
 import java.io.{File, PrintStream}
@@ -13,6 +13,19 @@ import scala.annotation.tailrec
 import scala.collection.parallel.CollectionConverters._
 
 object ProjectMod extends LazyLogging {
+
+  def toUpdats(refs: Seq[(GavWithRef, (Seq[String], Duration))], fx: (Gav3, Seq[String]) => String): Seq[(Gav3, String)] = {
+    refs.map(in => {
+      (in._1.gav.simpleGav(), fx.apply(in._1.gav.simpleGav(), in._2._1))
+    }).distinct
+  }
+
+  def rangeFnOf(in: String): (Gav3, Seq[String]) => String = {
+    // TODO later
+    (a, b) => b.last
+  }
+
+  case class GavWithRef(pomRef: SelfRef, gav: Gav)
 
   def read(workDirFile: File, out: PrintStream, opts: Opts, repo: Repo, showRead: Boolean = true): ProjectMod = {
     if (PomMod.rootPom(workDirFile).canRead) {
@@ -350,7 +363,7 @@ object ProjectMod extends LazyLogging {
 
   def showDependencyUpdates(shellWidth: Int, termOs: Term, depUpOpts: OptsDepUp, workNexusUrl: String,
                             rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], aether: Repo,
-                            out: PrintStream, err: PrintStream): Unit = {
+                            out: PrintStream, err: PrintStream): Seq[(GavWithRef, (Seq[String], Duration))] = {
     val now = LocalDate.now()
     val stopw = Stopwatch.createStarted()
     out.println("I: checking dependecies against nexus - please wait")
@@ -385,8 +398,6 @@ object ProjectMod extends LazyLogging {
 
     out.println(s"I: checked ${value.size} dependecies in ${stopw.elapsed(TimeUnit.MILLISECONDS)}ms (${now.toString})")
 
-    case class GavWithRef(pomRef: SelfRef, gavWithDetailsFormatted: String)
-
     // TODO move Version check to here
 
     val checkedUpdates: Map[Gav3, (Seq[String], Duration)] = updates.map(gavAndVersion => {
@@ -399,7 +410,7 @@ object ProjectMod extends LazyLogging {
 
     val allWithUpdate: Seq[(GavWithRef, (Seq[String], Duration))] = relevant
       .map(in => {
-        val ref = GavWithRef(in.pomRef, in.gavWithDetailsFormatted)
+        val ref = GavWithRef(in.pomRef, in.gav())
         val a: (Seq[String], Duration) = checkedUpdates.getOrElse(in.gav().simpleGav(), (Nil, Duration.ZERO))
         (ref, a)
       })
@@ -433,9 +444,9 @@ object ProjectMod extends LazyLogging {
           ""
         }
         if (majorVersions != Nil) {
-          out.println(ch("╠═╦═ ", "+-+- ") + subElement._1.gavWithDetailsFormatted)
+          out.println(ch("╠═╦═ ", "+-+- ") + subElement._1.gav.formatted)
         } else {
-          out.println(ch("╠═══ ", "+--- ") + subElement._1.gavWithDetailsFormatted)
+          out.println(ch("╠═══ ", "+--- ") + subElement._1.gav.formatted)
         }
 
         if (majorVersions.size == 1) {
@@ -507,7 +518,7 @@ object ProjectMod extends LazyLogging {
       }
       out.println(s"libyears: ${period.getYears}.${period.getMonths} (${sum.toDays} days)")
     }
-
+    allWithUpdate
   }
 
 }
@@ -528,9 +539,19 @@ trait ProjectMod extends LazyLogging {
                             out: PrintStream, err: PrintStream): Unit = {
     val depForCheck: Seq[Dep] = listDependeciesForCheck()
     val sdm = selfDepsMod
-    ProjectMod.showDependencyUpdates(shellWidth, termOs, depUpOpts, workNexusUrl,
+    val result = ProjectMod.showDependencyUpdates(shellWidth, termOs, depUpOpts, workNexusUrl,
       depForCheck, sdm, repo,
       out, err)
+    if (depUpOpts.changeToLatest) {
+      val localDepUpFile = new File(file, ".release-dependency-updates")
+      val fn: (Gav3, Seq[String]) => String = if (localDepUpFile.canRead) {
+        ProjectMod.rangeFnOf(Util.read(localDepUpFile))
+      } else {
+        (_, b) => b.last
+      }
+      changeDependecyVersion(ProjectMod.toUpdats(result, fn))
+      writeTo(file)
+    }
   }
 
   private[release] def replacedPropertyOf(string: String) = {
@@ -574,6 +595,8 @@ trait ProjectMod extends LazyLogging {
   def writeTo(targetFolder: File): Unit
 
   def changeVersion(newVersion: String): Unit
+
+  def changeDependecyVersion(patch: Seq[(Gav3, String)]): Unit
 
   def depTreeFilenameList(): Seq[String]
 }

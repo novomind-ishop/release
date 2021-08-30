@@ -213,6 +213,7 @@ object Starter extends LazyLogging {
   case class OptsDepUp(showDependencyUpdates: Boolean = false, showHelp: Boolean = false,
                        hideLatest: Boolean = true, versionRangeLimit: Integer = 3,
                        hideStageVersions: Boolean = true, showLibYears: Boolean = false,
+                       changeToLatest:Boolean = false,
                        filter: Option[Regex] = None,
                        invalids: Seq[String] = Nil)
 
@@ -226,6 +227,7 @@ object Starter extends LazyLogging {
       case "--no-filter" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts
         .copy(hideStageVersions = false, hideLatest = false)))
       case "--show-libyears" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(showLibYears = true)))
+      case "--create-patch" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(changeToLatest = true)))
       // --
       case string :: Nil => argsDepRead(Nil, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(invalids = inOpt.depUpOpts.invalids :+ string)))
       case string :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(invalids = inOpt.depUpOpts.invalids :+ string)))
@@ -707,6 +709,7 @@ object Starter extends LazyLogging {
             "Please set to '$ git config --global core.autocrlf input'."
           val options = Seq("Change core.autocrlf globaly to 'input'", "Abort release", "Continue")
 
+          @tailrec
           def autoCrlfCheck(): Unit = {
             val result = Term.readChooseOneOf(out, msg, options, opts, Console.in)
             if (result == options(1)) {

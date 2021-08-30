@@ -600,6 +600,7 @@ object Release extends LazyLogging {
       if (snapState.nonEmpty) {
         out.println("")
         // TODO later autofix
+        // mod.changeDependecyVersion()
         out.println("Snapshots found for (please fix manually in pom.xml (remove -SNAPSHOT in most cases)):")
       }
 
