@@ -41,7 +41,7 @@ object ProjectMod extends LazyLogging {
     // TODO plugins.sbt - name ?
     val sGroupId = "org.scala-lang"
     val sArtifactId = "scala-library"
-    val s3ArtifactId = "scala3-library"
+    val s3ArtifactId = "scala3-library_3"
     val sFind = gavs.find(gavk => gavk.groupId == sGroupId &&
       (gavk.artifactId == sArtifactId || gavk.artifactId == s3ArtifactId))
     if (sFind.isDefined) {
@@ -97,6 +97,7 @@ object ProjectMod extends LazyLogging {
       .filterNot(_.startsWith("2003"))
       .filterNot(_.startsWith("2004"))
       .filterNot(_.endsWith("0.11.0-sshd-314-1")) // org.apache.sshd:sshd-sftp
+      .filterNot(_.endsWith("-NIGHTLY")) // org.scala-lang:scala3-library_3
       .filterNot(_.endsWith("-PUBLISHED-BY-MISTAKE"))
 
     val result = if (inVersions.contains(gav.version)) {

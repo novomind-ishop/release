@@ -28,7 +28,7 @@ class SbtModTest extends AssertionsForJUnit {
 
   @Test
   def scalaDeps3(): Unit = {
-    val scalaLib = Gav3("org.scala-lang", "scala3-library", "3.0.1")
+    val scalaLib = Gav3("org.scala-lang", "scala3-library_3", "3.0.1")
     val catsEffectM3 = Gav3("org.typelevel", "cats-effect_2.13.0-M5", "1.4.0")
     val catsCore = Gav3("org.typelevel", "cats-core_2.12", "1.4.0")
     val gavs: Seq[Gav3] = Seq(scalaLib, catsEffectM3, catsCore)
@@ -53,7 +53,7 @@ class SbtModTest extends AssertionsForJUnit {
 
   @Test
   def testDoParse(): Unit = {
-    val value = SbtMod.SimpleParser.doParse(
+    val value = SbtMod.SimpleParser.doParse(strict = true)(
       """
         |version := "1.0"
         |
@@ -85,7 +85,7 @@ class SbtModTest extends AssertionsForJUnit {
 
   @Test
   def testDoParse3(): Unit = {
-    val value = SbtMod.SimpleParser.doParse(
+    val value = SbtMod.SimpleParser.doParse(strict = true)(
       """
         |version := "1.0"
         |
@@ -96,15 +96,42 @@ class SbtModTest extends AssertionsForJUnit {
         |""".stripMargin.trim)
 
     Assert.assertEquals(Seq(
-      d("org.scala-lang", "scala3-library", "3.0.1"),
+      d("org.scala-lang", "scala3-library_3", "3.0.1"),
       d("org.scalatestplus", "junit-4-12_3", "3.1.2.1"),
 
     ), value)
   }
 
   @Test
+  def testDoParse_val(): Unit = {
+    val value = SbtMod.SimpleParser.doParse(strict = true)(
+      """
+        |version := "1.0"
+        |
+        |scalaVersion := "3.0.1"
+        |
+        |val vers = "a.b.c"
+        |
+        | // upsi
+        |
+        |scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xfatal-warnings")
+        |
+        |publish / skip := true
+        |
+        |libraryDependencies += "org.scalatestplus" %% "junit-4-12" % vers % Test
+        |
+        |""".stripMargin.trim)
+
+    Assert.assertEquals(Seq(
+      d("org.scala-lang", "scala3-library_3", "3.0.1"),
+      d("org.scalatestplus", "junit-4-12_3", "a.b.c"),
+
+    ), value)
+  }
+
+  @Test
   def testDoParseBuildProperties(): Unit = {
-    val value = SbtMod.SimpleParser.doParse(
+    val value = SbtMod.SimpleParser.doParse(strict = true)(
       """
         |sbt.version=1.5.5
         |
