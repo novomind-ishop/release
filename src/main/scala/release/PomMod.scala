@@ -253,7 +253,7 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
       if (ups.isEmpty) {
         None
       } else {
-        Some((d, Util.only(ups.map(_._2),  "only one update expected")))
+        Some((d, Util.only(ups.map(_._2), "only one update expected")))
       }
     })
 
@@ -720,7 +720,7 @@ object PomMod {
   }
 
   private def filterBy(doc: Document, sGroupId: String, sArtifactId: String, sVersionId: Option[String]): Seq[Node] = {
-    Xpath.toSeq(doc, "//dependencies/dependency").filter(node => {
+    (Xpath.toSeq(doc, "//plugins/plugin") ++ Xpath.toSeq(doc, "//dependencies/dependency")).filter(node => {
 
       val gavElements = Xpath.toSeqNodes(node.getChildNodes)
 
@@ -804,7 +804,7 @@ object PomMod {
 
     def childNodesByExternalKey(depNode: Node): Seq[Node] = {
       Xpath.toSeqNodes(depNode.getChildNodes)
-        .filter(u => u.getNodeName == key && !u.getTextContent.isEmpty)
+        .filter(u => u.getNodeName == key && u.getTextContent.nonEmpty)
     }
 
     val tt = ga.flatMap(in => filterBy(raw.document, in._1, in._2, None))
