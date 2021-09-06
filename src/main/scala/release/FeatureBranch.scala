@@ -49,7 +49,7 @@ object FeatureBranch {
         |Releasetool-sign: %s
         |Releasetool-sha1: %s""".stripMargin.format(config.branchPrefix(), featureWitoutSnapshot,
         msgs,
-        config.signedOfBy(), Starter.sign(), toolSh1), mod.depTreeFilenameList())
+        config.signedOfBy(), Starter.sign(sgit), toolSh1), mod.depTreeFilenameList())
 
     out.println(". done")
     out.println("To push this branch to remote: $ git push --set-upstream origin " + featureBranchName)

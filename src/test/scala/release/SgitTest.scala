@@ -471,6 +471,8 @@ class SgitTest extends AssertionsForJUnit {
     gitA.add(SgitTest.testFile(testRepoA, "test"))
 
     Assert.assertEquals(Seq("A test"), gitA.localChanges())
+    Assert.assertEquals(Seq("diff --git a/test b/test", "new file mode 100644"), gitA.diffSafe())
+    Assert.assertEquals("881b90dfca6078fea145fc33cf7f5b7b656739f1", Starter.sign(gitA))
     gitA.commitAll("add test")
     Assert.assertEquals(Seq("Change-Id: I0000000000000000000000000000000000000000"), gitA.commitMessageBody("HEAD"))
     Assert.assertEquals(Nil, gitA.localChanges())
@@ -597,8 +599,17 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertTrue(gitB.hasChangesToPush)
     Assert.assertFalse(gitB.hasLocalChanges)
     Util.write(pomFile, Seq("a"))
-    Util.write(subPomFile, Seq("a"))
+    Util.write(subPomFile, Seq("a", "b"))
     Assert.assertTrue(gitB.hasLocalChanges)
+    Assert.assertEquals(Seq(
+      "diff --git a/pom.xml b/pom.xml", "--- a/pom.xml", "+++ b/pom.xml",
+      "@@ -0,0 +1 @@",
+      "+a",
+      "diff --git a/sub/pom.xml b/sub/pom.xml", "--- a/sub/pom.xml", "+++ b/sub/pom.xml",
+      "@@ -0,0 +1,2 @@",
+      "+a",
+      "+b"
+    ), gitB.diffSafe())
 
     Assert.assertEquals(Seq("M pom.xml", "M sub/pom.xml"), gitB.localChanges())
     Assert.assertEquals(Seq("pom.xml", "sub/pom.xml"), gitB.localPomChanges())

@@ -129,9 +129,9 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     //     git hash-object -t commit --stdin
     // }
 
-    def doCommit(id: String) =
+    def doCommit(changeId: String) =
       gitNative(Seq("commit", "--no-verify", "-m",
-        ms.map(_.replaceFirst("^Change-Id:", "Change-Id: I" + id)).mkString("\n").trim))
+        ms.map(_.replaceFirst("^Change-Id:", "Change-Id: I" + changeId)).mkString("\n").trim))
 
     if (oldComitId.isDefined) {
       gitNative(Seq("commit", "--no-verify", "-m", ms.mkString("\n").trim))
@@ -405,6 +405,28 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   def worktreeRemove(f: String): Unit = {
     gitNative(Seq("worktree", "remove", f))
     deleteBranch(f)
+  }
+
+  def diff(): Seq[String] = {
+    diff(Nil)
+  }
+
+  def diff(f: String): Seq[String] = {
+    diff(Seq(f))
+  }
+
+  def diff(opts: Seq[String]): Seq[String] = {
+    gitNative(Seq("diff") ++ opts)
+  }
+
+  def diffSafe(): Seq[String] = {
+    val innerDiff = try {
+      diff("HEAD")
+    } catch {
+      case _: RuntimeException => diff("--cached")
+      case e:Throwable => throw e
+    }
+    innerDiff.filterNot(_.startsWith("index "))
   }
 
   def hasNoLocalChanges: Boolean = {

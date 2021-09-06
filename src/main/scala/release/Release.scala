@@ -357,7 +357,7 @@ object Release extends LazyLogging {
             |Signed-off-by: %s
             |Releasetool-sign: %s
             |Releasetool-sha1: %s""".stripMargin.format(config.releasPrefix(), nextReleaseWithoutSnapshot,
-            msgs, config.signedOfBy(), Starter.sign(), releaseToolGitSha1),
+            msgs, config.signedOfBy(), Starter.sign(sgit), releaseToolGitSha1),
           releaseMod.depTreeFilenameList())
       } else {
         sgit.doCommitPomXmlsAnd(
@@ -365,7 +365,7 @@ object Release extends LazyLogging {
             |%s
             |Releasetool-sign: %s
             |Releasetool-sha1: %s""".stripMargin.format(config.releasPrefix(), nextReleaseWithoutSnapshot,
-            msgs, Starter.sign(), releaseToolGitSha1),
+            msgs, Starter.sign(sgit), releaseToolGitSha1),
           releaseMod.depTreeFilenameList())
       }
 
@@ -392,14 +392,14 @@ object Release extends LazyLogging {
             |Signed-off-by: %s
             |Releasetool-sign: %s
             |Releasetool-sha1: %s""".stripMargin.format(config.releasPrefix(), release,
-            msgs, config.signedOfBy(), Starter.sign(), releaseToolGitSha1), releaseMod.depTreeFilenameList())
+            msgs, config.signedOfBy(), Starter.sign(sgit), releaseToolGitSha1), releaseMod.depTreeFilenameList())
       } else {
         sgit.doCommitPomXmlsAnd(
           """[%s] perform to - %s
             |%s
             |Releasetool-sign: %s
             |Releasetool-sha1: %s""".stripMargin.format(config.releasPrefix(), release,
-            msgs, Starter.sign(), releaseToolGitSha1), releaseMod.depTreeFilenameList())
+            msgs, Starter.sign(sgit), releaseToolGitSha1), releaseMod.depTreeFilenameList())
       }
       out.println(". done")
     }

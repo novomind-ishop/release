@@ -868,8 +868,8 @@ object Starter extends LazyLogging {
     }
   }
 
-  def sign(): String = {
-    Util.hashSha1(LocalDateTime.now().toString)
+  def sign(sgit:Sgit): String = {
+    Util.hashSha1(sgit.diffSafe().mkString("\n"))
   }
 
   def addExitFn(msg: String, fn: () => Unit): Unit = {
