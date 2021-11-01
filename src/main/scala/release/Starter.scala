@@ -608,6 +608,7 @@ object Starter extends LazyLogging {
       out.println("--help, -h            => shows this and exits")
       out.println("--no-filter           => do not hide unwanted updates")
       out.println("--show-libyears       => see https://libyear.com/")
+      out.println("--create-patch       => BETA - change pom.xmls")
       return 0
     }
 

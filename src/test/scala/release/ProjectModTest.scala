@@ -1,15 +1,39 @@
 package release
 
 import org.junit.{Assert, Test}
-import org.mockito.MockitoSugar.mock
+import org.mockito.MockitoSugar._
 import org.scalatestplus.junit.AssertionsForJUnit
+import release.ProjectMod.{Gav, GavWithRef, SelfRef}
+import release.SbtModTest.d
 import release.Starter.OptsDepUp
+
+import java.time.{Duration, ZonedDateTime}
 
 class ProjectModTest extends AssertionsForJUnit {
 
   @Test
   def testScalaDeps(): Unit = {
+    val now = ZonedDateTime.now()
+    val scala = d("org.scala-lang", "scala-library", "2.13.0")
 
+    val term = Term.select("xterm", "os", simpleChars = false)
+    val rootDeps: Seq[ProjectMod.Dep] = Seq(scala)
+    val selfDepsMod: Seq[ProjectMod.Dep] = Nil
+    val repo = mock[Repo]
+    when(repo.newerVersionsOf(scala.groupId, scala.artifactId, scala.version)).thenReturn(Seq(scala.version, "2.13.1"))
+    when(repo.depDate(scala.groupId, scala.artifactId, scala.version)).thenReturn(Some(now))
+    when(repo.depDate(scala.groupId, scala.artifactId, "2.13.1")).thenReturn(Some(now))
+    when(repo.newerVersionsOf(scala.groupId, "scala3-library_3", "-1")).thenReturn(Seq("-1", "3.0.1"))
+    when(repo.depDate(scala.groupId, "scala3-library_3", "-1")).thenReturn(None)
+    val result = StarterTest.withOutErr[Unit]((out, err) => {
+      val innerResult: Seq[(GavWithRef, (Seq[String], Duration))] = ProjectMod.showDependencyUpdates(100, term,
+        OptsDepUp().copy(showLibYears = true), "workingNexusUrl", rootDeps, selfDepsMod, repo, out, err)
+
+      val sca1 = GavWithRef(SelfRef.undef, Gav("org.scala-lang", "scala-library", "2.13.0"))
+      // TODO scala3?
+      Assert.assertEquals(Seq((sca1, (Seq("2.13.1"), Duration.ZERO))), innerResult)
+    })
+    Assert.assertEquals("", result.err)
   }
 
   @Test
@@ -47,7 +71,7 @@ class ProjectModTest extends AssertionsForJUnit {
     val filteredOut = result.out
       .linesIterator
       .map(line => {
-        if (line.matches(".* dependecies in [0-9]+ms \\(20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]\\)$")){
+        if (line.matches(".* dependecies in [0-9]+ms \\(20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]\\)$")) {
           line.replaceFirst(" in.*", " in ...")
         } else {
           line

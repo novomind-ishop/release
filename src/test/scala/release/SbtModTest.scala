@@ -3,11 +3,14 @@ package release
 import org.junit.{Assert, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.ProjectMod.{Dep, Gav3, SelfRef}
+import release.SbtModTest.d
 
-class SbtModTest extends AssertionsForJUnit {
-
+object SbtModTest {
   def d(g: String, a: String, v: String, scope: String = "") =
     Dep(SelfRef.undef, g, a, v, "", scope, "", "")
+}
+
+class SbtModTest extends AssertionsForJUnit {
 
   @Test
   def scalaDeps(): Unit = {
@@ -19,9 +22,11 @@ class SbtModTest extends AssertionsForJUnit {
     val gavs: Seq[Gav3] = Seq(scalaLib, catsEffectM3, catsCore, scalaTest, guava)
 
     val result = gavs.map(gav => ProjectMod.scalaDeps(gavs)(gav))
+    val scalaLib3 = Gav3("org.scala-lang", "scala3-library_3", "-1")
     val extra = Seq(
       catsCore.copy(artifactId = "cats-core_2.13"),
       catsEffectM3.copy(artifactId = "cats-effect_2.13"),
+      scalaLib3,
     )
     Assert.assertEquals((gavs ++ extra).sortBy(_.toString), result.flatten.sortBy(_.toString))
   }

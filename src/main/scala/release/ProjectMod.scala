@@ -68,7 +68,11 @@ object ProjectMod extends LazyLogging {
         val newA = scalaDepRegex.replaceAllIn(gav.artifactId, "$1" + scalaMinor)
         Seq(gav, gav.copy(artifactId = newA)).distinct
       } else {
-        Seq(gav)
+        if (gav.artifactId == sArtifactId && gav.groupId == sGroupId) {
+          Seq(gav, gav.copy(artifactId = s3ArtifactId, version = "-1"))
+        } else {
+          Seq(gav)
+        }
       }
     } else {
       Seq(gav)
@@ -310,7 +314,7 @@ object ProjectMod extends LazyLogging {
     }
   }
 
-  def checkForUpdates(in: Seq[Gav3], shellWidth: Int, depUpOpts: OptsDepUp, aether: Repo): Map[Gav3, (Seq[String], Duration)] = {
+  def checkForUpdates(in: Seq[Gav3], shellWidth: Int, depUpOpts: OptsDepUp, repo: Repo): Map[Gav3, (Seq[String], Duration)] = {
 
     val aetherFetch = StatusLine(in.size, shellWidth)
     val updates: Map[Gav3, (Seq[String], Duration)] = in
@@ -318,9 +322,9 @@ object ProjectMod extends LazyLogging {
       .map(dep => (dep, {
         aetherFetch.start()
         val newerVersions = if (depUpOpts.filter.isDefined && !depUpOpts.filter.get.matches(dep.formatted)) {
-          aether.newerVersionsOf(dep.groupId, dep.artifactId, dep.version).headOption.toSeq
+          repo.newerVersionsOf(dep.groupId, dep.artifactId, dep.version).headOption.toSeq
         } else {
-          aether.newerVersionsOf(dep.groupId, dep.artifactId, dep.version)
+          repo.newerVersionsOf(dep.groupId, dep.artifactId, dep.version)
         }
 
         val selectedVersions = if (depUpOpts.filter.isDefined) {
@@ -335,8 +339,8 @@ object ProjectMod extends LazyLogging {
         val d = if (depUpOpts.showLibYears && selectedVersions.nonEmpty) {
           val latest = selectedVersions.last // TODO version sort
           if (dep != dep.copy(version = latest)) {
-            val currentDate = aether.depDate(dep.groupId, dep.artifactId, dep.version)
-            val latestDate = aether.depDate(dep.groupId, dep.artifactId, latest)
+            val currentDate = repo.depDate(dep.groupId, dep.artifactId, dep.version)
+            val latestDate = repo.depDate(dep.groupId, dep.artifactId, latest)
             if (currentDate.isDefined && latestDate.isDefined) {
               logger.trace(s"libyear - ${dep.groupId}:${dep.artifactId}:(${dep.version},${selectedVersions.last}) => ${currentDate.get} to ${latestDate.get}")
               Duration.between(currentDate.get, latestDate.get)
@@ -362,7 +366,7 @@ object ProjectMod extends LazyLogging {
   }
 
   def showDependencyUpdates(shellWidth: Int, termOs: Term, depUpOpts: OptsDepUp, workNexusUrl: String,
-                            rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], aether: Repo,
+                            rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], repo: Repo,
                             out: PrintStream, err: PrintStream): Seq[(GavWithRef, (Seq[String], Duration))] = {
     val now = LocalDate.now()
     val stopw = Stopwatch.createStarted()
@@ -393,7 +397,7 @@ object ProjectMod extends LazyLogging {
       })
     val value: Seq[Gav3] = prepared
       .flatMap(ProjectMod.scalaDeps(prepared))
-    val updates = checkForUpdates(value, shellWidth, depUpOpts, aether)
+    val updates = checkForUpdates(value, shellWidth, depUpOpts, repo)
     // TODO check again if found scala deps (lowdash)
 
     out.println(s"I: checked ${value.size} dependecies in ${stopw.elapsed(TimeUnit.MILLISECONDS)}ms (${now.toString})")
