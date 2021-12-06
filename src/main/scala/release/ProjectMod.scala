@@ -85,6 +85,7 @@ object ProjectMod extends LazyLogging {
       .filterNot(_.matches(".*[Mm][0-9]+$"))
       .filterNot(_.matches(".*-[Mm][0-9]+-.*"))
       .filterNot(_.matches(".*-ea-[0-9]+$")) // used by org.immutables
+      .filterNot(_.matches(".*-rc[0-9]+-.*")) // com.fasterxml.jackson.module:jackson-module-scala_2.13:2.13.0-rc3-preview2
       .filterNot(_.matches(".*-rc-[0-9]+$"))
       .filterNot(_.matches(".*-rc\\.[0-9]+$")) // nosqlunit-redis 1.0.0-rc.4, 1.0.0-rc.5
       .filterNot(_.matches(".*-[0-9a-f]{7}$")) // used by org.typelevel:cats-effect
@@ -111,10 +112,11 @@ object ProjectMod extends LazyLogging {
       .filterNot(_.matches(".*\\.CR[0-9]+$")) // hibernate-validator
       // .filterNot(_.contains("-cdh")) // Cloudera Distribution Including Apache Hadoop
       .filterNot(_.contains("darft"))
-      .filterNot(_.startsWith("2003"))
-      .filterNot(_.startsWith("2004"))
+      .filterNot(_.startsWith("2003")) // too old
+      .filterNot(_.startsWith("2004")) // too old
       .filterNot(_.endsWith("0.11.0-sshd-314-1")) // org.apache.sshd:sshd-sftp
       .filterNot(_.endsWith("-NIGHTLY")) // org.scala-lang:scala3-library_3
+      .filterNot(_.endsWith("does-not-exist")) // commons-logging:commons-logging:99.0-does-not-exist
       .filterNot(_.endsWith("-PUBLISHED-BY-MISTAKE"))
 
     val result = if (inVersions.contains(gav.version)) {
