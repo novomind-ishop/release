@@ -222,7 +222,7 @@ object ProjectMod extends LazyLogging {
     }
 
     def formatShop(): String = {
-      pre + major + "." + "%02d".format(minor) + patchF + lowF
+      pre.toUpperCase() + major + "." + "%02d".format(minor) + patchF + lowF
     }
 
     def formatAsSnapshot(): String = {
@@ -244,6 +244,7 @@ object ProjectMod extends LazyLogging {
     private[release] val semverPatternLetterEnd = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)-([0-9a-zA-Z\\.]+)$".r
     private[release] val stableShop = "^([0-9]+x)-stable.*$".r
     private[release] val shopPattern = "^(RC-)([0-9]{4})\\.([0-9]+)?(?:\\.([0-9]+[0-9]*))?(?:_([0-9]+[0-9]*))?$".r
+    private[release] val shopPatternSloppy = "^([Rr][Cc][-\\._])([0-9]{4})[_\\.-]([0-9]+)?(?:[_\\.-]([0-9]+[0-9]*))?(?:[-_\\.]([0-9]+[0-9]*))?$".r
     private[release] val number = "^([0-9]+)(.*)".r
     private[release] val number2 = "^([0-9]+)\\.([0-9]+)(.*)".r
     private[release] val number3 = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)(.*)".r

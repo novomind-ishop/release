@@ -663,15 +663,15 @@ object PomMod {
       } else {
         val unSnapshoted = Term.removeTrailingSnapshots(currentVersion)
         unSnapshoted match {
-          case Version.shopPattern(pre, year, week, minor, low) => {
+          case Version.shopPatternSloppy(pre, year, week, minor, low) => {
             val version = Version.fromString(pre, year, week, minor, low, "")
             if (knownVersions.contains(version)) {
               Seq(version.nextIfKnown(knownVersions).formatShopAsSnapshot())
             } else {
-              Seq(currentVersion)
+              Seq(version.formatShopAsSnapshot())
             }
           }
-          case any => Seq(currentVersion) // release a feature branch
+          case _ => Seq(currentVersion) // release a feature branch
         }
       }
     } else {
@@ -699,9 +699,9 @@ object PomMod {
         case Version.semverPattern(ma, mi, b) => ma + "." + mi + "." + (b.toInt + 1)
         case Version.semverPatternNoBugfix(ma, mi) => ma + "." + (mi.toInt + 1) + ".0"
         case Version.semverPatternNoMinor(ma) => s"${ma.toInt + 1}.0.0"
-        case Version.shopPattern(pre, year, week, minor, low) => {
+        case Version.shopPatternSloppy(pre, year, week, minor, low) => {
           Term.removeTrailingSnapshots(currentVersion) match {
-            case Version.shopPattern(_, _, _, _, _) => {
+            case Version.shopPatternSloppy(_, _, _, _, _) => {
               val verso = Version.fromString(pre, year, week, minor, low, "").plusWeek()
               verso.copy(patch = 0, low = "").formatShop()
             }
