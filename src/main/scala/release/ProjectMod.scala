@@ -50,33 +50,52 @@ object ProjectMod extends LazyLogging {
       .reverse
   }
 
-  def scalaDeps(gavs: Seq[Gav3])(gav: Gav3): Seq[Gav3] = {
-    // TODO plugins.sbt - name ?
-    val sGroupId = "org.scala-lang"
-    val sArtifactId = "scala-library"
-    val s3ArtifactId = "scala3-library_3"
-    val sFind = gavs.find(gavk => gavk.groupId == sGroupId &&
-      (gavk.artifactId == sArtifactId || gavk.artifactId == s3ArtifactId))
-    if (sFind.isDefined) {
-      val scalaLib = sFind.get
-      val scalaMinor = scalaLib.version match {
-        case o if o.startsWith("3") => o.replaceFirst("\\.[0-9]+\\.[0-9]+$", "")
-        case o => o.replaceFirst("\\.[0-9]+$", "")
-      }
-      val scalaDepRegex = "^(.*_)[1-9][0-9]*\\.[1-9][0-9]*.*$".r
-      if (scalaDepRegex.matches(gav.artifactId)) {
-        val newA = scalaDepRegex.replaceAllIn(gav.artifactId, "$1" + scalaMinor)
-        Seq(gav, gav.copy(artifactId = newA)).distinct
+  def relocatedDeps(relevant: Seq[Dep], repo:Repo): Seq[Dep] = {
+    relevant.flatMap(dep => {
+      val gav = dep.gav().simpleGav()
+      val others = relocateGavs(Seq(gav), repo)(gav).filterNot(x => x == gav)
+      if (others.nonEmpty) {
+        others.map(gav3 => dep.copy(groupId = gav3.groupId, artifactId = gav3.artifactId, version = gav3.version))
       } else {
-        if (gav.artifactId == sArtifactId && gav.groupId == sGroupId) {
-          Seq(gav, gav.copy(artifactId = s3ArtifactId, version = "-1"))
-        } else {
-          Seq(gav)
-        }
+        None
       }
-    } else {
+    })
+  }
+
+  def relocateGavs(gavs: Seq[Gav3], repo:Repo)(gav: Gav3): Seq[Gav3] = {
+    // TODO plugins.sbt - name ?
+    val maybeGav = repo.getRelocationOf(gav.groupId, gav.artifactId, gav.version)
+    if (maybeGav.isDefined) {
+      // TODO handle remote relocation
       Seq(gav)
+    } else {
+      val sGroupId = "org.scala-lang"
+      val sArtifactId = "scala-library"
+      val s3ArtifactId = "scala3-library_3"
+      val sFind = gavs.find(gavk => gavk.groupId == sGroupId &&
+        (gavk.artifactId == sArtifactId || gavk.artifactId == s3ArtifactId))
+      if (sFind.isDefined) {
+        val scalaLib = sFind.get
+        val scalaMinor = scalaLib.version match {
+          case o if o.startsWith("3") => o.replaceFirst("\\.[0-9]+\\.[0-9]+$", "")
+          case o => o.replaceFirst("\\.[0-9]+$", "")
+        }
+        val scalaDepRegex = "^(.*_)[1-9][0-9]*\\.[1-9][0-9]*.*$".r
+        if (scalaDepRegex.matches(gav.artifactId)) {
+          val newA = scalaDepRegex.replaceAllIn(gav.artifactId, "$1" + scalaMinor)
+          Seq(gav, gav.copy(artifactId = newA)).distinct
+        } else {
+          if (gav.artifactId == sArtifactId && gav.groupId == sGroupId) {
+            Seq(gav, gav.copy(artifactId = s3ArtifactId, version = "-1"))
+          } else {
+            Seq(gav)
+          }
+        }
+      } else {
+        Seq(gav)
+      }
     }
+
   }
 
   def normalizeUnwantedVersions(gav: Gav3, inVersions: Seq[String]): Seq[String] = {
@@ -88,6 +107,7 @@ object ProjectMod extends LazyLogging {
       .filterNot(_.matches(".*-rc[0-9]+-.*")) // com.fasterxml.jackson.module:jackson-module-scala_2.13:2.13.0-rc3-preview2
       .filterNot(_.matches(".*-rc-[0-9]+$"))
       .filterNot(_.matches(".*-rc\\.[0-9]+$")) // nosqlunit-redis 1.0.0-rc.4, 1.0.0-rc.5
+      .filterNot(_.matches(".*-rc$")) // org.mariadb.jdbc:mariadb-java-client:3.0.2-rc
       .filterNot(_.matches(".*-[0-9a-f]{7}$")) // used by org.typelevel:cats-effect
       .filterNot(_.matches(".*-dev$")) // used by commons-discovery:commons-discovery
       .filterNot(_.matches(".*pr[0-9]+$"))
@@ -317,9 +337,9 @@ object ProjectMod extends LazyLogging {
     }
   }
 
-  def checkForUpdates(in: Seq[Gav3], shellWidth: Int, depUpOpts: OptsDepUp, repo: Repo): Map[Gav3, (Seq[String], Duration)] = {
+  def checkForUpdates(in: Seq[Gav3], shellWidth: Int, depUpOpts: OptsDepUp, repo: Repo, out: PrintStream): Map[Gav3, (Seq[String], Duration)] = {
 
-    val aetherFetch = StatusLine(in.size, shellWidth)
+    val aetherFetch = StatusLine(in.size, shellWidth, out)
     val updates: Map[Gav3, (Seq[String], Duration)] = in
       .par
       .map(dep => (dep, {
@@ -399,9 +419,8 @@ object ProjectMod extends LazyLogging {
         }
       })
     val value: Seq[Gav3] = prepared
-      .flatMap(ProjectMod.scalaDeps(prepared))
-    val updates = checkForUpdates(value, shellWidth, depUpOpts, repo)
-    // TODO check again if found scala deps (lowdash)
+      .flatMap(ProjectMod.relocateGavs(prepared, repo))
+    val updates = checkForUpdates(value, shellWidth, depUpOpts, repo, out)
 
     out.println(s"I: checked ${value.size} dependecies in ${stopw.elapsed(TimeUnit.MILLISECONDS)}ms (${now.toString})")
 
@@ -415,7 +434,7 @@ object ProjectMod extends LazyLogging {
       }
     })
 
-    val allWithUpdate: Seq[(GavWithRef, (Seq[String], Duration))] = relevant
+    val allWithUpdate: Seq[(GavWithRef, (Seq[String], Duration))] = (relevant ++ ProjectMod.relocatedDeps(relevant, repo)).distinct
       .map(in => {
         val ref = GavWithRef(in.pomRef, in.gav())
         val a: (Seq[String], Duration) = checkedUpdates.getOrElse(in.gav().simpleGav(), (Nil, Duration.ZERO))

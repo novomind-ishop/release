@@ -1689,7 +1689,7 @@ class PomModTest extends AssertionsForJUnit {
   @Test
   def testNormalizeUnwanted(): Unit = {
     val gav = Gav3("some.group", "artifcat", "version")
-    val result = ProjectMod.normalizeUnwantedVersions(gav, Seq("a", "beta"))
+    val result = ProjectMod.normalizeUnwantedVersions(gav, Seq("a", "beta", "3.0.2-rc"))
     Assert.assertEquals(Seq("a"), result)
   }
 }

@@ -31,6 +31,8 @@ class RepoTest extends AssertionsForJUnit {
     // scalatest_2.13-3.2.3-javadoc.jar                  2020-11-07 10:27       189
     // Some(2020-08-21T13:40:36Z)
     // Assert.assertFalse(aether.existsGav("com.novomind.ishop.exi", "ext-b2c", "0.0.1-BERT"))
+    println(aether.getRelocationOf("org.scala-lang", "scala-library", "-1"))
+    println(aether.newerVersionsOf("org.scala-lang", "scala3-library_3", "-1"))
   }
 
   @Test

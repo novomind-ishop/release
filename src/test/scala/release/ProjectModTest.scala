@@ -1,6 +1,7 @@
 package release
 
 import org.junit.{Assert, Test}
+import org.mockito.ArgumentMatchers.anyString
 import org.mockito.MockitoSugar._
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.ProjectMod.{Gav, GavWithRef, SelfRef}
@@ -20,6 +21,7 @@ class ProjectModTest extends AssertionsForJUnit {
     val rootDeps: Seq[ProjectMod.Dep] = Seq(scala)
     val selfDepsMod: Seq[ProjectMod.Dep] = Nil
     val repo = mock[Repo]
+    when(repo.getRelocationOf(anyString(), anyString(), anyString())).thenReturn(None)
     when(repo.newerVersionsOf(scala.groupId, scala.artifactId, scala.version)).thenReturn(Seq(scala.version, "2.13.1"))
     when(repo.depDate(scala.groupId, scala.artifactId, scala.version)).thenReturn(Some(now))
     when(repo.depDate(scala.groupId, scala.artifactId, "2.13.1")).thenReturn(Some(now))
@@ -30,8 +32,10 @@ class ProjectModTest extends AssertionsForJUnit {
         OptsDepUp().copy(showLibYears = true), "workingNexusUrl", rootDeps, selfDepsMod, repo, out, err)
 
       val sca1 = GavWithRef(SelfRef.undef, Gav("org.scala-lang", "scala-library", "2.13.0"))
-      // TODO scala3?
-      Assert.assertEquals(Seq((sca1, (Seq("2.13.1"), Duration.ZERO))), innerResult)
+      val scala2 = (sca1, (Seq("2.13.1"), Duration.ZERO))
+      val sca2 = GavWithRef(SelfRef.undef, Gav("org.scala-lang", "scala3-library_3", "-1"))
+      val scala3 = (sca2, (Seq("3.0.1"), Duration.ofDays(-1)))
+      Assert.assertEquals(Seq(scala2, scala3), innerResult)
     })
     Assert.assertEquals("", result.err)
   }

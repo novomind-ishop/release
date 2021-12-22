@@ -27,7 +27,7 @@ case class SbtMod(file: File, repo: Repo, opts: Opts) extends ProjectMod {
   val listDependecies: Seq[ProjectMod.Dep] = (Seq(file) ++ sbtFile(file))
     .map(f => Files.readAllLines(f.toPath, StandardCharsets.UTF_8)
       .asScala.mkString("\n"))
-    .flatMap(SbtMod.SimpleParser.doParse())
+    .flatMap(SbtMod.SloppyParser.doParse())
 
   val listPluginDependencies: Seq[ProjectMod.PluginDep] = Nil // TODO
 
@@ -78,14 +78,14 @@ object SbtMod {
     SbtMod(buildSbt(workfolder), aether, opts)
   }
 
-  object SimpleParser extends RegexParsers with LazyLogging {
+  object SloppyParser extends RegexParsers with LazyLogging {
     override val skipWhitespace = false
 
     def doParse(strict: Boolean = false)(in: String): Seq[ProjectMod.Dep] = {
 
       def nl = "\n" ^^ (term => "NL")
 
-      def predfined = "(^[ ]*(version := |//|publish|scalacOptions).*)".r <~ nl ^^ (term => Predefined(term))
+      def predfined = "(^[ ]*(version := |//|publish|scalacOptions|name|logLevel|assembly).*)".r <~ nl ^^ (term => Predefined(term))
 
       def valP = "(^val[ ]+)".r ~> word ~ " = " ~ word <~ nl ^^ (term => ValDef(term._1._1, term._2))
 
@@ -223,12 +223,12 @@ object SbtMod {
                   case _: ValDef => // skip
                   case in =>
                     if (strict) {
-                      throw new IllegalStateException(s"SIMPLE SBT PARSER: ${in}")
+                      throw new IllegalStateException(s"SLOPPY SBT PARSER: ${in}")
                     } else {
                       if (firstWarn.getAndSet(false)) {
                         println()
                       }
-                      println(s"SIMPLE SBT PARSER WARNING / skipped line: ${in}")
+                      println(s"SLOPPY SBT PARSER WARNING / skipped line: ${in}")
                     }
 
                 }

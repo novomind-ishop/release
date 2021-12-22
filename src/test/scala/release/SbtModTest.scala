@@ -1,6 +1,8 @@
 package release
 
 import org.junit.{Assert, Test}
+import org.mockito.ArgumentMatchers.anyString
+import org.mockito.MockitoSugar
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.ProjectMod.{Dep, Gav3, SelfRef}
 import release.SbtModTest.d
@@ -10,7 +12,7 @@ object SbtModTest {
     Dep(SelfRef.undef, g, a, v, "", scope, "", "")
 }
 
-class SbtModTest extends AssertionsForJUnit {
+class SbtModTest extends AssertionsForJUnit with MockitoSugar {
 
   @Test
   def scalaDeps(): Unit = {
@@ -21,7 +23,9 @@ class SbtModTest extends AssertionsForJUnit {
     val guava = Gav3("com.google.guava", "guava", "30.1.1-jre")
     val gavs: Seq[Gav3] = Seq(scalaLib, catsEffectM3, catsCore, scalaTest, guava)
 
-    val result = gavs.map(gav => ProjectMod.scalaDeps(gavs)(gav))
+    val repo = mock[Repo]
+    when(repo.getRelocationOf(anyString(), anyString(), anyString())).thenReturn(None)
+    val result = gavs.map(gav => ProjectMod.relocateGavs(gavs, repo)(gav))
     val scalaLib3 = Gav3("org.scala-lang", "scala3-library_3", "-1")
     val extra = Seq(
       catsCore.copy(artifactId = "cats-core_2.13"),
@@ -38,7 +42,11 @@ class SbtModTest extends AssertionsForJUnit {
     val catsCore = Gav3("org.typelevel", "cats-core_2.12", "1.4.0")
     val gavs: Seq[Gav3] = Seq(scalaLib, catsEffectM3, catsCore)
 
-    val result = gavs.map(gav => ProjectMod.scalaDeps(gavs)(gav))
+    val repo = mock[Repo]
+    when(repo.getRelocationOf(anyString(), anyString(), anyString())).thenReturn(None)
+    val result = gavs.map(gav => {
+      ProjectMod.relocateGavs(gavs, repo)(gav)
+    })
     val extra = Seq(
       catsCore.copy(artifactId = "cats-core_3"),
       catsEffectM3.copy(artifactId = "cats-effect_3"),
@@ -51,14 +59,14 @@ class SbtModTest extends AssertionsForJUnit {
     val guava = Gav3("com.google.guava", "guava", "30.1.1-jre")
     val gavs: Seq[Gav3] = Seq(guava)
 
-    val result = gavs.map(gav => ProjectMod.scalaDeps(gavs)(gav))
+    val result = gavs.map(gav => ProjectMod.relocateGavs(gavs, mock[Repo])(gav))
 
     Assert.assertEquals(gavs, result.flatten)
   }
 
   @Test
   def testDoParse(): Unit = {
-    val value = SbtMod.SimpleParser.doParse(strict = true)(
+    val value = SbtMod.SloppyParser.doParse(strict = true)(
       """
         |version := "1.0"
         |
@@ -90,7 +98,7 @@ class SbtModTest extends AssertionsForJUnit {
 
   @Test
   def testDoParse3(): Unit = {
-    val value = SbtMod.SimpleParser.doParse(strict = true)(
+    val value = SbtMod.SloppyParser.doParse(strict = true)(
       """
         |version := "1.0"
         |
@@ -109,13 +117,19 @@ class SbtModTest extends AssertionsForJUnit {
 
   @Test
   def testDoParse_val(): Unit = {
-    val value = SbtMod.SimpleParser.doParse(strict = true)(
+    val value = SbtMod.SloppyParser.doParse(strict = true)(
       """
         |version := "1.0"
+        |
+        |name := "dnslookup"
+        |
+        |logLevel := Level.Warn
         |
         |scalaVersion := "3.0.1"
         |
         |val vers = "a.b.c"
+        |
+        |assembly / logLevel := Level.Warn
         |
         | // upsi
         |
@@ -136,7 +150,7 @@ class SbtModTest extends AssertionsForJUnit {
 
   @Test
   def testDoParseBuildProperties(): Unit = {
-    val value = SbtMod.SimpleParser.doParse(strict = true)(
+    val value = SbtMod.SloppyParser.doParse(strict = true)(
       """
         |sbt.version=1.5.5
         |

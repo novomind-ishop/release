@@ -19,6 +19,7 @@ import org.eclipse.aether.transport.file.FileTransporterFactory
 import org.eclipse.aether.transport.http.HttpTransporterFactory
 import org.eclipse.aether.version.Version
 import org.eclipse.aether.{DefaultRepositorySystemSession, RepositorySystem}
+import release.ProjectMod.Gav3
 import release.Starter.Opts
 
 import java.io.{File, IOException, PrintStream}
@@ -85,6 +86,11 @@ class Repo(opts: Opts) extends LazyLogging {
     val request = Seq(groupID, artifactId, "[" + version + ",)").mkString(":")
     val result = getVersionsOf(request).map(_.toString)
     result
+  }
+
+  // https://maven.apache.org/guides/mini/guide-relocation.html
+  def getRelocationOf(groupID: String, artifactId: String, version: String): Option[Gav3] = {
+    None
   }
 
 }
