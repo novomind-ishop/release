@@ -892,7 +892,7 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
-  def suggestNextRelease_shop_next(): Unit = {
+  def suggestNextRelease_shop_next_missingLeadingZero(): Unit = {
 
     // GIVEN/WHEN
     val next = suggestNextReleaseBy("RC-2017.2-SNAPSHOT")
@@ -912,7 +912,7 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
-  def suggestNextRelease_shop_typo(): Unit = {
+  def suggestNextRelease_shop_typo_lowerCase(): Unit = {
 
     // GIVEN/WHEN
     val release = PomMod.suggestNextReleaseBy("rc-2021-48.2-SNAPSHOT", "rc-2021-48.2-SNAPSHOT")
@@ -1210,6 +1210,7 @@ class PomModTest extends AssertionsForJUnit {
 
   @Test
   def testIsUnknownReleasePattern(): Unit = {
+    Assert.assertTrue(PomMod.isUnknownVersionPattern("RC-2018.8"))
     Assert.assertFalse(PomMod.isUnknownVersionPattern("RC-2018.08-SNAPSHOT"))
     Assert.assertFalse(PomMod.isUnknownVersionPattern("RC-2018.08.1-SNAPSHOT"))
     Assert.assertFalse(PomMod.isUnknownVersionPattern("RC-2018.08.1_4-SNAPSHOT"))
@@ -1220,17 +1221,18 @@ class PomModTest extends AssertionsForJUnit {
     Assert.assertFalse(PomMod.isUnknownVersionPattern("1.0.0_1"))
     Assert.assertFalse(PomMod.isUnknownVersionPattern("1.0.0-SNAPSHOT"))
     Assert.assertFalse(PomMod.isUnknownVersionPattern("RC-2018.08.1"))
-    Assert.assertFalse(PomMod.isUnknownVersionPattern("RC.2018.08.1"))
-    Assert.assertFalse(PomMod.isUnknownVersionPattern("RC.2018.08.1.3"))
+    Assert.assertTrue(PomMod.isUnknownVersionPattern("RC.2018.08.1"))
+    Assert.assertTrue(PomMod.isUnknownVersionPattern("RC.2018.08.1.3"))
     Assert.assertTrue(PomMod.isUnknownVersionPattern("RC.2018/08.1"))
     Assert.assertTrue(PomMod.isUnknownVersionPattern("RC.2018/08.1.3"))
     Assert.assertTrue(PomMod.isUnknownVersionPattern("1."))
-    Assert.assertFalse(PomMod.isUnknownVersionPattern("RC-2018-08.1"))
+    Assert.assertTrue(PomMod.isUnknownVersionPattern("RC-2018-08.1"))
     Assert.assertTrue(PomMod.isUnknownVersionPattern("RC-2018/08.1"))
-    Assert.assertFalse(PomMod.isUnknownVersionPattern("RC-2018.08-1"))
+    Assert.assertTrue(PomMod.isUnknownVersionPattern("RC-2018.08-1"))
     Assert.assertTrue(PomMod.isUnknownVersionPattern("RC-2018/08-1"))
     Assert.assertFalse(PomMod.isUnknownVersionPattern("master-SNAPSHOT"))
     Assert.assertFalse(PomMod.isUnknownVersionPattern("master"))
+
   }
 
   @Test
