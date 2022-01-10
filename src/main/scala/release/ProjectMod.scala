@@ -2,7 +2,7 @@ package release
 
 import com.google.common.base.Stopwatch
 import com.typesafe.scalalogging.LazyLogging
-import release.PomMod.{abbreviate, unmanged}
+import release.PomMod.{abbreviate, unmanged, selectFirstVersionFrom}
 import release.ProjectMod.{Dep, Gav3, PluginDep}
 import release.Starter.{Opts, OptsDepUp, PreconditionsException}
 
@@ -168,6 +168,8 @@ object ProjectMod extends LazyLogging {
   }
 
   case class Gav3(groupId: String, artifactId: String, version: String) {
+    def toDep(pomRef: SelfRef): Dep = Dep(pomRef, groupId, artifactId, version, "", "", "", "")
+
     def formatted: String = Gav.format(Seq(groupId, artifactId, version))
 
     def slashedMeta: String = (groupId + '/' + artifactId).replace('.', '/') + "/maven-metadata.xml"

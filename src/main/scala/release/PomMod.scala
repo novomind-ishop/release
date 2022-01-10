@@ -267,16 +267,17 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
   }
 
   def changeVersion(newVersion: String): Unit = {
+    val oldVersion: String = PomMod.selectFirstVersionFrom(raws).get
     raws.foreach(d => {
       if (d.pomFile.getParentFile == file) {
-        PomMod.applyValueOfXpathTo(d, PomMod.xPathToProjectVersion, newVersion)
-        PomMod.applyVersionTo(d, listSelf, newVersion)
+        PomMod.applyValueOfXpathTo(d, PomMod.xPathToProjectVersion, oldVersion, newVersion)
+        PomMod.applyVersionTo(d, listSelf, oldVersion, newVersion)
       } else {
         if (rootPomGav.contains(d.parentDep.gav())) {
-          PomMod.applyValueOfXpathTo(d, PomMod.xPathToProjectParentVersion, newVersion)
+          PomMod.applyValueOfXpathTo(d, PomMod.xPathToProjectParentVersion, oldVersion, newVersion)
         }
-        PomMod.applyValueOfXpathTo(d, PomMod.xPathToProjectVersion, newVersion)
-        PomMod.applyVersionTo(d, listSelf, newVersion)
+        PomMod.applyValueOfXpathTo(d, PomMod.xPathToProjectVersion, oldVersion, newVersion)
+        PomMod.applyVersionTo(d, listSelf, oldVersion, newVersion)
       }
     })
     selfDepsMod.foreach(entry => {
@@ -426,6 +427,14 @@ case class RawPomFile(pomFile: File, document: Document, file: File) {
 }
 
 object PomMod {
+  def selectFirstVersionFrom(raws: Seq[RawPomFile]): Option[String] = {
+    val document = raws.head.document
+    Xpath.onlyString(document, PomMod.xPathToProjectVersion)
+  }
+
+  def isVariable(in: String): Boolean = {
+    in.matches("^\\$\\{.+\\}$")
+  }
 
   def of(file: File, unnused: PrintStream, opts: Opts): PomMod = {
     lazy val repo = new Repo(opts)
@@ -699,7 +708,7 @@ object PomMod {
         case Version.semverPattern(ma, mi, b) => ma + "." + mi + "." + (b.toInt + 1)
         case Version.semverPatternNoBugfix(ma, mi) => ma + "." + (mi.toInt + 1) + ".0"
         case Version.semverPatternNoMinor(ma) => s"${ma.toInt + 1}.0.0"
-        case Version.shopPatternSloppy(pre, year, week, minor, low) if sloppyShop  => {
+        case Version.shopPatternSloppy(pre, year, week, minor, low) if sloppyShop => {
           Term.removeTrailingSnapshots(currentVersion) match {
             case Version.shopPatternSloppy(_, _, _, _, _) => {
               val verso = Version.fromString(pre, year, week, minor, low, "").plusWeek()
@@ -710,7 +719,7 @@ object PomMod {
             }
           }
         }
-        case Version.shopPattern(pre, year, week, minor, low) if !sloppyShop  => {
+        case Version.shopPattern(pre, year, week, minor, low) if !sloppyShop => {
           Term.removeTrailingSnapshots(currentVersion) match {
             case Version.shopPattern(_, _, _, _, _) => {
               val verso = Version.fromString(pre, year, week, minor, low, "").plusWeek()
@@ -776,8 +785,12 @@ object PomMod {
       .replaceAll("/>", " />").replaceFirst("[ ]+xsi:schemaLocation", "\n  xsi:schemaLocation")
   }
 
-  private def applyVersionTo(raw: RawPomFile, selfs: Seq[Dep], newValue: String): Unit = {
-    applyToKey(raw, selfs, "version", _ => newValue)
+  private[release] def applyVersionTo(raw: RawPomFile, selfs: Seq[Dep], oldValue: String, newValue: String): Unit = {
+    applyToKey(raw, selfs, "version", Some(oldValue), _ => newValue)
+  }
+
+  private[release] def applyVersionTo(raw: RawPomFile, selfs: Seq[Dep], newValue: String): Unit = {
+    applyToKey(raw, selfs, "version", None, _ => newValue)
   }
 
   private def applyToGroupAndArtifactId(raw: RawPomFile, selfs: Seq[Dep], groupidFn: String => String, artifactIdFn: String => String): Unit = {
@@ -809,7 +822,7 @@ object PomMod {
 
   }
 
-  private def applyToKey(raw: RawPomFile, selfs: Seq[Dep], key: String, newValueFn: String => String): Unit = {
+  private def applyToKey(raw: RawPomFile, selfs: Seq[Dep], key: String, oldKey: Option[String], newValueFn: String => String): Unit = {
 
     val ga = selfs.map(x => (x.groupId, x.artifactId))
 
@@ -825,7 +838,16 @@ object PomMod {
       .flatten
 
     if (result.nonEmpty) {
-      result.foreach(in => in.setTextContent(newValueFn.apply(in.getTextContent)))
+      result.foreach(in => {
+        if (oldKey.isDefined) {
+          if (oldKey.get == in.getTextContent || isVariable(in.getTextContent)) {
+            in.setTextContent(newValueFn.apply(in.getTextContent))
+          }
+        } else {
+          in.setTextContent(newValueFn.apply(in.getTextContent))
+        }
+
+      })
     }
 
   }
@@ -835,6 +857,14 @@ object PomMod {
     val node = xPathResult.headOption
     if (node.isDefined) {
       node.get.setTextContent(newValueFn.apply(node.get.getTextContent))
+    }
+  }
+
+  def applyValueOfXpathTo(raw: RawPomFile, xpath: String, oldValue: String, newValue: String): Unit = {
+    val xPathResult = Xpath.toSeq(raw.document, xpath)
+    val node = xPathResult.headOption
+    if (node.isDefined && (node.get.getTextContent == oldValue || isVariable(node.get.getTextContent))) {
+      node.get.setTextContent(newValue)
     }
   }
 

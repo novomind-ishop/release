@@ -423,6 +423,106 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testApplyValueOfXpath(): Unit = {
+    val doc = document(<project>
+      <modelVersion>4.0.0</modelVersion>
+      <groupId>com.novomind.ishop.shops.any</groupId>
+      <artifactId>any-projects</artifactId>
+      <version>27.0.0-SNAPSHOT</version>
+      <packaging>pom</packaging>
+
+      <modules>
+        <module>any-erp</module>
+      </modules>
+    </project>
+    )
+    val raw = RawPomFile(new File("."), doc, new File("."))
+    val path = "/project/modelVersion"
+    val newValue = "new"
+    PomMod.applyValueOfXpathTo(raw, path, "bert", newValue)
+    Assert.assertEquals(Some("4.0.0"), Xpath.onlyString(doc, path))
+    PomMod.applyValueOfXpathTo(raw, path, "4.0.0", newValue)
+    Assert.assertEquals(Some(newValue), Xpath.onlyString(doc, path))
+    PomMod.applyValueOfXpathTo(raw, path, newValue + newValue)
+    Assert.assertEquals(Some(newValue + newValue), Xpath.onlyString(doc, path))
+    PomMod.applyValueOfXpathTo(raw, path, "${x}")
+    Assert.assertEquals(Some("${x}"), Xpath.onlyString(doc, path))
+    PomMod.applyValueOfXpathTo(raw, path, "4.0.0", newValue)
+    Assert.assertEquals(Some(newValue), Xpath.onlyString(doc, path))
+
+  }
+
+  @Test
+  def testIsVariable(): Unit = {
+
+    Assert.assertFalse(PomMod.isVariable("doc, path"))
+    Assert.assertTrue(PomMod.isVariable("${x}"))
+    Assert.assertFalse(PomMod.isVariable("${}"))
+    Assert.assertFalse(PomMod.isVariable("$x"))
+    Assert.assertFalse(PomMod.isVariable("x"))
+  }
+
+  @Test
+  def testApplyVersionTo(): Unit = {
+    val doc = document(<project>
+      <modelVersion>4.0.0</modelVersion>
+      <groupId>com.novomind.ishop.shops.any</groupId>
+      <artifactId>any-projects</artifactId>
+      <version>27.0.0-SNAPSHOT</version>
+      <packaging>pom</packaging>
+
+      <dependencies>
+        <dependency>
+          <groupId>org.glassfish.jaxb</groupId>
+          <artifactId>jaxb-core</artifactId>
+          <version>1.2.3</version>
+        </dependency>
+      </dependencies>
+    </project>
+    )
+    val raw = RawPomFile(new File("."), doc, new File("."))
+    val path = "/project/dependencies/dependency/version[1]"
+    val newValue = "new"
+
+    val self: Seq[Dep] = Seq(Gav3("org.glassfish.jaxb", "jaxb-core", "1.2.3").toDep(SelfRef.undef))
+
+    PomMod.applyVersionTo(raw, self, newValue)
+    Assert.assertEquals(Some(newValue), Xpath.onlyString(doc, path))
+    PomMod.applyVersionTo(raw, self, ",", newValue + newValue)
+    Assert.assertEquals(Some(newValue), Xpath.onlyString(doc, path))
+    PomMod.applyVersionTo(raw, self, newValue, newValue + newValue)
+    Assert.assertEquals(Some(newValue + newValue), Xpath.onlyString(doc, path))
+    PomMod.applyVersionTo(raw, self, "${x}")
+    Assert.assertEquals(Some("${x}"), Xpath.onlyString(doc, path))
+    PomMod.applyVersionTo(raw, self, "any", newValue)
+    Assert.assertEquals(Some(newValue), Xpath.onlyString(doc, path))
+  }
+
+
+  @Test
+  def testVersionFrom(): Unit = {
+    val doc = document(<project>
+      <modelVersion>4.0.0</modelVersion>
+      <groupId>com.novomind.ishop.shops.any</groupId>
+      <artifactId>any-projects</artifactId>
+      <version>27.0.0-SNAPSHOT</version>
+      <packaging>pom</packaging>
+
+      <dependencies>
+        <dependency>
+          <groupId>org.glassfish.jaxb</groupId>
+          <artifactId>jaxb-core</artifactId>
+          <version>1.2.3</version>
+        </dependency>
+      </dependencies>
+    </project>
+    )
+    val raw = RawPomFile(new File("."), doc, new File("."))
+
+    Assert.assertEquals(Some("27.0.0-SNAPSHOT"), PomMod.selectFirstVersionFrom(Seq(raw)))
+  }
+
+  @Test
   def writeSelf_sub_sub_tree(): Unit = {
     // GIVEN
     val srcPoms = TestHelper.testResources("sub-sub-tree")
@@ -454,7 +554,7 @@ class PomModTest extends AssertionsForJUnit {
   @Ignore
   def writeSelf(): Unit = {
     // GIVEN
-    val srcPoms = new File("/Users/thomas/git/iscore")
+    val srcPoms = new File("/Users/thomas/git/ishop-maven-plugin")
 
     // WHEN
     val mod = PomModTest.withRepoForTests(srcPoms, aether)
