@@ -109,6 +109,7 @@ object ProjectMod extends LazyLogging {
       .filterNot(_.matches(".*-rc\\.[0-9]+$")) // nosqlunit-redis 1.0.0-rc.4, 1.0.0-rc.5
       .filterNot(_.matches(".*-rc$")) // org.mariadb.jdbc:mariadb-java-client:3.0.2-rc
       .filterNot(_.matches(".*-[0-9a-f]{7}$")) // used by org.typelevel:cats-effect
+      .filterNot(_.matches(".*-g[0-9a-f]{9}$")) // used by coursier
       .filterNot(_.matches(".*-dev$")) // used by commons-discovery:commons-discovery
       .filterNot(_.matches(".*pr[0-9]+$"))
       .filterNot(_.contains("alpha"))
