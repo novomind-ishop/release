@@ -609,7 +609,7 @@ object Starter extends LazyLogging {
       out.println("--no-filter           => do not hide unwanted updates")
       out.println("--show-libyears       => see https://libyear.com/")
       out.println("--create-patch        => BETA - change pom.xmls")
-      out.println("--match               => regex to filter dependecy update GAVs e.g. --matches \".*guava.*\"")
+      out.println("--matches             => regex to filter dependecy update GAVs e.g. --matches \".*guava.*\"")
       return 0
     }
 
