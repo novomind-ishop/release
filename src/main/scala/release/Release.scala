@@ -185,6 +185,7 @@ object Release extends LazyLogging {
           out.println("Latest version names are: " + latestTags.mkString(", "))
         }
         val retryVersionEnter = Term.readFromOneOfYesNo(out, "Unknown release version name: \"" + result + "\".\n" +
+          PomMod.trySuggestKnownPattern(result).getOrElse(s"W: suggestion failed for '${result}'\n") +
           "_unknown_ versions may affect creation and cleanup of build jobs and artifacts\n" +
           " and/or publishing of artifacts to partners.\n" +
           " Are you sure to continue with this name?", opts)

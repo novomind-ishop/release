@@ -1002,6 +1002,82 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def suggestKnownPattern_ubglu(): Unit = {
+    // GIVEN
+    val name = "ubglu"
+    Assert.assertTrue(PomMod.isUnknownVersionPattern(name))
+    // WHEN / THEN
+    Assert.assertEquals("", PomMod.suggestKnownPattern(name))
+  }
+
+  @Test
+  def suggestKnownPattern_digits_known(): Unit = {
+    // GIVEN
+    val name = "1.2.3"
+    Assert.assertFalse(PomMod.isUnknownVersionPattern(name))
+    // WHEN / THEN
+    Assert.assertEquals("", PomMod.suggestKnownPattern(name))
+  }
+
+  @Test
+  def suggestKnownPattern_digits_unknown_var(): Unit = {
+    // GIVEN
+    val name = "1.2.3,4,2"
+    Assert.assertTrue(PomMod.isUnknownVersionPattern(name))
+    // WHEN / THEN
+    Assert.assertEquals("", PomMod.suggestKnownPattern(name))
+  }
+
+  @Test
+  def suggestKnownPattern_digits_unknown(): Unit = {
+    // GIVEN
+    val name = "1.21,3.48"
+    Assert.assertTrue(PomMod.isUnknownVersionPattern(name))
+    // WHEN / THEN
+    Assert.assertEquals("Maybe one of the following versions is what you want: '1.21.3_48', '1.21.3-48'\n",
+      PomMod.suggestKnownPattern(name))
+  }
+
+  @Test
+  def suggestKnownPattern_shop_unknown_beta(): Unit = {
+    // GIVEN
+    val name = "RC-2022.15.01-beta2"
+    Assert.assertTrue(PomMod.isUnknownVersionPattern(name))
+    // WHEN / THEN
+    Assert.assertEquals("Maybe one of the following versions is what you want: 'RC-2022.15.1'\n",
+      PomMod.suggestKnownPattern(name))
+  }
+
+  @Test
+  def suggestKnownPattern_shop_unknown(): Unit = {
+    // GIVEN
+    val name = "RC-2022.05.00"
+    Assert.assertTrue(PomMod.isUnknownVersionPattern(name))
+    // WHEN / THEN
+    Assert.assertEquals("Maybe one of the following versions is what you want: 'RC-2022.05'\n",
+      PomMod.suggestKnownPattern(name))
+  }
+
+  @Test
+  def suggestKnownPattern_asdf(): Unit = {
+    // GIVEN
+    val name = "RC-0.05.00"
+    Assert.assertTrue(PomMod.isUnknownVersionPattern(name))
+    // WHEN / THEN
+    Assert.assertEquals("invalid inner creation RC-0.05",
+      PomMod.trySuggestKnownPattern(name).failed.get.getMessage)
+  }
+
+  @Test
+  def suggestKnownPattern_42x(): Unit = {
+    // GIVEN
+    val name = "42x"
+    Assert.assertTrue(PomMod.isUnknownVersionPattern(name))
+    // WHEN / THEN
+    Assert.assertEquals("", PomMod.suggestKnownPattern(name))
+  }
+
+  @Test
   def suggestNextRelease_x(): Unit = {
 
     // GIVEN/WHEN

@@ -21,6 +21,7 @@ import javax.xml.transform.stream.StreamResult
 import javax.xml.transform.{OutputKeys, TransformerFactory}
 import scala.annotation.tailrec
 import scala.collection.parallel.CollectionConverters._
+import scala.util.{Failure, Success, Try}
 
 case class PomMod(file: File, repo: Repo, opts: Opts,
                   skipPropertyReplacement: Boolean = false, withSubPoms: Boolean) extends ProjectMod with LazyLogging {
@@ -427,6 +428,7 @@ case class RawPomFile(pomFile: File, document: Document, file: File) {
 }
 
 object PomMod {
+
   def selectFirstVersionFrom(raws: Seq[RawPomFile]): Option[String] = {
     val document = raws.head.document
     Xpath.onlyString(document, PomMod.xPathToProjectVersion)
@@ -690,6 +692,69 @@ object PomMod {
 
   def isUnknownVersionPattern(in: String): Boolean = {
     suggestNextReleaseBy(in, in, sloppyShop = false).endsWith("-UNDEF")
+  }
+
+
+  def trySuggestKnownPattern(in: String): Try[String] = {
+    try {
+      Success(suggestKnownPattern(in))
+    } catch {
+      case e: Exception => Failure(e)
+    }
+  }
+
+  def suggestKnownPattern(in: String): String = {
+
+    def formatAlt(alts: Seq[String]): String = {
+      "Maybe one of the following versions is what you want: " + checkedAlts(alts)
+        .map(l => s"'${l}'")
+        .mkString(", ") + "\n"
+    }
+
+    def checkedAlts(alts: Seq[String]): Seq[String] = {
+      alts.map(t => {
+        if (isUnknownVersionPattern(t)) {
+          throw new IllegalStateException("invalid inner creation " + t)
+        } else {
+          t
+        }
+
+      })
+    }
+
+    if (isUnknownVersionPattern(in)) {
+      if (in.toLowerCase().startsWith("rc")) {
+        val num = in.split("[^0-9]").flatMap(_.toIntOption)
+        val alternatives = if (num.length >= 3) {
+          if (num(2) == 0) {
+            Seq(
+              s"RC-${num(0)}.${"%02d".format(num(1))}"
+            )
+          } else {
+            Seq(
+              s"RC-${num(0)}.${"%02d".format(num(1))}.${num(2)}"
+            )
+          }
+
+        } else {
+          throw new IllegalArgumentException("unexpected num")
+        }
+
+        formatAlt(alternatives)
+      } else {
+        val num = in.split("[^0-9]").flatMap(_.toIntOption)
+        if (num.size == 4) {
+          val alternatives = Seq(
+            s"${num(0)}.${num(1)}.${num(2)}_${num(3)}",
+            s"${num(0)}.${num(1)}.${num(2)}-${num(3)}")
+          formatAlt(alternatives)
+        } else {
+          ""
+        }
+      }
+    } else {
+      ""
+    }
   }
 
   def suggestNextReleaseBy(currentVersion: String, releaseVersion: String, sloppyShop: Boolean = true): String = {
