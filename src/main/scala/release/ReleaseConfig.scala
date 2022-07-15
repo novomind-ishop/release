@@ -202,6 +202,10 @@ object ReleaseConfig extends LazyLogging {
 
   }
 
+  def isJenkinsK(): Boolean = {
+    scala.util.Properties.envOrNone("JENKINS_AGENT_WORKDIR").isDefined
+  }
+
   def isTravisCi(): Boolean = {
     scala.util.Properties.envOrNone("TRAVIS").exists(_.toBoolean)
   }

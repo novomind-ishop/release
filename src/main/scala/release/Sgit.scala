@@ -424,7 +424,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
       diff("HEAD")
     } catch {
       case _: RuntimeException => diff("--cached")
-      case e:Throwable => throw e
+      case e: Throwable => throw e
     }
     innerDiff.filterNot(_.startsWith("index "))
   }
@@ -709,9 +709,15 @@ object Sgit {
             ended = "2021-11-01", announced = "2021-06-24", announcedEnd = "2021-09-11",
             msg = "", gitPath = cmdLine)
         case v: String if v.startsWith("git version 2.30.") => // (2020-12-27) (tag: v2.30.0)
-          throw new YourGitInstallationIsToOldException(version = "2.30",
-            ended = "2021-11-01", announced = "2021-06-24", announcedEnd = "2021-09-11",
-            msg = "", gitPath = cmdLine)
+          if (ReleaseConfig.isJenkinsK()) {
+            List.tabulate(10)(_ =>
+              err.println("W: please update your git version, \"" + v + "\" support endet at 2021-11-01")
+            )
+          } else {
+            throw new YourGitInstallationIsToOldException(version = "2.30",
+              ended = "2021-11-01", announced = "2021-06-24", announcedEnd = "2021-09-11",
+              msg = "", gitPath = cmdLine)
+          }
         case v: String if v.startsWith("git version 2.31.") => // do nothing (2021-03-15) (tag: v2.31.0)
           err.println("W: please update your git version, \"" + v + "\" support ends at 2022-02-01")
           throw new YourGitInstallationIsToOldException(version = "2.31",
