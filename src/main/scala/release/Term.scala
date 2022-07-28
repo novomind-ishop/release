@@ -167,6 +167,7 @@ object Term {
     case "screen-256color" => Term("screen-256color", os, simpleChars)
     case "cygwin" => Term("cygwin", os, simpleChars)
     case "screen" => Term("screen", os, simpleChars)
+    case "dumb" => Term("dumb", os, simpleChars)
     case t => throw new IllegalStateException(s"invalid terminal: ${t}")
   }
 }

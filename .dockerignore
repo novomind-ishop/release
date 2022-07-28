@@ -1,0 +1,8 @@
+.bsp/
+.idea/
+bar/
+docs/
+project/
+src/
+target/
+.git/
