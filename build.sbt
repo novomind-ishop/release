@@ -53,7 +53,7 @@ assembly / mainClass := Some("release.Starter")
 
 assembly / assemblyJarName := "release.jar"
 
-publish / skip:= true
+publish / skip := true
 
 // https://github.com/sbt/sbt-dependency-graph
 // sbt 'dependencyTree::toFile dep.tree -f'

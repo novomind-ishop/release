@@ -392,9 +392,9 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
     }
   }
 
-  def suggestReleaseVersion(branchNames: Seq[String] = Nil): Seq[String] = {
+  def suggestReleaseVersion(branchNames: Seq[String] = Nil, tagNames: Seq[String] = Nil): Seq[String] = {
     checkCurrentVersion(currentVersion)
-    PomMod.suggestReleaseBy(LocalDate.now(), currentVersion.get, isShop, branchNames)
+    PomMod.suggestReleaseBy(LocalDate.now(), currentVersion.get, isShop, branchNames, tagNames)
   }
 
   def suggestNextRelease(releaseVersion: String): String = {
@@ -633,7 +633,7 @@ object PomMod {
   }
 
   def suggestReleaseBy(localDate: LocalDate, currentVersion: String, hasShopPom: Boolean,
-                       branchNames: Seq[String]): Seq[String] = {
+                       branchNames: Seq[String], tagNames: Seq[String] = Nil): Seq[String] = {
     if (hasShopPom) {
       val releaseBranchNames = branchNames.filter(_.startsWith("release/")).map(_.replaceFirst("^release/", ""))
       val knownVersions: Seq[Version] = releaseBranchNames.map {
@@ -641,7 +641,7 @@ object PomMod {
         case _ => Version.undef
       }
 
-      if (currentVersion.startsWith("master")) {
+      if (currentVersion.startsWith("master") || currentVersion.startsWith("main")) {
         def dateBased(localDate: LocalDate, known: Seq[Version]): String = {
 
           Version("RC-", localDate.getYear, weekOfYear(localDate), 0, "", "")
@@ -686,7 +686,23 @@ object PomMod {
         }
       }
     } else {
-      Seq(Term.removeTrailingSnapshots(currentVersion))
+      val withoutSnapshot = Term.removeTrailingSnapshots(currentVersion)
+      if (tagNames.nonEmpty && Version.toVersion(withoutSnapshot).isEmpty) {
+        val versions = tagNames.map(_.replaceFirst("^v(.*)", "$1")).flatMap(Version.toVersion)
+        val byMajor = versions.groupBy(_.major)
+        val firstP = "[1-9][0-9]*".r
+        val fM = firstP.findFirstIn(withoutSnapshot).flatMap(_.toIntOption)
+        val series = fM.flatMap(byMajor.get)
+        if (series.isDefined) {
+          val matchingSeries = series.get
+          val m = matchingSeries.max
+          Seq(m.copy(patch = m.patch + 1).format(), m.copy(minor = m.minor + 1, patch = 0).format())
+        } else {
+          Seq(withoutSnapshot)
+        }
+      } else {
+        Seq(withoutSnapshot)
+      }
     }
   }
 
@@ -760,8 +776,12 @@ object PomMod {
   def suggestNextReleaseBy(currentVersion: String, releaseVersion: String, sloppyShop: Boolean = true): String = {
     if (currentVersion == "master-SNAPSHOT" || currentVersion == "master") {
       "master"
-    } else if (currentVersion.matches("^[0-9]+x-SNAPSHOT")) {
+    } else if (currentVersion == "main-SNAPSHOT" || currentVersion == "main") {
+      "main"
+    } else if (currentVersion.matches("^[0-9]+x-SNAPSHOT$")) {
       Term.removeTrailingSnapshots(currentVersion)
+    } else if (currentVersion.matches("^[0-9]+x$")) {
+      currentVersion
     } else {
       val withoutSnapshot = Term.removeTrailingSnapshots(releaseVersion)
       withoutSnapshot match {

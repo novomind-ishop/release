@@ -1072,7 +1072,7 @@ class PomModTest extends AssertionsForJUnit {
   def suggestKnownPattern_42x(): Unit = {
     // GIVEN
     val name = "42x"
-    Assert.assertTrue(PomMod.isUnknownVersionPattern(name))
+    Assert.assertFalse(PomMod.isUnknownVersionPattern(name))
     // WHEN / THEN
     Assert.assertEquals("", PomMod.suggestKnownPattern(name))
   }
@@ -1082,6 +1082,16 @@ class PomModTest extends AssertionsForJUnit {
 
     // GIVEN/WHEN
     val next = PomMod.suggestNextReleaseBy("28x-SNAPSHOT", "28.0.1-SNAPSHOT")
+
+    // THEN
+    Assert.assertEquals("28x", next)
+  }
+
+  @Test
+  def suggestNextRelease_xx(): Unit = {
+
+    // GIVEN/WHEN
+    val next = PomMod.suggestNextReleaseBy("28x", "28x-SNAPSHOT")
 
     // THEN
     Assert.assertEquals("28x", next)
@@ -1311,6 +1321,16 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def suggestRelease_other_main(): Unit = {
+
+    // GIVEN/WHEN
+    val release = PomMod.suggestReleaseBy(LocalDate.now(), "main-SNAPSHOT", hasShopPom = false, Nil)
+
+    // THEN
+    assert(Seq("main") === release)
+  }
+
+  @Test
   def suggestRelease_other_x(): Unit = {
 
     // GIVEN/WHEN
@@ -1321,10 +1341,31 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def suggestRelease_other_x_with_tags(): Unit = {
+
+    // GIVEN/WHEN
+    val release = PomMod.suggestReleaseBy(LocalDate.now(), "x34-SNAPSHOT", hasShopPom = false, Nil,
+      Seq("34.0.0", "v34.0.1", "v35.0.0"))
+
+    // THEN
+    assert(Seq("34.0.2", "34.1.0") === release)
+  }
+
+  @Test
   def suggestRelease_shop_master(): Unit = {
 
     // GIVEN/WHEN
     val release = PomMod.suggestReleaseBy(LocalDate.of(2017, Month.FEBRUARY, 1), "master-SNAPSHOT", hasShopPom = true, Nil)
+
+    // THEN
+    Assert.assertEquals(Seq("RC-2017.05-SNAPSHOT", "RC-2017.06-SNAPSHOT", "RC-2017.07-SNAPSHOT"), release)
+  }
+
+  @Test
+  def suggestRelease_shop_main(): Unit = {
+
+    // GIVEN/WHEN
+    val release = PomMod.suggestReleaseBy(LocalDate.of(2017, Month.FEBRUARY, 1), "main-SNAPSHOT", hasShopPom = true, Nil)
 
     // THEN
     Assert.assertEquals(Seq("RC-2017.05-SNAPSHOT", "RC-2017.06-SNAPSHOT", "RC-2017.07-SNAPSHOT"), release)
@@ -1408,6 +1449,8 @@ class PomModTest extends AssertionsForJUnit {
     Assert.assertTrue(PomMod.isUnknownVersionPattern("RC-2018/08-1"))
     Assert.assertFalse(PomMod.isUnknownVersionPattern("master-SNAPSHOT"))
     Assert.assertFalse(PomMod.isUnknownVersionPattern("master"))
+    Assert.assertFalse(PomMod.isUnknownVersionPattern("main-SNAPSHOT"))
+    Assert.assertFalse(PomMod.isUnknownVersionPattern("main"))
 
   }
 

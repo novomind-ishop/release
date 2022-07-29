@@ -50,7 +50,7 @@ object ProjectMod extends LazyLogging {
       .reverse
   }
 
-  def relocatedDeps(relevant: Seq[Dep], repo:Repo): Seq[Dep] = {
+  def relocatedDeps(relevant: Seq[Dep], repo: Repo): Seq[Dep] = {
     relevant.flatMap(dep => {
       val gav = dep.gav().simpleGav()
       val others = relocateGavs(Seq(gav), repo)(gav).filterNot(x => x == gav)
@@ -62,7 +62,7 @@ object ProjectMod extends LazyLogging {
     })
   }
 
-  def relocateGavs(gavs: Seq[Gav3], repo:Repo)(gav: Gav3): Seq[Gav3] = {
+  def relocateGavs(gavs: Seq[Gav3], repo: Repo)(gav: Gav3): Seq[Gav3] = {
     // TODO plugins.sbt - name ?
     val maybeGav = repo.getRelocationOf(gav.groupId, gav.artifactId, gav.version)
     if (maybeGav.isDefined) {
@@ -246,6 +246,10 @@ object ProjectMod extends LazyLogging {
 
     def formatShop(): String = {
       pre.toUpperCase() + major + "." + "%02d".format(minor) + patchF + lowF
+    }
+
+    def format(): String = {
+      pre + major + "." + minor + "." + patch + lowF
     }
 
     def formatAsSnapshot(): String = {
@@ -615,7 +619,7 @@ trait ProjectMod extends LazyLogging {
 
   def selfDepsMod: Seq[Dep]
 
-  def suggestReleaseVersion(branchNames: Seq[String] = Nil): Seq[String]
+  def suggestReleaseVersion(branchNames: Seq[String] = Nil, tagNames: Seq[String] = Nil): Seq[String]
 
   def suggestNextRelease(releaseVersion: String): String
 

@@ -169,7 +169,8 @@ object Release extends LazyLogging {
       out.println(s"I: Current week of year: ${PomMod.weekOfYear(LocalDate.now())}")
     }
 
-    val suggestedVersions = newMod.suggestReleaseVersion(sgit.listBranchNamesAll())
+    val knownTags = sgit.listTagsWithDate().map(_.name).sorted
+    val suggestedVersions = newMod.suggestReleaseVersion(sgit.listBranchNamesAll(), knownTags)
 
     @tailrec
     def readReleaseVersions: String = {
@@ -180,9 +181,10 @@ object Release extends LazyLogging {
           out.println("I: RC-{YEAR}.{WEEK OF YEAR} for common releases")
           out.println("I: RC-{YEAR}.{WEEK OF YEAR}.{NUMBER} for intermediate releases")
         }
-        val latestTags = sgit.listTagsWithDate().map(_.name).take(5)
+
+        val latestTags = knownTags.take(5)
         if (latestTags.nonEmpty) {
-          out.println("Latest version names are: " + latestTags.mkString(", "))
+          out.println("Latest version tag names are: " + latestTags.mkString(", "))
         }
         val retryVersionEnter = Term.readFromOneOfYesNo(out, "Unknown release version name: \"" + result + "\".\n" +
           PomMod.trySuggestKnownPattern(result).getOrElse(s"W: suggestion failed for '${result}'\n") +
@@ -271,7 +273,7 @@ object Release extends LazyLogging {
       .filter(_._1.nonEmpty)
       .sortBy(_._1)
     val coreMajorVersions: Seq[(String, Dep)] = coreVersions
-      .map(in => (in._1.replaceAll("\\..*", "").trim, in._2))
+      .map(in => (in._1.replaceAll("\\..*", "").replaceAll("\\D+", "").trim, in._2))
       .distinct
       .filter(_._1.nonEmpty)
       .sortBy(_._1)
@@ -287,7 +289,14 @@ object Release extends LazyLogging {
       } else {
         out.print(" W: You are trying to use core major version " + releaseMajorVersion)
       }
-      out.println(" but this artifact refers to: " + sortedMajors.mkString(" and ") + ".")
+      out.print(" but this artifact refers to: " + sortedMajors.mkString(" and ") + ".")
+      if (opts.colors) {
+        out.print("\u001B[0m")
+      }
+      out.println()
+      if (opts.colors) {
+        out.print("\u001B[30;45m")
+      }
       out.print("    We prefer consistent major versions. So please update all projects to same major version.")
       if (opts.colors) {
         out.print("\u001B[0m")
@@ -520,7 +529,7 @@ object Release extends LazyLogging {
         showManual()
       }
     } else {
-      err.println("W: No gerrit push is not implemented")
+      err.println("W: No gerrit -> push is not implemented")
     }
 
     Nil
