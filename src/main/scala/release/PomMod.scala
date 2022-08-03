@@ -1,6 +1,7 @@
 package release
 
 import com.google.common.base.Strings
+import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.LazyLogging
 import org.w3c.dom.{Document, Node}
 import release.Conf.Tracer
@@ -394,12 +395,25 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
 
   def suggestReleaseVersion(branchNames: Seq[String] = Nil, tagNames: Seq[String] = Nil): Seq[String] = {
     checkCurrentVersion(currentVersion)
-    PomMod.suggestReleaseBy(LocalDate.now(), currentVersion.get, isShop, branchNames, tagNames)
+
+    PomMod.suggestReleaseBy(LocalDate.now(), currentVersion.get, isShop, branchNames, tagNames, nextVersionFileContent())
   }
 
   def suggestNextRelease(releaseVersion: String): String = {
     checkCurrentVersion(currentVersion)
     PomMod.suggestNextReleaseBy(currentVersion.get, releaseVersion)
+  }
+
+  private def nextVersionFileContent(): () => String = {
+    () => {
+      try {
+        val conf = ConfigFactory.parseFile(new File(rootPom.getParentFile, "nextVersion.conf"))
+        val ll = conf.getString("nextVersion")
+        ll
+      } catch {
+        case _: Exception => ""
+      }
+    }
   }
 
   private def toRawPom(pomFile: File): RawPomFile = {
@@ -633,7 +647,8 @@ object PomMod {
   }
 
   def suggestReleaseBy(localDate: LocalDate, currentVersion: String, hasShopPom: Boolean,
-                       branchNames: Seq[String], tagNames: Seq[String] = Nil): Seq[String] = {
+                       branchNames: Seq[String], tagNames: Seq[String] = Nil,
+                       nextVersion: () => String = () => ""): Seq[String] = {
     if (hasShopPom) {
       val releaseBranchNames = branchNames.filter(_.startsWith("release/")).map(_.replaceFirst("^release/", ""))
       val knownVersions: Seq[Version] = releaseBranchNames.map {
@@ -696,7 +711,13 @@ object PomMod {
         if (series.isDefined) {
           val matchingSeries = series.get
           val m = matchingSeries.max
-          Seq(m.copy(patch = m.patch + 1).format(), m.copy(minor = m.minor + 1, patch = 0).format())
+          val suggested = Seq(m.copy(patch = m.patch + 1).format(), m.copy(minor = m.minor + 1, patch = 0).format())
+          val maybeNext = suggested.filter(_ == nextVersion.apply())
+          if (maybeNext.nonEmpty) {
+            maybeNext
+          } else {
+            suggested
+          }
         } else {
           Seq(withoutSnapshot)
         }

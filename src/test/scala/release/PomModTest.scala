@@ -1352,6 +1352,39 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def suggestRelease_other_x_with_tags_and_supplier(): Unit = {
+
+    // GIVEN/WHEN
+    val release = PomMod.suggestReleaseBy(LocalDate.now(), "x34-SNAPSHOT", hasShopPom = false, Nil,
+      Seq("34.0.0", "v34.0.1", "v35.0.0"), () => "34.0.2")
+
+    // THEN
+    assert(Seq("34.0.2") === release)
+  }
+
+  @Test
+  def suggestRelease_other_x_with_tags_and_supplier_outOfRange(): Unit = {
+
+    // GIVEN/WHEN
+    val release = PomMod.suggestReleaseBy(LocalDate.now(), "x34-SNAPSHOT", hasShopPom = false, Nil,
+      Seq("34.0.0", "v34.0.1", "v35.0.0"), () => "34.0.99")
+
+    // THEN
+    assert(Seq("34.0.2", "34.1.0") === release)
+  }
+
+  @Test
+  def suggestRelease_other_x_with_tags_and_supplier_outOfRange_major(): Unit = {
+
+    // GIVEN/WHEN
+    val release = PomMod.suggestReleaseBy(LocalDate.now(), "x34-SNAPSHOT", hasShopPom = false, Nil,
+      Seq("34.0.0", "v34.0.1", "v35.0.0"), () => "39.0.0")
+
+    // THEN
+    assert(Seq("34.0.2", "34.1.0") === release)
+  }
+
+  @Test
   def suggestRelease_shop_master(): Unit = {
 
     // GIVEN/WHEN
