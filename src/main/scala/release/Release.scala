@@ -105,7 +105,7 @@ object Release extends LazyLogging {
   // TODO @tailrec
   def work(workDirFile: File, out: PrintStream, err: PrintStream, rebaseFn: () => Unit, branch: String, sgit: Sgit,
            termOs: Term, shellWidth: Int, releaseToolGitSha1: String, config: ReleaseConfig,
-           aether: Repo, opts: Opts): Seq[Unit] = {
+           repo: Repo, opts: Opts): Seq[Unit] = {
     if (sgit.hasLocalChanges) {
       val message = localChangeMessage(sgit)
       out.println(message)
@@ -118,7 +118,7 @@ object Release extends LazyLogging {
       } else if (changes == "n") {
         checkLocalChanges(sgit, branch)
       } else {
-        work(workDirFile, out, err, rebaseFn, branch, sgit, termOs, shellWidth, releaseToolGitSha1, config, aether, opts)
+        work(workDirFile, out, err, rebaseFn, branch, sgit, termOs, shellWidth, releaseToolGitSha1, config, repo, opts)
       }
 
     }
@@ -129,7 +129,7 @@ object Release extends LazyLogging {
     sgit.checkout(branch)
     Starter.chooseUpstreamIfUndef(out, sgit, branch, opts, Console.in)
 
-    val mod: ProjectMod = ProjectMod.read(workDirFile, out, opts, aether)
+    val mod: ProjectMod = ProjectMod.read(workDirFile, out, opts, repo)
 
     out.println(". done")
     if (opts.depUpOpts.showDependencyUpdates) {
@@ -137,7 +137,7 @@ object Release extends LazyLogging {
       System.exit(0)
     }
 
-    val wipMod = offerAutoFixForReleaseSnapshots(out, mod, sgit.lsFiles(), shellWidth, err, aether, opts)
+    val wipMod = offerAutoFixForReleaseSnapshots(out, mod, sgit.lsFiles(), shellWidth, err, repo, opts)
 
     @tailrec
     def checkLocalChangesAfterSnapshots(mod: ProjectMod): ProjectMod = {
@@ -148,10 +148,10 @@ object Release extends LazyLogging {
           System.exit(0)
           mod
         } else {
-          checkLocalChangesAfterSnapshots(ProjectMod.read(mod.file, out, opts, aether, showRead = false))
+          checkLocalChangesAfterSnapshots(ProjectMod.read(mod.file, out, opts, repo, showRead = false))
         }
       } else {
-        ProjectMod.read(mod.file, out, opts, aether, showRead = false)
+        ProjectMod.read(mod.file, out, opts, repo, showRead = false)
       }
 
     }
@@ -349,7 +349,7 @@ object Release extends LazyLogging {
       newMod.writeTo(workDirFile)
     }
     val headCommitId = sgit.commitIdHead()
-    val releaseMod = ProjectMod.read(workDirFile, out, opts, aether, showRead = false)
+    val releaseMod = ProjectMod.read(workDirFile, out, opts, repo, showRead = false)
     val msgs = opts.skipProperties match {
       case Nil => ""
       case found => "\nReleasetool-Prop-Skip: " + found.mkString(", ")
@@ -537,7 +537,7 @@ object Release extends LazyLogging {
 
   // TODO @tailrec
   def offerAutoFixForReleaseSnapshots(out: PrintStream, mod: ProjectMod, gitFiles: Seq[String], shellWidth: Int, err: PrintStream,
-                                      aether: Repo, opts: Opts): ProjectMod = {
+                                      repo: Repo, opts: Opts): ProjectMod = {
     val plugins = mod.listPluginDependencies
     if (mod.isShop) {
       // TODO check if core needs this checks too
@@ -591,7 +591,7 @@ object Release extends LazyLogging {
       .par
       .map(in => {
         aetherStateLine.start()
-        val released = aether.existsGav(in.groupId, in.artifactId, in.version.replace("-SNAPSHOT", ""))
+        val released = repo.existsGav(in.groupId, in.artifactId, in.version.replace("-SNAPSHOT", ""))
         aetherStateLine.end()
         ReleaseInfo(in.formatted, released)
       }).seq
@@ -630,7 +630,7 @@ object Release extends LazyLogging {
       if (again == "n") {
         System.exit(1)
       } else {
-        offerAutoFixForReleaseSnapshots(out, ProjectMod.read(mod.file, out, opts, aether, showRead = false), gitFiles, shellWidth, err, aether, opts)
+        offerAutoFixForReleaseSnapshots(out, ProjectMod.read(mod.file, out, opts, repo, showRead = false), gitFiles, shellWidth, err, repo, opts)
       }
     }
     mod

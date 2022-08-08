@@ -15,7 +15,7 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
 
   @Rule def temp = _temporarayFolder
 
-  lazy val aether = new Repo(Opts())
+  lazy val repo = new Repo(Opts())
 
   @Test
   def testStrip(): Unit = {
@@ -163,7 +163,7 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
       ), "com.novomind.any:any:jar:28.0.0-SNAPSHOT").create()
 
     // WHEN
-    val newpom = PomModTest.withRepoForTests(srcPoms, aether)
+    val newpom = PomModTest.withRepoForTests(srcPoms, repo)
     assertDeps(Seq(Dep(SelfRef("com.novomind.ishop.shops.any:any-projects:28.0.0-SNAPSHOT"),
       "", "", "", "", "", "", ""),
       Dep(SelfRef("com.novomind.ishop.shops.any:any-erp:28.0.0-SNAPSHOT"),
@@ -181,7 +181,7 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
         "com.novomind.ishop.shops.any", "any-projects", "12.12", "", "", "", ""),
       Dep(SelfRef("com.novomind.any:any:12.12"),
         "com.novomind.any", "any-projects", "27.0.0", "", "", "", "")),
-      PomModTest.withRepoForTests(srcPoms, aether).listDependecies)
+      PomModTest.withRepoForTests(srcPoms, repo).listDependecies)
     Assert.assertEquals(3, newpom.allPomsDocs.size)
     val result = newpom.allPomsDocs
 
@@ -278,7 +278,7 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
       .create()
 
     // WHEN
-    val newpom = PomModTest.withRepoForTests(srcPoms, aether)
+    val newpom = PomModTest.withRepoForTests(srcPoms, repo)
     assertDeps(Seq(Dep(SelfRef("com.novomind.ishop.shops.any:any-projects:28.0.0-SNAPSHOT"),
       "", "", "", "", "", "", ""),
       Dep(SelfRef("com.novomind.ishop.shops.any:any-erp:28.0.0-SNAPSHOT"),
@@ -301,7 +301,7 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
         "com.novomind.ishop.shops.any", "any-projects", "12.12", "", "", "", ""),
       Dep(SelfRef("com.novomind.ishop.shops.any:any:12.12"),
         "com.novomind.ishop.shops.any", "any-parent", "12.12", "", "", "", "")),
-      PomModTest.withRepoForTests(srcPoms, aether).listDependecies)
+      PomModTest.withRepoForTests(srcPoms, repo).listDependecies)
     Assert.assertEquals(4, newpom.allPomsDocs.size)
     val result = newpom.allPomsDocs
 

@@ -2,6 +2,7 @@ package release
 
 import com.typesafe.scalalogging.LazyLogging
 import release.ProjectMod.{Gav3, SelfRef}
+import release.SbtMod.SloppyParser.rep
 import release.Starter.Opts
 
 import java.io.File
@@ -17,11 +18,8 @@ case class SbtMod(file: File, repo: Repo, opts: Opts) extends ProjectMod {
 
   def sbtFile(file: File): Seq[File] = {
     val props = new File(new File(file.getParentFile, "project"), "build.properties")
-    if (props.exists()) {
-      Seq(props)
-    } else {
-      Nil
-    }
+    val plugins = new File(new File(file.getParentFile, "project"), "plugins.sbt")
+    Seq(props, plugins).filter(_.exists())
   }
 
   val listDependecies: Seq[ProjectMod.Dep] = (Seq(file) ++ sbtFile(file))
@@ -74,8 +72,8 @@ object SbtMod {
     new File(file, "build.sbt")
   }
 
-  def withRepo(workfolder: File, opts: Opts, aether: Repo): SbtMod = {
-    SbtMod(buildSbt(workfolder), aether, opts)
+  def withRepo(workfolder: File, opts: Opts, repo: Repo): SbtMod = {
+    SbtMod(buildSbt(workfolder), repo, opts)
   }
 
   object SloppyParser extends RegexParsers with LazyLogging {
@@ -109,7 +107,7 @@ object SbtMod {
         (ValWord(term), None)
       })
 
-      def quotedWord: Parser[(LiteralWord, Option[Unit])] = "[ ]+\"".r ~> "[^\"]+".r ~ "\"" ~ opt("[ ]+".r ~ sep) ^^ (term => {
+      def quotedWord: Parser[(LiteralWord, Option[Unit])] = "[ ]*\"".r ~> "[^\"]+".r ~ "\"" ~ opt("[ ]+".r ~ sep) ^^ (term => {
         val a = term._2.map(_._2)
         val b = term._1._1
         if (a.contains("%%")) {
@@ -124,7 +122,7 @@ object SbtMod {
       var sVersion: Option[String] = None
       var sbtVersionL: Option[String] = None
 
-      def scalaVersion = "scalaVersion :=" ~> quotedWord ^^ (term => {
+      def scalaVersion = "scalaVersion := " ~> quotedWord ^^ (term => {
         sVersion = Some(term._1.value) // XXX side effect
         ScalaVersion(sVersion)
       })
@@ -134,15 +132,34 @@ object SbtMod {
         SbtVersion(sbtVersionL)
       })
 
-      def dep = "libraryDependencies +=" ~> rep(test | quotedWord | word3) <~ opt("[ ]+//.*".r) ~ nl ^^ (term => {
-        def toE(in: DepLineElement, addV: Option[String] = None): Either[String, Val] = {
-          in match {
-            case lw: LiteralWord => Left(lw.value + addV.getOrElse(""))
-            case vw: ValWord => Right(Val(vw.value))
-            case _ => throw new IllegalStateException("upasdf")
-          }
-
+      def toE(in: DepLineElement, addV: Option[String] = None): Either[String, Val] = {
+        in match {
+          case lw: LiteralWord => Left(lw.value + addV.getOrElse(""))
+          case vw: ValWord => Right(Val(vw.value))
+          case _ => throw new IllegalStateException("upasdf")
         }
+      }
+
+      def pluginDep = "addSbtPlugin(" ~> rep(quotedWord) <~ "[ ]*\\)".r ~ opt("[ ]+//.*".r) ~ nl ^^ (term => {
+        // addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.6.1")
+        val termL = term
+        if (termL.size >= 3) {
+          SbtMod.Dep(
+            groupId = toE(termL(0)._1),
+            artifactId = toE(termL(1)._1),
+            version = toE(termL(2)._1),
+            "a", "b", "c", "d")
+        } else {
+          SbtMod.Dep(
+            groupId = toE(LiteralWord("TODO")),
+            artifactId = toE(LiteralWord("TODO")),
+            version = toE(LiteralWord("TODO")),
+            "a", "b", "c", "d")
+        }
+      })
+
+      def dep = "libraryDependencies += " ~> rep(test | quotedWord | word3) <~ opt("[ ]+//.*".r) ~ nl ^^ (term => {
+
 
         if (term.size >= 3) {
           val addVersion = term.find(_._2.isDefined)
@@ -171,7 +188,7 @@ object SbtMod {
 
       })
 
-      val p = rep(sbtVersion | scalaVersion | dep | valP | predfined | ignore)
+      val p = rep(pluginDep | sbtVersion | scalaVersion | dep | valP | predfined | ignore)
 
       val str = "\n" + in.linesIterator.map(_.trim).mkString("\n") + "\n"
       parseAll(p, str) match {

@@ -759,9 +759,9 @@ object Starter extends LazyLogging {
       } else if (createFeatureBranch) {
         FeatureBranch.work(workDirFile, out, err, git, startBranch, askForRebase, releaseToolGit.headStatusValue(), config, opts)
       } else {
-        lazy val aether = new Repo(opts)
+        lazy val repo = new Repo(opts)
         Release.work(workDirFile, out, err, askForRebase, startBranch,
-          git, termOs, shellWidth, releaseToolGit.headStatusValue(), config, aether, opts)
+          git, termOs, shellWidth, releaseToolGit.headStatusValue(), config, repo, opts)
       }
 
       return 0

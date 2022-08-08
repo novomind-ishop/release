@@ -161,4 +161,20 @@ class SbtModTest extends AssertionsForJUnit with MockitoSugar {
     ), value)
   }
 
+  @Test
+  def testDoParsePlugins(): Unit = {
+    val value = SbtMod.SloppyParser.doParse(strict = true)(
+      """
+        |addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "1.0.0")
+        |
+        |addSbtPlugin(  "org.scoverage"    %  "sbt-scoverage" % "1.6.1" ) // helo
+        |
+        |""".stripMargin.trim)
+
+    Assert.assertEquals(Seq(
+      d("com.eed3si9n", "sbt-assembly", "1.0.0"),
+      d("org.scoverage", "sbt-scoverage", "1.6.1"),
+    ), value)
+  }
+
 }

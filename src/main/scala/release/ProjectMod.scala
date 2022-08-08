@@ -346,11 +346,11 @@ object ProjectMod extends LazyLogging {
 
   def checkForUpdates(in: Seq[Gav3], shellWidth: Int, depUpOpts: OptsDepUp, repo: Repo, out: PrintStream): Map[Gav3, (Seq[String], Duration)] = {
 
-    val aetherFetch = StatusLine(in.size, shellWidth, out)
+    val statusLine = StatusLine(in.size, shellWidth, out)
     val updates: Map[Gav3, (Seq[String], Duration)] = in
       .par
       .map(dep => (dep, {
-        aetherFetch.start()
+        statusLine.start()
         val newerVersions = if (depUpOpts.filter.isDefined && !depUpOpts.filter.get.matches(dep.formatted)) {
           repo.newerVersionsOf(dep.groupId, dep.artifactId, dep.version).headOption.toSeq
         } else {
@@ -385,13 +385,13 @@ object ProjectMod extends LazyLogging {
         } else {
           Duration.ofDays(-2)
         }
-        aetherFetch.end()
+        statusLine.end()
         (selectedVersions, d)
       }))
       .seq
       .toMap
 
-    aetherFetch.finish()
+    statusLine.finish()
     updates
   }
 

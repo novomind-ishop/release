@@ -12,27 +12,27 @@ class RepoTest extends AssertionsForJUnit {
 
   @Test
   def testExistsGav(): Unit = {
-    val aether = new Repo(Opts(useDefaults = true))
+    val repo = new Repo(Opts(useDefaults = true))
 
-    Assume.assumeTrue(aether.isReachable(false))
+    Assume.assumeTrue(repo.isReachable(false))
     val g = "javax.servlet.jsp"
     val a = "jsp-api"
     val v = "2.2"
     // "com.google.guava", "guava","30.0-jre"
-    //println("r: " + aether.existsGav(g, a, v))
-    // println("r: " + aether.newerVersionsOf(g, a, v))
+    //println("r: " + repo.existsGav(g, a, v))
+    // println("r: " + repo.newerVersionsOf(g, a, v))
 
     val g1 = "org.scalatest"
     val a1 = "scalatest_2.13"
     val v1 = "3.2.3"
     // ///39.0.0/: Checksum validation failed, no checksums available
-    println(aether.depDate(g1, a1, v1))
+    println(repo.depDate(g1, a1, v1))
     // 2020-11-07T10:27:03Z
     // scalatest_2.13-3.2.3-javadoc.jar                  2020-11-07 10:27       189
     // Some(2020-08-21T13:40:36Z)
-    // Assert.assertFalse(aether.existsGav("com.novomind.ishop.exi", "ext-b2c", "0.0.1-BERT"))
-    println(aether.getRelocationOf("org.scala-lang", "scala-library", "-1"))
-    println(aether.newerVersionsOf("org.scala-lang", "scala3-library_3", "-1"))
+    // Assert.assertFalse(repo.existsGav("com.novomind.ishop.exi", "ext-b2c", "0.0.1-BERT"))
+    println(repo.getRelocationOf("org.scala-lang", "scala-library", "-1"))
+    println(repo.newerVersionsOf("org.scala-lang", "scala3-library_3", "-1"))
   }
 
   @Test
