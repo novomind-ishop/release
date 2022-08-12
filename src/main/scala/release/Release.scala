@@ -465,7 +465,7 @@ object Release extends LazyLogging {
       val sendToGerrit = Term.readFromOneOfYesNo(out, "Push to Gerrit and publish release?", opts)
       if (sendToGerrit == "y") {
         try {
-          if (sgit.hasChangesToPush) {
+          if (sgit.hasChangesToPush || sgit.hasTagsToPush) {
             if (sgit.isNotDetached) {
               val pushOut = sgit.pushFor(srcBranchName = branch, targetBranchName = selectedBranch)
               pushOut.foreach(err.println)
@@ -518,6 +518,7 @@ object Release extends LazyLogging {
             out.println("done.")
           } else {
             out.println("maybe nothing done.")
+            showManual()
           }
         } catch {
           case e: RuntimeException => {

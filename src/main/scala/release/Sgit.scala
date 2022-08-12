@@ -368,6 +368,18 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     status.contains("ahead")
   }
 
+  def hasTagsToPush: Boolean = {
+    try {
+      tagsToPush.exists(_.contains("*"))
+    } catch {
+      case _: Exception => false
+    }
+  }
+
+  private def tagsToPush: Seq[String] = {
+    gitNative(Seq("push", "--tags", "--dry-run", "--porcelain"))
+  }
+
   def isNotDetached: Boolean = !isDetached
 
   def isDetached: Boolean = {

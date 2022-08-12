@@ -559,8 +559,13 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(Nil, gitA.listTags())
     Assert.assertEquals(Seq("v0.0.8", "v0.0.9", "v0.0.10"),
       gitB.listTagsWithDate().map(_.name))
+    Assert.assertTrue(gitB.hasTagsToPush)
     gitB.pushTag("0.0.9")
+    Assert.assertTrue(gitB.hasTagsToPush)
     Assert.assertEquals(Seq("v0.0.9"), gitA.listTags())
+    gitB.pushTag("0.0.10")
+    gitB.pushTag("0.0.8")
+    Assert.assertFalse(gitB.hasTagsToPush)
     val pomFile = SgitTest.testFile(testRepoB, "pom.xml")
     val sub = new File(testRepoB, "sub")
     sub.mkdir()
