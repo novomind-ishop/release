@@ -1,7 +1,6 @@
 package release
 
-import java.io.{BufferedReader, IOError, PrintStream}
-
+import java.io.{BufferedReader, IOError, InputStream, InputStreamReader, PrintStream}
 import org.jline.reader._
 import org.jline.terminal.TerminalBuilder
 import release.Starter.Opts
@@ -10,11 +9,11 @@ import scala.annotation.tailrec
 
 object Term {
 
-  private def readLineWithPromtJline(prompt: String): String = {
+  private def readLineWithPromtJline(prompt: String, in: InputStream, out: PrintStream): String = {
     val terminal = TerminalBuilder.builder()
       .system(true)
       .dumb(true)
-      .streams(System.in, System.out)
+      .streams(in, out)
       .build()
     val reader = LineReaderBuilder.builder()
       .terminal(terminal)
@@ -39,12 +38,12 @@ object Term {
     }
   }
 
-  private def readLineWithPrompt(in: BufferedReader, out: PrintStream, prompt: String, opts: Opts): String = {
+  private def readLineWithPrompt(in: InputStream, out: PrintStream, prompt: String, opts: Opts): String = {
     if (opts.useJlineInput) {
-      readLineWithPromtJline(prompt)
+      readLineWithPromtJline(prompt, in, out)
     } else {
       out.print(prompt)
-      in.readLine()
+      new BufferedReader(new InputStreamReader(in)).readLine()
     }
   }
 
@@ -58,7 +57,7 @@ object Term {
     }
   }
 
-  def readFrom(out: PrintStream, text: String, defaultValue: String, opts: Opts, in: BufferedReader): String = {
+  def readFrom(out: PrintStream, text: String, defaultValue: String, opts: Opts, in: InputStream): String = {
     val line = readLineWithPrompt(in, out, text + " [%s]: ".format(defaultValue), opts)
     val result = line match {
       case null => {
@@ -77,10 +76,10 @@ object Term {
     }
   }
 
-  def readFromOneOfYesNo(out: PrintStream, text: String, opts: Opts, in: BufferedReader = Console.in): String = readFromOneOf(out, text, Seq("y", "n"), opts, in)
+  def readFromOneOfYesNo(out: PrintStream, text: String, opts: Opts, in: InputStream = System.in): String = readFromOneOf(out, text, Seq("y", "n"), opts, in)
 
   @tailrec
-  def readFromOneOf(out: PrintStream, text: String, possibleValues: Seq[String], opts: Opts, in: BufferedReader): String = {
+  def readFromOneOf(out: PrintStream, text: String, possibleValues: Seq[String], opts: Opts, in: InputStream): String = {
     val line = readLineWithPrompt(in, out, text + " [%s]: ".format(
       possibleValues.map(line => line.replace(' ', ' ')).mkString("/")), opts)
     line match {
@@ -101,7 +100,7 @@ object Term {
       .map(in => (in._2.toString, in._1)).foldLeft(Map.empty[String, String])(_ + _)
   }
 
-  def readChooseOneOf(out: PrintStream, text: String, possibleValues: Seq[String], opts: Opts, in: BufferedReader): String = {
+  def readChooseOneOf(out: PrintStream, text: String, possibleValues: Seq[String], opts: Opts, in: InputStream): String = {
     possibleValues match {
       case Nil => throw new IllegalArgumentException("possible value size must not be empty")
       case values if values.size == 1 => throw new IllegalArgumentException("possible value size must not be one")
@@ -123,7 +122,7 @@ object Term {
     }
   }
 
-  def readChooseOneOfOrType(out: PrintStream, text: String, possibleValues: Seq[String], opts: Opts, in: BufferedReader = Console.in): String = {
+  def readChooseOneOfOrType(out: PrintStream, text: String, possibleValues: Seq[String], opts: Opts, in: InputStream = System.in): String = {
     possibleValues match {
       case Nil => throw new IllegalArgumentException("possible value size must not be empty")
       case values if values.size == 1 => readFrom(out, text, possibleValues.head, opts, in)

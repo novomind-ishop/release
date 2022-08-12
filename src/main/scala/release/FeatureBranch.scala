@@ -13,9 +13,9 @@ object FeatureBranch {
     rebaseFn.apply()
     sgit.checkout(branch)
 
-    Starter.chooseUpstreamIfUndef(out, sgit, branch, opts, Console.in)
+    Starter.chooseUpstreamIfUndef(out, sgit, branch, opts, System.in)
     out.println("Featurebranches are NOT recommended if you don't like merge conflicts.")
-    val featureName = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(out, "Enter the feature name", "", opts, Console.in))
+    val featureName = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(out, "Enter the feature name", "", opts, System.in))
     val featureWitoutSnapshot = Term.removeTrailingSnapshots(featureName)
     val featureSnapshot = featureWitoutSnapshot + "-SNAPSHOT"
 

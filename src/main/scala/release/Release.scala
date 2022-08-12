@@ -127,7 +127,7 @@ object Release extends LazyLogging {
       sgit.checkout(sgit.currentBranch)
     })
     sgit.checkout(branch)
-    Starter.chooseUpstreamIfUndef(out, sgit, branch, opts, Console.in)
+    Starter.chooseUpstreamIfUndef(out, sgit, branch, opts, System.in)
 
     val mod: ProjectMod = ProjectMod.read(workDirFile, out, opts, repo)
 
@@ -169,7 +169,7 @@ object Release extends LazyLogging {
       out.println(s"I: Current week of year: ${PomMod.weekOfYear(LocalDate.now())}")
     }
 
-    val knownTags = sgit.listTagsWithDate().map(_.name).sorted
+    val knownTags = sgit.listTagsWithDate().map(_.name)
     val suggestedVersions = newMod.suggestReleaseVersion(sgit.listBranchNamesAll(), knownTags)
 
     @tailrec
@@ -184,7 +184,8 @@ object Release extends LazyLogging {
 
         val latestTags = knownTags.take(5)
         if (latestTags.nonEmpty) {
-          out.println("Latest version tag names are: " + latestTags.mkString(", "))
+          out.println("Latest version tag names are: " + latestTags.mkString(", ")) // TODO sort
+          out.println("Latest version tag matching are: " + "latestTags".mkString(", ")) // TODO sort
         }
         val retryVersionEnter = Term.readFromOneOfYesNo(out, "Unknown release version name: \"" + result + "\".\n" +
           PomMod.trySuggestKnownPattern(result).getOrElse(s"W: suggestion failed for '${result}'\n") +
@@ -203,7 +204,7 @@ object Release extends LazyLogging {
     }
 
     val releaseWithoutSnapshot = readReleaseVersions
-
+// TODO print selected relese version
     val release = if (mod.isShop) {
       Term.removeTrailingSnapshots(releaseWithoutSnapshot) + "-SNAPSHOT"
     } else {
@@ -218,7 +219,7 @@ object Release extends LazyLogging {
     @tailrec
     def readNextReleaseVersionsWithoutSnapshot: String = {
       val result = Term.removeTrailingSnapshots(PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(out, "Enter the next version without -SNAPSHOT",
-        newMod.suggestNextRelease(release), opts, Console.in)))
+        newMod.suggestNextRelease(release), opts, System.in)))
       if (PomMod.isUnknownVersionPattern(result)) {
         val retryVersionEnter = Term.readFromOneOfYesNo(out, "Unknown next release version \"" + result + "\". Are you sure to continue?", opts)
         if (retryVersionEnter == "n") {
@@ -310,7 +311,7 @@ object Release extends LazyLogging {
       if (continue == "n") {
         System.exit(1)
       } else {
-        val really = Term.readFromOneOf(out, "Really?", Seq("Yes I'm really sure", "n"), opts, Console.in)
+        val really = Term.readFromOneOf(out, "Really?", Seq("Yes I'm really sure", "n"), opts, System.in)
         if (really == "n") {
           System.exit(1)
         } else {
@@ -467,6 +468,7 @@ object Release extends LazyLogging {
         try {
           if (sgit.hasChangesToPush || sgit.hasTagsToPush) {
             if (sgit.isNotDetached) {
+                // ask to push version change to review;
               val pushOut = sgit.pushFor(srcBranchName = branch, targetBranchName = selectedBranch)
               pushOut.foreach(err.println)
               pushed.set(true)

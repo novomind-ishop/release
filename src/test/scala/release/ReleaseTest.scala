@@ -1,12 +1,18 @@
 package release
 
-import java.io.File
-import java.util.regex.Pattern
+import org.junit.rules.TemporaryFolder
 
-import org.junit.{Assert, Test}
+import java.io.{BufferedReader, File, InputStreamReader, PrintStream}
+import java.util.regex.Pattern
+import org.junit.{Assert, Rule, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
+import release.Starter.Opts
 
 class ReleaseTest extends AssertionsForJUnit {
+
+  val _temporarayFolder = new TemporaryFolder()
+
+  @Rule def temp = _temporarayFolder
 
   @Test
   def testLines(): Unit = {
@@ -67,6 +73,23 @@ class ReleaseTest extends AssertionsForJUnit {
       "* :other:                                       7.21",
       "* com.novomind.ishop.core:ishop-core-projects:  29.6.4-SNAPSHOT"
     ).mkString("\n"), check.mkString("\n"))
+  }
+
+  @Test
+  def testWork(): Unit = {
+    val workFolder = temp.newFolder()
+    val sgit = Sgit.init(workFolder)
+    val term = Term.select("xterm", "b", true)
+    TermTest.testSys(Nil, Seq(), Nil)((in, out, err) => {
+      val opts = Opts()
+      Release.work(workFolder, new PrintStream(out), new PrintStream(err),
+        rebaseFn = () => {
+
+        }, branch = "master", sgit, term, 72, "abc",
+        ReleaseConfig.default(true), new Repo(opts), opts)
+
+    })
+
   }
 
 }

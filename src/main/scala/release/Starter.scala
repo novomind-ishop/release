@@ -16,7 +16,7 @@ import release.Util.pluralize
 import release.Xpath.InvalidPomXmlException
 
 import java.awt.Desktop
-import java.io.{BufferedReader, File, FileNotFoundException, FileOutputStream, PrintStream}
+import java.io.{BufferedReader, File, FileNotFoundException, FileOutputStream, InputStream, PrintStream}
 import java.net.URI
 import java.nio.file.Files
 import java.time.LocalDateTime
@@ -57,7 +57,7 @@ object Starter extends LazyLogging {
     }(ec))(ec)
   }
 
-  def suggestRebase(out: PrintStream, sgit: Sgit, branch: String, opts: Opts, in: BufferedReader = Console.in): () => Unit = {
+  def suggestRebase(out: PrintStream, sgit: Sgit, branch: String, opts: Opts, in: InputStream = System.in): () => Unit = {
     logger.trace("ask for rebase")
     sgit.checkout(branch)
     chooseUpstreamIfUndef(out, sgit, branch, opts, in)
@@ -93,7 +93,7 @@ object Starter extends LazyLogging {
   }
 
   def fetchGitAndAskForBranch(out: PrintStream, err: PrintStream, noVerify: Boolean,
-                              gitBinEnv: Option[String], workDirFile: File, in: BufferedReader, opts: Opts,
+                              gitBinEnv: Option[String], workDirFile: File, in: InputStream, opts: Opts,
                               skipFetch: Boolean): (Sgit, String) = {
     val global = ExecutionContext.global
 
@@ -522,7 +522,7 @@ object Starter extends LazyLogging {
     println("\u001B[31m" + "This text is red!" + "\u001B[0m")
     val r = Term.readFrom(Console.out, "test press enter",
       "u200B(\u200B),u0009(\u0009),u00A0(\u00A0),u1680(\u1680),,,u2012(\u2012),u2013(\u2013)",
-      inOpt, Console.in)
+      inOpt, System.in)
     print("\u001B[30;45m")
     println("demo: " + r)
     print("\u001B[0m")
@@ -688,7 +688,7 @@ object Starter extends LazyLogging {
     }
     try {
       val gitAndBranchname = fetchGitAndAskForBranch(out, err, verifyGerrit, gitBinEnv, workDirFile,
-        Console.in, opts, skipFetch = false)
+        System.in, opts, skipFetch = false)
 
       def suggestLocalNotesReviewRemoval(activeGit: Sgit): Unit = {
         // git config --add remote.origin.fetch refs/notes/review:refs/notes/review
@@ -713,7 +713,7 @@ object Starter extends LazyLogging {
 
           @tailrec
           def autoCrlfCheck(): Unit = {
-            val result = Term.readChooseOneOf(out, msg, options, opts, Console.in)
+            val result = Term.readChooseOneOf(out, msg, options, opts, System.in)
             if (result == options(1)) {
               System.exit(1)
             } else if (result == options(0)) {
@@ -854,7 +854,7 @@ object Starter extends LazyLogging {
   }
 
   @tailrec
-  def chooseUpstreamIfUndef(out: PrintStream, sgit: Sgit, branch: String, opts: Opts, in: BufferedReader): Unit = {
+  def chooseUpstreamIfUndef(out: PrintStream, sgit: Sgit, branch: String, opts: Opts, in: InputStream): Unit = {
     val upstream = sgit.findUpstreamBranch()
     if (upstream.isEmpty && sgit.isNotDetached) {
       val newUpstream = Term.readChooseOneOfOrType(out, "No upstream found, please set",

@@ -13,6 +13,7 @@ import org.scalatestplus.junit.AssertionsForJUnit
 import release.ProjectMod.Gav3
 import release.Sgit.GitRemote
 import release.Starter.{FutureEither, FutureError, Opts, OptsDepUp}
+import release.StarterTest.willReadFrom
 
 import java.io._
 import java.nio.charset.StandardCharsets
@@ -350,8 +351,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
   def testSuggestRebase(): Unit = {
     // TODO later
     val out = mock[PrintStream]
-    val in = mock[BufferedReader]
-    when(in.readLine()).thenReturn("bert")
+    val in = willReadFrom("bert")
     val sgit = mock[Sgit]
     when(sgit.isNotDetached).thenReturn(true)
     when(sgit.findUpstreamBranch()).thenReturn(None)
@@ -444,9 +444,9 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
 
 object StarterTest {
 
-  def willReadFrom(in: String): BufferedReader = {
+  def willReadFrom(in: String): InputStream = {
     val stream = new ByteArrayInputStream(in.getBytes(StandardCharsets.UTF_8))
-    new BufferedReader(new InputStreamReader(stream))
+    stream
   }
 
   def normalize(in: ByteArrayOutputStream): String = in.toString.trim.replaceAll("\r\n", "\n")

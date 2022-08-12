@@ -382,13 +382,29 @@ class SgitTest extends AssertionsForJUnit {
     gitA.fetchAll()
     Assert.assertEquals(Nil, gitA.listRemotes())
     gitA.addRemote("ubglu", "failfail")
-    TestHelper.assertException("Nonzero exit value: 1; " +
-      "git --no-pager fetch --all --tags; fatal: 'failfail' does not appear to be a git repository " +
-      "fatal: Could not read from remote repository. Please make sure you have the correct access rights " +
-      "and the repository exists. error: Could not fetch ubglu",
-      classOf[RuntimeException], () => {
-        gitA.fetchAll()
-      })
+
+
+    Term.Os.getCurrent match {
+      case Term.Os.Darwin => {
+        TestHelper.assertException("Nonzero exit value: 1; " +
+          "git --no-pager fetch --all --tags; fatal: 'failfail' does not appear to be a git repository " +
+          "fatal: Could not read from remote repository. Please make sure you have the correct access rights " +
+          "and the repository exists. error: could not fetch ubglu",
+          classOf[RuntimeException], () => {
+            gitA.fetchAll()
+          })
+      }
+      case Term.Os.Linux => {
+        TestHelper.assertException("Nonzero exit value: 1; " +
+          "git --no-pager fetch --all --tags; fatal: 'failfail' does not appear to be a git repository " +
+          "fatal: Could not read from remote repository. Please make sure you have the correct access rights " +
+          "and the repository exists. error: Could not fetch ubglu",
+          classOf[RuntimeException], () => {
+            gitA.fetchAll()
+          })
+      }
+      case other => Assert.fail("unknown os: " + other)
+    }
     TestHelper.assertException("Nonzero exit value: 1; git --no-pager push -q -u origin master:refs/heads/master; " +
       "git-err: 'error: src refspec master does not match any' " +
       "git-err: 'error: failed to push some refs to 'origin''",
@@ -455,7 +471,7 @@ class SgitTest extends AssertionsForJUnit {
         failFetchAll("Nonzero exit value: 1; git --no-pager fetch --all --tags; " +
           "ssh: Could not resolve hostname git.example.org: nodename nor servname provided, or not known fatal: " +
           "Could not read from remote repository. " +
-          "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu")
+          "Please make sure you have the correct access rights and the repository exists. error: could not fetch ubglu")
       }
       case other => Assert.fail("unknown os: " + other)
     }
@@ -532,15 +548,30 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(Nil, gitB.listTags())
     gitB.doTag("0.0.10")
     gitA.doTag("0.0.10")
+    Term.Os.getCurrent match {
+      case Term.Os.Darwin => {
+        TestHelper.assertExceptionWithCheck(message =>
+          Assert.assertEquals("Nonzero exit value: 1; git --no-pager fetch --all --tags;" +
+            " ! [rejected]        v0.0.10    -> v0.0.10  (would clobber existing tag)" +
+            " error: could not fetch origin",
+            message.replaceFirst(" From [^ ]+", ""))
+          , classOf[RuntimeException], () => {
+            gitB.fetchAll()
+          })
+      }
+      case Term.Os.Linux => {
+        TestHelper.assertExceptionWithCheck(message =>
+          Assert.assertEquals("Nonzero exit value: 1; git --no-pager fetch --all --tags;" +
+            " ! [rejected]        v0.0.10    -> v0.0.10  (would clobber existing tag)" +
+            " error: Could not fetch origin",
+            message.replaceFirst(" From [^ ]+", ""))
+          , classOf[RuntimeException], () => {
+            gitB.fetchAll()
+          })
+      }
+      case other => Assert.fail("unknown os: " + other)
+    }
 
-    TestHelper.assertExceptionWithCheck(message =>
-      Assert.assertEquals("Nonzero exit value: 1; git --no-pager fetch --all --tags;" +
-        " ! [rejected]        v0.0.10    -> v0.0.10  (would clobber existing tag)" +
-        " error: Could not fetch origin",
-        message.replaceFirst(" From [^ ]+", ""))
-      , classOf[RuntimeException], () => {
-        gitB.fetchAll()
-      })
     gitA.deleteTag("0.0.10")
     gitA.createBranch("lulul")
     gitB.fetchAll()
@@ -565,6 +596,10 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(Seq("v0.0.9"), gitA.listTags())
     gitB.pushTag("0.0.10")
     gitB.pushTag("0.0.8")
+    Assert.assertFalse(gitB.hasTagsToPush)
+    TestHelper.assertException("Nonzero exit value: 128; git --no-pager tag va*; fatal: 'va*' is not a valid tag name.",
+      classOf[RuntimeException], () => gitB.doTag("a*"))
+
     Assert.assertFalse(gitB.hasTagsToPush)
     val pomFile = SgitTest.testFile(testRepoB, "pom.xml")
     val sub = new File(testRepoB, "sub")
