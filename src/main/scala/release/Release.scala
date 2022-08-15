@@ -1,12 +1,11 @@
 package release
 
-import java.io.{File, PrintStream}
+import java.io.{File, InputStream, PrintStream}
 import java.nio.charset.MalformedInputException
 import java.nio.file.{Files, InvalidPathException, Path, Paths}
 import java.time.LocalDate
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.regex.Pattern
-
 import com.typesafe.scalalogging.LazyLogging
 import release.ProjectMod.{Dep, Gav, Version}
 import release.Starter.{Opts, PreconditionsException}
@@ -103,13 +102,13 @@ object Release extends LazyLogging {
   }
 
   // TODO @tailrec
-  def work(workDirFile: File, out: PrintStream, err: PrintStream, rebaseFn: () => Unit, branch: String, sgit: Sgit,
+  def work(workDirFile: File, out: PrintStream, err: PrintStream,  in: InputStream, rebaseFn: () => Unit, branch: String, sgit: Sgit,
            termOs: Term, shellWidth: Int, releaseToolGitSha1: String, config: ReleaseConfig,
            repo: Repo, opts: Opts): Seq[Unit] = {
     if (sgit.hasLocalChanges) {
       val message = localChangeMessage(sgit)
       out.println(message)
-      val changes = Term.readFromOneOfYesNo(out, "You have local changes. Add changes to stash?", opts)
+      val changes = Term.readFromOneOfYesNo(out, "You have local changes. Add changes to stash?", opts, in)
       if (changes == "y") {
         sgit.stash()
         Starter.addExitFn("cleanup branches", () => {
@@ -118,7 +117,7 @@ object Release extends LazyLogging {
       } else if (changes == "n") {
         checkLocalChanges(sgit, branch)
       } else {
-        work(workDirFile, out, err, rebaseFn, branch, sgit, termOs, shellWidth, releaseToolGitSha1, config, repo, opts)
+        work(workDirFile, out, err, in, rebaseFn, branch, sgit, termOs, shellWidth, releaseToolGitSha1, config, repo, opts)
       }
 
     }
@@ -127,7 +126,7 @@ object Release extends LazyLogging {
       sgit.checkout(sgit.currentBranch)
     })
     sgit.checkout(branch)
-    Starter.chooseUpstreamIfUndef(out, sgit, branch, opts, System.in)
+    Starter.chooseUpstreamIfUndef(out, sgit, branch, opts, in)
 
     val mod: ProjectMod = ProjectMod.read(workDirFile, out, opts, repo)
 
@@ -137,13 +136,13 @@ object Release extends LazyLogging {
       System.exit(0)
     }
 
-    val wipMod = offerAutoFixForReleaseSnapshots(out, mod, sgit.lsFiles(), shellWidth, err, repo, opts)
+    val wipMod = offerAutoFixForReleaseSnapshots(out, mod, sgit.lsFiles(), shellWidth, err, repo, opts, in)
 
     @tailrec
     def checkLocalChangesAfterSnapshots(mod: ProjectMod): ProjectMod = {
       if (sgit.hasLocalChanges) {
         out.println(localChangeMessage(sgit))
-        val retryLocalChanges = Term.readFromOneOfYesNo(out, "Found local changes - commit manual please. Retry?", opts)
+        val retryLocalChanges = Term.readFromOneOfYesNo(out, "Found local changes - commit manual please. Retry?", opts, in)
         if (retryLocalChanges == "n") {
           System.exit(0)
           mod
@@ -174,7 +173,7 @@ object Release extends LazyLogging {
 
     @tailrec
     def readReleaseVersions: String = {
-      val result = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readChooseOneOfOrType(out, "Enter the release version", suggestedVersions, opts))
+      val result = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readChooseOneOfOrType(out, "Enter the release version", suggestedVersions, opts, in))
       if (PomMod.isUnknownVersionPattern(result)) {
         if (mod.isShop) {
           out.println("I: We prefer:")
@@ -191,7 +190,7 @@ object Release extends LazyLogging {
           PomMod.trySuggestKnownPattern(result).getOrElse(s"W: suggestion failed for '${result}'\n") +
           "_unknown_ versions may affect creation and cleanup of build jobs and artifacts\n" +
           " and/or publishing of artifacts to partners.\n" +
-          " Are you sure to continue with this name?", opts)
+          " Are you sure to continue with this name?", opts, in)
 
         if (retryVersionEnter == "n") {
           readReleaseVersions
@@ -219,9 +218,9 @@ object Release extends LazyLogging {
     @tailrec
     def readNextReleaseVersionsWithoutSnapshot: String = {
       val result = Term.removeTrailingSnapshots(PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(out, "Enter the next version without -SNAPSHOT",
-        newMod.suggestNextRelease(release), opts, System.in)))
+        newMod.suggestNextRelease(release), opts, in)))
       if (PomMod.isUnknownVersionPattern(result)) {
-        val retryVersionEnter = Term.readFromOneOfYesNo(out, "Unknown next release version \"" + result + "\". Are you sure to continue?", opts)
+        val retryVersionEnter = Term.readFromOneOfYesNo(out, "Unknown next release version \"" + result + "\". Are you sure to continue?", opts, in)
         if (retryVersionEnter == "n") {
           readNextReleaseVersionsWithoutSnapshot
         } else {
@@ -307,15 +306,15 @@ object Release extends LazyLogging {
       Release.formatVersionLinesGav(coreMajorVersions.map(_._2.gav()).sortBy(_.version), opts.colors)
         .map(in => " " + in)
         .foreach(out.println)
-      val continue = Term.readFromOneOfYesNo(out, "Continue?", opts)
+      val continue = Term.readFromOneOfYesNo(out, "Continue?", opts, in)
       if (continue == "n") {
         System.exit(1)
       } else {
-        val really = Term.readFromOneOf(out, "Really?", Seq("Yes I'm really sure", "n"), opts, System.in)
+        val really = Term.readFromOneOf(out, "Really?", Seq("Yes I'm really sure", "n"), opts, in)
         if (really == "n") {
           System.exit(1)
         } else {
-          val abort = Term.readFromOneOfYesNo(out, "Abort?", opts)
+          val abort = Term.readFromOneOfYesNo(out, "Abort?", opts, in)
           if (abort == "y") {
             System.exit(1)
           }
@@ -334,7 +333,7 @@ object Release extends LazyLogging {
     def checkReleaseBranch(): Unit = {
       if (sgit.listBranchNamesLocal().contains("release")) {
         val changes = Term.readFromOneOfYesNo(out, "You have a local branch with name 'release'. " +
-          "We use this name for branch creation. Delete this branch manually. Abort release?", opts)
+          "We use this name for branch creation. Delete this branch manually. Abort release?", opts, in)
         if (changes == "y") {
           System.exit(1)
         } else {
@@ -463,7 +462,7 @@ object Release extends LazyLogging {
 
     if (opts.useGerrit) {
       val pushed = new AtomicBoolean(false)
-      val sendToGerrit = Term.readFromOneOfYesNo(out, "Push to Gerrit and publish release?", opts)
+      val sendToGerrit = Term.readFromOneOfYesNo(out, "Push to Gerrit and publish release?", opts, in)
       if (sendToGerrit == "y") {
         try {
           if (sgit.hasChangesToPush || sgit.hasTagsToPush) {
@@ -540,7 +539,7 @@ object Release extends LazyLogging {
 
   // TODO @tailrec
   def offerAutoFixForReleaseSnapshots(out: PrintStream, mod: ProjectMod, gitFiles: Seq[String], shellWidth: Int, err: PrintStream,
-                                      repo: Repo, opts: Opts): ProjectMod = {
+                                      repo: Repo, opts: Opts, in:InputStream): ProjectMod = {
     val plugins = mod.listPluginDependencies
     if (mod.isShop) {
       // TODO check if core needs this checks too
@@ -629,11 +628,11 @@ object Release extends LazyLogging {
         .foreach(println)
       out.println("")
 
-      val again = Term.readFromOneOfYesNo(out, "Try again?", opts)
+      val again = Term.readFromOneOfYesNo(out, "Try again?", opts, in)
       if (again == "n") {
         System.exit(1)
       } else {
-        offerAutoFixForReleaseSnapshots(out, ProjectMod.read(mod.file, out, opts, repo, showRead = false), gitFiles, shellWidth, err, repo, opts)
+        offerAutoFixForReleaseSnapshots(out, ProjectMod.read(mod.file, out, opts, repo, showRead = false), gitFiles, shellWidth, err, repo, opts, in)
       }
     }
     mod

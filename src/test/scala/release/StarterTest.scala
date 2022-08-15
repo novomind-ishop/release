@@ -29,7 +29,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
 
   def doInit(params: Seq[String]): ExecReturn = {
 
-    val result = StarterTest.withOutErr[Int]((out, err) => Starter.init(params, out, err))
+    val result = StarterTest.withOutErr[Int]((out, err) => Starter.init(params, out, err, null))
     ExecReturn(result.out, result.err, result.value)
   }
 
@@ -267,7 +267,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
     when(sgit.findUpstreamBranch()).thenReturn(None)
     val opts = mock[Opts]
 
-    Starter.suggestRebase(out, sgit, branch = "test", opts)
+    Starter.suggestRebase(out, sgit, branch = "test", opts, null)
 
     verify(sgit).checkout("test")
   }

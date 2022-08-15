@@ -10,18 +10,6 @@ import java.security.Permission
 
 class TermTest extends AssertionsForJUnit {
 
-  var in: InputStream = null
-
-  @Before
-  def before(): Unit = {
-    in = System.in
-  }
-
-  @After
-  def after(): Unit = {
-    System.setIn(in)
-  }
-
   @Test
   def testRemoveSnapshot_0(): Unit = {
     val out = Term.removeTrailingSnapshots("RC-2009.01")
@@ -51,23 +39,48 @@ class TermTest extends AssertionsForJUnit {
   }
 
   @Test
-  @Ignore
   def testReadFrom(): Unit = {
     val value = "My string"
 
-    TermTest.testSys(Seq(value), Seq("enter some [word]: "), Nil)((in, out, err) => {
-      val result = Term.readFrom(new PrintStream(out), "enter some", "word", Opts(),
-        in)
+    TermTest.testSys(Seq(value), "enter some [word]: ", Nil)((in, out, err) => {
+      val result = Term.readFrom(new PrintStream(out), "enter some", "word", Opts(useJlineInput = false), in)
       Assert.assertEquals(value, result)
     })
 
   }
 
   @Test
-  @Ignore
   def testReadNull(): Unit = {
-    TermTest.testSys(Nil, Seq("enter some [word]: "), Nil, 14)((in, out, err) => {
+    TermTest.testSys(Nil, "enter some [word]: ", Nil, 14)((in, out, err) => {
       Term.readFrom(new PrintStream(out), "enter some", "word", Opts(useJlineInput = false), in)
+    })
+  }
+
+  @Test
+  def testReadDirect(): Unit = {
+    TermTest.testSys(Seq("a", "b"), "", Nil)((in, _, _) => {
+      val bin = new BufferedReader(new InputStreamReader(in))
+      Assert.assertEquals("a", bin.readLine())
+      Assert.assertEquals("b", bin.readLine())
+      Assert.assertEquals(null, bin.readLine())
+    })
+  }
+
+  @Test
+  def testThrows(): Unit = {
+    TestHelper.assertComparisonFailure("expected:<[a]> but was:<[b]>", () => {
+      TermTest.testSys(Nil, "", Nil)((_, _, _) => {
+        Assert.assertEquals("a", "b")
+      })
+    })
+  }
+
+  @Test
+  def testThrowsAll(): Unit = {
+    TestHelper.assertException("hello", classOf[Exception], () => {
+      TermTest.testSys(Nil, "", Nil)((_, _, _) => {
+        throw new Exception("hello")
+      })
     })
 
   }
@@ -76,7 +89,8 @@ class TermTest extends AssertionsForJUnit {
 
 object TermTest extends LazyLogging {
 
-  def testSys(input: Seq[String], expectedOut: Seq[String], expectedErr: Seq[String], expectedExitCode: Int = 0)
+  def testSys(input: Seq[String], expectedOut: String, expectedErr: Seq[String], expectedExitCode: Int = 0,
+              outFn:String => String = a => a)
              (fn: (InputStream, OutputStream, OutputStream) => Unit): Unit = {
     this.synchronized {
       val oldSecurityManager = System.getSecurityManager
@@ -93,28 +107,25 @@ object TermTest extends LazyLogging {
       }
       System.setSecurityManager(manager)
 
-      val oldIn = System.in
-      val oldOut = System.out
-      val oldErr = System.err
 
       val out = new ByteArrayOutputStream()
       val err = new ByteArrayOutputStream()
-      val in = new ByteArrayInputStream(input.mkString("\n").getBytes)
-      System.setIn(in)
-      System.setOut(new PrintStream(out))
-      System.setErr(new PrintStream(err))
+
+      val preparedLines = input.mkString("\n")
+      val in = new ByteArrayInputStream(preparedLines.getBytes)
 
       try {
-        fn.apply(System.in, System.out, System.err)
+        fn.apply(in, out, err)
       } catch {
-        case e: Throwable => e.printStackTrace(oldErr)
+        case e: SecurityException => // nothing
+        case e: AssertionError => throw e
+        case e: Throwable => throw e
       } finally {
-        System.setIn(oldIn)
-        System.setOut(oldOut)
-        System.setErr(oldErr)
         System.setSecurityManager(oldSecurityManager)
       }
-      Assert.assertEquals(expectedOut, out.toString.linesIterator.toList)
+      Assert.assertEquals(expectedOut, out.toString.linesIterator.toList
+        .map(outFn)
+        .mkString("\n"))
       Assert.assertEquals(expectedErr, err.toString.linesIterator.toList)
       Assert.assertEquals(expectedExitCode, exitCode)
     }

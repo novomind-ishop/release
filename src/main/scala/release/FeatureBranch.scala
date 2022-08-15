@@ -1,38 +1,37 @@
 package release
 
-import java.io.{File, PrintStream}
-
+import java.io.{File, InputStream, PrintStream}
 import release.Starter.Opts
 
 import scala.annotation.tailrec
 
 object FeatureBranch {
-  def work(workDirFile: File, out: PrintStream, err: PrintStream, sgit: Sgit, branch: String, rebaseFn: () => Unit,
+  def work(workDirFile: File, out: PrintStream, err: PrintStream, inputStream:InputStream, sgit: Sgit, branch: String, rebaseFn: () => Unit,
            toolSh1: String, config: ReleaseConfig, opts: Opts): Unit = {
     Release.checkLocalChanges(sgit, branch)
     rebaseFn.apply()
     sgit.checkout(branch)
 
-    Starter.chooseUpstreamIfUndef(out, sgit, branch, opts, System.in)
+    Starter.chooseUpstreamIfUndef(out, sgit, branch, opts, inputStream)
     out.println("Featurebranches are NOT recommended if you don't like merge conflicts.")
-    val featureName = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(out, "Enter the feature name", "", opts, System.in))
+    val featureName = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(out, "Enter the feature name", "", opts, inputStream))
     val featureWitoutSnapshot = Term.removeTrailingSnapshots(featureName)
     val featureSnapshot = featureWitoutSnapshot + "-SNAPSHOT"
 
     @tailrec
-    def checkFeatureBranch(): Unit = {
+    def checkFeatureBranch(inputStream: InputStream): Unit = {
       if (sgit.listBranchNamesLocal().contains("feature")) {
         val changes = Term.readFromOneOfYesNo(out, "You have a local branch with name 'feature'. " +
-          "We use this name for branch creation. Delete this branch manually. Abort release?", opts)
+          "We use this name for branch creation. Delete this branch manually. Abort release?", opts, inputStream)
         if (changes == "y") {
           System.exit(1)
         } else {
-          checkFeatureBranch()
+          checkFeatureBranch(inputStream)
         }
       }
     }
 
-    checkFeatureBranch()
+    checkFeatureBranch(inputStream)
     val featureBranchName = "feature/" + featureWitoutSnapshot
     sgit.createBranch(featureBranchName)
     sgit.checkout(featureBranchName)

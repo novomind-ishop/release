@@ -57,7 +57,7 @@ object Starter extends LazyLogging {
     }(ec))(ec)
   }
 
-  def suggestRebase(out: PrintStream, sgit: Sgit, branch: String, opts: Opts, in: InputStream = System.in): () => Unit = {
+  def suggestRebase(out: PrintStream, sgit: Sgit, branch: String, opts: Opts, in: InputStream): () => Unit = {
     logger.trace("ask for rebase")
     sgit.checkout(branch)
     chooseUpstreamIfUndef(out, sgit, branch, opts, in)
@@ -530,7 +530,7 @@ object Starter extends LazyLogging {
     null
   }
 
-  def init(argSeq: Seq[String], out: PrintStream, err: PrintStream): Int = {
+  def init(argSeq: Seq[String], out: PrintStream, err: PrintStream, inputStream:InputStream): Int = {
 
     if (argSeq.size <= 4) {
       err.println("usage: $0 \"$(dirname $0)\" \"$(pwd)\" \"${os}\" \"${TERM}\" \"${terminal_cols}\" \"${HOME}\" ${argLine}")
@@ -688,7 +688,7 @@ object Starter extends LazyLogging {
     }
     try {
       val gitAndBranchname = fetchGitAndAskForBranch(out, err, verifyGerrit, gitBinEnv, workDirFile,
-        System.in, opts, skipFetch = false)
+        inputStream, opts, skipFetch = false)
 
       def suggestLocalNotesReviewRemoval(activeGit: Sgit): Unit = {
         // git config --add remote.origin.fetch refs/notes/review:refs/notes/review
@@ -696,7 +696,7 @@ object Starter extends LazyLogging {
         // git fetch
         if (activeGit.listRefNames().contains("refs/notes/review")) {
           val result = Term.readFromOneOfYesNo(out, "Ref: " + "refs/notes/review" + " found." +
-            " This ref leads to an unreadable local history. Do you want to remove them?", opts)
+            " This ref leads to an unreadable local history. Do you want to remove them?", opts, inputStream)
           if (result == "y") {
             val configRefs = activeGit.configGetLocalAllSeq("remote.origin.fetch")
             configRefs.filter(_.startsWith("refs/notes/"))
@@ -713,7 +713,7 @@ object Starter extends LazyLogging {
 
           @tailrec
           def autoCrlfCheck(): Unit = {
-            val result = Term.readChooseOneOf(out, msg, options, opts, System.in)
+            val result = Term.readChooseOneOf(out, msg, options, opts, inputStream)
             if (result == options(1)) {
               System.exit(1)
             } else if (result == options(0)) {
@@ -734,7 +734,7 @@ object Starter extends LazyLogging {
       val git = gitAndBranchname._1
       suggestLocalNotesReviewRemoval(git)
       val startBranch = gitAndBranchname._2
-      val askForRebase = suggestRebase(out, git, startBranch, opts)
+      val askForRebase = suggestRebase(out, git, startBranch, opts, inputStream)
       logger.trace("readFromPrompt")
       Tracer.withFn(logger, () => "local branches: " + git.listBranchNamesLocal())
       if (versionSetMode) {
@@ -757,10 +757,10 @@ object Starter extends LazyLogging {
         mod.writeTo(workDirFile)
         out.println("I: GroupId and ArtifactId successfully changed. You have local changes")
       } else if (createFeatureBranch) {
-        FeatureBranch.work(workDirFile, out, err, git, startBranch, askForRebase, releaseToolGit.headStatusValue(), config, opts)
+        FeatureBranch.work(workDirFile, out, err, inputStream, git, startBranch, askForRebase, releaseToolGit.headStatusValue(), config, opts)
       } else {
         lazy val repo = new Repo(opts)
-        Release.work(workDirFile, out, err, askForRebase, startBranch,
+        Release.work(workDirFile, out, err, inputStream, askForRebase, startBranch,
           git, termOs, shellWidth, releaseToolGit.headStatusValue(), config, repo, opts)
       }
 
@@ -884,7 +884,7 @@ object Starter extends LazyLogging {
 
   def main(args: Array[String]): Unit = {
     logger.trace("started vm")
-    System.exit(init(args.toIndexedSeq, System.out, System.err))
+    System.exit(init(args.toIndexedSeq, System.out, System.err, System.in))
   }
 
 }

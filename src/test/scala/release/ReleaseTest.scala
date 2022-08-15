@@ -75,17 +75,69 @@ class ReleaseTest extends AssertionsForJUnit {
     ).mkString("\n"), check.mkString("\n"))
   }
 
-  @Test
+  @Test(timeout = 20_000)
   def testWork(): Unit = {
-    val workFolder = temp.newFolder()
-    val sgit = Sgit.init(workFolder)
+    val localWorkFolder = temp.newFolder()
+    val remoteWorkFolder = temp.newFolder()
+
+    val gitRemote = Sgit.init(remoteWorkFolder)
+    gitRemote.configSetLocal("user.email", "you@example.com")
+    gitRemote.configSetLocal("user.name", "Your Name")
+
+    val f1 = SgitTest.testFile(gitRemote.file, "pom.xml")
+    Util.write(f1,
+      """<?xml version="1.0" encoding="UTF-8"?>
+        |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+        |  <modelVersion>4.0.0</modelVersion>
+        |
+        |  <groupId>com.novomind.ishop.any</groupId>
+        |  <artifactId>any</artifactId>
+        |  <version>0.11-SNAPSHOT</version>
+        |
+        |</project>
+        |
+        |""".stripMargin.linesIterator.toSeq)
+    gitRemote.add(f1)
+    gitRemote.commitAll("test")
+
+    val gitLocal = Sgit.doClone(remoteWorkFolder, localWorkFolder, false)
+    gitLocal.configSetLocal("user.email", "you@example.com")
+    gitLocal.configSetLocal("user.name", "Your Name")
     val term = Term.select("xterm", "b", true)
-    TermTest.testSys(Nil, Seq(), Nil)((in, out, err) => {
-      val opts = Opts()
-      Release.work(workFolder, new PrintStream(out), new PrintStream(err),
+    val expected =
+      """I: Reading pom.xmls ... done
+        |---------
+        |1. MAJOR version when you make incompatible API changes,
+        |2. MINOR version when you add functionality in a backwards-compatible manner, and
+        |3. PATCH version when you make backwards-compatible bug fixes.
+        |   see also: http://semver.org/
+        |---------
+        |Enter the release version [0.11]: Enter the next version without -SNAPSHOT [0.12.0]: Committing pom changes ... done
+        |Checking out release/0.11 ... done
+        |Commiting pom changes ... done
+        |Checking out master ... done
+        |
+        |
+        ||/
+        |
+        |Push to Gerrit and publish release? [y/n]: done.""".stripMargin
+
+    def repSha(a: String): String = {
+      if (a.matches("(.*)\\* [0-9a-f]+ (.*)")) {
+        "" // because of unstable graph
+      } else {
+        a
+      }
+
+    }
+
+    TermTest.testSys(Seq("", "", "y", ""), expected, Nil, outFn = repSha)((in, out, err) => {
+      val opts = Opts(useJlineInput = false)
+      Release.work(localWorkFolder, new PrintStream(out), new PrintStream(err), in,
         rebaseFn = () => {
 
-        }, branch = "master", sgit, term, 72, "abc",
+        }, branch = "master", gitLocal, term, 72, "abc",
         ReleaseConfig.default(true), new Repo(opts), opts)
 
     })
