@@ -781,13 +781,13 @@ class SgitTest extends AssertionsForJUnit {
     val detached = Sgit.splitLineOnBranchlist("* (HEAD detached at 97cbb59ea) 97cbb59ea40aacb4d8acad402bf90890741b0dbe Add ...")
     Assert.assertEquals(("97cbb59ea40aacb4d8acad402bf90890741b0dbe", "97cbb59ea40aacb4d8acad402bf90890741b0dbe"), detached.get)
 
-    val some = StarterTest.withOutErr[Option[(String, String)]]((_, err) =>
-      Sgit.splitLineOnBranchlistErr(err)(" See merge request !380est          a5b54bf93f5a6b84f5f0833d315f9c6c3dfc1875 [gone] " +
+    val some = StarterTest.withOutErr[Option[(String, String)]]()(sys =>
+      Sgit.splitLineOnBranchlistErr(sys.err)(" See merge request !380est          a5b54bf93f5a6b84f5f0833d315f9c6c3dfc1875 [gone] " +
         "Merge branch '904_inxmail_api' into 'sprint/2017.07'"))
     Assert.assertEquals(None, some.value)
 
-    val some1 = StarterTest.withOutErr[Option[(String, String)]]((_, err) =>
-      Sgit.splitLineOnBranchlistErr(err)("bla\r\nbl"))
+    val some1 = StarterTest.withOutErr[Option[(String, String)]]()(sys =>
+      Sgit.splitLineOnBranchlistErr(sys.err)("bla\r\nbl"))
 
     Assert.assertEquals(None, some1.value)
     Assert.assertEquals("W: Unknown branch definition (check commit messages for second line empty, first line char limit): \"bla\nbl\". " +
@@ -796,8 +796,8 @@ class SgitTest extends AssertionsForJUnit {
 
   @Test
   def testSplitLineOnBranchlist_worktree(): Unit = {
-    val some1 = StarterTest.withOutErr[Option[(String, String)]]((_, err) =>
-      Sgit.splitLineOnBranchlistErr(err)("+ bla                   74036668cf893e4762ab4ff24ab4de8e44b70e33 Some"))
+    val some1 = StarterTest.withOutErr[Option[(String, String)]]()(sys =>
+      Sgit.splitLineOnBranchlistErr(sys.err)("+ bla                   74036668cf893e4762ab4ff24ab4de8e44b70e33 Some"))
 
     Assert.assertEquals(("bla", "74036668cf893e4762ab4ff24ab4de8e44b70e33"), some1.value.get)
   }

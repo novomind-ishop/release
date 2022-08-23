@@ -6,40 +6,40 @@ import release.Starter.Opts
 import scala.annotation.tailrec
 
 object FeatureBranch {
-  def work(workDirFile: File, out: PrintStream, err: PrintStream, inputStream:InputStream, sgit: Sgit, branch: String, rebaseFn: () => Unit,
+  def work(workDirFile: File, sys: Term.Sys, sgit: Sgit, branch: String, rebaseFn: () => Unit,
            toolSh1: String, config: ReleaseConfig, opts: Opts): Unit = {
     Release.checkLocalChanges(sgit, branch)
     rebaseFn.apply()
     sgit.checkout(branch)
 
-    Starter.chooseUpstreamIfUndef(out, sgit, branch, opts, inputStream)
-    out.println("Featurebranches are NOT recommended if you don't like merge conflicts.")
-    val featureName = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(out, "Enter the feature name", "", opts, inputStream))
+    Starter.chooseUpstreamIfUndef(sys, sgit, branch, opts)
+    sys.out.println("Featurebranches are NOT recommended if you don't like merge conflicts.")
+    val featureName = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(sys, "Enter the feature name", "", opts))
     val featureWitoutSnapshot = Term.removeTrailingSnapshots(featureName)
     val featureSnapshot = featureWitoutSnapshot + "-SNAPSHOT"
 
     @tailrec
-    def checkFeatureBranch(inputStream: InputStream): Unit = {
+    def checkFeatureBranch(sys: Term.Sys): Unit = {
       if (sgit.listBranchNamesLocal().contains("feature")) {
-        val changes = Term.readFromOneOfYesNo(out, "You have a local branch with name 'feature'. " +
-          "We use this name for branch creation. Delete this branch manually. Abort release?", opts, inputStream)
+        val changes = Term.readFromOneOfYesNo(sys, "You have a local branch with name 'feature'. " +
+          "We use this name for branch creation. Delete this branch manually. Abort release?", opts)
         if (changes == "y") {
           System.exit(1)
         } else {
-          checkFeatureBranch(inputStream)
+          checkFeatureBranch(sys)
         }
       }
     }
 
-    checkFeatureBranch(inputStream)
+    checkFeatureBranch(sys)
     val featureBranchName = "feature/" + featureWitoutSnapshot
     sgit.createBranch(featureBranchName)
     sgit.checkout(featureBranchName)
 
-    val mod = PomMod.of(workDirFile, err, opts)
+    val mod = PomMod.of(workDirFile, opts)
     mod.changeVersion(featureSnapshot)
     mod.writeTo(workDirFile)
-    out.print("Committing pom changes ..")
+    sys.out.print("Committing pom changes ..")
     val msgs = ""
     sgit.doCommitPomXmlsAnd(
       """[%s] prepare - %s
@@ -50,8 +50,8 @@ object FeatureBranch {
         msgs,
         config.signedOfBy(), Starter.sign(sgit), toolSh1), mod.depTreeFilenameList())
 
-    out.println(". done")
-    out.println("To push this branch to remote: $ git push --set-upstream origin " + featureBranchName)
+    sys.out.println(". done")
+    sys.out.println("To push this branch to remote: $ git push --set-upstream origin " + featureBranchName)
   }
 
 }

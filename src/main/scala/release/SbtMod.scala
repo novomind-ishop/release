@@ -37,7 +37,7 @@ case class SbtMod(file: File, repo: Repo, opts: Opts) extends ProjectMod {
 
   def selfDepsMod: Seq[ProjectMod.Dep] = Nil // TODO
 
-  def suggestReleaseVersion(branchNames: Seq[String], tagNames: Seq[String]): Seq[String] = throw new UnsupportedOperationException()
+  def suggestReleaseVersion(branchNames: Seq[String], tagNames: Seq[String], increment:Option[Increment] = None): Seq[String] = throw new UnsupportedOperationException()
 
   def suggestNextRelease(releaseVersion: String): String = throw new UnsupportedOperationException()
 

@@ -27,9 +27,9 @@ class ProjectModTest extends AssertionsForJUnit {
     when(repo.depDate(scala.groupId, scala.artifactId, "2.13.1")).thenReturn(Some(now))
     when(repo.newerVersionsOf(scala.groupId, "scala3-library_3", "-1")).thenReturn(Seq("-1", "3.0.1"))
     when(repo.depDate(scala.groupId, "scala3-library_3", "-1")).thenReturn(None)
-    val result = StarterTest.withOutErr[Unit]((out, err) => {
+    val result = StarterTest.withOutErr[Unit]()(sys => {
       val innerResult: Seq[(GavWithRef, (Seq[String], Duration))] = ProjectMod.showDependencyUpdates(100, term,
-        OptsDepUp().copy(showLibYears = true), "workingNexusUrl", rootDeps, selfDepsMod, repo, out, err)
+        OptsDepUp().copy(showLibYears = true), "workingNexusUrl", rootDeps, selfDepsMod, repo, sys)
 
       val sca1 = GavWithRef(SelfRef.undef, Gav("org.scala-lang", "scala-library", "2.13.0"))
       val scala2 = (sca1, (Seq("2.13.1"), Duration.ZERO))
@@ -66,9 +66,9 @@ class ProjectModTest extends AssertionsForJUnit {
     val rootDeps: Seq[ProjectMod.Dep] = Nil
     val selfDepsMod: Seq[ProjectMod.Dep] = Nil
     val repo = mock[Repo]
-    val result = StarterTest.withOutErr[Unit]((out, err) => {
+    val result = StarterTest.withOutErr[Unit]()(sys => {
       val innerResult = ProjectMod.showDependencyUpdates(100, term,
-        OptsDepUp(), "workingNExusUrl", rootDeps, selfDepsMod, repo, out, err)
+        OptsDepUp(), "workingNExusUrl", rootDeps, selfDepsMod, repo, sys)
       Assert.assertEquals(Nil, innerResult)
     })
     Assert.assertEquals("", result.err)

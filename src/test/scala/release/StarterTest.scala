@@ -28,8 +28,8 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
   @Rule def globalTimeout = _globalTimeout
 
   def doInit(params: Seq[String]): ExecReturn = {
-
-    val result = StarterTest.withOutErr[Int]((out, err) => Starter.init(params, out, err, null))
+    val in: InputStream = null
+    val result = StarterTest.withOutErrIn[Int](in)(sys => Starter.init(params, sys))
     ExecReturn(result.out, result.err, result.value)
   }
 
@@ -145,8 +145,8 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
     TestHelper.assertExceptionWithCheck(in => Assert.assertEquals("E: please download a commit-message hook and retry",
       in.linesIterator.toSeq(1)),
       classOf[Sgit.MissingCommitHookException], () => {
-        StarterTest.withOutErr[Unit]((out, err) => Starter.fetchGitAndAskForBranch(out, err, noVerify = true, None,
-          testRepoD, in, Opts(), skipFetch = true))
+        StarterTest.withOutErrIn[Unit](in)(sys => Starter.fetchGitAndAskForBranch(sys, noVerify = true, None,
+          testRepoD, Opts(), skipFetch = true))
       })
   }
 
@@ -156,8 +156,8 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
     SgitTest.copyMsgHook(testRepoD)
     // WHEN
     val in = StarterTest.willReadFrom("master\n")
-    val result = StarterTest.withOutErr[Unit]((out, err) => Starter.fetchGitAndAskForBranch(out, err,
-      noVerify = SgitTest.hasCommitMsg, None, testRepoD, in, Opts(useJlineInput = false), skipFetch = true))
+    val result = StarterTest.withOutErrIn[Unit](in)(sys => Starter.fetchGitAndAskForBranch(sys,
+      noVerify = SgitTest.hasCommitMsg, None, testRepoD, Opts(useJlineInput = false), skipFetch = true))
 
     // THEN
     Assert.assertEquals("Enter branch name where to start from [master]:", result.out)
@@ -169,8 +169,8 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
     val testRepoD = testRepo(SgitTest.ensureAbsent("g"), SgitTest.ensureAbsent("h"))
     // WHEN
     val in = StarterTest.willReadFrom("master\n")
-    val result = StarterTest.withOutErr[Unit]((out, err) => Starter.fetchGitAndAskForBranch(out, err, noVerify = false,
-      None, testRepoD, in, Opts(useJlineInput = false), skipFetch = true))
+    val result = StarterTest.withOutErrIn[Unit](in)(sys => Starter.fetchGitAndAskForBranch(sys, noVerify = false,
+      None, testRepoD, Opts(useJlineInput = false), skipFetch = true))
 
     // THEN
     Assert.assertEquals("Enter branch name where to start from [master]:", result.out)
@@ -267,7 +267,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
     when(sgit.findUpstreamBranch()).thenReturn(None)
     val opts = mock[Opts]
 
-    Starter.suggestRebase(out, sgit, branch = "test", opts, null)
+    Starter.suggestRebase(new Term.Sys(null, out, null), sgit, branch = "test", opts)
 
     verify(sgit).checkout("test")
   }
@@ -358,7 +358,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
     when(sgit.listBranchNamesRemote()).thenReturn(Seq("blabla"), Seq("bert"))
     val opts = mock[Opts]
 
-    Starter.suggestRebase(out, sgit, branch = "test", opts, in)
+    Starter.suggestRebase(new Term.Sys(in, out, out), sgit, branch = "test", opts)
 
     val oi = inOrder(out)
     oi.verify(out).println("No upstream found, please set")
@@ -455,6 +455,20 @@ object StarterTest {
     val out: ByteArrayOutputStream = new ByteArrayOutputStream
     val err: ByteArrayOutputStream = new ByteArrayOutputStream
     val x = fn.apply(new PrintStream(out), new PrintStream(err))
+    OutErr(normalize(out), normalize(err), x)
+  }
+
+  def withOutErrIn[T](in: InputStream)(fn: Term.Sys => T): OutErr[T] = {
+    val out: ByteArrayOutputStream = new ByteArrayOutputStream
+    val err: ByteArrayOutputStream = new ByteArrayOutputStream
+    val x = fn.apply(new Term.Sys(in, out, err))
+    OutErr(normalize(out), normalize(err), x)
+  }
+
+  def withOutErr[T]()(fn: Term.Sys => T): OutErr[T] = {
+    val out: ByteArrayOutputStream = new ByteArrayOutputStream
+    val err: ByteArrayOutputStream = new ByteArrayOutputStream
+    val x = fn.apply(new Term.Sys(null, out, err))
     OutErr(normalize(out), normalize(err), x)
   }
 

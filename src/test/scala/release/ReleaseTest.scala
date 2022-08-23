@@ -6,7 +6,7 @@ import java.io.{BufferedReader, File, InputStreamReader, PrintStream}
 import java.util.regex.Pattern
 import org.junit.{Assert, Rule, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
-import release.Starter.Opts
+import release.Starter.{Opts}
 
 class ReleaseTest extends AssertionsForJUnit {
 
@@ -75,6 +75,15 @@ class ReleaseTest extends AssertionsForJUnit {
     ).mkString("\n"), check.mkString("\n"))
   }
 
+  def repSha(a: String): String = {
+    if (a.matches("(.*)\\* [0-9a-f]+ (.*)")) {
+      "" // because of unstable graph
+    } else {
+      a.replaceFirst("\\s*$", "")
+    }
+
+  }
+
   @Test(timeout = 20_000)
   def testWork(): Unit = {
     val localWorkFolder = temp.newFolder()
@@ -101,10 +110,10 @@ class ReleaseTest extends AssertionsForJUnit {
     gitRemote.add(f1)
     gitRemote.commitAll("test")
 
-    val gitLocal = Sgit.doClone(remoteWorkFolder, localWorkFolder, false)
+    val gitLocal = Sgit.doClone(remoteWorkFolder, localWorkFolder, verify = false)
     gitLocal.configSetLocal("user.email", "you@example.com")
     gitLocal.configSetLocal("user.name", "Your Name")
-    val term = Term.select("xterm", "b", true)
+    val term = Term.select("xterm", "b", simpleChars = true)
     val expected =
       """I: Reading pom.xmls ... done
         |---------
@@ -113,7 +122,10 @@ class ReleaseTest extends AssertionsForJUnit {
         |3. PATCH version when you make backwards-compatible bug fixes.
         |   see also: http://semver.org/
         |---------
-        |Enter the release version [0.11]: Enter the next version without -SNAPSHOT [0.12.0]: Committing pom changes ... done
+        |Enter the release version [0.11]:
+        |Selected release is 0.11
+        |Enter the next version without -SNAPSHOT [0.12.0]:
+        |Committing pom changes ... done
         |Checking out release/0.11 ... done
         |Commiting pom changes ... done
         |Checking out master ... done
@@ -121,20 +133,12 @@ class ReleaseTest extends AssertionsForJUnit {
         |
         ||/
         |
-        |Push to Gerrit and publish release? [y/n]: done.""".stripMargin
+        |Push to Gerrit and publish release? [y/n]: y
+        |done.""".stripMargin
 
-    def repSha(a: String): String = {
-      if (a.matches("(.*)\\* [0-9a-f]+ (.*)")) {
-        "" // because of unstable graph
-      } else {
-        a
-      }
-
-    }
-
-    TermTest.testSys(Seq("", "", "y", ""), expected, Nil, outFn = repSha)((in, out, err) => {
+    TermTest.testSys(Seq("", "", "y", ""), expected, Nil, outFn = repSha)(sys => {
       val opts = Opts(useJlineInput = false)
-      Release.work(localWorkFolder, new PrintStream(out), new PrintStream(err), in,
+      Release.work(localWorkFolder, sys,
         rebaseFn = () => {
 
         }, branch = "master", gitLocal, term, 72, "abc",
@@ -144,4 +148,256 @@ class ReleaseTest extends AssertionsForJUnit {
 
   }
 
+  @Test(timeout = 200_000)
+  def testWorkSelectNextChoose(): Unit = {
+    val localWorkFolder = temp.newFolder()
+    val remoteWorkFolder = temp.newFolder()
+
+    val gitRemote = Sgit.init(remoteWorkFolder)
+    gitRemote.configSetLocal("user.email", "you@example.com")
+    gitRemote.configSetLocal("user.name", "Your Name")
+
+    val f1 = SgitTest.testFile(gitRemote.file, "pom.xml")
+    Util.write(f1,
+      """<?xml version="1.0" encoding="UTF-8"?>
+        |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+        |  <modelVersion>4.0.0</modelVersion>
+        |
+        |  <groupId>com.novomind.ishop.any</groupId>
+        |  <artifactId>any</artifactId>
+        |  <version>1x-SNAPSHOT</version>
+        |
+        |</project>
+        |
+        |""".stripMargin.linesIterator.toSeq)
+    gitRemote.add(f1)
+    gitRemote.commitAll("test")
+    gitRemote.doTag("1.0.0")
+
+    val gitLocal = Sgit.doClone(remoteWorkFolder, localWorkFolder, verify = false)
+    gitLocal.configSetLocal("user.email", "you@example.com")
+    gitLocal.configSetLocal("user.name", "Your Name")
+    val term = Term.select("xterm", "b", simpleChars = true)
+    val expected =
+      """I: Reading pom.xmls ... done
+        |---------
+        |1. MAJOR version when you make incompatible API changes,
+        |2. MINOR version when you add functionality in a backwards-compatible manner, and
+        |3. PATCH version when you make backwards-compatible bug fixes.
+        |   see also: http://semver.org/
+        |---------
+        |Enter the release version
+        |[1] 2.0.0
+        |[2] 1.1.0
+        |[3] 1.0.1
+        |Enter option or type [1.0.1]:
+        |Selected release is 1.0.1
+        |Enter the next version without -SNAPSHOT [1x]:
+        |skipped release commit on master
+        |Checking out release/1.0.1 ... done
+        |Commiting pom changes ... done
+        |Checking out master ... done
+        |
+        |
+        |Push to Gerrit and publish release? [y/n]: y
+        |done.""".stripMargin
+
+    TermTest.testSys(Seq("", "", "y", ""), expected, Nil, outFn = repSha)(sys => {
+      val opts = Opts(useJlineInput = false)
+      Release.work(localWorkFolder, sys,
+        rebaseFn = () => {
+
+        }, branch = "master", gitLocal, term, 72, "abc",
+        ReleaseConfig.default(true), new Repo(opts), opts)
+
+    })
+
+  }
+
+  @Test(timeout = 200_000)
+  def testWorkSelectNextChoose_patch(): Unit = {
+    val localWorkFolder = temp.newFolder()
+    val remoteWorkFolder = temp.newFolder()
+
+    val gitRemote = Sgit.init(remoteWorkFolder)
+    gitRemote.configSetLocal("user.email", "you@example.com")
+    gitRemote.configSetLocal("user.name", "Your Name")
+
+    val f1 = SgitTest.testFile(gitRemote.file, "pom.xml")
+    Util.write(f1,
+      """<?xml version="1.0" encoding="UTF-8"?>
+        |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+        |  <modelVersion>4.0.0</modelVersion>
+        |
+        |  <groupId>com.novomind.ishop.any</groupId>
+        |  <artifactId>any</artifactId>
+        |  <version>1x-SNAPSHOT</version>
+        |
+        |</project>
+        |
+        |""".stripMargin.linesIterator.toSeq)
+    gitRemote.add(f1)
+    gitRemote.commitAll("test")
+    gitRemote.doTag("1.0.0")
+
+    val gitLocal = Sgit.doClone(remoteWorkFolder, localWorkFolder, verify = false)
+    gitLocal.configSetLocal("user.email", "you@example.com")
+    gitLocal.configSetLocal("user.name", "Your Name")
+    val term = Term.select("xterm", "b", simpleChars = true)
+    val expected =
+      """I: Reading pom.xmls ... done
+        |---------
+        |1. MAJOR version when you make incompatible API changes,
+        |2. MINOR version when you add functionality in a backwards-compatible manner, and
+        |3. PATCH version when you make backwards-compatible bug fixes.
+        |   see also: http://semver.org/
+        |---------
+        |Selected release is 1.0.1
+        |Enter the next version without -SNAPSHOT [1x]:
+        |skipped release commit on master
+        |Checking out release/1.0.1 ... done
+        |Commiting pom changes ... done
+        |Checking out master ... done
+        |
+        |
+        |Push to Gerrit and publish release? [y/n]: y
+        |done.""".stripMargin
+
+    TermTest.testSys(Seq("", "y", ""), expected, Nil, outFn = repSha)(sys => {
+      val opts = Opts(useJlineInput = false, versionIncrement = Increment.patch)
+      Release.work(localWorkFolder, sys,
+        rebaseFn = () => {
+
+        }, branch = "master", gitLocal, term, 72, "abc",
+        ReleaseConfig.default(true), new Repo(opts), opts)
+
+    })
+
+  }
+
+  @Test(timeout = 200_000)
+  def testWorkSelectNextChoose_minor(): Unit = {
+    val localWorkFolder = temp.newFolder()
+    val remoteWorkFolder = temp.newFolder()
+
+    val gitRemote = Sgit.init(remoteWorkFolder)
+    gitRemote.configSetLocal("user.email", "you@example.com")
+    gitRemote.configSetLocal("user.name", "Your Name")
+
+    val f1 = SgitTest.testFile(gitRemote.file, "pom.xml")
+    Util.write(f1,
+      """<?xml version="1.0" encoding="UTF-8"?>
+        |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+        |  <modelVersion>4.0.0</modelVersion>
+        |
+        |  <groupId>com.novomind.ishop.any</groupId>
+        |  <artifactId>any</artifactId>
+        |  <version>1x-SNAPSHOT</version>
+        |
+        |</project>
+        |
+        |""".stripMargin.linesIterator.toSeq)
+    gitRemote.add(f1)
+    gitRemote.commitAll("test")
+    gitRemote.doTag("1.0.0")
+
+    val gitLocal = Sgit.doClone(remoteWorkFolder, localWorkFolder, verify = false)
+    gitLocal.configSetLocal("user.email", "you@example.com")
+    gitLocal.configSetLocal("user.name", "Your Name")
+    val term = Term.select("xterm", "b", simpleChars = true)
+    val expected =
+      """I: Reading pom.xmls ... done
+        |---------
+        |1. MAJOR version when you make incompatible API changes,
+        |2. MINOR version when you add functionality in a backwards-compatible manner, and
+        |3. PATCH version when you make backwards-compatible bug fixes.
+        |   see also: http://semver.org/
+        |---------
+        |Selected release is 1.1.0
+        |Enter the next version without -SNAPSHOT [1x]:
+        |skipped release commit on master
+        |Checking out release/1.1.0 ... done
+        |Commiting pom changes ... done
+        |Checking out master ... done
+        |
+        |
+        |Push to Gerrit and publish release? [y/n]: y
+        |done.""".stripMargin
+
+    TermTest.testSys(Seq("", "y", ""), expected, Nil, outFn = repSha)(sys => {
+      val opts = Opts(useJlineInput = false, versionIncrement = Increment.minor)
+      Release.work(localWorkFolder, sys,
+        rebaseFn = () => {
+
+        }, branch = "master", gitLocal, term, 72, "abc",
+        ReleaseConfig.default(true), new Repo(opts), opts)
+
+    })
+
+  }
+
+  @Test(timeout = 200_000)
+  def testWorkSelectNextChoose_major(): Unit = {
+    val localWorkFolder = temp.newFolder()
+    val remoteWorkFolder = temp.newFolder()
+
+    val gitRemote = Sgit.init(remoteWorkFolder)
+    gitRemote.configSetLocal("user.email", "you@example.com")
+    gitRemote.configSetLocal("user.name", "Your Name")
+
+    val f1 = SgitTest.testFile(gitRemote.file, "pom.xml")
+    Util.write(f1,
+      """<?xml version="1.0" encoding="UTF-8"?>
+        |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+        |  <modelVersion>4.0.0</modelVersion>
+        |
+        |  <groupId>com.novomind.ishop.any</groupId>
+        |  <artifactId>any</artifactId>
+        |  <version>1x-SNAPSHOT</version>
+        |
+        |</project>
+        |
+        |""".stripMargin.linesIterator.toSeq)
+    gitRemote.add(f1)
+    gitRemote.commitAll("test")
+    gitRemote.doTag("1.0.0")
+
+    val gitLocal = Sgit.doClone(remoteWorkFolder, localWorkFolder, verify = false)
+    gitLocal.configSetLocal("user.email", "you@example.com")
+    gitLocal.configSetLocal("user.name", "Your Name")
+    val term = Term.select("xterm", "b", simpleChars = true)
+    val expected =
+      """I: Reading pom.xmls ... done
+        |---------
+        |1. MAJOR version when you make incompatible API changes,
+        |2. MINOR version when you add functionality in a backwards-compatible manner, and
+        |3. PATCH version when you make backwards-compatible bug fixes.
+        |   see also: http://semver.org/
+        |---------
+        |Selected release is 2.0.0
+        |Enter the next version without -SNAPSHOT [1x]:
+        |skipped release commit on master
+        |Checking out release/2.0.0 ... done
+        |Commiting pom changes ... done
+        |Checking out master ... done
+        |
+        |
+        |Push to Gerrit and publish release? [y/n]: y
+        |done.""".stripMargin
+
+    TermTest.testSys(Seq("", "y", ""), expected, Nil, outFn = repSha)(sys => {
+      val opts = Opts(useJlineInput = false, versionIncrement = Increment.major)
+      Release.work(localWorkFolder, sys,
+        rebaseFn = () => {
+
+        }, branch = "master", gitLocal, term, 72, "abc",
+        ReleaseConfig.default(true), new Repo(opts), opts)
+
+    })
+
+  }
 }

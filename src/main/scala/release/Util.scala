@@ -31,7 +31,7 @@ object Util {
     }
   }
 
-  implicit def pluralize(input: String):PluralString = new PluralString(input)
+  implicit def pluralize(input: String): PluralString = new PluralString(input)
 
   def emptyToNone(in: String): Option[String] = in match {
     case "" => None
@@ -136,7 +136,7 @@ object Util {
     hashBy(MessageDigest.getInstance("SHA1"), in)
   }
 
-  private def hashBy(md: MessageDigest, in:String):String = {
+  private def hashBy(md: MessageDigest, in: String): String = {
     md.update(in.getBytes(StandardCharsets.UTF_8))
     DatatypeConverter.printHexBinary(md.digest()).toLowerCase
   }

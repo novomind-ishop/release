@@ -393,10 +393,10 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
     }
   }
 
-  def suggestReleaseVersion(branchNames: Seq[String] = Nil, tagNames: Seq[String] = Nil): Seq[String] = {
+  def suggestReleaseVersion(branchNames: Seq[String] = Nil, tagNames: Seq[String] = Nil, increment: Option[Increment] = None): Seq[String] = {
     checkCurrentVersion(currentVersion)
 
-    PomMod.suggestReleaseBy(LocalDate.now(), currentVersion.get, isShop, branchNames, tagNames, nextVersionFileContent())
+    PomMod.suggestReleaseBy(LocalDate.now(), currentVersion.get, isShop, branchNames, tagNames, nextVersionFileContent(), increment)
   }
 
   def suggestNextRelease(releaseVersion: String): String = {
@@ -452,7 +452,7 @@ object PomMod {
     in.matches("^\\$\\{.+\\}$")
   }
 
-  def of(file: File, unnused: PrintStream, opts: Opts): PomMod = {
+  def of(file: File, opts: Opts): PomMod = {
     lazy val repo = new Repo(opts)
     withRepo(file, opts, repo)
   }
@@ -648,7 +648,7 @@ object PomMod {
 
   def suggestReleaseBy(localDate: LocalDate, currentVersion: String, hasShopPom: Boolean,
                        branchNames: Seq[String], tagNames: Seq[String] = Nil,
-                       nextVersion: () => String = () => ""): Seq[String] = {
+                       nextVersion: () => String = () => "", increment: Option[Increment] = None): Seq[String] = {
     if (hasShopPom) {
       val releaseBranchNames = branchNames.filter(_.startsWith("release/")).map(_.replaceFirst("^release/", ""))
       val knownVersions: Seq[Version] = releaseBranchNames.map {
@@ -711,7 +711,15 @@ object PomMod {
         if (series.isDefined) {
           val matchingSeries = series.get
           val m = matchingSeries.max
-          val suggested = Seq(m.copy(patch = m.patch + 1).format(), m.copy(minor = m.minor + 1, patch = 0).format())
+          val patchV = m.copy(patch = m.patch + 1).format()
+          val minorV = m.copy(minor = m.minor + 1, patch = 0).format()
+          val majorV = m.copy(major = m.major + 1, minor = 0, patch = 0).format()
+          val suggested = increment match {
+            case Increment.major => Seq(majorV)
+            case Increment.minor => Seq(minorV)
+            case Increment.patch => Seq(patchV)
+            case _ => Seq(majorV, minorV, patchV)
+          }
           val maybeNext = suggested.filter(_ == nextVersion.apply())
           if (maybeNext.nonEmpty) {
             maybeNext

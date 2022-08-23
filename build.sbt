@@ -55,6 +55,8 @@ assembly / assemblyJarName := "release.jar"
 
 publish / skip := true
 
+coverageEnabled := true
+
 // https://github.com/sbt/sbt-dependency-graph
 // sbt 'dependencyTree::toFile dep.tree -f'
 // export COURSIER_TTL=0s # https://get-coursier.io/docs/ttl

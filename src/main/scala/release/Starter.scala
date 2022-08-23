@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.jar.{JarEntry, JarFile}
 import java.util.zip.ZipException
 import scala.annotation.tailrec
+import scala.collection.immutable.::
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -57,10 +58,10 @@ object Starter extends LazyLogging {
     }(ec))(ec)
   }
 
-  def suggestRebase(out: PrintStream, sgit: Sgit, branch: String, opts: Opts, in: InputStream): () => Unit = {
+  def suggestRebase(sys: Term.Sys, sgit: Sgit, branch: String, opts: Opts): () => Unit = {
     logger.trace("ask for rebase")
     sgit.checkout(branch)
-    chooseUpstreamIfUndef(out, sgit, branch, opts, in)
+    chooseUpstreamIfUndef(sys, sgit, branch, opts)
     if (sgit.isNotDetached) {
       val commintsBehindOrAhead = sgit.commitIds("@{upstream}", branch)
       if (commintsBehindOrAhead != Nil) {
@@ -70,14 +71,14 @@ object Starter extends LazyLogging {
           if (commintsBehindOrAhead.head == upstreamCommit) {
             val text = "Your branch is " + commintsBehindOrAhead.size +
               s" ${"commit".pluralize(commintsBehindOrAhead.size)} behind defined upstream $upstreamName. Rebase local branch?"
-            val update = Term.readFromOneOfYesNo(out, text, opts, in)
+            val update = Term.readFromOneOfYesNo(sys, text, opts)
             if (update == "y") {
               sgit.rebase()
             }
           } else {
             val text = "Your branch is " + commintsBehindOrAhead.size +
               s" ${"commit".pluralize(commintsBehindOrAhead.size)} ahead of defined upstream $upstreamName. Abort?"
-            val abort = Term.readFromOneOfYesNo(out, text, opts, in)
+            val abort = Term.readFromOneOfYesNo(sys, text, opts)
             if (abort == "y") {
               System.exit(1)
             }
@@ -92,13 +93,13 @@ object Starter extends LazyLogging {
     }
   }
 
-  def fetchGitAndAskForBranch(out: PrintStream, err: PrintStream, noVerify: Boolean,
-                              gitBinEnv: Option[String], workDirFile: File, in: InputStream, opts: Opts,
+  def fetchGitAndAskForBranch(sys: Term.Sys, noVerify: Boolean,
+                              gitBinEnv: Option[String], workDirFile: File, opts: Opts,
                               skipFetch: Boolean): (Sgit, String) = {
     val global = ExecutionContext.global
 
     def fetchGit(file: File): Sgit = {
-      val git = Sgit(file = file, doVerify = noVerify, out = out, err = err, gitBin = gitBinEnv, opts = opts)
+      val git = Sgit(file = file, doVerify = noVerify, out = sys.out, err = sys.err, gitBin = gitBinEnv, opts = opts)
       git.fetchAll()
       git
     }
@@ -106,7 +107,7 @@ object Starter extends LazyLogging {
     @tailrec
     def askReleaseBranch(): String = {
       def workGit(file: File): Sgit = {
-        Sgit(file = file, doVerify = noVerify, out = out, err = err, gitBin = gitBinEnv, opts = opts)
+        Sgit(file = file, doVerify = noVerify, out = sys.out, err = sys.err, gitBin = gitBinEnv, opts = opts)
       }
 
       def suggestCurrentBranch(file: File): String = {
@@ -115,7 +116,7 @@ object Starter extends LazyLogging {
         val selectedBraches = git.listBranchesLocal().filter(_.commitId == latestCommit)
         val found = selectedBraches.map(_.branchName.replaceFirst("refs/heads/", "")).filterNot(_ == "HEAD")
         if (found.size != 1) {
-          out.println("W: more than one branch found: " + found.mkString(", ") + "; using \"master\"")
+          sys.out.println("W: more than one branch found: " + found.mkString(", ") + "; using \"master\"")
           "master"
         } else {
           found.head
@@ -123,12 +124,12 @@ object Starter extends LazyLogging {
 
       }
 
-      val branch = Term.readFrom(out, "Enter branch name where to start from", suggestCurrentBranch(workDirFile), opts, in)
+      val branch = Term.readFrom(sys, "Enter branch name where to start from", suggestCurrentBranch(workDirFile), opts)
       val git = workGit(workDirFile)
       val allBranches = git.listBranchNamesAllFull()
 
       if (!allBranches.contains(branch) && git.commitIdOpt(branch).isEmpty) {
-        out.println("W: invalid branchname: " + branch + "; try one of: " + allBranches.mkString(", ") + " or sha1 or relative name")
+        sys.out.println("W: invalid branchname: " + branch + "; try one of: " + allBranches.mkString(", ") + " or sha1 or relative name")
         askReleaseBranch()
       } else {
         branch
@@ -148,15 +149,15 @@ object Starter extends LazyLogging {
         while (!gitFetchF.wrapped.isCompleted) {
           Thread.sleep(100)
           if (printFetching.get() && !gitFetchF.wrapped.isCompleted && startBranchF.wrapped.isCompleted) {
-            out.print("I: Fetching from remote ")
+            sys.out.print("I: Fetching from remote ")
             printFetching.set(false)
           }
           if (!gitFetchF.wrapped.isCompleted && startBranchF.wrapped.isCompleted) {
-            out.print(".")
+            sys.out.print(".")
           }
         }
         if (gitFetchF.wrapped.isCompleted && startBranchF.wrapped.isCompleted && !printFetching.get()) {
-          out.println(". done")
+          sys.out.println(". done")
         }
       }
 
@@ -213,7 +214,7 @@ object Starter extends LazyLogging {
   case class OptsDepUp(showDependencyUpdates: Boolean = false, showHelp: Boolean = false,
                        hideLatest: Boolean = true, versionRangeLimit: Integer = 3,
                        hideStageVersions: Boolean = true, showLibYears: Boolean = false,
-                       changeToLatest:Boolean = false,
+                       changeToLatest: Boolean = false,
                        filter: Option[Regex] = None,
                        invalids: Seq[String] = Nil)
 
@@ -226,6 +227,7 @@ object Starter extends LazyLogging {
       case "--matches" :: pattern :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(filter = Some(pattern.r))))
       case "--no-filter" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts
         .copy(hideStageVersions = false, hideLatest = false)))
+      case "--no-omit" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(versionRangeLimit = Integer.MAX_VALUE)))
       case "--show-libyears" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(showLibYears = true)))
       case "--create-patch" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(changeToLatest = true)))
       // --
@@ -239,7 +241,7 @@ object Starter extends LazyLogging {
                   createFeature: Boolean = false, useGerrit: Boolean = true, doUpdate: Boolean = true,
                   depUpOpts: OptsDepUp = OptsDepUp(), apiDiff: OptsApidiff = OptsApidiff(),
                   useJlineInput: Boolean = true, skipProperties: Seq[String] = Nil,
-                  colors: Boolean = true, useDefaults: Boolean = false)
+                  colors: Boolean = true, useDefaults: Boolean = false, versionIncrement: Option[Increment] = None)
 
   @tailrec
   def argsRead(params: Seq[String], inOpt: Opts): Opts = {
@@ -256,9 +258,9 @@ object Starter extends LazyLogging {
       case "--no-jline" :: tail => argsRead(tail, inOpt.copy(useJlineInput = false))
       case "--no-color" :: tail => argsRead(tail, inOpt.copy(colors = false))
       // TODO no color env propertie
-      case "--100" :: _ => throw new UnsupportedOperationException("major increment not implemented")
-      case "--010" :: _ => throw new UnsupportedOperationException("minor increment not implemented")
-      case "--001" :: _ => throw new UnsupportedOperationException("patch increment not implemented")
+      case "--100" :: tail => argsRead(tail, inOpt.copy(versionIncrement = Increment.major))
+      case "--010" :: tail => argsRead(tail, inOpt.copy(versionIncrement = Increment.minor))
+      case "--001" :: tail => argsRead(tail, inOpt.copy(versionIncrement = Increment.patch))
       case "--demo-chars" :: _ => showDemoChars(inOpt)
       case "--skip-property" :: value :: tail => argsRead(tail, inOpt.copy(skipProperties = inOpt.skipProperties ++ Seq(value)))
       // CMDs
@@ -518,20 +520,23 @@ object Starter extends LazyLogging {
   }
 
   def showDemoChars(inOpt: Opts): Opts = {
-    println()
-    println("\u001B[31m" + "This text is red!" + "\u001B[0m")
-    val r = Term.readFrom(Console.out, "test press enter",
+    val sys = Term.Sys.default
+    sys.out.println()
+    sys.out.println("\u001B[31m" + "This text is red!" + "\u001B[0m")
+    val r = Term.readFrom(sys, "test press enter",
       "u200B(\u200B),u0009(\u0009),u00A0(\u00A0),u1680(\u1680),,,u2012(\u2012),u2013(\u2013)",
-      inOpt, System.in)
-    print("\u001B[30;45m")
-    println("demo: " + r)
-    print("\u001B[0m")
+      inOpt)
+    sys.out.print("\u001B[30;45m")
+    sys.out.println("demo: " + r)
+    sys.out.print("\u001B[0m")
     System.exit(3)
     null
   }
 
-  def init(argSeq: Seq[String], out: PrintStream, err: PrintStream, inputStream:InputStream): Int = {
+  def init(argSeq: Seq[String], sys: Term.Sys): Int = {
 
+    val err = sys.err
+    val out = sys.out
     if (argSeq.size <= 4) {
       err.println("usage: $0 \"$(dirname $0)\" \"$(pwd)\" \"${os}\" \"${TERM}\" \"${terminal_cols}\" \"${HOME}\" ${argLine}")
       return 1
@@ -687,16 +692,15 @@ object Starter extends LazyLogging {
       return 0
     }
     try {
-      val gitAndBranchname = fetchGitAndAskForBranch(out, err, verifyGerrit, gitBinEnv, workDirFile,
-        inputStream, opts, skipFetch = false)
+      val gitAndBranchname = fetchGitAndAskForBranch(sys, verifyGerrit, gitBinEnv, workDirFile, opts, skipFetch = false)
 
       def suggestLocalNotesReviewRemoval(activeGit: Sgit): Unit = {
         // git config --add remote.origin.fetch refs/notes/review:refs/notes/review
         // git config --add remote.origin.fetch refs/notes/*:refs/notes/*
         // git fetch
         if (activeGit.listRefNames().contains("refs/notes/review")) {
-          val result = Term.readFromOneOfYesNo(out, "Ref: " + "refs/notes/review" + " found." +
-            " This ref leads to an unreadable local history. Do you want to remove them?", opts, inputStream)
+          val result = Term.readFromOneOfYesNo(sys, "Ref: " + "refs/notes/review" + " found." +
+            " This ref leads to an unreadable local history. Do you want to remove them?", opts)
           if (result == "y") {
             val configRefs = activeGit.configGetLocalAllSeq("remote.origin.fetch")
             configRefs.filter(_.startsWith("refs/notes/"))
@@ -713,7 +717,7 @@ object Starter extends LazyLogging {
 
           @tailrec
           def autoCrlfCheck(): Unit = {
-            val result = Term.readChooseOneOf(out, msg, options, opts, inputStream)
+            val result = Term.readChooseOneOf(sys, msg, options, opts)
             if (result == options(1)) {
               System.exit(1)
             } else if (result == options(0)) {
@@ -734,12 +738,12 @@ object Starter extends LazyLogging {
       val git = gitAndBranchname._1
       suggestLocalNotesReviewRemoval(git)
       val startBranch = gitAndBranchname._2
-      val askForRebase = suggestRebase(out, git, startBranch, opts, inputStream)
+      val askForRebase = suggestRebase(sys, git, startBranch, opts)
       logger.trace("readFromPrompt")
       Tracer.withFn(logger, () => "local branches: " + git.listBranchNamesLocal())
       if (versionSetMode) {
         Release.checkLocalChanges(git, startBranch)
-        val mod = PomMod.of(workDirFile, err, opts)
+        val mod = PomMod.of(workDirFile, opts)
         val version = opts.versionSet.get
         val versionWithoutSnapshot = Term.removeTrailingSnapshots(version)
         mod.changeVersion(versionWithoutSnapshot + "-SNAPSHOT")
@@ -751,16 +755,16 @@ object Starter extends LazyLogging {
         }
       } else if (shopGASetMode) {
         Release.checkLocalChanges(git, startBranch)
-        val mod = PomMod.of(workDirFile, err, opts)
+        val mod = PomMod.of(workDirFile, opts)
         val groupIdArtifactIdLine = opts.shopGA.get
         mod.changeShopGroupArtifact(groupIdArtifactIdLine)
         mod.writeTo(workDirFile)
         out.println("I: GroupId and ArtifactId successfully changed. You have local changes")
       } else if (createFeatureBranch) {
-        FeatureBranch.work(workDirFile, out, err, inputStream, git, startBranch, askForRebase, releaseToolGit.headStatusValue(), config, opts)
+        FeatureBranch.work(workDirFile, sys, git, startBranch, askForRebase, releaseToolGit.headStatusValue(), config, opts)
       } else {
         lazy val repo = new Repo(opts)
-        Release.work(workDirFile, out, err, inputStream, askForRebase, startBranch,
+        Release.work(workDirFile, sys, askForRebase, startBranch,
           git, termOs, shellWidth, releaseToolGit.headStatusValue(), config, repo, opts)
       }
 
@@ -854,23 +858,23 @@ object Starter extends LazyLogging {
   }
 
   @tailrec
-  def chooseUpstreamIfUndef(out: PrintStream, sgit: Sgit, branch: String, opts: Opts, in: InputStream): Unit = {
+  def chooseUpstreamIfUndef(sys: Term.Sys, sgit: Sgit, branch: String, opts: Opts): Unit = {
     val upstream = sgit.findUpstreamBranch()
     if (upstream.isEmpty && sgit.isNotDetached) {
-      val newUpstream = Term.readChooseOneOfOrType(out, "No upstream found, please set",
-        Seq("origin/master", "origin/" + branch).distinct, opts, in)
+      val newUpstream = Term.readChooseOneOfOrType(sys, "No upstream found, please set",
+        Seq("origin/master", "origin/" + branch).distinct, opts)
       val remoteBranchNames = sgit.listBranchNamesRemote()
       if (remoteBranchNames.contains(newUpstream)) {
         sgit.setUpstream(newUpstream)
         return
       } else {
-        out.println("W: unknown upstream branch; known are " + remoteBranchNames.mkString(", "))
-        chooseUpstreamIfUndef(out, sgit, branch, opts, in)
+        sys.out.println("W: unknown upstream branch; known are " + remoteBranchNames.mkString(", "))
+        chooseUpstreamIfUndef(sys, sgit, branch, opts)
       }
     }
   }
 
-  def sign(sgit:Sgit): String = {
+  def sign(sgit: Sgit): String = {
     Util.hashSha1(sgit.diffSafe().mkString("\n"))
   }
 
@@ -884,7 +888,7 @@ object Starter extends LazyLogging {
 
   def main(args: Array[String]): Unit = {
     logger.trace("started vm")
-    System.exit(init(args.toIndexedSeq, System.out, System.err, System.in))
+    System.exit(init(args.toIndexedSeq, Term.Sys.default))
   }
 
 }

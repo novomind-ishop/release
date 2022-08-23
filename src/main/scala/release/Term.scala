@@ -1,6 +1,6 @@
 package release
 
-import java.io.{BufferedReader, IOError, InputStream, InputStreamReader, PrintStream}
+import java.io.{BufferedReader, IOError, InputStream, InputStreamReader, OutputStream, PrintStream}
 import org.jline.reader._
 import org.jline.terminal.TerminalBuilder
 import release.Starter.Opts
@@ -9,24 +9,9 @@ import scala.annotation.tailrec
 
 object Term {
 
-  private var inputToReader: Map[InputStream, BufferedReader] = Map.empty
-  private var inputToLineReader: Map[(InputStream, PrintStream), LineReader] = Map.empty
+  private def readLineWithPromtJline(prompt: String, sys: Term.Sys): String = {
 
-  private def readLineWithPromtJline(prompt: String, in: InputStream, out: PrintStream): String = {
-
-    val reader = inputToLineReader.getOrElse((in, out), {
-      val sys: Boolean = in == System.in && out == System.out
-      val terminal = TerminalBuilder.builder()
-        .system(sys)
-        .dumb(true)
-        .streams(in, out)
-        .build()
-      LineReaderBuilder.builder()
-        .terminal(terminal)
-        .option(LineReader.Option.INSERT_TAB, true)
-        .build()
-    })
-    inputToLineReader = inputToLineReader ++ Map((in, out) -> reader)
+    val reader = sys.lineReader
 
     try {
       reader.readLine(prompt)
@@ -46,18 +31,12 @@ object Term {
     }
   }
 
-  private def readerOf(in: InputStream): BufferedReader = {
-    val result = inputToReader.getOrElse(in, new BufferedReader(new InputStreamReader(in)))
-    inputToReader = inputToReader ++ Map(in -> result)
-    result
-  }
-
-  private def readLineWithPrompt(in: InputStream, out: PrintStream, prompt: String, opts: Opts): String = {
+  private def readLineWithPrompt(sys: Term.Sys, prompt: String, opts: Opts): String = {
     if (opts.useJlineInput) {
-      readLineWithPromtJline(prompt, in, out)
+      readLineWithPromtJline(prompt, sys)
     } else {
-      out.print(prompt)
-      val reader = readerOf(in)
+      sys.out.print(prompt)
+      val reader = sys.inReader
       val result = reader.readLine()
       result
     }
@@ -73,11 +52,11 @@ object Term {
     }
   }
 
-  def readFrom(out: PrintStream, text: String, defaultValue: String, opts: Opts, in: InputStream): String = {
-    val line = readLineWithPrompt(in, out, text + " [%s]: ".format(defaultValue), opts)
+  def readFrom(sys: Term.Sys, text: String, defaultValue: String, opts: Opts): String = {
+    val line = readLineWithPrompt(sys, text + " [%s]: ".format(defaultValue), opts)
     val result = line match {
       case null => {
-        System.err.println("invalid readFrom(..) => exit 14")
+        sys.err.println("invalid readFrom(..) => exit 14")
         System.exit(14)
         null
       }
@@ -92,11 +71,11 @@ object Term {
     }
   }
 
-  def readFromOneOfYesNo(out: PrintStream, text: String, opts: Opts, in: InputStream): String = readFromOneOf(out, text, Seq("y", "n"), opts, in)
+  def readFromOneOfYesNo(sys: Term.Sys, text: String, opts: Opts): String = readFromOneOf(sys, text, Seq("y", "n"), opts)
 
   @tailrec
-  def readFromOneOf(out: PrintStream, text: String, possibleValues: Seq[String], opts: Opts, in: InputStream): String = {
-    val line = readLineWithPrompt(in, out, text + " [%s]: ".format(
+  def readFromOneOf(sys: Term.Sys, text: String, possibleValues: Seq[String], opts: Opts): String = {
+    val line = readLineWithPrompt(sys, text + " [%s]: ".format(
       possibleValues.map(line => line.replace(' ', ' ')).mkString("/")), opts)
     line match {
       case null => {
@@ -105,25 +84,25 @@ object Term {
         null
       }
       case any: String if possibleValues.contains(any.trim) => any.trim
-      case _: String => readFromOneOf(out, text, possibleValues, opts, in)
+      case _: String => readFromOneOf(sys, text, possibleValues, opts)
     }
   }
 
-  private def printOptions(out: PrintStream, possibleValues: Seq[String]): Map[String, String] = {
+  private def printOptions(sys: Term.Sys, possibleValues: Seq[String]): Map[String, String] = {
     possibleValues.zip(LazyList.from(1))
-      .map(in => (in._2, in._1)).foreach(p => out.println("[" + p._1 + "] " + p._2))
+      .map(in => (in._2, in._1)).foreach(p => sys.out.println("[" + p._1 + "] " + p._2))
     possibleValues.zip(LazyList.from(1))
       .map(in => (in._2.toString, in._1)).foldLeft(Map.empty[String, String])(_ + _)
   }
 
-  def readChooseOneOf(out: PrintStream, text: String, possibleValues: Seq[String], opts: Opts, in: InputStream): String = {
+  def readChooseOneOf(sys: Term.Sys, text: String, possibleValues: Seq[String], opts: Opts): String = {
     possibleValues match {
       case Nil => throw new IllegalArgumentException("possible value size must not be empty")
       case values if values.size == 1 => throw new IllegalArgumentException("possible value size must not be one")
       case _ => {
-        out.println(text)
-        val mapped: Map[String, String] = printOptions(out, possibleValues)
-        val line = readLineWithPrompt(in, out, "Enter option [" + mapped.head._1 + "]: ", opts)
+        sys.out.println(text)
+        val mapped: Map[String, String] = printOptions(sys, possibleValues)
+        val line = readLineWithPrompt(sys, "Enter option [" + mapped.head._1 + "]: ", opts)
         line match {
           case null => {
             System.err.println("invalid readChooseOneOf(..)")
@@ -138,21 +117,23 @@ object Term {
     }
   }
 
-  def readChooseOneOfOrType(out: PrintStream, text: String, possibleValues: Seq[String], opts: Opts, in: InputStream): String = {
+  def readChooseOneOfOrType(sys: Term.Sys, text: String, possibleValues: Seq[String], opts: Opts,
+                            valSelectF:Seq[String] => String = _.head,
+                            mappedF:Map[String, String] => (String, String) = _.head): String = {
     possibleValues match {
       case Nil => throw new IllegalArgumentException("possible value size must not be empty")
-      case values if values.size == 1 => readFrom(out, text, possibleValues.head, opts, in)
+      case values if values.size == 1 => readFrom(sys, text, possibleValues.head, opts)
       case _ => {
-        out.println(text)
-        val mapped: Map[String, String] = printOptions(out, possibleValues)
-        val line = readLineWithPrompt(in, out, "Enter option or type [" + possibleValues.head + "]: ", opts)
+        sys.out.println(text)
+        val mapped: Map[String, String] = printOptions(sys, possibleValues)
+        val line = readLineWithPrompt(sys, "Enter option or type [" + valSelectF.apply(possibleValues) + "]: ", opts)
         line match {
           case null => {
             System.err.println("invalid readChooseOneOfOrType(..)")
             System.exit(1)
             null
           }
-          case "" => mapped.head._2
+          case "" => mappedF.apply(mapped)._2
           case any: String if mapped.contains(any) => mapped(any)
           case other: String => other.trim
         }
@@ -163,6 +144,7 @@ object Term {
   object Os {
     lazy val getCurrent: Os = {
       System.getProperty("os.name") match {
+        case "Windows 11" => Os.Windows
         case "Windows 10" => Os.Windows
         case "Linux" => Os.Linux
         case "Mac OS X" => Os.Darwin
@@ -184,6 +166,28 @@ object Term {
     case "screen" => Term("screen", os, simpleChars)
     case "dumb" => Term("dumb", os, simpleChars)
     case t => throw new IllegalStateException(s"invalid terminal: ${t}")
+  }
+
+  class Sys(val inS: InputStream, val outS: OutputStream, val errS: OutputStream) {
+    lazy val out = new PrintStream(outS)
+    lazy val err = new PrintStream(errS)
+    lazy val inReader = new BufferedReader(new InputStreamReader(inS))
+    lazy val lineReader: LineReader = {
+      val sys: Boolean = inS == System.in && out == System.out
+      val terminal = TerminalBuilder.builder()
+        .system(sys)
+        .dumb(true)
+        .streams(inS, out)
+        .build()
+      LineReaderBuilder.builder()
+        .terminal(terminal)
+        .option(LineReader.Option.INSERT_TAB, true)
+        .build()
+    }
+  }
+
+  object Sys {
+    val default = new Sys(System.in, System.out, System.err)
   }
 }
 

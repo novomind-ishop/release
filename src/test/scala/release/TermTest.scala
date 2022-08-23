@@ -42,8 +42,8 @@ class TermTest extends AssertionsForJUnit {
   def testReadFrom(): Unit = {
     val value = "My string"
 
-    TermTest.testSys(Seq(value), "enter some [word]: ", Nil)((in, out, err) => {
-      val result = Term.readFrom(new PrintStream(out), "enter some", "word", Opts(useJlineInput = false), in)
+    TermTest.testSys(Seq(value), "enter some [word]: My string", Nil)(sys => {
+      val result = Term.readFrom(sys, "enter some", "word", Opts(useJlineInput = false))
       Assert.assertEquals(value, result)
     })
 
@@ -51,15 +51,15 @@ class TermTest extends AssertionsForJUnit {
 
   @Test
   def testReadNull(): Unit = {
-    TermTest.testSys(Nil, "enter some [word]: ", Nil, 14)((in, out, err) => {
-      Term.readFrom(new PrintStream(out), "enter some", "word", Opts(useJlineInput = false), in)
+    TermTest.testSys(Nil, "enter some [word]: ", Seq("invalid readFrom(..) => exit 14"), 14)(sys => {
+      Term.readFrom(sys, "enter some", "word", Opts(useJlineInput = false))
     })
   }
 
   @Test
   def testReadDirect(): Unit = {
-    TermTest.testSys(Seq("a", "b"), "", Nil)((in, _, _) => {
-      val bin = new BufferedReader(new InputStreamReader(in))
+    TermTest.testSys(Seq("a", "b"), "", Nil)(sys => {
+      val bin:BufferedReader = new BufferedReader(new InputStreamReader(sys.inS))
       Assert.assertEquals("a", bin.readLine())
       Assert.assertEquals("b", bin.readLine())
       Assert.assertEquals(null, bin.readLine())
@@ -69,7 +69,7 @@ class TermTest extends AssertionsForJUnit {
   @Test
   def testThrows(): Unit = {
     TestHelper.assertComparisonFailure("expected:<[a]> but was:<[b]>", () => {
-      TermTest.testSys(Nil, "", Nil)((_, _, _) => {
+      TermTest.testSys(Nil, "", Nil)(_ => {
         Assert.assertEquals("a", "b")
       })
     })
@@ -78,7 +78,7 @@ class TermTest extends AssertionsForJUnit {
   @Test
   def testThrowsAll(): Unit = {
     TestHelper.assertException("hello", classOf[Exception], () => {
-      TermTest.testSys(Nil, "", Nil)((_, _, _) => {
+      TermTest.testSys(Nil, "", Nil)(_ => {
         throw new Exception("hello")
       })
     })
@@ -90,8 +90,8 @@ class TermTest extends AssertionsForJUnit {
 object TermTest extends LazyLogging {
 
   def testSys(input: Seq[String], expectedOut: String, expectedErr: Seq[String], expectedExitCode: Int = 0,
-              outFn:String => String = a => a)
-             (fn: (InputStream, OutputStream, OutputStream) => Unit): Unit = {
+              outFn: String => String = a => a)
+             (fn: Term.Sys => Unit): Unit = {
     this.synchronized {
       val oldSecurityManager = System.getSecurityManager
       var exitCode = 0
@@ -113,9 +113,18 @@ object TermTest extends LazyLogging {
 
       val preparedLines = input.mkString("\n")
       val in = new ByteArrayInputStream(preparedLines.getBytes)
-
       try {
-        fn.apply(in, out, err)
+        fn.apply(new Term.Sys(in, out, err){
+         override lazy val inReader = new BufferedReader(new InputStreamReader(inS)) {
+           override def readLine(): String = {
+             val line = super.readLine()
+             if (line != null) {
+               out.println(line)
+             }
+             line
+           }
+         }
+        })
       } catch {
         case e: SecurityException => // nothing
         case e: AssertionError => throw e

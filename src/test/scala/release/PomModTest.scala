@@ -1348,7 +1348,7 @@ class PomModTest extends AssertionsForJUnit {
       Seq("34.0.0", "v34.0.1", "v35.0.0"))
 
     // THEN
-    assert(Seq("34.0.2", "34.1.0") === release)
+    assert(Seq("35.0.0", "34.1.0", "34.0.2") === release)
   }
 
   @Test
@@ -1370,7 +1370,7 @@ class PomModTest extends AssertionsForJUnit {
       Seq("34.0.0", "v34.0.1", "v35.0.0"), () => "34.0.99")
 
     // THEN
-    assert(Seq("34.0.2", "34.1.0") === release)
+    assert(Seq("35.0.0", "34.1.0", "34.0.2") === release)
   }
 
   @Test
@@ -1381,7 +1381,7 @@ class PomModTest extends AssertionsForJUnit {
       Seq("34.0.0", "v34.0.1", "v35.0.0"), () => "39.0.0")
 
     // THEN
-    assert(Seq("34.0.2", "34.1.0") === release)
+    assert(Seq("35.0.0", "34.1.0", "34.0.2") === release)
   }
 
   @Test
