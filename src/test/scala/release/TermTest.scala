@@ -100,6 +100,8 @@ object TermTest extends LazyLogging {
           val exitPrefix = "exitVM."
           if (perm.getName.startsWith(exitPrefix)) {
             exitCode = perm.getName.substring(exitPrefix.length).toInt
+            // https://openjdk.org/jeps/411
+            // https://bugs.openjdk.org/browse/JDK-8199704
             throw new SecurityException("EXIT NOT ALLOWED")
           }
         }

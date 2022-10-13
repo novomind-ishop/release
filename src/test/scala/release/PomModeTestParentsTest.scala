@@ -164,6 +164,7 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
 
     // WHEN
     val newpom = PomModTest.withRepoForTests(srcPoms, repo)
+    Assert.assertEquals(None, newpom.mvnExtension)
     assertDeps(Seq(Dep(SelfRef("com.novomind.ishop.shops.any:any-projects:28.0.0-SNAPSHOT"),
       "", "", "", "", "", "", ""),
       Dep(SelfRef("com.novomind.ishop.shops.any:any-erp:28.0.0-SNAPSHOT"),
@@ -275,10 +276,16 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
         <version>28.0.0-SNAPSHOT</version>
       </project>
       ), "")))
+      .extension( document(<project>
+        <modelVersion>4.0.0</modelVersion>
+        <name>any-erp</name>
+      </project>
+      ))
       .create()
 
     // WHEN
     val newpom = PomModTest.withRepoForTests(srcPoms, repo)
+    Assert.assertTrue(newpom.mvnExtension.isDefined)
     assertDeps(Seq(Dep(SelfRef("com.novomind.ishop.shops.any:any-projects:28.0.0-SNAPSHOT"),
       "", "", "", "", "", "", ""),
       Dep(SelfRef("com.novomind.ishop.shops.any:any-erp:28.0.0-SNAPSHOT"),

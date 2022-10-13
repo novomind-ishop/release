@@ -9,6 +9,7 @@ import release.PomMod.DepTree
 import release.PomModTest._
 import release.ProjectMod._
 import release.Starter.Opts
+import release.Util.linuxPath
 
 import java.io.{BufferedWriter, File, FileWriter}
 import java.nio.file.Paths
@@ -498,7 +499,6 @@ class PomModTest extends AssertionsForJUnit {
     Assert.assertEquals(Some(newValue), Xpath.onlyString(doc, path))
   }
 
-
   @Test
   def testVersionFrom(): Unit = {
     val doc = document(<project>
@@ -623,7 +623,7 @@ class PomModTest extends AssertionsForJUnit {
     Assert.assertEquals(Seq("src/test/resources/shop1/dep.tree",
       "src/test/resources/shop1/anyshop-erp/dep.tree",
       "src/test/resources/shop1/anyshop-shop/dep.tree"),
-      pomMod.depTreeFiles(treeFile, pomMod.rawSub).map(f => path.relativize(f.toPath).toString))
+      pomMod.depTreeFiles(treeFile, pomMod.rawSub).map(f => path.relativize(f.toPath).toStringLinux))
   }
 
   @Test
@@ -693,7 +693,6 @@ class PomModTest extends AssertionsForJUnit {
 
     val newVersion = "ubglu-SNAPSHOT"
     targetMod.findNodesAndChangeVersion("com.novomind.ishop.shops.anyshop", "anyshop-erp", "27.0.0-SNAPSHOT", newVersion)
-
 
     Assert.assertEquals(Map("dep.tree" -> Nil,
       "anyshop-erp" -> Seq("com.novomind.ishop.shops.anyshop:anyshop-erp:jar:" + newVersion),
@@ -783,7 +782,6 @@ class PomModTest extends AssertionsForJUnit {
     assertDeps(allMod, newMod.listDependecies)
   }
 
-
   @Test
   def replacePropertySloppy(): Unit = {
     Assert.assertEquals("ab",
@@ -814,7 +812,6 @@ class PomModTest extends AssertionsForJUnit {
 
     Assert.assertEquals("a${b}", PomMod.replaceProperty(Map.empty, sloppy = true)("a${b}"))
   }
-
 
   @Test
   def replaceProperty(): Unit = {
@@ -1694,19 +1691,35 @@ class PomModTest extends AssertionsForJUnit {
   @Test
   def testWriteParent(): Unit = {
 
-    TestHelper.assertException("/b must start with /a",
-      classOf[IllegalStateException], () => {
-        PomMod.writeContent(new File("/a"))(new File("/b"), "asdf")
-      })
+    val cmd: () => Unit = () => {
+      PomMod.writeContent(new File("/a"))(new File("/b"), "asdf")
+    }
+    Term.Os.getCurrent match {
+      case Term.Os.Windows => {
+        TestHelper.assertException("C:\\b must start with C:\\a", classOf[IllegalStateException], cmd)
+      }
+      case _ => {
+        TestHelper.assertException("/b must start with /a", classOf[IllegalStateException], cmd)
+      }
+    }
   }
 
   @Test
   def testWriteParent_relative(): Unit = {
+    val cmd: () => Unit = () => {
+      PomMod.writeContent(new File("/a/b/../.././b/a/."))(new File("/a/b/../.././a/b/."), "asdf")
+    }
+    Term.Os.getCurrent match {
+      case Term.Os.Windows => {
+        TestHelper.assertException("C:\\a\\b\\..\\..\\.\\a\\b\\. must start with C:\\a\\b\\..\\..\\.\\b\\a\\.",
+          classOf[IllegalStateException], cmd)
+      }
+      case _ => {
+        TestHelper.assertException("/a/b/../.././a/b/. must start with /a/b/../.././b/a/.",
+          classOf[IllegalStateException], cmd)
+      }
+    }
 
-    TestHelper.assertException("/a/b/../.././a/b/. must start with /a/b/../.././b/a/.",
-      classOf[IllegalStateException], () => {
-        PomMod.writeContent(new File("/a/b/../.././b/a/."))(new File("/a/b/../.././a/b/."), "asdf")
-      })
   }
 
   @Test
@@ -1956,7 +1969,7 @@ object PomModTest {
   }
 
   def pomTestFile(temp: TemporaryFolder, root: Document, treeFileContent: String = ""): TestFileBuilder = {
-    TestFileBuilder(temp, root, treeFileContent, Nil)
+    TestFileBuilder(temp, root, treeFileContent, Nil, None)
   }
 
   def assertDeps(expected: Seq[Dep], actual: Seq[Dep]) = {
@@ -1991,7 +2004,8 @@ object PomModTest {
   def pomfile(doc: Document) = RawPomFile(new File("f"), doc, new File("f"))
 
   sealed case class TestFileBuilder(temp: TemporaryFolder, root: Document, treeFileContent: String = "",
-                                    subs: Seq[(String, Document, String, Seq[(String, Document, String)])]) {
+                                    subs: Seq[(String, Document, String, Seq[(String, Document, String)])],
+                                    extensions: Option[Document]) {
 
     def sub(foldername: String, document: Document, treeFileContent: String = "",
             subsub: Seq[(String, Document, String)] = Nil): TestFileBuilder = {
@@ -1999,8 +2013,18 @@ object PomModTest {
       this.copy(subs = subs ++ Seq((foldername, document, treeFileContent, subsub)))
     }
 
+    def extension(document: Document): TestFileBuilder = {
+      this.copy(extensions = Some(document))
+    }
+
     def create(): File = {
       val rootDir = temp.newFolder("release-pom-mod-test")
+      if (extensions.isDefined) {
+        val mvn = new File(rootDir, ".mvn")
+        mvn.mkdir()
+        PomMod.writeContent(rootDir)(new File(mvn, "extensions.xml"),
+          PomMod.toString(extensions.get))
+      }
       PomMod.writePom(rootDir)(new File(rootDir, "pom.xml"), root)
       if (treeFileContent != "") {
         PomMod.writeContent(rootDir)(new File(rootDir, "dep.tree"), treeFileContent)

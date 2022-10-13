@@ -2,11 +2,9 @@ package release
 
 import java.io.{File, IOException}
 import java.nio.charset.StandardCharsets
-import java.nio.file.{FileSystemException, Files}
+import java.nio.file.{FileSystemException, Files, Path}
 import java.security.MessageDigest
-
 import javax.xml.bind.DatatypeConverter
-
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 import scala.util.Random
@@ -32,6 +30,15 @@ object Util {
   }
 
   implicit def pluralize(input: String): PluralString = new PluralString(input)
+
+  class LinuxPath(in: Path) {
+    def toStringLinux: String = {
+      in.toString.replace('\\', '/')
+    }
+
+  }
+
+  implicit def linuxPath(input: Path): LinuxPath = new LinuxPath(input)
 
   def emptyToNone(in: String): Option[String] = in match {
     case "" => None

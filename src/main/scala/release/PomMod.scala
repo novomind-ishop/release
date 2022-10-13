@@ -39,6 +39,17 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
   private[release] val raws: Seq[RawPomFile] = toRawPoms(allRawPomFiles)
   private[release] val allPomsDocs: Seq[Document] = raws.map(_.document).toList
 
+  private[release] val mvnExtension:Option[File] = {
+    // TODO check .mvn/extensions.xml for snapshots too
+    val dotMvn = new File(rootPom.getParentFile, ".mvn")
+    val extension = new File(dotMvn, "extensions.xml")
+    if (extension.canRead && extension.isFile) {
+      Some(extension)
+    } else {
+      None
+    }
+  }
+
   private def depU(d: Map[Dep, Node]): Unit = {
     depMap = depMap ++ d
   }
