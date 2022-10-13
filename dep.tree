@@ -4,7 +4,7 @@ default:release_2.13:1.0 [S]
   | +-org.slf4j:slf4j-api:1.7.32 (evicted by: 1.7.36)
   | +-org.slf4j:slf4j-api:1.7.36
   | 
-  +-com.github.siom79.japicmp:japicmp:0.15.7
+  +-com.github.siom79.japicmp:japicmp:0.16.0
   | +-com.google.guava:guava:30.1-jre
   | | +-com.google.code.findbugs:jsr305:3.0.2
   | | +-com.google.errorprone:error_prone_annotations:2.3.4
@@ -39,7 +39,7 @@ default:release_2.13:1.0 [S]
   | +-org.javassist:javassist:3.24.0-GA
   | 
   +-com.typesafe.scala-logging:scala-logging_2.13:3.9.5 [S]
-  | +-org.scala-lang:scala-reflect:2.13.8 [S]
+  | +-org.scala-lang:scala-reflect:2.13.10 [S]
   | +-org.slf4j:slf4j-api:1.7.36
   | 
   +-com.typesafe:config:1.4.2

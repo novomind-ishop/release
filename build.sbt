@@ -2,7 +2,7 @@ name := "release"
 
 version := "1.0"
 
-scalaVersion := "2.13.8"
+scalaVersion := "2.13.10"
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xfatal-warnings")
 
@@ -30,13 +30,13 @@ libraryDependencies += "org.jline" % "jline-terminal" % "3.21.0"
 
 libraryDependencies += "org.jline" % "jline-reader" % "3.21.0"
 
-libraryDependencies += "com.github.siom79.japicmp" % "japicmp" % "0.15.7"
+libraryDependencies += "com.github.siom79.japicmp" % "japicmp" % "0.16.0"
 
 libraryDependencies += "com.typesafe" % "config" % "1.4.2"
 
-libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.13" % "test"
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.14" % "test"
 
-libraryDependencies += "org.scalatestplus" %% "junit-4-13" % "3.2.13.0" % Test
+libraryDependencies += "org.scalatestplus" %% "junit-4-13" % "3.2.14.0" % Test
 
 libraryDependencies += "org.mockito" %% "mockito-scala" % "1.17.12" % "test"
 
@@ -54,8 +54,6 @@ assembly / mainClass := Some("release.Starter")
 assembly / assemblyJarName := "release.jar"
 
 publish / skip := true
-
-coverageEnabled := true
 
 // https://github.com/sbt/sbt-dependency-graph
 // sbt 'dependencyTree::toFile dep.tree -f'
