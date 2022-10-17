@@ -551,7 +551,7 @@ object Release extends LazyLogging {
       // TODO check if core needs this checks too
       PomChecker.checkPlugins(plugins)
     }
-    PomChecker.checkGavFormat(mod.listDependecies ++ mod.listPluginDependencies.map(_.fakeDep()), sys.out)
+    PomChecker.checkGavFormat(mod.listDependecies ++ plugins.map(_.fakeDep()), sys.out)
 
     val snapsF = gitFiles.par
       .filterNot(in => in.endsWith(".list"))

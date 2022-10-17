@@ -1,11 +1,10 @@
 package release
 
 import java.io.File
-
 import org.junit.rules.TemporaryFolder
 import org.junit.{Assert, Rule, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
-import release.ProjectMod.{Dep, SelfRef}
+import release.ProjectMod.{Dep, PluginDep, SelfRef}
 import release.PomModTest._
 import release.Starter.Opts
 
@@ -276,16 +275,33 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
         <version>28.0.0-SNAPSHOT</version>
       </project>
       ), "")))
-      .extension( document(<project>
-        <modelVersion>4.0.0</modelVersion>
-        <name>any-erp</name>
-      </project>
+      .extension( document(
+        <extensions>
+          <extension>
+            <groupId>a.b.maven</groupId>
+            <artifactId>any</artifactId>
+            <version>1.10.20-SNAPSHOT</version>
+          </extension>
+          <extension>
+            <groupId>some.maven</groupId>
+            <artifactId>other</artifactId>
+            <version>3.2</version>
+          </extension>
+        </extensions>
       ))
       .create()
 
     // WHEN
     val newpom = PomModTest.withRepoForTests(srcPoms, repo)
     Assert.assertTrue(newpom.mvnExtension.isDefined)
+    Assert.assertEquals(Seq(
+      PluginDep(SelfRef(".mvn/extensions.xml"),
+      "a.b.maven", "any", "1.10.20-SNAPSHOT",
+        Nil, Nil),
+      PluginDep(SelfRef(".mvn/extensions.xml"),
+        "some.maven", "other", "3.2",
+        Nil, Nil),
+    ), newpom.listPluginDependencies)
     assertDeps(Seq(Dep(SelfRef("com.novomind.ishop.shops.any:any-projects:28.0.0-SNAPSHOT"),
       "", "", "", "", "", "", ""),
       Dep(SelfRef("com.novomind.ishop.shops.any:any-erp:28.0.0-SNAPSHOT"),

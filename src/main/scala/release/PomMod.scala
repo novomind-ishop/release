@@ -39,8 +39,7 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
   private[release] val raws: Seq[RawPomFile] = toRawPoms(allRawPomFiles)
   private[release] val allPomsDocs: Seq[Document] = raws.map(_.document).toList
 
-  private[release] val mvnExtension:Option[File] = {
-    // TODO check .mvn/extensions.xml for snapshots too
+  private[release] val mvnExtension: Option[File] = {
     val dotMvn = new File(rootPom.getParentFile, ".mvn")
     val extension = new File(dotMvn, "extensions.xml")
     if (extension.canRead && extension.isFile) {
@@ -78,7 +77,7 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
   }
 
   private val currentVersion: Option[String] = {
-    Xpath.onlyString(Xpath.pomDoc(rootPom), PomMod.xPathToProjectVersion)
+    Xpath.onlyString(Xpath.documentOfFile(rootPom), PomMod.xPathToProjectVersion)
   }
 
   private def checkRootFirstChildProperties(): Unit = {
@@ -110,6 +109,8 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
   }
 
   val listPluginDependencies: Seq[PluginDep] = {
+
+    val extensionsDeps = mvnExtension.toSeq.flatMap(PomMod.toPluginDep)
     val allP: Seq[PluginDep] = allPomsDocs.map(in => {
       val gav = PomMod.selfDep(depU)(in).gavWithDetailsFormatted
       val nodes = Xpath.toSeqTuples(in, "//plugins/plugin")
@@ -119,7 +120,7 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
       val x = gavNode._2
       oo.map(pluginDepFrom(x))
     })
-    allP.toList
+    allP.toList ++ extensionsDeps
   }
 
   private[release] val mavenDependencyPlugins: Seq[PluginDep] = {
@@ -429,7 +430,7 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
 
   private def toRawPom(pomFile: File): RawPomFile = {
     // TODO check if pom is sub sub module - parse
-    RawPomFile(pomFile, PomMod.stripDependencyDefaults(Xpath.pomDoc(pomFile)), file)
+    RawPomFile(pomFile, PomMod.stripDependencyDefaults(Xpath.documentOfFile(pomFile)), file)
   }
 
   private def toRawPoms(pomFiles: Seq[File]): Seq[RawPomFile] = {
@@ -453,6 +454,25 @@ case class RawPomFile(pomFile: File, document: Document, file: File) {
 }
 
 object PomMod {
+  def toPluginDep(file: File): Seq[PluginDep] = {
+    try {
+      val document = Xpath.documentOfFile(file)
+      val nodes = Xpath.toSeq(document, "//extensions/extension")
+      nodes.map(node => {
+        val groupId = Xpath.nodeElementValue(node, "groupId")
+        val artifactId = Xpath.nodeElementValue(node, "artifactId")
+        val version = Xpath.nodeElementValue(node, "version")
+        PluginDep(SelfRef(".mvn/extensions.xml"),
+          groupId.get, artifactId.get, version.get, Nil, Nil)
+      })
+    } catch {
+      case e: Exception => {
+        e.printStackTrace()
+        Nil
+      }
+    }
+
+  }
 
   def selectFirstVersionFrom(raws: Seq[RawPomFile]): Option[String] = {
     val document = raws.head.document
@@ -552,7 +572,7 @@ object PomMod {
         } else {
           new File(rootFolder, "pom.xml")
         }
-        val document: Document = Xpath.pomDoc(pomFile.toPath.normalize().toFile)
+        val document: Document = Xpath.documentOfFile(pomFile.toPath.normalize().toFile)
         if (withSubPoms && isPomPacked(document)) {
           val subModules = subModuleNames(document)
           val s = subModules.par.map(subModuleName => {
@@ -749,7 +769,6 @@ object PomMod {
   def isUnknownVersionPattern(in: String): Boolean = {
     suggestNextReleaseBy(in, in, sloppyShop = false).endsWith("-UNDEF")
   }
-
 
   def trySuggestKnownPattern(in: String): Try[String] = {
     try {
