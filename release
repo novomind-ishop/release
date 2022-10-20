@@ -36,6 +36,15 @@ else
 fi
 release_bin=$(dirname $0)/release.bin
 trace_setup "start vm"
+if java -version > /dev/null 2>&1 ; then
+  java_bin=java
+else
+  java_bin=$JAVA_HOME/bin/java
+fi
+if ! ${java_bin} -version > /dev/null 2>&1 ; then
+  echo "E: no java found"
+fi
+
 if [[ -f ${release_bin} ]]; then
   echo ""
   echo "W: Experimental native image ${release_bin}"
@@ -45,12 +54,12 @@ if [[ -f ${release_bin} ]]; then
   set -e
 elif [[ "${os}" = "Cygwin" ]]; then
   set +e
-  java -Dfile.encoding=UTF-8 -jar $(cygpath -aw ${release_jar}) "$(cygpath -aw $(dirname $0))" "$(cygpath -aw $(pwd))" "${os}" "${TERM}" "${terminal_cols}" "${HOME}" ${argLine}
+  $java_bin -Dfile.encoding=UTF-8 -jar $(cygpath -aw ${release_jar}) "$(cygpath -aw $(dirname $0))" "$(cygpath -aw $(pwd))" "${os}" "${TERM}" "${terminal_cols}" "${HOME}" ${argLine}
   java_exit=$?
   set -e
 else
   set +e
-  java -Dfile.encoding=UTF-8 -jar ${release_jar} "$(dirname $0)" "$(pwd)" "${os}" "${TERM}" "${terminal_cols}" "${HOME}" ${argLine}
+  $java_bin -Dfile.encoding=UTF-8 -jar ${release_jar} "$(dirname $0)" "$(pwd)" "${os}" "${TERM}" "${terminal_cols}" "${HOME}" ${argLine}
   java_exit=$?
   set -e
 fi
