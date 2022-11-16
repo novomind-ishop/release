@@ -7,6 +7,7 @@ import release.Starter.Opts
 
 import java.io._
 import java.security.Permission
+import scala.annotation.nowarn
 
 class TermTest extends AssertionsForJUnit {
 
@@ -93,8 +94,10 @@ object TermTest extends LazyLogging {
               outFn: String => String = a => a)
              (fn: Term.Sys => Unit): Unit = {
     this.synchronized {
+      @nowarn
       val oldSecurityManager = System.getSecurityManager
       var exitCode = 0
+      @nowarn("cat=deprecation")
       val manager = new SecurityManager() {
         override def checkPermission(perm: Permission): Unit = {
           val exitPrefix = "exitVM."
@@ -107,7 +110,8 @@ object TermTest extends LazyLogging {
         }
 
       }
-      System.setSecurityManager(manager)
+      @nowarn("cat=deprecation")
+      val unit = System.setSecurityManager(manager)
 
 
       val out = new ByteArrayOutputStream()
@@ -132,7 +136,8 @@ object TermTest extends LazyLogging {
         case e: AssertionError => throw e
         case e: Throwable => throw e
       } finally {
-        System.setSecurityManager(oldSecurityManager)
+        @nowarn("cat=deprecation")
+        val unit = System.setSecurityManager(oldSecurityManager)
       }
       Assert.assertEquals(expectedOut, out.toString.linesIterator.toList
         .map(outFn)

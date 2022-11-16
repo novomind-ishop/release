@@ -383,7 +383,6 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(Nil, gitA.listRemotes())
     gitA.addRemote("ubglu", "failfail")
 
-
     Term.Os.getCurrent match {
       case Term.Os.Darwin => {
         TestHelper.assertException("Nonzero exit value: 1; " +
@@ -395,13 +394,27 @@ class SgitTest extends AssertionsForJUnit {
           })
       }
       case Term.Os.Linux => {
-        TestHelper.assertException("Nonzero exit value: 1; " +
-          "git --no-pager fetch --all --tags; fatal: 'failfail' does not appear to be a git repository " +
-          "fatal: Could not read from remote repository. Please make sure you have the correct access rights " +
-          "and the repository exists. error: Could not fetch ubglu",
-          classOf[RuntimeException], () => {
-            gitA.fetchAll()
-          })
+        println(s"git version ${gitA.version()}")
+        gitA.version() match {
+          case gv: String if gv.startsWith("git version 2.38") => {
+            TestHelper.assertException("Nonzero exit value: 128; " +
+              "git --no-pager fetch --all --tags; fatal: 'failfail' does not appear to be a git repository " +
+              "fatal: Could not read from remote repository. Please make sure you have the correct access rights " +
+              "and the repository exists.",
+              classOf[RuntimeException], () => {
+                gitA.fetchAll()
+              })
+          }
+          case any => {
+            TestHelper.assertException("Nonzero exit value: 1; " +
+              "git --no-pager fetch --all --tags; fatal: 'failfail' does not appear to be a git repository " +
+              "fatal: Could not read from remote repository. Please make sure you have the correct access rights " +
+              "and the repository exists. error: Could not fetch ubglu",
+              classOf[RuntimeException], () => {
+                gitA.fetchAll()
+              })
+          }
+        }
       }
       case Term.Os.Windows => {
         TestHelper.assertException("Nonzero exit value: 128; " +
@@ -466,6 +479,12 @@ class SgitTest extends AssertionsForJUnit {
               "Could not read from remote repository. " +
               "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu"
             failFetchAll(var1, var2)
+          }
+          case gv: String if gv.startsWith("git version 2.38") => {
+            failFetchAll("Nonzero exit value: 128; git --no-pager fetch --all --tags; " +
+              "ssh: Could not resolve hostname git.example.org: Name or service not known fatal: " +
+              "Could not read from remote repository. " +
+              "Please make sure you have the correct access rights and the repository exists.")
           }
           case _ => {
             failFetchAll("Nonzero exit value: 1; git --no-pager fetch --all --tags; " +
@@ -569,14 +588,28 @@ class SgitTest extends AssertionsForJUnit {
           })
       }
       case Term.Os.Linux => {
-        TestHelper.assertExceptionWithCheck(message =>
-          Assert.assertEquals("Nonzero exit value: 1; git --no-pager fetch --all --tags;" +
-            " ! [rejected]        v0.0.10    -> v0.0.10  (would clobber existing tag)" +
-            " error: Could not fetch origin",
-            message.replaceFirst(" From [^ ]+", ""))
-          , classOf[RuntimeException], () => {
-            gitB.fetchAll()
-          })
+         gitB.version() match {
+          case gv: String if gv.startsWith("git version 2.38") => {
+            TestHelper.assertExceptionWithCheck(message =>
+              Assert.assertEquals("Nonzero exit value: 1; git --no-pager fetch --all --tags;" +
+                " ! [rejected]        v0.0.10    -> v0.0.10  (would clobber existing tag)",
+                message.replaceFirst(" From [^ ]+", ""))
+              , classOf[RuntimeException], () => {
+                gitB.fetchAll()
+              })
+          }
+          case any => {
+            TestHelper.assertExceptionWithCheck(message =>
+              Assert.assertEquals("Nonzero exit value: 1; git --no-pager fetch --all --tags;" +
+                " ! [rejected]        v0.0.10    -> v0.0.10  (would clobber existing tag)" +
+                " error: Could not fetch origin",
+                message.replaceFirst(" From [^ ]+", ""))
+              , classOf[RuntimeException], () => {
+                gitB.fetchAll()
+              })
+          }
+        }
+
       }
       case Term.Os.Windows => {
         TestHelper.assertExceptionWithCheck(message =>

@@ -264,6 +264,11 @@ object Starter extends LazyLogging {
       case "--demo-chars" :: _ => showDemoChars(inOpt)
       case "--skip-property" :: value :: tail => argsRead(tail, inOpt.copy(skipProperties = inOpt.skipProperties ++ Seq(value)))
       // CMDs
+      case "lint" :: tail => {
+        println("LINT")
+        System.exit(0)
+        null
+      }
       case "apidiff" :: tail =>
         argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(showApiDiff = true)))
 
