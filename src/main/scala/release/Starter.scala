@@ -265,7 +265,13 @@ object Starter extends LazyLogging {
       case "--skip-property" :: value :: tail => argsRead(tail, inOpt.copy(skipProperties = inOpt.skipProperties ++ Seq(value)))
       // CMDs
       case "lint" :: tail => {
-        println("LINT")
+        println()
+        println("--- LINT")
+        val file = new File(".").getAbsoluteFile
+        println(file.getAbsolutePath)
+        println("---")
+        file.listFiles().toSeq.foreach(f => println(f.getAbsolutePath))
+        println("--- END OF LINT")
         System.exit(0)
         null
       }
