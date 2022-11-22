@@ -161,7 +161,6 @@ object Starter extends LazyLogging {
         }
       }
 
-
     })
 
     def toResult(implicit ec: ExecutionContext): FutureEither[FutureError, (Sgit, String)] = {
@@ -267,12 +266,28 @@ object Starter extends LazyLogging {
       case "lint" :: tail => {
         println()
         println("--- LINT")
-        val file = new File(".").getAbsoluteFile
-        println(file.getAbsolutePath)
-        println("---")
-        file.listFiles().toSeq.foreach(f => println(f.getAbsolutePath))
-        println("--- END OF LINT")
-        System.exit(0)
+        try {
+          val file = new File(".").getAbsoluteFile
+          println(file.getAbsolutePath)
+          println("---")
+          val files = file.listFiles()
+          if (files == null || files.isEmpty) {
+            println(s"E: NO FILES FOUND in ${file.getAbsolutePath}")
+            println("--- END OF LINT")
+            System.exit(42)
+          } else {
+            files.toSeq.foreach(f => println(f.getAbsolutePath))
+            println("--- END OF LINT")
+            System.exit(0)
+          }
+
+        } catch {
+          case e: Exception => {
+            e.printStackTrace()
+            System.exit(42)
+          }
+        }
+        System.exit(1)
         null
       }
       case "apidiff" :: tail =>
@@ -423,7 +438,6 @@ object Starter extends LazyLogging {
           val br = abr._2
           if (ar.isSuccess && br.isSuccess) {
 
-
             val aPoms = extractPomFile(ar.get._1, Files.createTempDirectory("release-").toFile)
             val bPoms = extractPomFile(br.get._1, Files.createTempDirectory("release-").toFile)
             val modA = PomMod.withRepo(aPoms, inOpt, repo, skipPropertyReplacement = true, withSubPoms = false)
@@ -497,7 +511,6 @@ object Starter extends LazyLogging {
                 val a = new JApiCmpArchive(ar.get._1, ar.get._2)
                 val b = new JApiCmpArchive(br.get._1, br.get._2)
 
-
                 val jarArchiveComparator = new JarArchiveComparator(comparatorOptions)
                 val out = jarArchiveComparator.compare(a, b)
                 println(new XoutOutputGenerator(options, out).generate())
@@ -521,7 +534,6 @@ object Starter extends LazyLogging {
           }
 
         })
-
 
       println("Semver change: " + new SemverOut(options, new util.ArrayList[JApiClass](jApiClasses.asJava)).generate())
     }
@@ -835,9 +847,7 @@ object Starter extends LazyLogging {
       case e: Exception => println("W: http problem: " + e.getClass.getCanonicalName + " => " + e.getMessage); None
     }
 
-
   }
-
 
   def tagBuildUrl(git: Sgit, jenkinsBase: String, releaseName: String): Option[String] = {
     // TODO write intial jenkins url to ${HOME}/.nm-release-config; else read
