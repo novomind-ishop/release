@@ -81,5 +81,7 @@ if [[ ${java_exit} -eq 99 ]]; then
   elif [[ ${ISHOP_RELEASE_UPDATE_AUTO:-0} -eq 0 ]]; then
     echo "I: release supports self updates: add 'export ISHOP_RELEASE_UPDATE_AUTO=1' to your e.g. .bash_profile to test it"
   fi
+else
+  exit ${java_exit}
 fi
 
