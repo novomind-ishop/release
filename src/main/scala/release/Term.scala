@@ -141,6 +141,26 @@ object Term {
     }
   }
 
+  def colorB(color: Int, text: String): String = "[" + "\u001B[" + color + "m" + text + "\u001B[0m" + "] "
+
+  def info(text: String): String = colorB(34, "INFO") + text
+
+  def warn(text: String): String = colorB(33, "WARNING") + text
+
+  def error(text: String): String = colorB(31, "ERROR") + text
+
+  def center(text: String): String = {
+    val lenght = 72
+val fill:Int = (lenght - text.length) / 2
+    val w = "-"
+    val result = List.fill(fill)(w).mkString("") + text + List.fill(fill)(w).mkString("")
+    if (result.length < lenght) {
+      result + " "
+    } else {
+      result
+    }
+  }
+
   object Os {
     lazy val getCurrent: Os = {
       System.getProperty("os.name") match {

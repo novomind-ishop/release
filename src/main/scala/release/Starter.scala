@@ -1,5 +1,6 @@
 package release
 
+import com.google.common.base.Stopwatch
 import com.typesafe.scalalogging.LazyLogging
 import japicmp.cmp.{JApiCmpArchive, JarArchiveComparator, JarArchiveComparatorOptions}
 import japicmp.config.Options
@@ -12,6 +13,7 @@ import org.apache.http.impl.client.HttpClients
 import release.Conf.Tracer
 import release.Repo.VersionString
 import release.Sgit.GitRemote
+import release.Term.{center, error, info, warn}
 import release.Util.pluralize
 import release.Xpath.InvalidPomXmlException
 
@@ -265,19 +267,40 @@ object Starter extends LazyLogging {
       // CMDs
       case "lint" :: tail => {
         println()
-        println("--- LINT")
+
+        // TODO handle --simple-chars
+        // TODO handle --no-color
+
+
+        println(info(center("[ lint ]")))
+        val stopwatch = Stopwatch.createStarted()
         try {
           val file = new File(".").getAbsoluteFile
-          println(file.getAbsolutePath)
-          println("---")
+          println(info(file.getAbsolutePath))
           val files = file.listFiles()
           if (files == null || files.isEmpty) {
-            println(s"E: NO FILES FOUND in ${file.getAbsolutePath}")
-            println("--- END OF LINT")
+            println(warn(s"E: NO FILES FOUND in ${file.getAbsolutePath}"))
+            println(warn(center("[ end of lint ]")))
             System.exit(42)
           } else {
-            files.toSeq.foreach(f => println(f.getAbsolutePath))
-            println("--- END OF LINT")
+            println(info("--- check clone config / no shallow clone @ git ---"))
+            println(info("    WIP"))
+            println(info("--- gitlabci.yml @ gitlab ---"))
+            println(info("    WIP"))
+            println(info("--- .mvn @ maven ---"))
+            println(info("    WIP"))
+            println(info("--- dep.tree @ maven ---"))
+            println(info("    WIP"))
+            println(info("--- suggest dependency updates / configurable @ maven ---"))
+            println(info("    WIP"))
+            println(info("--- check for snapshots @ maven ---"))
+            println(info("    WIP"))
+            println()
+            println(warn("warn demo"))
+            println(error("demo chars ✔ \uD83D\uDD14 ✅ ❌ ⚠️ ☢️ ☣️ ⛔"))
+            println()
+            files.toSeq.foreach(f => println(f.toPath.normalize().toAbsolutePath.toFile.getAbsolutePath))
+            println(info(center("[ end of lint - " + stopwatch.elapsed().toString + " ]")))
             System.exit(0)
           }
 

@@ -86,6 +86,23 @@ class TermTest extends AssertionsForJUnit {
 
   }
 
+  @Test
+  def testCenterSome(): Unit = {
+
+    val value = Term.center("[ bert ]")
+    Assert.assertEquals(72, value.size)
+    Assert.assertEquals("--------------------------------[ bert ]--------------------------------", value)
+
+  }
+
+  @Test
+  def testCenterOther(): Unit = {
+
+    val value = Term.center("[ b ]")
+    Assert.assertEquals(72, value.size)
+    Assert.assertEquals("---------------------------------[ b ]--------------------------------- ", value)
+
+  }
 }
 
 object TermTest extends LazyLogging {
