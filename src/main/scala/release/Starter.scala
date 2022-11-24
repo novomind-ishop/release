@@ -275,6 +275,8 @@ object Starter extends LazyLogging {
         println(info(center("[ lint ]")))
         val stopwatch = Stopwatch.createStarted()
         try {
+          // https://github.com/hadolint/hadolint
+          // https://polaris.docs.fairwinds.com/infrastructure-as-code/
           val file = new File(".").getAbsoluteFile
           println(info(file.getAbsolutePath))
           val files = file.listFiles()
@@ -286,7 +288,7 @@ object Starter extends LazyLogging {
             println(info("--- check clone config / no shallow clone @ git ---"))
             println(info("    WIP"))
             println(info("--- gitlabci.yml @ gitlab ---"))
-            println(info("    WIP"))
+            println(info("    WIP ci path: " + System.getenv("CI_CONFIG_PATH")))
             println(info("--- .mvn @ maven ---"))
             println(info("    WIP"))
             println(info("--- dep.tree @ maven ---"))
