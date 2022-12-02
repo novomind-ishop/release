@@ -877,7 +877,7 @@ class SgitTest extends AssertionsForJUnit {
 
 object SgitTest {
   private var testFolders: Set[String] = Set.empty
-  private[release] val commitMsg = Sgit.findGit(Util.localWork, Util.localWork, checkExisting = true).toPath.resolve(".git/hooks/commit-msg")
+  private[release] val commitMsg = Sgit.findGit(Util.localWork, checkExisting = true).toPath.resolve(".git/hooks/commit-msg")
   private[release] val hasCommitMsg = Files.exists(commitMsg)
 
   def copyMsgHook(to: File): Unit = {

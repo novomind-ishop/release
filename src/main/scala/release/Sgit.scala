@@ -19,7 +19,7 @@ import scala.util.{Failure, Success, Try}
 case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStream,
                 checkExisting: Boolean = true, gitBin: Option[String], opts: Starter.Opts) extends LazyLogging {
 
-  private val gitRoot = Sgit.findGit(file.getAbsoluteFile, file.getAbsoluteFile, checkExisting)
+  private val gitRoot = Sgit.findGit(file.getAbsoluteFile, checkExisting)
 
   private val dotGit = new File(gitRoot, ".git")
 
@@ -966,7 +966,11 @@ object Sgit {
   class YourGitInstallationIsToOldException(version: String, ended: String, announced: String, msg: String = "", gitPath: String, announcedEnd: String = "") extends
     RuntimeException(s"Your git version ${version} support ended at ${ended} announced at ${announced}${msg}; please update. " + gitPath)
 
-  private[release] def findGit(start: File, in: File, checkExisting: Boolean): File = {
+  private[release] def findGit(start: File, checkExisting: Boolean): File = {
+    findGitInner(start, start, checkExisting)
+  }
+
+  private def findGitInner(start: File, in: File, checkExisting: Boolean): File = {
     if (new File(in, ".git").exists()) {
       in
     } else if (checkExisting) {

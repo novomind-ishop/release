@@ -530,6 +530,7 @@ object Release extends LazyLogging {
         } catch {
           case e: RuntimeException => {
             sys.err.println("E: Push failed - try manual - " + e.getMessage)
+            logger.trace("push failed", e)
             showManual()
           }
         }

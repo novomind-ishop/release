@@ -278,15 +278,22 @@ object Starter extends LazyLogging {
           // https://github.com/hadolint/hadolint
           // https://polaris.docs.fairwinds.com/infrastructure-as-code/
           val file = new File(".").getAbsoluteFile
-          println(info(file.getAbsolutePath))
+          println(info("    " + file.getAbsolutePath))
           val files = file.listFiles()
           if (files == null || files.isEmpty) {
             println(warn(s"E: NO FILES FOUND in ${file.getAbsolutePath}"))
             println(warn(center("[ end of lint ]")))
             System.exit(42)
           } else {
+            val sgit = Sgit(file, doVerify = true, out = System.out, err = System.err, checkExisting = true, gitBin = None, opts = Opts())
+            println(info("    git version: " + sgit.version()))
             println(info("--- check clone config / no shallow clone @ git ---"))
-            println(info("    WIP"))
+            if (sgit.isShallowClone) {
+              println(warn("    shallow clone detected \uD83D\uDE2C"))
+            } else {
+              println(info("    ✅ NO shallow clone"))
+            }
+
             println(info("--- gitlabci.yml @ gitlab ---"))
             println(info("    WIP ci path: " + System.getenv("CI_CONFIG_PATH")))
             println(info("--- .mvn @ maven ---"))
@@ -299,7 +306,7 @@ object Starter extends LazyLogging {
             println(info("    WIP"))
             println()
             println(warn("warn demo"))
-            println(error("demo chars ✔ \uD83D\uDD14 ✅ ❌ ⚠️ ☢️ ☣️ ⛔"))
+            println(error("demo chars \uD83D\uDD14 ✅ ❌ \uD83D\uDE2C️ ⛔"))
             println()
             files.toSeq.foreach(f => println(f.toPath.normalize().toAbsolutePath.toFile.getAbsolutePath))
             println(info(center("[ end of lint - " + stopwatch.elapsed().toString + " ]")))
