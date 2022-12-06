@@ -281,11 +281,11 @@ object Starter extends LazyLogging {
           println(info("    " + file.getAbsolutePath))
           val files = file.listFiles()
           if (files == null || files.isEmpty) {
-            println(warn(s"E: NO FILES FOUND in ${file.getAbsolutePath}"))
-            println(warn(center("[ end of lint ]")))
-            System.exit(42)
+            println(error(s"E: NO FILES FOUND in ${file.getAbsolutePath}"))
+            println(error(center("[ end of lint ]")))
+            System.exit(1)
           } else {
-            val sgit = Sgit(file, doVerify = true, out = System.out, err = System.err, checkExisting = true, gitBin = None, opts = Opts())
+            val sgit = Sgit(file, doVerify = false, out = System.out, err = System.err, checkExisting = true, gitBin = None, opts = Opts())
             println(info("    git version: " + sgit.version()))
             println(info("--- check clone config / no shallow clone @ git ---"))
             if (sgit.isShallowClone) {
