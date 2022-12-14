@@ -118,8 +118,8 @@ object Term {
   }
 
   def readChooseOneOfOrType(sys: Term.Sys, text: String, possibleValues: Seq[String], opts: Opts,
-                            valSelectF:Seq[String] => String = _.head,
-                            mappedF:Map[String, String] => (String, String) = _.head): String = {
+                            valSelectF: Seq[String] => String = _.head,
+                            mappedF: Map[String, String] => (String, String) = _.head): String = {
     possibleValues match {
       case Nil => throw new IllegalArgumentException("possible value size must not be empty")
       case values if values.size == 1 => readFrom(sys, text, possibleValues.head, opts)
@@ -143,22 +143,26 @@ object Term {
 
   def colorB(color: Int, text: String): String = "[" + "\u001B[" + color + "m" + text + "\u001B[0m" + "] "
 
-  def checkedLength(length: Int)(in:String): String = {
+  def checkedLength(length: Int)(in: String): String = {
     if (in.length > length) {
-      throw new IllegalArgumentException(s"reduce length to $length for '${in}'")
+      try {
+        throw new IllegalArgumentException(s"reduce length to $length for '${in}'")
+      } catch {
+        case e: IllegalArgumentException => e.printStackTrace()
+      }
     }
     in
   }
 
-  def info(text: String): String = colorB(34, "INFO") + checkedLength(82 - 4)(text)
+  def info(text: String, limit: Int = 82 - 4): String = colorB(34, "INFO") + checkedLength(limit)(text)
 
-  def warn(text: String): String = colorB(33, "WARNING") + checkedLength(82 - 7)(text)
+  def warn(text: String, limit: Int = 82 - 7): String = colorB(33, "WARNING") + checkedLength(limit)(text)
 
-  def error(text: String): String = colorB(31, "ERROR") + checkedLength(82 - 5)(text)
+  def error(text: String, limit: Int = 82 - 5): String = colorB(31, "ERROR") + checkedLength(limit)(text)
 
   def center(text: String): String = {
     val lenght = 72
-val fill:Int = (lenght - text.length) / 2
+    val fill: Int = (lenght - text.length) / 2
     val w = "-"
     val result = List.fill(fill)(w).mkString("") + text + List.fill(fill)(w).mkString("")
     if (result.length < lenght) {
