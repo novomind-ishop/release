@@ -242,7 +242,8 @@ object Starter extends LazyLogging {
                   createFeature: Boolean = false, useGerrit: Boolean = true, doUpdate: Boolean = true,
                   depUpOpts: OptsDepUp = OptsDepUp(), apiDiff: OptsApidiff = OptsApidiff(),
                   useJlineInput: Boolean = true, skipProperties: Seq[String] = Nil,
-                  colors: Boolean = true, useDefaults: Boolean = false, versionIncrement: Option[Increment] = None)
+                  colors: Boolean = true, useDefaults: Boolean = false, versionIncrement: Option[Increment] = None,
+                  doLint: Boolean = false)
 
   @tailrec
   def argsRead(params: Seq[String], inOpt: Opts): Opts = {
@@ -265,63 +266,7 @@ object Starter extends LazyLogging {
       case "--demo-chars" :: _ => showDemoChars(inOpt)
       case "--skip-property" :: value :: tail => argsRead(tail, inOpt.copy(skipProperties = inOpt.skipProperties ++ Seq(value)))
       // CMDs
-      case "lint" :: tail => {
-        println()
-
-        // TODO handle --simple-chars
-        // TODO handle --no-color
-
-
-        println(info(center("[ lint ]")))
-        val stopwatch = Stopwatch.createStarted()
-        try {
-          // https://github.com/hadolint/hadolint
-          // https://polaris.docs.fairwinds.com/infrastructure-as-code/
-          val file = new File(".").getAbsoluteFile
-          println(info("    " + file.getAbsolutePath))
-          val files = file.listFiles()
-          if (files == null || files.isEmpty) {
-            println(error(s"E: NO FILES FOUND in ${file.getAbsolutePath}"))
-            println(error(center("[ end of lint ]")))
-            System.exit(1)
-          } else {
-            val sgit = Sgit(file, doVerify = false, out = System.out, err = System.err, checkExisting = true, gitBin = None, opts = Opts())
-            println(info("    git version: " + sgit.version()))
-            println(info("--- check clone config / no shallow clone @ git ---"))
-            if (sgit.isShallowClone) {
-              println(warn("    shallow clone detected \uD83D\uDE2C"))
-            } else {
-              println(info("    ✅ NO shallow clone"))
-            }
-
-            println(info("--- gitlabci.yml @ gitlab ---"))
-            println(info("    WIP ci path: " + System.getenv("CI_CONFIG_PATH")))
-            println(info("--- .mvn @ maven ---"))
-            println(info("    WIP"))
-            println(info("--- dep.tree @ maven ---"))
-            println(info("    WIP"))
-            println(info("--- suggest dependency updates / configurable @ maven ---"))
-            println(info("    WIP"))
-            println(info("--- check for snapshots @ maven ---"))
-            println(info("    WIP"))
-            println()
-            println(warn("warn demo"))
-            println(error("demo chars \uD83D\uDD14 ✅ ❌ \uD83D\uDE2C️ ⛔"))
-            println()
-            files.toSeq.foreach(f => println(f.toPath.normalize().toAbsolutePath.toFile.getAbsolutePath))
-            println(info(center("[ end of lint - " + stopwatch.elapsed().toString + " ]")))
-            System.exit(0)
-          }
-
-        } catch {
-          case e: Exception => {
-            e.printStackTrace()
-            System.exit(42)
-          }
-        }
-        System.exit(1)
-        null
-      }
+      case "lint" :: tail => argsRead(tail, inOpt.copy(doLint = true))
       case "apidiff" :: tail =>
         argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(showApiDiff = true)))
 
@@ -742,6 +687,10 @@ object Starter extends LazyLogging {
 
     }
 
+    if (opts.doLint) {
+      Lint.run(out, err, opts)
+      return 0
+    }
     if (opts.apiDiff.showApiDiff) {
       apidiff(opts, opts.apiDiff.left, opts.apiDiff.right)
       return 0
