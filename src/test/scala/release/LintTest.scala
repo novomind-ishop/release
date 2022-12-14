@@ -13,7 +13,7 @@ class LintTest extends AssertionsForJUnit {
   @Rule def temp = _temporarayFolder
 
   def outT(in: String): String = {
-    in
+    in.replaceAll("- $", "-")
       .replaceAll("/junit[0-9]+/", "/junit-REPLACED/")
       .replaceAll(": git version 2\\.[0-9]+\\.[0-9]+", ": git version 2.999.999")
   }
@@ -25,7 +25,7 @@ class LintTest extends AssertionsForJUnit {
       """
         |[[34mINFO[0m] --------------------------------[ lint ]--------------------------------
         |[[31mERROR[0m] E: NO FILES FOUND in /tmp/junit-REPLACED/release-lint-empty
-        |[[31mERROR[0m] ----------------------------[ end of lint ]---------------------------- """.stripMargin
+        |[[31mERROR[0m] ----------------------------[ end of lint ]----------------------------""".stripMargin
     TermTest.testSys(Nil, expected, Nil, outFn = outT)(sys => {
       Assert.assertEquals(1, Lint.run(sys.out, sys.err, Opts(), file))
     })
@@ -54,25 +54,29 @@ class LintTest extends AssertionsForJUnit {
 
     val expected =
       """
-        |[[34mINFO[0m] --------------------------------[ lint ]--------------------------------
-        |[[34mINFO[0m]     ✅ git version: git version 2.999.999
-        |[[34mINFO[0m] --- check clone config / no shallow clone @ git ---
-        |[[33mWARNING[0m]  shallow clone detected 😬
-        |[[33mWARNING[0m]  we do not want shallow clones because the commit id used in runtime
-        |[[33mWARNING[0m]  info will not point to a known commit
-        |[[33mWARNING[0m]  on Gitlab, change 'Settings' -> 'CI/CD' -> 'General pipelines' ->
-        |[[33mWARNING[0m]    'Git shallow clone' to 0 or blank
-        |[[34mINFO[0m] --- .gitattributes @ git ---
-        |[[34mINFO[0m] --- .gitignore @ git ---
-        |[[34mINFO[0m] --- gitlabci.yml @ gitlab ---
-        |[[34mINFO[0m]     WIP ci path: null
+        |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO] --- check clone config / no shallow clone @ git ---
+        |[WARNING]  shallow clone detected 😬
+        |[WARNING]  % git rev-parse --is-shallow-repository # returns true
+        |[WARNING]    We do not want shallow clones because the commit id used in runtime
+        |[WARNING]    info will not point to a known commit
+        |[WARNING]    on Gitlab, change 'Settings' -> 'CI/CD' -> 'General pipelines' ->
+        |[WARNING]      'Git shallow clone' to 0 or blank
+        |[INFO] --- .gitattributes @ git ---
+        |[INFO] --- .gitignore @ git ---
+        |[INFO] --- list-remotes @ git ---
+        |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(fetch))
+        |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(push))
+        |[INFO] --- gitlabci.yml @ gitlab ---
+        |[INFO]     WIP ci path: null
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/any.xml
-        |[[34mINFO[0m] ----------------------------[ end of lint ]---------------------------- 
-        |[[31mERROR[0m] exit 42 - because lint found warnings, see above ❌""".stripMargin
+        |[INFO] ----------------------------[ end of lint ]----------------------------
+        |[ERROR] exit 42 - because lint found warnings, see above ❌""".stripMargin
     TermTest.testSys(Nil, expected, Nil, outFn = outT)(sys => {
-      Assert.assertEquals(42, Lint.run(sys.out, sys.err, Opts(lintOpts = Opts().lintOpts.copy(showTimer = false)), fileB))
+      Assert.assertEquals(42, Lint.run(sys.out, sys.err, Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false)), fileB))
     })
 
   }
@@ -86,28 +90,32 @@ class LintTest extends AssertionsForJUnit {
         |""".stripMargin.linesIterator.toSeq)
     val expected =
       """
-        |[[34mINFO[0m] --------------------------------[ lint ]--------------------------------
-        |[[34mINFO[0m]     ✅ git version: git version 2.999.999
-        |[[34mINFO[0m] --- check clone config / no shallow clone @ git ---
-        |[[34mINFO[0m]     ✅ NO shallow clone
-        |[[34mINFO[0m] --- .gitattributes @ git ---
-        |[[34mINFO[0m] --- .gitignore @ git ---
-        |[[34mINFO[0m] --- gitlabci.yml @ gitlab ---
-        |[[34mINFO[0m]     WIP ci path: null
-        |[[34mINFO[0m] --- .mvn @ maven ---
-        |[[34mINFO[0m]     WIP
-        |[[34mINFO[0m] --- check for snapshots @ maven ---
-        |[[34mINFO[0m]     WIP
-        |[[34mINFO[0m] --- suggest dependency updates / configurable @ maven ---
-        |[[34mINFO[0m]     WIP
-        |[[34mINFO[0m] --- dep.tree @ maven ---
-        |[[34mINFO[0m]     WIP
+        |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO] --- check clone config / no shallow clone @ git ---
+        |[INFO]     ✅ NO shallow clone
+        |[INFO] --- .gitattributes @ git ---
+        |[INFO] --- .gitignore @ git ---
+        |[INFO] --- list-remotes @ git ---
+        |[WARNING]  NO remotes found 😬
+        |[WARNING]  % git remote -v # returns nothing
+        |[INFO] --- gitlabci.yml @ gitlab ---
+        |[INFO]     WIP ci path: null
+        |[INFO] --- .mvn @ maven ---
+        |[INFO]     WIP
+        |[INFO] --- check for snapshots @ maven ---
+        |[INFO]     WIP
+        |[INFO] --- suggest dependency updates / configurable @ maven ---
+        |[INFO]     WIP
+        |[INFO] --- dep.tree @ maven ---
+        |[INFO]     WIP
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
-        |[[34mINFO[0m] ----------------------------[ end of lint ]---------------------------- """.stripMargin
+        |[INFO] ----------------------------[ end of lint ]----------------------------
+        |[ERROR] exit 42 - because lint found warnings, see above ❌""".stripMargin
     TermTest.testSys(Nil, expected, Nil, outFn = outT)(sys => {
-      Assert.assertEquals(0, Lint.run(sys.out, sys.err, Opts(lintOpts = Opts().lintOpts.copy(showTimer = false)), file))
+      Assert.assertEquals(42, Lint.run(sys.out, sys.err, Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false)), file))
     })
 
   }

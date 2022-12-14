@@ -141,7 +141,14 @@ object Term {
     }
   }
 
-  def colorB(color: Int, text: String): String = "[" + "\u001B[" + color + "m" + text + "\u001B[0m" + "] "
+  def colorB(color: Int, text: String, useColor: Boolean): String = {
+    if (useColor) {
+      "[" + "\u001B[" + color + "m" + text + "\u001B[0m" + "] "
+    } else {
+      "[" + text + "] "
+    }
+
+  }
 
   def checkedLength(length: Int)(in: String): String = {
     if (in.length > length) {
@@ -154,11 +161,11 @@ object Term {
     in
   }
 
-  def info(text: String, limit: Int = 82 - 4): String = colorB(34, "INFO") + checkedLength(limit)(text)
+  def info(text: String, useColor: Boolean, limit: Int = 82 - 4): String = colorB(34, "INFO", useColor) + checkedLength(limit)(text)
 
-  def warn(text: String, limit: Int = 82 - 7): String = colorB(33, "WARNING") + checkedLength(limit)(text)
+  def warn(text: String, useColor: Boolean, limit: Int = 82 - 7): String = colorB(33, "WARNING", useColor) + checkedLength(limit)(text)
 
-  def error(text: String, limit: Int = 82 - 5): String = colorB(31, "ERROR") + checkedLength(limit)(text)
+  def error(text: String, useColor: Boolean, limit: Int = 82 - 5): String = colorB(31, "ERROR", useColor) + checkedLength(limit)(text)
 
   def center(text: String): String = {
     val lenght = 72
