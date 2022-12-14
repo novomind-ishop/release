@@ -5,6 +5,7 @@ import release.Starter.Opts
 import release.Term._
 
 import java.io.{File, PrintStream}
+import java.util.concurrent.atomic.AtomicBoolean
 
 object Lint {
 
@@ -21,7 +22,9 @@ object Lint {
       // https://github.com/hadolint/hadolint
       // https://polaris.docs.fairwinds.com/infrastructure-as-code/
       val file = new File(".").getAbsoluteFile
+      val warnExitCode = 42
       println(info("    " + file.getAbsolutePath))
+      val warnExit = new AtomicBoolean(false)
       val files = file.listFiles()
       if (files == null || files.isEmpty) {
         out.println(error(s"E: NO FILES FOUND in ${file.getAbsolutePath}"))
@@ -32,7 +35,8 @@ object Lint {
         out.println(info("    ✅ git version: " + sgit.version()))
         out.println(info("--- check clone config / no shallow clone @ git ---"))
         if (sgit.isShallowClone) {
-          out.println(warn("    shallow clone detected \uD83D\uDE2C"))
+          out.println(warn(" shallow clone detected \uD83D\uDE2C"))
+          out.println(warn(" on Gitlab, change 'Settings -> CI/CD -> General pipelines -> Git shallow clone'"))
         } else {
           out.println(info("    ✅ NO shallow clone"))
         }
@@ -57,18 +61,21 @@ object Lint {
           out.println(info("    WIP"))
         }
         out.println()
-        out.println(warn("warn demo"))
-        out.println(error("demo chars \uD83D\uDD14 ✅ ❌ \uD83D\uDE2C️ ⛔"))
-        out.println()
-        files.toSeq.foreach(f => out.println(f.toPath.normalize().toAbsolutePath.toFile.getAbsolutePath))
+        files.toSeq.take(5).foreach(f => out.println(f.toPath.normalize().toAbsolutePath.toFile.getAbsolutePath))
         out.println(info(center("[ end of lint - " + stopwatch.elapsed().toString + " ]")))
-        System.exit(0)
+        if (warnExit.get()) {
+          out.println(error("exit 42 - because lint found warnings, see above ❌"))
+          System.exit(warnExitCode)
+        } else {
+          System.exit(0)
+        }
+
       }
 
     } catch {
       case e: Exception => {
         e.printStackTrace()
-        System.exit(42)
+        System.exit(2)
       }
     }
     System.exit(1)
