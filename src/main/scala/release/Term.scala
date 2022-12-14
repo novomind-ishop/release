@@ -143,11 +143,18 @@ object Term {
 
   def colorB(color: Int, text: String): String = "[" + "\u001B[" + color + "m" + text + "\u001B[0m" + "] "
 
-  def info(text: String): String = colorB(34, "INFO") + text
+  def checkedLength(length: Int)(in:String): String = {
+    if (in.length > length) {
+      throw new IllegalArgumentException(s"reduce length to $length for '${in}'")
+    }
+    in
+  }
 
-  def warn(text: String): String = colorB(33, "WARNING") + text
+  def info(text: String): String = colorB(34, "INFO") + checkedLength(82 - 4)(text)
 
-  def error(text: String): String = colorB(31, "ERROR") + text
+  def warn(text: String): String = colorB(33, "WARNING") + checkedLength(82 - 7)(text)
+
+  def error(text: String): String = colorB(31, "ERROR") + checkedLength(82 - 5)(text)
 
   def center(text: String): String = {
     val lenght = 72

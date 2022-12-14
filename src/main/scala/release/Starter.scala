@@ -212,6 +212,8 @@ object Starter extends LazyLogging {
     }
   }
 
+  case class LintOpts(doLint: Boolean = false,showTimer: Boolean = true )
+
   case class OptsDepUp(showDependencyUpdates: Boolean = false, showHelp: Boolean = false,
                        hideLatest: Boolean = true, versionRangeLimit: Integer = 3,
                        hideStageVersions: Boolean = true, showLibYears: Boolean = false,
@@ -243,7 +245,7 @@ object Starter extends LazyLogging {
                   depUpOpts: OptsDepUp = OptsDepUp(), apiDiff: OptsApidiff = OptsApidiff(),
                   useJlineInput: Boolean = true, skipProperties: Seq[String] = Nil,
                   colors: Boolean = true, useDefaults: Boolean = false, versionIncrement: Option[Increment] = None,
-                  doLint: Boolean = false)
+                  lintOpts: LintOpts = LintOpts())
 
   @tailrec
   def argsRead(params: Seq[String], inOpt: Opts): Opts = {
@@ -266,7 +268,7 @@ object Starter extends LazyLogging {
       case "--demo-chars" :: _ => showDemoChars(inOpt)
       case "--skip-property" :: value :: tail => argsRead(tail, inOpt.copy(skipProperties = inOpt.skipProperties ++ Seq(value)))
       // CMDs
-      case "lint" :: tail => argsRead(tail, inOpt.copy(doLint = true))
+      case "lint" :: tail => argsRead(tail, inOpt.copy(lintOpts = inOpt.lintOpts.copy(doLint = true)))
       case "apidiff" :: tail =>
         argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(showApiDiff = true)))
 
@@ -687,9 +689,8 @@ object Starter extends LazyLogging {
 
     }
 
-    if (opts.doLint) {
-      Lint.run(out, err, opts)
-      return 0
+    if (opts.lintOpts.doLint) {
+      return Lint.run(out, err, opts)
     }
     if (opts.apiDiff.showApiDiff) {
       apidiff(opts, opts.apiDiff.left, opts.apiDiff.right)

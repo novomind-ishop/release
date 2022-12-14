@@ -6,6 +6,7 @@ import org.scalatestplus.junit.AssertionsForJUnit
 import release.Starter.Opts
 
 import java.io._
+import java.nio.charset.StandardCharsets
 import java.security.Permission
 import scala.annotation.nowarn
 
@@ -106,6 +107,35 @@ class TermTest extends AssertionsForJUnit {
 }
 
 object TermTest extends LazyLogging {
+  def willReadFrom(in: String): InputStream = {
+    val stream = new ByteArrayInputStream(in.getBytes(StandardCharsets.UTF_8))
+    stream
+  }
+
+  def normalize(in: ByteArrayOutputStream): String = in.toString.trim.replaceAll("\r\n", "\n")
+
+  def withOutErr[T](fn: (PrintStream, PrintStream) => T): OutErr[T] = {
+    val out: ByteArrayOutputStream = new ByteArrayOutputStream
+    val err: ByteArrayOutputStream = new ByteArrayOutputStream
+    val x = fn.apply(new PrintStream(out), new PrintStream(err))
+    OutErr(normalize(out), normalize(err), x)
+  }
+
+  def withOutErrIn[T](in: InputStream)(fn: Term.Sys => T): OutErr[T] = {
+    val out: ByteArrayOutputStream = new ByteArrayOutputStream
+    val err: ByteArrayOutputStream = new ByteArrayOutputStream
+    val x = fn.apply(new Term.Sys(in, out, err))
+    OutErr(normalize(out), normalize(err), x)
+  }
+
+  def withOutErr[T]()(fn: Term.Sys => T): OutErr[T] = {
+    val out: ByteArrayOutputStream = new ByteArrayOutputStream
+    val err: ByteArrayOutputStream = new ByteArrayOutputStream
+    val x = fn.apply(new Term.Sys(null, out, err))
+    OutErr(normalize(out), normalize(err), x)
+  }
+
+  case class OutErr[T](out: String, err: String, value: T)
 
   def testSys(input: Seq[String], expectedOut: String, expectedErr: Seq[String], expectedExitCode: Int = 0,
               outFn: String => String = a => a)

@@ -196,7 +196,7 @@ class PomCheckerTest extends AssertionsForJUnit {
 
   @Test
   def testCheckGavFormat_empty(): Unit = {
-    val result = StarterTest.withOutErr[Unit]()(sys => {
+    val result = TermTest.withOutErr[Unit]()(sys => {
       PomChecker.checkGavFormat(Nil, sys.out)
     })
     Assert.assertEquals("", result.out)
@@ -220,7 +220,7 @@ class PomCheckerTest extends AssertionsForJUnit {
 
   @Test
   def testCheckGavFormat(): Unit = {
-    val result = StarterTest.withOutErr[Unit]()(sys => {
+    val result = TermTest.withOutErr[Unit]()(sys => {
       val base = ProjectMod.Dep(SelfRef.undef, "g", "a", "v", "t", "s", "jar", "classi")
       PomChecker.checkGavFormat(Seq(
         base,

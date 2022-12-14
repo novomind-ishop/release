@@ -13,10 +13,8 @@ import org.scalatestplus.junit.AssertionsForJUnit
 import release.ProjectMod.Gav3
 import release.Sgit.GitRemote
 import release.Starter.{FutureEither, FutureError, Opts, OptsDepUp}
-import release.StarterTest.willReadFrom
 
 import java.io._
-import java.nio.charset.StandardCharsets
 import java.util.concurrent.{TimeUnit, TimeoutException}
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -29,7 +27,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
 
   def doInit(params: Seq[String]): ExecReturn = {
     val in: InputStream = null
-    val result = StarterTest.withOutErrIn[Int](in)(sys => Starter.init(params, sys))
+    val result = TermTest.withOutErrIn[Int](in)(sys => Starter.init(params, sys))
     ExecReturn(result.out, result.err, result.value)
   }
 
@@ -141,11 +139,11 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
     val testRepoD = testRepo(SgitTest.ensureAbsent("c"), SgitTest.ensureAbsent("d"))
 
     // WHEN
-    val in = StarterTest.willReadFrom("master\n")
+    val in = TermTest.willReadFrom("master\n")
     TestHelper.assertExceptionWithCheck(in => Assert.assertEquals("E: please download a commit-message hook and retry",
       in.linesIterator.toSeq(1)),
       classOf[Sgit.MissingCommitHookException], () => {
-        StarterTest.withOutErrIn[Unit](in)(sys => Starter.fetchGitAndAskForBranch(sys, noVerify = true, None,
+        TermTest.withOutErrIn[Unit](in)(sys => Starter.fetchGitAndAskForBranch(sys, noVerify = true, None,
           testRepoD, Opts(), skipFetch = true))
       })
   }
@@ -155,8 +153,8 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
     val testRepoD = testRepo(SgitTest.ensureAbsent("e"), SgitTest.ensureAbsent("f"))
     SgitTest.copyMsgHook(testRepoD)
     // WHEN
-    val in = StarterTest.willReadFrom("master\n")
-    val result = StarterTest.withOutErrIn[Unit](in)(sys => Starter.fetchGitAndAskForBranch(sys,
+    val in = TermTest.willReadFrom("master\n")
+    val result = TermTest.withOutErrIn[Unit](in)(sys => Starter.fetchGitAndAskForBranch(sys,
       noVerify = SgitTest.hasCommitMsg, None, testRepoD, Opts(useJlineInput = false), skipFetch = true))
 
     // THEN
@@ -168,8 +166,8 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
   def testFetchGitAndAskForBranch_noVerify(): Unit = {
     val testRepoD = testRepo(SgitTest.ensureAbsent("g"), SgitTest.ensureAbsent("h"))
     // WHEN
-    val in = StarterTest.willReadFrom("master\n")
-    val result = StarterTest.withOutErrIn[Unit](in)(sys => Starter.fetchGitAndAskForBranch(sys, noVerify = false,
+    val in = TermTest.willReadFrom("master\n")
+    val result = TermTest.withOutErrIn[Unit](in)(sys => Starter.fetchGitAndAskForBranch(sys, noVerify = false,
       None, testRepoD, Opts(useJlineInput = false), skipFetch = true))
 
     // THEN
@@ -311,7 +309,6 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
       Seq(gav0, gavUp0, gavRemove, gavUpMore0, gavUpMore1),
       Seq(gav0, gavUp1, gavNew, gavUpMore2, gavUpMore3)))
 
-
     Assert.assertEquals(Seq(
       (Nil, Seq(gavNew)),
       (Seq(gavRemove), Nil),
@@ -320,7 +317,6 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
     ), out)
 
   }
-
 
   @Test
   def testLogback(): Unit = {
@@ -351,7 +347,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
   def testSuggestRebase(): Unit = {
     // TODO later
     val out = mock[PrintStream]
-    val in = willReadFrom("bert")
+    val in = TermTest.willReadFrom("bert")
     val sgit = mock[Sgit]
     when(sgit.isNotDetached).thenReturn(true)
     when(sgit.findUpstreamBranch()).thenReturn(None)
@@ -442,36 +438,4 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
 
 }
 
-object StarterTest {
 
-  def willReadFrom(in: String): InputStream = {
-    val stream = new ByteArrayInputStream(in.getBytes(StandardCharsets.UTF_8))
-    stream
-  }
-
-  def normalize(in: ByteArrayOutputStream): String = in.toString.trim.replaceAll("\r\n", "\n")
-
-  def withOutErr[T](fn: (PrintStream, PrintStream) => T): OutErr[T] = {
-    val out: ByteArrayOutputStream = new ByteArrayOutputStream
-    val err: ByteArrayOutputStream = new ByteArrayOutputStream
-    val x = fn.apply(new PrintStream(out), new PrintStream(err))
-    OutErr(normalize(out), normalize(err), x)
-  }
-
-  def withOutErrIn[T](in: InputStream)(fn: Term.Sys => T): OutErr[T] = {
-    val out: ByteArrayOutputStream = new ByteArrayOutputStream
-    val err: ByteArrayOutputStream = new ByteArrayOutputStream
-    val x = fn.apply(new Term.Sys(in, out, err))
-    OutErr(normalize(out), normalize(err), x)
-  }
-
-  def withOutErr[T]()(fn: Term.Sys => T): OutErr[T] = {
-    val out: ByteArrayOutputStream = new ByteArrayOutputStream
-    val err: ByteArrayOutputStream = new ByteArrayOutputStream
-    val x = fn.apply(new Term.Sys(null, out, err))
-    OutErr(normalize(out), normalize(err), x)
-  }
-
-  case class OutErr[T](out: String, err: String, value: T)
-
-}

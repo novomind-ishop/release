@@ -31,8 +31,17 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     gitNative(Seq("init", file.getAbsolutePath), useWorkdir = false)
   }
 
+  private def cloneRemote(src: String, dest: File, depth: Int): Unit = {
+    val shalow: Seq[String] = if (depth > 0) {
+      Seq("--depth", depth.toString)
+    } else {
+      Nil
+    }
+    gitNative(Seq("clone") ++ shalow ++ Seq("-q", src, dest.getAbsolutePath), useWorkdir = false)
+  }
+
   private def clone(src: File, dest: File): Unit = {
-    gitNative(Seq("clone", "-q", src.getAbsolutePath, dest.getAbsolutePath), useWorkdir = false)
+    gitNative(Seq("clone") ++ Seq("-q", src.getAbsolutePath, dest.getAbsolutePath), useWorkdir = false)
   }
 
   private[release] def isShallowClone: Boolean = {
@@ -979,6 +988,12 @@ object Sgit {
     } else {
       in
     }
+  }
+
+  private[release] def doCloneRemote(src: String, dest: File, verify: Boolean = true, depth: Int = 0): Sgit = {
+    val o = Sgit(dest, doVerify = verify, out = System.out, err = System.err, checkExisting = false, None, Opts())
+    o.cloneRemote(src, dest, depth)
+    o.copy(doVerify = false, checkExisting = true)
   }
 
   private[release] def doClone(src: File, dest: File, verify: Boolean = true): Sgit = {
