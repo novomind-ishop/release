@@ -24,7 +24,7 @@ object Lint {
       // https://polaris.docs.fairwinds.com/infrastructure-as-code/
 
       val warnExitCode = 42
-      println(info("    " + file.getAbsolutePath), 10_000)
+      println(info("    " + file.getAbsolutePath, 10_000))
       val warnExit = new AtomicBoolean(false)
       val files = file.listFiles()
       if (files == null || files.isEmpty) {
