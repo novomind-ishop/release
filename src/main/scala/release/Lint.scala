@@ -14,7 +14,9 @@ object Lint {
     out.println()
 
     // TODO handle --simple-chars
-    // TODO handle --no-color
+    val fiFine = "✅"
+    val fiWarn = "\uD83D\uDE2C"
+    val fiError = "❌"
     val color = opts.colors
 
     out.println(info(center("[ lint ]"), color))
@@ -34,25 +36,26 @@ object Lint {
         return 1
       } else {
         val sgit = Sgit(file, doVerify = false, out = System.out, err = System.err, checkExisting = true, gitBin = None, opts = Opts())
-        out.println(info("    ✅ git version: " + sgit.version(), color))
+        out.println(info(s"    ${fiFine} git version: " + sgit.version(), color))
         out.println(info("--- check clone config / no shallow clone @ git ---", color))
         if (sgit.isShallowClone) {
-          out.println(warn(" shallow clone detected \uD83D\uDE2C", color))
-          out.println(warn(" % git rev-parse --is-shallow-repository # returns true", color))
+          out.println(warn(s" shallow clone detected ${fiWarn}", color))
+          out.println(warn("   % git rev-parse --is-shallow-repository # returns " + sgit.isShallowClone, color))
+          out.println(warn("   % git log -n1 --pretty=%H # returns " + sgit.commitIdHeadOpt().getOrElse("n/a"), color, limit = lineLimit))
           out.println(warn("   We do not want shallow clones because the commit id used in runtime", color))
           out.println(warn("   info will not point to a known commit", color))
           out.println(warn("   on Gitlab, change 'Settings' -> 'CI/CD' -> 'General pipelines' ->", color))
           out.println(warn("     'Git shallow clone' to 0 or blank", color))
           warnExit.set(true)
         } else {
-          out.println(info("    ✅ NO shallow clone", color))
+          out.println(info(s"    ${fiFine} NO shallow clone", color))
         }
         out.println(info("--- .gitattributes @ git ---", color))
         out.println(info("--- .gitignore @ git ---", color))
         out.println(info("--- list-remotes @ git ---", color))
         val remotes = sgit.listRemotes()
         if (remotes.isEmpty) {
-          out.println(warn(" NO remotes found \uD83D\uDE2C", color))
+          out.println(warn(s" NO remotes found ${fiWarn}", color))
           out.println(warn(" % git remote -v # returns nothing", color))
           warnExit.set(true)
         } else {
@@ -88,7 +91,7 @@ object Lint {
         out.println(info(center("[ end of lint" + timerResult + " ]"), color))
 
         if (warnExit.get()) {
-          out.println(error("exit 42 - because lint found warnings, see above ❌", color))
+          out.println(error(s"exit 42 - because lint found warnings, see above ${fiError}", color))
           return warnExitCode
         } else {
           return 0
