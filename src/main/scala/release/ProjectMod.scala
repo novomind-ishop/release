@@ -151,7 +151,6 @@ object ProjectMod extends LazyLogging {
     result
   }
 
-
   case class Dep(pomRef: SelfRef, groupId: String, artifactId: String, version: String, typeN: String,
                  scope: String, packaging: String, classifier: String) {
     val gavWithDetailsFormatted: String = Gav.format(Seq(groupId, artifactId, version, typeN, scope, packaging, classifier))
@@ -344,9 +343,9 @@ object ProjectMod extends LazyLogging {
     }
   }
 
-  def checkForUpdates(in: Seq[Gav3], shellWidth: Int, depUpOpts: OptsDepUp, repo: Repo, sys: Term.Sys): Map[Gav3, (Seq[String], Duration)] = {
+  def checkForUpdates(in: Seq[Gav3], shellWidth: Int, depUpOpts: OptsDepUp, repo: Repo, sys: Term.Sys, printProgress: Boolean): Map[Gav3, (Seq[String], Duration)] = {
 
-    val statusLine = StatusLine(in.size, shellWidth, sys.out)
+    val statusLine = StatusLine(in.size, shellWidth, sys.out, printProgress)
     val updates: Map[Gav3, (Seq[String], Duration)] = in
       .par
       .map(dep => (dep, {
@@ -381,7 +380,6 @@ object ProjectMod extends LazyLogging {
             Duration.ZERO
           }
 
-
         } else {
           Duration.ofDays(-2)
         }
@@ -397,7 +395,7 @@ object ProjectMod extends LazyLogging {
 
   def showDependencyUpdates(shellWidth: Int, termOs: Term, depUpOpts: OptsDepUp, workNexusUrl: String,
                             rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], repo: Repo,
-                            sys: Term.Sys): Seq[(GavWithRef, (Seq[String], Duration))] = {
+                            sys: Term.Sys, printProgress: Boolean): Seq[(GavWithRef, (Seq[String], Duration))] = {
     val now = LocalDate.now()
     val stopw = Stopwatch.createStarted()
     sys.out.println("I: checking dependecies against nexus - please wait")
@@ -416,7 +414,6 @@ object ProjectMod extends LazyLogging {
       .map(_.gav())
       .distinct
 
-
     val prepared = relevantGav.map(_.simpleGav())
       .map(in => {
         if (in.version.isEmpty || in.artifactId.isEmpty || in.groupId.isEmpty) {
@@ -427,7 +424,7 @@ object ProjectMod extends LazyLogging {
       })
     val value: Seq[Gav3] = prepared
       .flatMap(ProjectMod.relocateGavs(prepared, repo))
-    val updates = checkForUpdates(value, shellWidth, depUpOpts, repo, sys)
+    val updates = checkForUpdates(value, shellWidth, depUpOpts, repo, sys, printProgress)
 
     sys.out.println(s"I: checked ${value.size} dependecies in ${stopw.elapsed(TimeUnit.MILLISECONDS)}ms (${now.toString})")
 
@@ -462,7 +459,6 @@ object ProjectMod extends LazyLogging {
       } else {
         simple
       }
-
 
       sys.out.println(ch("║ ", "| ") + "Project GAV: " + ref.id)
       mods.sortBy(_._1.toString).foreach((subElement: (GavWithRef, (Seq[String], Duration))) => {
@@ -564,7 +560,6 @@ object Increment {
   val patch = Some(Increment("patch"))
 }
 
-
 trait ProjectMod extends LazyLogging {
   val file: File
   val repo: Repo
@@ -577,12 +572,12 @@ trait ProjectMod extends LazyLogging {
   val listProperties: Map[String, String]
   val skipPropertyReplacement: Boolean
 
-  def showDependencyUpdates(shellWidth: Int, termOs: Term, depUpOpts: OptsDepUp, workNexusUrl: String,
-                            sys: Term.Sys): Unit = {
+  def showDependencyUpdates(shellWidth: Int, termOs: Term, depUpOpts: OptsDepUp,
+                            sys: Term.Sys, printProgress:Boolean): Unit = {
     val depForCheck: Seq[Dep] = listDependeciesForCheck()
     val sdm = selfDepsMod
-    val result = ProjectMod.showDependencyUpdates(shellWidth, termOs, depUpOpts, workNexusUrl,
-      depForCheck, sdm, repo, sys)
+    val result = ProjectMod.showDependencyUpdates(shellWidth, termOs, depUpOpts, repo.workNexus.getUrl,
+      depForCheck, sdm, repo, sys, printProgress)
     if (depUpOpts.changeToLatest) {
       val localDepUpFile = new File(file, ".release-dependency-updates")
       val fn: (Gav3, Seq[String]) => String = if (localDepUpFile.canRead) {

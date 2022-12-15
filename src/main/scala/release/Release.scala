@@ -132,7 +132,7 @@ object Release extends LazyLogging {
 
     sys.out.println(". done")
     if (opts.depUpOpts.showDependencyUpdates) {
-      mod.showDependencyUpdates(shellWidth, termOs, opts.depUpOpts, config.workNexusUrl(), sys)
+      mod.showDependencyUpdates(shellWidth, termOs, opts.depUpOpts, sys, printProgress = true)
       System.exit(0)
     }
 
@@ -595,7 +595,7 @@ object Release extends LazyLogging {
       .filter(_.version.contains("SNAPSHOT")) ++
       boClientVersion.map(in => Gav("com.novomind.ishop.backoffice", "bo-client", in, "war"))
 
-    val aetherStateLine = StatusLine(snaps.size, shellWidth)
+    val aetherStateLine = StatusLine(snaps.size, shellWidth, System.out, enabled = true)
     val snapState: Seq[ReleaseInfo] = snaps
       .par
       .map(in => {

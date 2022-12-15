@@ -33,6 +33,9 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
   if (!rootPom.canRead) {
     throw new PreconditionsException(file.toString + " seems to be no maven project")
   }
+  if (rootPom.canRead && Util.read(rootPom).trim.isEmpty) {
+    throw new PreconditionsException(file.toString + " seems to be no maven project // empty file")
+  }
   private val allRawPomFiles = Tracer.msgAround("read all poms", logger,
     () => PomMod.allRawModulePomsFiles(Seq(file), withSubPoms))
 

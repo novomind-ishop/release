@@ -22,7 +22,7 @@ class StatusLineTest extends AssertionsForJUnit {
   @Test
   def onlyStart(): Unit = {
     // GIVEN
-    val status = StatusLine(72, 94, outStream)
+    val status = StatusLine(72, 94, outStream, enabled = true)
     // THEN
     assertMsg("Progress: (000/072)[                                                                        ]")
   }
@@ -30,7 +30,7 @@ class StatusLineTest extends AssertionsForJUnit {
   @Test
   def onlyStart_short(): Unit = {
     // GIVEN
-    val status = StatusLine(72, 1, outStream)
+    val status = StatusLine(72, 1, outStream, enabled = true)
     // THEN
     assertMsg("Progress: (000/072)[ ]")
   }
@@ -38,7 +38,7 @@ class StatusLineTest extends AssertionsForJUnit {
   @Test
   def startEnd2(): Unit = {
     // GIVEN
-    val status = StatusLine(2, 94, outStream)
+    val status = StatusLine(2, 94, outStream, enabled = true)
     status.start()
     status.start()
     status.end()
@@ -54,7 +54,7 @@ class StatusLineTest extends AssertionsForJUnit {
   @Test
   def startEnd72(): Unit = {
     // GIVEN
-    val status = StatusLine(72, 94, outStream)
+    val status = StatusLine(72, 94, outStream, enabled = true)
     status.start()
     status.start()
     status.end()
@@ -70,7 +70,7 @@ class StatusLineTest extends AssertionsForJUnit {
   @Test
   def startEnd500(): Unit = {
     // GIVEN
-    val status = StatusLine(500, 94, outStream)
+    val status = StatusLine(500, 94, outStream, enabled = true)
     List.range(0, 500).foreach(_ => status.start())
     List.range(0, 500).foreach(_ => status.end())
     status.end()
@@ -87,7 +87,7 @@ class StatusLineTest extends AssertionsForJUnit {
   @Test
   def onlyFinish(): Unit = {
     // GIVEN
-    val status = StatusLine(3, 94, outStream)
+    val status = StatusLine(3, 94, outStream, enabled = true)
     status.finish()
     // THEN
     assertMsg("Progress: (000/003)[                                                                        ]\n")

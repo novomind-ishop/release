@@ -3,7 +3,7 @@ package release
 import java.io.PrintStream
 import java.util.concurrent.atomic.AtomicInteger
 
-case class StatusLine(rawSteps: Int, width: Int, out: PrintStream = System.out) {
+case class StatusLine(rawSteps: Int, width: Int, out: PrintStream = System.out, enabled: Boolean) {
   private val scaleLimit = if (width - 22 <= 0) {
     1
   } else {
@@ -45,7 +45,9 @@ case class StatusLine(rawSteps: Int, width: Int, out: PrintStream = System.out) 
       val open = mk(" ", openL)
 
       val line = done + wip + open
-      out.print(("Progress: (%03d/%03d)[%-" + scaleLimit + "s]").format(doneL, rawSteps, line))
+      if (enabled) {
+        out.print(("Progress: (%03d/%03d)[%-" + scaleLimit + "s]").format(doneL, rawSteps, line))
+      }
     }
   }
 
@@ -60,7 +62,9 @@ case class StatusLine(rawSteps: Int, width: Int, out: PrintStream = System.out) 
   def start(): Unit = {
     this.synchronized {
       update(started)
-      out.print("\r")
+      if (enabled) {
+        out.print("\r")
+      }
       updateLine()
     }
   }
@@ -68,7 +72,9 @@ case class StatusLine(rawSteps: Int, width: Int, out: PrintStream = System.out) 
   def end(): Unit = {
     this.synchronized {
       update(ended)
-      out.print("\r")
+      if (enabled) {
+        out.print("\r")
+      }
       updateLine()
     }
   }

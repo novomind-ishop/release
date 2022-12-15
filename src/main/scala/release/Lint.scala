@@ -27,6 +27,7 @@ object Lint {
 
       val warnExitCode = 42
       val lineLimit = 10_000
+      // TODO print $HOME
       println(info("    " + file.getAbsolutePath, color, lineLimit))
       val warnExit = new AtomicBoolean(false)
       val files = file.listFiles()
@@ -35,7 +36,7 @@ object Lint {
         out.println(error(center("[ end of lint ]"), color))
         return 1
       } else {
-        val sgit = Sgit(file, doVerify = false, out = System.out, err = System.err, checkExisting = true, gitBin = None, opts = Opts())
+        val sgit = Sgit(file, doVerify = false, out = out, err = err, checkExisting = true, gitBin = None, opts = Opts())
         out.println(info(s"    ${fiFine} git version: " + sgit.version(), color))
         out.println(info("--- check clone config / no shallow clone @ git ---", color))
         if (sgit.isShallowClone) {
@@ -45,7 +46,10 @@ object Lint {
           out.println(warn("   We do not want shallow clones because the commit id used in runtime", color))
           out.println(warn("   info will not point to a known commit", color))
           out.println(warn("   on Gitlab, change 'Settings' -> 'CI/CD' -> 'General pipelines' ->", color))
-          out.println(warn("     'Git shallow clone' to 0 or blank", color))
+          out.println(warn("     'Git shallow clone' to 0 or blank.", color))
+          out.println(warn("     If this does not fix this warning, toggle", color))
+          out.println(warn("     the .. -> 'Git strategy' to 'git clone' for maybe a", color))
+          out.println(warn("     single build to wipe out gitlab caches.", color))
           warnExit.set(true)
         } else {
           out.println(info(s"    ${fiFine} NO shallow clone", color))
@@ -62,16 +66,28 @@ object Lint {
           remotes.foreach(r => out.println(info("      remote: " + r, useColor = color, limit = lineLimit)))
         }
 
-        out.println(info("--- gitlabci.yml @ gitlab ---", color))
-        out.println(info("    WIP ci path: " + System.getenv("CI_CONFIG_PATH"), color))
+        val ciconfigpath = System.getenv("CI_CONFIG_PATH")
+        val defaultCiFilename = ".gitlab-ci.yml"
+        if (ciconfigpath != null) {
+          out.println(info("--- gitlabci.yml @ gitlab ---", color))
+          if (ciconfigpath != defaultCiFilename) {
+            out.println(warn("    ci path: " + ciconfigpath, color))
+            out.println(warn(s"   use ${defaultCiFilename} ${fiWarn}", color))
+            warnExit.set(true)
+          } else {
+            out.println(info("    ci path: " + ciconfigpath, color))
+          }
+        }
 
         if (files.toSeq.exists(_.getName == "pom.xml")) {
-
+          val pomMod = PomMod.withRepo(file, opts, new Repo(opts))
           out.println(info("--- .mvn @ maven ---", color))
           out.println(info("    WIP", color))
           out.println(info("--- check for snapshots @ maven ---", color))
           out.println(info("    WIP", color))
           out.println(info("--- suggest dependency updates / configurable @ maven ---", color))
+          pomMod.showDependencyUpdates(120, Term.select("dumb", "lint", opts.simpleChars), opts.depUpOpts,
+            new Sys(null, out, err), printProgress = false) // TODO toggle
           out.println(info("    WIP", color))
           out.println(info("--- dep.tree @ maven ---", color))
           out.println(info("    WIP", color))
