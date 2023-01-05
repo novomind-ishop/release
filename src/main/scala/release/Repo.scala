@@ -339,7 +339,21 @@ object Repo extends LazyLogging {
 
     def newRepositorySystemSession(system: RepositorySystem, silent: Boolean): DefaultRepositorySystemSession = {
       val session = MavenRepositorySystemUtils.newSession
-      val localRepo = new LocalRepository("target/local-repo/" + Util.hashMd5Random())
+      val localFile = {
+        val systemFile = new File("/tmp/ishop-release/target/local-repo/")
+        val repo = new File("target/local-repo/")
+        if (repo.isDirectory) {
+          repo
+        } else if (repo.mkdirs()) {
+          repo.delete()
+          repo
+        } else {
+          systemFile
+        }
+      }
+
+      val localFileRandom = new File(localFile, Util.hashMd5Random())
+      val localRepo = new LocalRepository(localFileRandom)
       localRepo.getBasedir.getAbsoluteFile.getParentFile.mkdir()
       localRepo.getBasedir.getAbsoluteFile.mkdir()
       delete(localRepo.getBasedir.getAbsoluteFile.toPath)
