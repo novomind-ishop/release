@@ -2,6 +2,7 @@ package release
 
 import com.google.common.collect.ImmutableList
 import com.typesafe.scalalogging.LazyLogging
+import org.apache.http.client.config.RequestConfig
 import org.apache.http.client.methods.{CloseableHttpResponse, HttpGet}
 import org.apache.http.impl.client.HttpClients
 import org.apache.maven.repository.internal.MavenRepositorySystemUtils
@@ -53,7 +54,14 @@ class Repo(opts: Opts) extends LazyLogging {
     Repo.depDate(workNexus)(groupId, artifactId, version)
 
   private[release] def isReachable(showTrace: Boolean = true): Boolean = {
-    val httpclient = HttpClients.createDefault
+    val config = RequestConfig.custom()
+      .setConnectTimeout(1000)
+      .setConnectionRequestTimeout(1000)
+      .setSocketTimeout(1000)
+      .build();
+    val httpclient = HttpClients.custom()
+      .setDefaultRequestConfig(config)
+      .build()
     val httpGet = new HttpGet(workNexus.getUrl)
     var response: CloseableHttpResponse = null
     val code: Int = try {

@@ -94,13 +94,6 @@
       <version>RC-2017.01-SNAPSHOT</version>
       <classifier>pom</classifier>
     </dependency>
-    <dependency>
-      <groupId>com.novomind.ishop.shops.anyshop</groupId>
-      <artifactId>anyshop-erp</artifactId>
-      <version>RC-2017.01-SNAPSHOT</version>
-      <classifier>pom</classifier>
-      <scope>test</scope>
-    </dependency>
 
     <dependency>
       <groupId>com.novomind.ishop.core</groupId>

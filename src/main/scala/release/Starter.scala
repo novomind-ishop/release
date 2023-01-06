@@ -212,7 +212,7 @@ object Starter extends LazyLogging {
     }
   }
 
-  case class LintOpts(doLint: Boolean = false,showTimer: Boolean = true )
+  case class LintOpts(doLint: Boolean = false, showTimer: Boolean = true)
 
   case class OptsDepUp(showDependencyUpdates: Boolean = false, showHelp: Boolean = false,
                        hideLatest: Boolean = true, versionRangeLimit: Integer = 3,
@@ -245,7 +245,7 @@ object Starter extends LazyLogging {
                   depUpOpts: OptsDepUp = OptsDepUp(), apiDiff: OptsApidiff = OptsApidiff(),
                   useJlineInput: Boolean = true, skipProperties: Seq[String] = Nil,
                   colors: Boolean = true, useDefaults: Boolean = false, versionIncrement: Option[Increment] = None,
-                  lintOpts: LintOpts = LintOpts())
+                  lintOpts: LintOpts = LintOpts(), checkOverlapping: Boolean = true)
 
   @tailrec
   def argsRead(params: Seq[String], inOpt: Opts): Opts = {
@@ -261,6 +261,7 @@ object Starter extends LazyLogging {
       case "--defaults" :: tail => argsRead(tail, inOpt.copy(useDefaults = true))
       case "--no-jline" :: tail => argsRead(tail, inOpt.copy(useJlineInput = false))
       case "--no-color" :: tail => argsRead(tail, inOpt.copy(colors = false))
+      case "--no-check-overlap" :: tail => argsRead(tail, inOpt.copy(checkOverlapping = false))
       // TODO no color env propertie
       case "--100" :: tail => argsRead(tail, inOpt.copy(versionIncrement = Increment.major))
       case "--010" :: tail => argsRead(tail, inOpt.copy(versionIncrement = Increment.minor))
@@ -535,6 +536,35 @@ object Starter extends LazyLogging {
     null
   }
 
+  def handleException(err:PrintStream, t: Throwable): Int = {
+    t match {
+      case x@(_: Sgit.MissingCommitHookException | _: Sgit.MissingGitDirException | _: Sgit.TerminatedByCtrlCException |
+              _: PomChecker.ValidationException | _: PreconditionsException | _: Sgit.BranchAlreadyExistsException) => {
+        err.println()
+        err.println("E: " + x.getMessage)
+        1
+      }
+      case x@(_: TimeoutException) => {
+        err.println()
+        err.println("E: User timeout: " + x.getMessage)
+        1
+      }
+      case x@(_: InvalidPomXmlException) => {
+        err.println()
+        err.println("E: " + x.getMessage)
+        err.println("E: " + x.parent.getMessage)
+        1
+      }
+      case _ => {
+        err.println()
+        err.println(t)
+        t.printStackTrace(err)
+        2
+      }
+    }
+
+  }
+
   def init(argSeq: Seq[String], sys: Term.Sys): Int = {
 
     val err = sys.err
@@ -660,35 +690,6 @@ object Starter extends LazyLogging {
 
     }
 
-    def handleException(t: Throwable): Int = {
-      t match {
-        case x@(_: Sgit.MissingCommitHookException | _: Sgit.MissingGitDirException | _: Sgit.TerminatedByCtrlCException |
-                _: PomChecker.ValidationException | _: PreconditionsException | _: Sgit.BranchAlreadyExistsException) => {
-          err.println()
-          err.println("E: " + x.getMessage)
-          1
-        }
-        case x@(_: TimeoutException) => {
-          err.println()
-          err.println("E: User timeout: " + x.getMessage)
-          1
-        }
-        case x@(_: InvalidPomXmlException) => {
-          err.println()
-          err.println("E: " + x.getMessage)
-          err.println("E: " + x.parent.getMessage)
-          1
-        }
-        case _ => {
-          err.println()
-          err.println(t)
-          t.printStackTrace(err)
-          2
-        }
-      }
-
-    }
-
     if (opts.lintOpts.doLint) {
       return Lint.run(out, err, opts)
     }
@@ -776,7 +777,7 @@ object Starter extends LazyLogging {
       return 0
     } catch {
       case t: Throwable => {
-        return handleException(t)
+        return handleException(err, t)
       }
     }
 

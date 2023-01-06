@@ -1,12 +1,106 @@
 package release
 
 import java.io.PrintStream
-
 import release.ProjectMod.PluginDep
+import release.ProjectMod.Dep
+import release.ProjectMod.Gav
+import release.Release.findBadLines
+import release.Starter.{Opts, PreconditionsException}
+
+import java.util.regex.Pattern
+import scala.collection.parallel.CollectionConverters._
 
 object PomChecker {
+  def checkSnapshotsInFiles(gitFiles: Seq[String]) = {
+
+    val relevant = gitFiles.par
+      .filterNot(in => in.endsWith(".list"))
+      .filterNot(in => in.endsWith(".tree"))
+      .filterNot(in => in.endsWith(".java"))
+      .filterNot(in => in.endsWith(".png"))
+      .filterNot(in => in.endsWith(".potx"))
+      .filterNot(in => in.endsWith(".jpg"))
+      .filterNot(in => in.matches(".*[/\\\\]src[/\\\\]test[/\\\\]resources[/\\\\]app\\-manifest.*"))
+      .filterNot(in => in.endsWith("pom.xml"))
+    val snapsF = relevant
+      .flatMap(findBadLines(Pattern.compile("-SNAPSHOT")))
+      .seq
+      .sortBy(_._3)
+
+    if (snapsF != Nil) {
+      println()
+      println("Warning: Found SNAPSHOT occurrences in following files")
+      snapsF.foreach(in => {
+        println(in._3.toFile.getAbsolutePath + ":" + in._1)
+        println("  " + in._2.trim())
+      })
+      println()
+    }
+  }
+
+  def checkDepScopes(listDependecies: Seq[Dep]) = {
+    val byRef = listDependecies.groupBy(_.pomRef)
+    val msgs = byRef.flatMap(deps => {
+      val allGavs = deps._2.map(_.gav()).distinct.map(_.copy(scope = "", packageing = ""))
+      val withoutScope = allGavs.distinct
+      val diff = Util.symmetricDiff(allGavs, withoutScope)
+      if (diff.nonEmpty) {
+
+        val msg = "found overlapping scopes\n" + diff.map(select => {
+
+          val str = select.formatted + "\n related to\n" +
+            listDependecies.filter(dep => select == (dep.copy(scope = "").gav())).mkString("\n")
+          str
+        }).mkString("\n\n")
+        Some(msg)
+      } else {
+        None
+      }
+    })
+    if (msgs.nonEmpty) {
+      throw new ValidationException(msgs.mkString("\n"))
+    }
+  }
 
   private val path = Seq("plugin", "plugins", "build", "project")
+
+  private[release] def checkRootFirstChildPropertiesVar(opts: Opts, childPomFiles: Seq[RawPomFile]): Unit = {
+    case class DepProps(dep: Dep, parentDep: Dep, properties: Map[String, String])
+
+    val allP: Seq[DepProps] = childPomFiles.map(in => {
+      DepProps(in.selfDep, in.parentDep, PomMod.createPropertyMap(in.document).view.filterKeys(key => !opts.skipProperties.contains(key)).toMap)
+    })
+
+    def ga(gav: Gav): String = Gav.format(Seq(gav.groupId, gav.artifactId, gav.version))
+
+    val depProps = Util.groupedFiltered(allP)
+    val depPropsMod = depProps.toList.map(in => {
+      val inner = in._2.filter(o => {
+        val a = ga(o.parentDep.gav())
+        val b = ga(in._1.dep.gav())
+        a == b
+      })
+      (in._1, inner)
+    }).filter(_._2 != Nil)
+      .map(in => {
+        val allPropsFromDocs: Seq[(String, String)] = in._2.flatMap(_.properties) ++ in._1.properties
+        val withRootProps: Seq[(String, String)] = Util.symmetricDiff(allPropsFromDocs, allPropsFromDocs.distinct)
+        val diff = withRootProps intersect allPropsFromDocs
+        if (diff.nonEmpty) {
+          (diff, (Seq(in._1) ++ in._2).map(_.dep.gav()))
+        } else {
+          (Nil, Nil)
+        }
+
+      }).filter(_._2 != Nil)
+
+    if (depPropsMod != Nil) {
+      throw new ValidationException("unnecessary/multiple property definition (move property to parent pom or remove from sub poms):\n" +
+        depPropsMod.map(in => "  " + in._1.map(t => "(" + t._1 + " -> " + t._2 + ")").mkString(", ") +
+          "\n      -> " + in._2.map(ga).mkString("\n      -> ")).mkString("\n"))
+    }
+
+  }
 
   def checkGavFormat(deps: Seq[ProjectMod.Dep], out: PrintStream): Unit = {
     val unusual: Seq[ProjectMod.Gav] = deps.map(_.gav()).filter(_.feelsUnusual()).sortBy(_.formatted)
@@ -72,6 +166,6 @@ object PomChecker {
     }
   }
 
-  class ValidationException(msg: String) extends RuntimeException(msg)
+  class ValidationException(msg: String) extends PreconditionsException(msg)
 
 }

@@ -553,29 +553,7 @@ object Release extends LazyLogging {
       PomChecker.checkPlugins(plugins)
     }
     PomChecker.checkGavFormat(mod.listDependecies ++ plugins.map(_.fakeDep()), sys.out)
-
-    val snapsF = gitFiles.par
-      .filterNot(in => in.endsWith(".list"))
-      .filterNot(in => in.endsWith(".tree"))
-      .filterNot(in => in.endsWith(".java"))
-      .filterNot(in => in.endsWith(".png"))
-      .filterNot(in => in.endsWith(".potx"))
-      .filterNot(in => in.endsWith(".jpg"))
-      .filterNot(in => in.matches(".*[/\\\\]src[/\\\\]test[/\\\\]resources[/\\\\]app\\-manifest.*"))
-      .filterNot(in => in.endsWith("pom.xml"))
-      .flatMap(findBadLines(Pattern.compile("-SNAPSHOT")))
-      .seq
-      .sortBy(_._3)
-
-    if (snapsF != Nil) {
-      println()
-      println("Warning: Found SNAPSHOT occurrences in following files")
-      snapsF.foreach(in => {
-        println(in._3.toFile.getAbsolutePath + ":" + in._1)
-        println("  " + in._2.trim())
-      })
-      println()
-    }
+    PomChecker.checkSnapshotsInFiles(gitFiles)
 
     case class ReleaseInfo(gav: String, released: Boolean)
 

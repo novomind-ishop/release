@@ -56,8 +56,6 @@ object Anyshop1Deps {
       Dep(SelfRef("com.novomind.ishop.shops:anyshop"),
         "com.novomind.ishop.shops.anyshop", "anyshop-erp", "27.0.0-SNAPSHOT", "", "", "", "pom"),
       Dep(SelfRef("com.novomind.ishop.shops:anyshop"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-erp", "27.0.0-SNAPSHOT", "", "test", "", "pom"),
-      Dep(SelfRef("com.novomind.ishop.shops:anyshop"),
         "com.novomind.ishop.backoffice", "bo-services", "27.1.2-SNAPSHOT", "", "", "", ""),
       Dep(SelfRef("com.novomind.ishop.shops:anyshop"),
         "com.novomind.ishop.backoffice", "bo-core", "27.1.2-SNAPSHOT", "", "", "", "")
@@ -232,8 +230,6 @@ object Anyshop1Deps {
       "com.novomind.ishop.shops.anyshop", "anyshop-erp", "27.0.0-SNAPSHOT", "", "test", "", "tests"),
     Dep(SelfRef("com.novomind.ishop.shops:anyshop"),
       "com.novomind.ishop.shops.anyshop", "anyshop-erp", "27.0.0-SNAPSHOT", "", "", "", "pom"),
-    Dep(SelfRef("com.novomind.ishop.shops:anyshop"),
-      "com.novomind.ishop.shops.anyshop", "anyshop-erp", "27.0.0-SNAPSHOT", "", "test", "", "pom")
   )
 
   def all(): Seq[Dep] = {
@@ -304,8 +300,6 @@ object Anyshop1Deps {
         "com.novomind.ishop.shops.anyshop", "anyshop-erp", "27.0.0-SNAPSHOT", "", "test", "", "tests"),
       Dep(SelfRef("com.novomind.ishop.shops:anyshop"),
         "com.novomind.ishop.shops.anyshop", "anyshop-erp", "27.0.0-SNAPSHOT", "", "", "", "pom"),
-      Dep(SelfRef("com.novomind.ishop.shops:anyshop"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-erp", "27.0.0-SNAPSHOT", "", "test", "", "pom"),
       Dep(SelfRef("com.novomind.ishop.shops:anyshop"),
         "com.novomind.ishop.core", "ishop-core-all", "", "pom", "", "", ""),
       Dep(SelfRef("com.novomind.ishop.shops:anyshop"),
@@ -818,13 +812,6 @@ object Anyshop1Deps {
       |      <artifactId>anyshop-erp</artifactId>
       |      <version>27.0.0-SNAPSHOT</version>
       |      <classifier>pom</classifier>
-      |    </dependency>
-      |    <dependency>
-      |      <groupId>com.novomind.ishop.shops.anyshop</groupId>
-      |      <artifactId>anyshop-erp</artifactId>
-      |      <version>27.0.0-SNAPSHOT</version>
-      |      <classifier>pom</classifier>
-      |      <scope>test</scope>
       |    </dependency>
       |
       |    <dependency>

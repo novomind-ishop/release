@@ -29,7 +29,8 @@ class ProjectModTest extends AssertionsForJUnit {
     when(repo.depDate(scala.groupId, "scala3-library_3", "-1")).thenReturn(None)
     val result = TermTest.withOutErr[Unit]()(sys => {
       val innerResult: Seq[(GavWithRef, (Seq[String], Duration))] = ProjectMod.showDependencyUpdates(100, term,
-        OptsDepUp().copy(showLibYears = true), "workingNexusUrl", rootDeps, selfDepsMod, repo, sys, printProgress = true)
+        OptsDepUp().copy(showLibYears = true), "workingNexusUrl", rootDeps, selfDepsMod, repo, sys,
+        printProgress = true, checkOnline = false)
 
       val sca1 = GavWithRef(SelfRef.undef, Gav("org.scala-lang", "scala-library", "2.13.0"))
       val scala2 = (sca1, (Seq("2.13.1"), Duration.ZERO))
@@ -68,7 +69,7 @@ class ProjectModTest extends AssertionsForJUnit {
     val repo = mock[Repo]
     val result = TermTest.withOutErr[Unit]()(sys => {
       val innerResult = ProjectMod.showDependencyUpdates(100, term,
-        OptsDepUp(), "workingNExusUrl", rootDeps, selfDepsMod, repo, sys, printProgress = true)
+        OptsDepUp(), "workingNExusUrl", rootDeps, selfDepsMod, repo, sys, printProgress = true, checkOnline = false)
       Assert.assertEquals(Nil, innerResult)
     })
     Assert.assertEquals("", result.err)

@@ -56,6 +56,10 @@ object Lint {
         }
         out.println(info("--- .gitattributes @ git ---", color))
         out.println(info("--- .gitignore @ git ---", color))
+        if (sgit.hasLocalChanges) {
+          out.println(warn(s" Found local changes ${fiWarn}", color))
+          warnExit.set(true)
+        }
         out.println(info("--- list-remotes @ git ---", color))
         val remotes = sgit.listRemotes()
         if (remotes.isEmpty) {
@@ -78,7 +82,7 @@ object Lint {
             out.println(info("    ci path: " + ciconfigpath, color))
           }
         }
-
+        PomChecker.checkSnapshotsInFiles(sgit.lsFiles())
         if (files.toSeq.exists(_.getName == "pom.xml")) {
           val pomMod = PomMod.withRepo(file, opts, new Repo(opts))
           out.println(info("--- .mvn @ maven ---", color))
@@ -86,6 +90,7 @@ object Lint {
           out.println(info("--- check for snapshots @ maven ---", color))
           out.println(info("    WIP", color))
           out.println(info("--- suggest dependency updates / configurable @ maven ---", color))
+
           pomMod.showDependencyUpdates(120, Term.select("dumb", "lint", opts.simpleChars), opts.depUpOpts,
             new Sys(null, out, err), printProgress = false) // TODO toggle
           out.println(info("    WIP", color))
@@ -117,8 +122,7 @@ object Lint {
 
     } catch {
       case e: Exception => {
-        e.printStackTrace()
-        return 2
+        Starter.handleException(err, e)
       }
     }
     1

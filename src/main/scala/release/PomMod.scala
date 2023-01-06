@@ -84,7 +84,7 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
   }
 
   private def checkRootFirstChildProperties(): Unit = {
-    PomMod.checkRootFirstChildPropertiesVar(opts, raws)
+    PomChecker.checkRootFirstChildPropertiesVar(opts, raws)
   }
 
   val listProperties: Map[String, String] = {
@@ -109,6 +109,9 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
 
   val listDependecies: Seq[Dep] = {
     replacedVersionProperties(allPomsDocs.flatMap(deps)).distinct // TODO distinct?
+  }
+  if (opts.checkOverlapping) {
+    PomChecker.checkDepScopes(listDependecies)
   }
 
   val listPluginDependencies: Seq[PluginDep] = {
@@ -1039,44 +1042,6 @@ object PomMod {
     })
 
     doc
-  }
-
-  private[release] def checkRootFirstChildPropertiesVar(opts: Opts, childPomFiles: Seq[RawPomFile]): Unit = {
-    case class DepProps(dep: Dep, parentDep: Dep, properties: Map[String, String])
-
-    val allP: Seq[DepProps] = childPomFiles.map(in => {
-      DepProps(in.selfDep, in.parentDep, createPropertyMap(in.document).view.filterKeys(key => !opts.skipProperties.contains(key)).toMap)
-    })
-
-    def ga(gav: Gav): String = Gav.format(Seq(gav.groupId, gav.artifactId, gav.version))
-
-    val depProps = Util.groupedFiltered(allP)
-    val depPropsMod = depProps.toList.map(in => {
-      val inner = in._2.filter(o => {
-        val a = ga(o.parentDep.gav())
-        val b = ga(in._1.dep.gav())
-        a == b
-      })
-      (in._1, inner)
-    }).filter(_._2 != Nil)
-      .map(in => {
-        val allPropsFromDocs: Seq[(String, String)] = in._2.flatMap(_.properties) ++ in._1.properties
-        val withRootProps: Seq[(String, String)] = Util.symmetricDiff(allPropsFromDocs, allPropsFromDocs.distinct)
-        val diff = withRootProps intersect allPropsFromDocs
-        if (diff.nonEmpty) {
-          (diff, (Seq(in._1) ++ in._2).map(_.dep.gav()))
-        } else {
-          (Nil, Nil)
-        }
-
-      }).filter(_._2 != Nil)
-
-    if (depPropsMod != Nil) {
-      throw new ValidationException("unnecessary/multiple property definition (move property to parent pom or remove from sub poms):\n" +
-        depPropsMod.map(in => "  " + in._1.map(t => "(" + t._1 + " -> " + t._2 + ")").mkString(", ") +
-          "\n      -> " + in._2.map(ga).mkString("\n      -> ")).mkString("\n"))
-    }
-
   }
 
   private[release] def createPropertyMap(pomDoc: Document): Map[String, String] = {

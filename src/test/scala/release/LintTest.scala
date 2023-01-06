@@ -114,6 +114,7 @@ class LintTest extends AssertionsForJUnit {
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
         |[INFO] --- .gitignore @ git ---
+        |[WARNING]  Found local changes 😬
         |[INFO] --- list-remotes @ git ---
         |[WARNING]  NO remotes found 😬
         |[WARNING]  % git remote -v # returns nothing

@@ -395,7 +395,10 @@ object ProjectMod extends LazyLogging {
 
   def showDependencyUpdates(shellWidth: Int, termOs: Term, depUpOpts: OptsDepUp, workNexusUrl: String,
                             rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], repo: Repo,
-                            sys: Term.Sys, printProgress: Boolean): Seq[(GavWithRef, (Seq[String], Duration))] = {
+                            sys: Term.Sys, printProgress: Boolean, checkOnline:Boolean): Seq[(GavWithRef, (Seq[String], Duration))] = {
+    if (checkOnline && !repo.isReachable(false)) {
+      throw new PreconditionsException("repo feels offline")
+    }
     val now = LocalDate.now()
     val stopw = Stopwatch.createStarted()
     sys.out.println("I: checking dependecies against nexus - please wait")
@@ -422,6 +425,7 @@ object ProjectMod extends LazyLogging {
           in
         }
       })
+
     val value: Seq[Gav3] = prepared
       .flatMap(ProjectMod.relocateGavs(prepared, repo))
     val updates = checkForUpdates(value, shellWidth, depUpOpts, repo, sys, printProgress)
@@ -577,7 +581,7 @@ trait ProjectMod extends LazyLogging {
     val depForCheck: Seq[Dep] = listDependeciesForCheck()
     val sdm = selfDepsMod
     val result = ProjectMod.showDependencyUpdates(shellWidth, termOs, depUpOpts, repo.workNexus.getUrl,
-      depForCheck, sdm, repo, sys, printProgress)
+      depForCheck, sdm, repo, sys, printProgress, checkOnline=true)
     if (depUpOpts.changeToLatest) {
       val localDepUpFile = new File(file, ".release-dependency-updates")
       val fn: (Gav3, Seq[String]) => String = if (localDepUpFile.canRead) {
