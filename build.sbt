@@ -30,13 +30,13 @@ libraryDependencies += "org.jline" % "jline-terminal" % "3.21.0"
 
 libraryDependencies += "org.jline" % "jline-reader" % "3.21.0"
 
-libraryDependencies += "com.github.siom79.japicmp" % "japicmp" % "0.16.0"
+libraryDependencies += "com.github.siom79.japicmp" % "japicmp" % "0.17.1"
 
 libraryDependencies += "com.typesafe" % "config" % "1.4.2"
 
-libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.14" % "test"
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.15" % "test"
 
-libraryDependencies += "org.scalatestplus" %% "junit-4-13" % "3.2.14.0" % Test
+libraryDependencies += "org.scalatestplus" %% "junit-4-13" % "3.2.15.0" % Test
 
 libraryDependencies += "org.mockito" %% "mockito-scala" % "1.17.12" % "test"
 
