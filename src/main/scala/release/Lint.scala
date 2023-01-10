@@ -82,7 +82,7 @@ object Lint {
             out.println(info("    ci path: " + ciconfigpath, color))
           }
         }
-        PomChecker.checkSnapshotsInFiles(sgit.lsFiles())
+        PomChecker.printSnapshotsInFiles(sgit.lsFiles(), out)
         if (files.toSeq.exists(_.getName == "pom.xml")) {
           val pomMod = PomMod.withRepo(file, opts, new Repo(opts))
           out.println(info("--- .mvn @ maven ---", color))

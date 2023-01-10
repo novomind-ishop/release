@@ -7,12 +7,27 @@ import release.ProjectMod.Gav
 import release.Release.findBadLines
 import release.Starter.{Opts, PreconditionsException}
 
+import java.nio.file.Path
 import java.util.regex.Pattern
 import scala.collection.parallel.CollectionConverters._
 
 object PomChecker {
-  def checkSnapshotsInFiles(gitFiles: Seq[String]) = {
+  def printSnapshotsInFiles(gitFiles: Seq[String], out:PrintStream) = {
 
+    val snapsF: Seq[(Int, String, Path)] = getSnapshotsInFiles(gitFiles)
+
+    if (snapsF != Nil) {
+      out.println()
+      out.println("Warning: Found SNAPSHOT occurrences in following files")
+      snapsF.foreach(in => {
+        out.println(in._3.toFile.getAbsolutePath + ":" + in._1)
+        out.println("  " + in._2.trim())
+      })
+      out.println()
+    }
+  }
+
+  def getSnapshotsInFiles(gitFiles: Seq[String]): Seq[(Int, String, Path)] = {
     val relevant = gitFiles.par
       .filterNot(in => in.endsWith(".list"))
       .filterNot(in => in.endsWith(".tree"))
@@ -26,16 +41,7 @@ object PomChecker {
       .flatMap(findBadLines(Pattern.compile("-SNAPSHOT")))
       .seq
       .sortBy(_._3)
-
-    if (snapsF != Nil) {
-      println()
-      println("Warning: Found SNAPSHOT occurrences in following files")
-      snapsF.foreach(in => {
-        println(in._3.toFile.getAbsolutePath + ":" + in._1)
-        println("  " + in._2.trim())
-      })
-      println()
-    }
+    snapsF
   }
 
   def checkDepScopes(listDependecies: Seq[Dep]) = {

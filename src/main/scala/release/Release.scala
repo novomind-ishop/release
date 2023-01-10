@@ -553,7 +553,7 @@ object Release extends LazyLogging {
       PomChecker.checkPlugins(plugins)
     }
     PomChecker.checkGavFormat(mod.listDependecies ++ plugins.map(_.fakeDep()), sys.out)
-    PomChecker.checkSnapshotsInFiles(gitFiles)
+    PomChecker.printSnapshotsInFiles(gitFiles, sys.out)
 
     case class ReleaseInfo(gav: String, released: Boolean)
 
