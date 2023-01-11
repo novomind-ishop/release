@@ -50,7 +50,13 @@ object Release extends LazyLogging {
     try {
       val path = Paths.get(aFileName)
       val lines = if (Files.isRegularFile(path)) {
-        Util.readLines(path.toFile).zipWithIndex
+        val fileLines = Util.readLines(path.toFile)
+        if (fileLines.exists(l => l.contains("-SNAPSHOT"))) {
+          fileLines.zipWithIndex
+        } else {
+          Nil
+        }
+
       } else {
         Nil
       }

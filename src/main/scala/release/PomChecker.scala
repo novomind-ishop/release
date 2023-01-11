@@ -12,7 +12,7 @@ import java.util.regex.Pattern
 import scala.collection.parallel.CollectionConverters._
 
 object PomChecker {
-  def printSnapshotsInFiles(gitFiles: Seq[String], out:PrintStream) = {
+  def printSnapshotsInFiles(gitFiles: Seq[String], out: PrintStream) = {
 
     val snapsF: Seq[(Int, String, Path)] = getSnapshotsInFiles(gitFiles)
 
@@ -28,6 +28,7 @@ object PomChecker {
   }
 
   def getSnapshotsInFiles(gitFiles: Seq[String]): Seq[(Int, String, Path)] = {
+    val pattern = Pattern.compile("(?: |[^\\?\\*/\\\\]|^)[a-zA-Z_0-9\\-\\.]+-SNAPSHOT")
     val relevant = gitFiles.par
       .filterNot(in => in.endsWith(".list"))
       .filterNot(in => in.endsWith(".tree"))
@@ -38,7 +39,7 @@ object PomChecker {
       .filterNot(in => in.matches(".*[/\\\\]src[/\\\\]test[/\\\\]resources[/\\\\]app\\-manifest.*"))
       .filterNot(in => in.endsWith("pom.xml"))
     val snapsF = relevant
-      .flatMap(findBadLines(Pattern.compile("( |^)[a-zA-Z_0-9\\-\\.]+-SNAPSHOT")))
+      .flatMap(findBadLines(pattern))
       .seq
       .sortBy(_._3)
     snapsF
