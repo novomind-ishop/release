@@ -38,7 +38,7 @@ object PomChecker {
       .filterNot(in => in.matches(".*[/\\\\]src[/\\\\]test[/\\\\]resources[/\\\\]app\\-manifest.*"))
       .filterNot(in => in.endsWith("pom.xml"))
     val snapsF = relevant
-      .flatMap(findBadLines(Pattern.compile("-SNAPSHOT")))
+      .flatMap(findBadLines(Pattern.compile("( |^)[a-zA-Z_0-9\\-\\.]+-SNAPSHOT")))
       .seq
       .sortBy(_._3)
     snapsF

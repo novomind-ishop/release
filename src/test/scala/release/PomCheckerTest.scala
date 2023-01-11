@@ -1,6 +1,7 @@
 package release
 
-import org.junit.{Assert, Test}
+import org.junit.rules.TemporaryFolder
+import org.junit.{Assert, Rule, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.PomChecker.ValidationException
 import release.PomModTest.{document, pomfile}
@@ -8,6 +9,32 @@ import release.ProjectMod.{Dep, Gav, PluginDep, PluginExec, SelfRef}
 import release.Starter.Opts
 
 class PomCheckerTest extends AssertionsForJUnit {
+
+  val _temporarayFolder = new TemporaryFolder()
+
+  @Rule def temp = _temporarayFolder
+
+  @Test
+  def testCheckSnapshots(): Unit = {
+    val file = temp.newFile("some.md")
+    Util.write(file, Seq(
+      "42-SNAPSHOT",
+      "some 42.0.0-SNAPSHOT line",
+      "some -SNAPSHOT line",
+      "some 42x-SNAPSHOT line",
+      "some 4?x-SNAPSHOT line",
+      "some 4*x-SNAPSHOT line",
+      "some 4/x-SNAPSHOT line",
+      "some 4\\x-SNAPSHOT line",
+
+    ))
+    val foundFiles = PomChecker.getSnapshotsInFiles(Seq(file).map(_.getAbsolutePath))
+    Assert.assertEquals(Seq(
+      (0, "42-SNAPSHOT", file.toPath),
+      (1, "some 42.0.0-SNAPSHOT line", file.toPath),
+      (3, "some 42x-SNAPSHOT line", file.toPath),
+    ), foundFiles)
+  }
 
   @Test
   def testCheckDepScopes_noException(): Unit = {

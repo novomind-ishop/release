@@ -74,6 +74,8 @@ class LintTest extends AssertionsForJUnit {
         |[INFO] --- list-remotes @ git ---
         |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(fetch))
         |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(push))
+        |[INFO] --- -SNAPSHOTS @ maven ---
+        |[INFO]     ✅ NO SNAPSHOTS in other files found
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/any.xml
@@ -89,6 +91,8 @@ class LintTest extends AssertionsForJUnit {
   def testRunMvnSimple(): Unit = {
     val file = temp.newFolder("release-lint-mvn-simple")
     val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
+    gitA.configSetLocal("user.email", "you@example.com")
+    gitA.configSetLocal("user.name", "Your Name")
     Util.write(new File(file, "pom.xml"),
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -106,6 +110,13 @@ class LintTest extends AssertionsForJUnit {
         |  </dependencies>
         |</project>
         |""".stripMargin.linesIterator.toSeq)
+    val notes = new File(file, "notes.md")
+    Util.write(notes,
+      """
+        |This is the documentation for 0.11-SNAPSHOT
+        |""".stripMargin.linesIterator.toSeq)
+    gitA.add(notes)
+    gitA.commitAll("some")
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
@@ -118,6 +129,9 @@ class LintTest extends AssertionsForJUnit {
         |[INFO] --- list-remotes @ git ---
         |[WARNING]  NO remotes found 😬
         |[WARNING]  % git remote -v # returns nothing
+        |[INFO] --- -SNAPSHOTS @ maven ---
+        |[WARNING]   found snapshot in: notes.md 😬
+        |              This is the documentation for 0.11-SNAPSHOT
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- check for snapshots @ maven ---
@@ -141,6 +155,7 @@ class LintTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
+        |/tmp/junit-REPLACED/release-lint-mvn-simple/notes.md
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[ERROR] exit 42 - because lint found warnings, see above ❌""".stripMargin

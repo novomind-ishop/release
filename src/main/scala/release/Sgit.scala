@@ -209,6 +209,10 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     in
   })
 
+  def lsFilesAbsolute(): Seq[File] = {
+    lsFiles().map(entry => new File(gitRoot, entry).getAbsoluteFile)
+  }
+
   def fetchAll(): Unit = {
     gitNative(Seq("fetch", "--all", "--tags"), errMapper = Sgit.fetchFilter())
   }

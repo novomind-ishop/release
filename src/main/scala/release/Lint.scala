@@ -4,7 +4,9 @@ import com.google.common.base.Stopwatch
 import release.Starter.Opts
 import release.Term._
 
-import java.io.{File, PrintStream}
+import java.io.{File, IOException, PrintStream}
+import java.nio.file.attribute.BasicFileAttributes
+import java.nio.file.{FileVisitResult, FileVisitor, Files, Path}
 import java.util.concurrent.atomic.AtomicBoolean
 
 object Lint {
@@ -26,9 +28,9 @@ object Lint {
       // https://polaris.docs.fairwinds.com/infrastructure-as-code/
 
       val warnExitCode = 42
-      val lineLimit = 10_000
+      val lineMax = 100_000
       // TODO print $HOME
-      println(info("    " + file.getAbsolutePath, color, lineLimit))
+      println(info("    " + file.getAbsolutePath, color, lineMax))
       val warnExit = new AtomicBoolean(false)
       val files = file.listFiles()
       if (files == null || files.isEmpty) {
@@ -42,7 +44,7 @@ object Lint {
         if (sgit.isShallowClone) {
           out.println(warn(s" shallow clone detected ${fiWarn}", color))
           out.println(warn("   % git rev-parse --is-shallow-repository # returns " + sgit.isShallowClone, color))
-          out.println(warn("   % git log -n1 --pretty=%H # returns " + sgit.commitIdHeadOpt().getOrElse("n/a"), color, limit = lineLimit))
+          out.println(warn("   % git log -n1 --pretty=%H # returns " + sgit.commitIdHeadOpt().getOrElse("n/a"), color, limit = lineMax))
           out.println(warn("   We do not want shallow clones because the commit id used in runtime", color))
           out.println(warn("   info will not point to a known commit", color))
           out.println(warn("   on Gitlab, change 'Settings' -> 'CI/CD' -> 'General pipelines' ->", color))
@@ -67,7 +69,7 @@ object Lint {
           out.println(warn(" % git remote -v # returns nothing", color))
           warnExit.set(true)
         } else {
-          remotes.foreach(r => out.println(info("      remote: " + r, useColor = color, limit = lineLimit)))
+          remotes.foreach(r => out.println(info("      remote: " + r, useColor = color, limit = lineMax)))
         }
 
         val ciconfigpath = System.getenv("CI_CONFIG_PATH")
@@ -82,8 +84,19 @@ object Lint {
             out.println(info("    ci path: " + ciconfigpath, color))
           }
         }
-        PomChecker.printSnapshotsInFiles(sgit.lsFiles(), out)
-        if (files.toSeq.exists(_.getName == "pom.xml")) {
+
+        out.println(info("--- -SNAPSHOTS @ maven ---", color))
+        val rootFolderFiles = files.toSeq
+        val snapshotsInFiles = PomChecker.getSnapshotsInFiles(sgit.lsFilesAbsolute().map(_.getAbsolutePath))
+        if (snapshotsInFiles.nonEmpty) {
+          snapshotsInFiles.foreach(f => {
+            out.println(warn("  found snapshot in: " + file.toPath.relativize(f._3.normalize()) + s" ${fiWarn}\n" +
+              "              " + f._2, color, limit = lineMax))
+          })
+        } else {
+          out.println(info(s"    ${fiFine} NO SNAPSHOTS in other files found", color))
+        }
+        if (rootFolderFiles.exists(_.getName == "pom.xml")) {
           val pomMod = PomMod.withRepo(file, opts, new Repo(opts))
           out.println(info("--- .mvn @ maven ---", color))
           out.println(info("    WIP", color))
@@ -97,12 +110,12 @@ object Lint {
           out.println(info("--- dep.tree @ maven ---", color))
           out.println(info("    WIP", color))
         }
-        if (files.toSeq.exists(_.getName == "build.sbt")) {
+        if (rootFolderFiles.exists(_.getName == "build.sbt")) {
           out.println(info("--- ??? @ sbt ---", color))
           out.println(info("    WIP", color))
         }
         out.println()
-        files.toSeq.sortBy(_.toString)
+        rootFolderFiles.sortBy(_.toString)
           .take(5).foreach(f => out.println(f.toPath.normalize().toAbsolutePath.toFile.getAbsolutePath))
         val timerResult = if (opts.lintOpts.showTimer) {
           " - " + stopwatch.elapsed().toString
