@@ -751,20 +751,27 @@ object Sgit {
             ended = "2022-02-22", announced = "2021-11-01", announcedEnd = "2022-02-01",
             msg = "", gitPath = cmdLine)
         case v: String if v.startsWith("git version 2.32.") => // do nothing (2021-06-06) (tag: v2.32.0)
-          // anaounced 2021-02-22
-          err.println("W: please update your git version, \"" + v + "\" support ends at 2022-04-01")
+          throw new YourGitInstallationIsToOldException(version = "2.32",
+            ended = "2023-01-03", announced = "2021-02-22", announcedEnd = "2022-04-01",
+            msg = "", gitPath = cmdLine)
         case v: String if v.startsWith("git version 2.33.") => // do nothing (2021-08-16) (tag: v2.33.0)
-          // anaounced 2022-06-29
-          err.println("W: please update your git version, \"" + v + "\" support ends at 2022-08-01")
+          throw new YourGitInstallationIsToOldException(version = "2.33",
+            ended = "2023-01-03", announced = "2022-06-29", announcedEnd = "2022-08-01",
+            msg = "", gitPath = cmdLine)
         case v: String if v.startsWith("git version 2.34.") => // do nothing (2021-11-14) (tag: v2.34.0)
-          // anaounced 2022-06-29
-          err.println("W: please update your git version, \"" + v + "\" support ends at 2022-08-01")
+          throw new YourGitInstallationIsToOldException(version = "2.34",
+            ended = "2023-01-03", announced = "2022-06-29", announcedEnd = "2022-08-01",
+            msg = "", gitPath = cmdLine)
         case v: String if v.startsWith("git version 2.35.") => // do nothing (2022-01-24) (tag: v2.35.0)
-          // anaounced 2022-06-29
-          err.println("W: please update your git version, \"" + v + "\" support ends at 2022-08-01")
-        case v: String if v.startsWith("git version 2.36.") => // do nothing (2022-04-17) (tag: v2.36.0)
+          throw new YourGitInstallationIsToOldException(version = "2.35",
+            ended = "2023-01-03", announced = "2022-06-29", announcedEnd = "2022-08-01",
+            msg = "", gitPath = cmdLine)
+        case v: String if v.startsWith("git version 2.36.") =>
+          // do nothing (2022-04-17) (tag: v2.36.0)
+          err.println("W: please update your git version, \"" + v + "\" support ends at 2023-03-01")
         case v: String if v.startsWith("git version 2.37.") => // do nothing (2022-07-04) (tag: v2.37.1)
         case v: String if v.startsWith("git version 2.38.") => // do nothing (2022-10-02) (tag: v2.38.0)
+        case v: String if v.startsWith("git version 2.39.") => // do nothing (2022-12-13) (tag: v2.39.1)
         case v: String => out.println("W: unknown/untested git version: \"" + v + "\". Please create a ticket at ISBO.");
         //  if (!ReleaseConfig.isTravisCi()) {
         //    if (Sgit.getOs == Os.Darwin) {

@@ -2,6 +2,7 @@ package release
 
 import org.junit.{Assert, Rule, Test}
 import org.junit.rules.TemporaryFolder
+import org.mockito.{ArgumentMatchers, Mockito}
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.Starter.Opts
 
@@ -29,7 +30,8 @@ class LintTest extends AssertionsForJUnit {
         |[[31mERROR[0m] E: NO FILES FOUND in /tmp/junit-REPLACED/release-lint-empty
         |[[31mERROR[0m] ----------------------------[ end of lint ]----------------------------""".stripMargin
     TermTest.testSys(Nil, expected, Nil, outFn = outT)(sys => {
-      Assert.assertEquals(1, Lint.run(sys.out, sys.err, Opts(), file))
+      val opts = Opts()
+      Assert.assertEquals(1, Lint.run(sys.out, sys.err, opts, new Repo(opts), file))
     })
 
   }
@@ -82,7 +84,8 @@ class LintTest extends AssertionsForJUnit {
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[ERROR] exit 42 - because lint found warnings, see above ❌""".stripMargin
     TermTest.testSys(Nil, expected, Nil, outFn = outT)(sys => {
-      Assert.assertEquals(42, Lint.run(sys.out, sys.err, Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false)), fileB))
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+      Assert.assertEquals(42, Lint.run(sys.out, sys.err, opts, new Repo(opts), fileB))
     })
 
   }
@@ -143,11 +146,7 @@ class LintTest extends AssertionsForJUnit {
         |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
         |╠═╦═ org.springframework:spring-context:1
         |║ ╠═══ (1) 1.0.1, .., 1.2.8, 1.2.9
-        |║ ╠═══ (2) 2.0, .., 2.5.5, 2.5.6
-        |║ ╠═══ (3) 3.0.0.RELEASE, .., 3.2.17.RELEASE, 3.2.18.RELEASE
-        |║ ╠═══ (4) 4.0.0.RELEASE, .., 4.3.29.RELEASE, 4.3.30.RELEASE
-        |║ ╠═══ (5) 5.0.0.RELEASE, .., 5.3.23, 5.3.24
-        |║ ╚═══ (6) 6.0.0, .., 6.0.2, 6.0.3
+        |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6
         |║
         |term: Term(dumb,lint,false)
         |[INFO]     WIP
@@ -160,7 +159,18 @@ class LintTest extends AssertionsForJUnit {
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[ERROR] exit 42 - because lint found warnings, see above ❌""".stripMargin
     TermTest.testSys(Nil, expected, Nil, outFn = outT)(sys => {
-      Assert.assertEquals(42, Lint.run(sys.out, sys.err, Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false)), file))
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+      val mockRepo = Mockito.mock(classOf[Repo])
+      Mockito.when(mockRepo.isReachable(false)).thenReturn(true)
+      Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+        .thenReturn(None)
+      val mockUpdates = Seq(
+        "1.0.0", "1.0.1","1.0.2", "1.2.8", "1.2.9",
+        "2.0", "2.1.1", "2.5.5", "2.5.6",
+      )
+      Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+        .thenReturn(mockUpdates)
+      Assert.assertEquals(42, Lint.run(sys.out, sys.err, opts, mockRepo, file))
     })
 
   }

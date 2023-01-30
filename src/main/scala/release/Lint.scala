@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 object Lint {
 
   def run(out: PrintStream, err: PrintStream, opts: Starter.Opts,
-          file: File = new File(".").getAbsoluteFile): Int = {
+          repo: Repo, file: File = new File(".").getAbsoluteFile): Int = {
     out.println()
 
     // TODO handle --simple-chars
@@ -97,7 +97,7 @@ object Lint {
           out.println(info(s"    ${fiFine} NO SNAPSHOTS in other files found", color))
         }
         if (rootFolderFiles.exists(_.getName == "pom.xml")) {
-          val pomMod = PomMod.withRepo(file, opts, new Repo(opts))
+          val pomMod = PomMod.withRepo(file, opts, repo)
           out.println(info("--- .mvn @ maven ---", color))
           out.println(info("    WIP", color))
           out.println(info("--- check for snapshots @ maven ---", color))

@@ -393,7 +393,7 @@ object ProjectMod extends LazyLogging {
     updates
   }
 
-  def showDependencyUpdates(shellWidth: Int, termOs: Term, depUpOpts: OptsDepUp, workNexusUrl: String,
+  def showDependencyUpdates(shellWidth: Int, termOs: Term, depUpOpts: OptsDepUp, workNexusUrl: () => String,
                             rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], repo: Repo,
                             sys: Term.Sys, printProgress: Boolean, checkOnline:Boolean): Seq[(GavWithRef, (Seq[String], Duration))] = {
     if (checkOnline && !repo.isReachable(false)) {
@@ -580,7 +580,7 @@ trait ProjectMod extends LazyLogging {
                             sys: Term.Sys, printProgress:Boolean): Unit = {
     val depForCheck: Seq[Dep] = listDependeciesForCheck()
     val sdm = selfDepsMod
-    val result = ProjectMod.showDependencyUpdates(shellWidth, termOs, depUpOpts, repo.workNexus.getUrl,
+    val result = ProjectMod.showDependencyUpdates(shellWidth, termOs, depUpOpts, () => repo.workNexus.getUrl,
       depForCheck, sdm, repo, sys, printProgress, checkOnline=true)
     if (depUpOpts.changeToLatest) {
       val localDepUpFile = new File(file, ".release-dependency-updates")

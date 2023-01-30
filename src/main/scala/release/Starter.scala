@@ -691,7 +691,7 @@ object Starter extends LazyLogging {
     }
 
     if (opts.lintOpts.doLint) {
-      return Lint.run(out, err, opts)
+      return Lint.run(out, err, opts, new Repo(opts))
     }
     if (opts.apiDiff.showApiDiff) {
       apidiff(opts, opts.apiDiff.left, opts.apiDiff.right)
