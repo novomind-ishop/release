@@ -102,7 +102,7 @@ object Lint {
             out.println(info("    WIP", color))
           } else {
             warnExit.set(true)
-            out.println(warn(s"    ${fiWarn} ${pomModTry.failed.get.getMessage}", color))
+            out.println(warn(s"    ${fiWarn} ${pomModTry.failed.get.getMessage}", color, limit = lineMax))
           }
           out.println(info("--- .mvn @ maven ---", color))
           out.println(info("    WIP", color))
