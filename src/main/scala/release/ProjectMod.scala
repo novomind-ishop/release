@@ -139,6 +139,8 @@ object ProjectMod extends LazyLogging {
       .filterNot(_.endsWith("-NIGHTLY")) // org.scala-lang:scala3-library_3
       .filterNot(_.endsWith("does-not-exist")) // commons-logging:commons-logging:99.0-does-not-exist
       .filterNot(_.endsWith("-PUBLISHED-BY-MISTAKE"))
+      .filterNot(_.endsWith("230521-nf-execution")) // com.graphql-java:graphql-java
+      .filterNot(_.matches("^[1-9][0-9]{3}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}.*$")) // com.graphql-java:graphql-java
 
     val result = if (inVersions.contains(gav.version)) {
       (Seq(gav.version) ++ out).distinct

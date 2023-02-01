@@ -325,7 +325,8 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
     val depPluginConfigs: Seq[(String, String)] = mavenDependencyPluginConfigsByGoal("tree")
     if (depPluginConfigs != Nil) {
       val treeOutputFileName: String = Util.only(depPluginConfigs.filter(_._1 == "outputFile"),
-        "more than one tree file defintion in your pom.xmls - invalid pom parent layout")._2
+        "more than one or none tree file definition in your pom.xmls - invalid pom parent layout" +
+          " - please add <outputFile>dep.tree</outputFile>")._2
       Some(treeOutputFileName)
     } else {
       None

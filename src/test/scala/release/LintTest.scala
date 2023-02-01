@@ -18,7 +18,7 @@ class LintTest extends AssertionsForJUnit {
       .replaceAll("/junit[0-9]+/", "/junit-REPLACED/")
       .replaceAll(": git version 2\\.[0-9]+\\.[0-9]+", ": git version 2.999.999")
       .replaceAll("[a-f0-9]{40}$", "a79849c3042ef887a5477d73d958814317675be1")
-      .replaceAll("dependecies in [1-9][0-9]*ms \\([0-9]{4}-[0-9]{2}-[0-9]{2}\\)", "dependecies in 999ms (2000-01-01)")
+      .replaceAll("dependecies in [0-9]+ms \\([0-9]{4}-[0-9]{2}-[0-9]{2}\\)", "dependecies in 999ms (2000-01-01)")
   }
 
   @Test

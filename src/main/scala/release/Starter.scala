@@ -536,7 +536,7 @@ object Starter extends LazyLogging {
     null
   }
 
-  def handleException(err:PrintStream, t: Throwable): Int = {
+  def handleException(err: PrintStream, t: Throwable): Int = {
     t match {
       case x@(_: Sgit.MissingCommitHookException | _: Sgit.MissingGitDirException | _: Sgit.TerminatedByCtrlCException |
               _: PomChecker.ValidationException | _: PreconditionsException | _: Sgit.BranchAlreadyExistsException) => {
@@ -857,6 +857,7 @@ object Starter extends LazyLogging {
         Desktop.getDesktop.browse(new URI(url))
       }
     } catch {
+      case uoe: UnsupportedOperationException => System.err.println(uoe.getClass.getName + " " + uoe.getMessage)
       case e: Exception => e.printStackTrace()
     }
   }

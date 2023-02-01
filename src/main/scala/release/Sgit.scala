@@ -794,7 +794,6 @@ object Sgit {
           val out = errorLineMapper.apply(s)
           if (out.isDefined) {
             errOut.apply(out.get)
-
           }
         }
       }
