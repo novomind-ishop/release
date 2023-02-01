@@ -517,7 +517,7 @@ object ProjectMod extends LazyLogging {
           versionNotFound.toList.map(in => in._1.formatted + "->" + (in._2._1 match {
             case Nil => "Nil"
             case e => e
-          }) + "\n  " + workNexusUrl + in._1.slashedMeta).sorted.mkString("\n"))
+          }) + "\n  " + workNexusUrl.apply() + in._1.slashedMeta).sorted.mkString("\n"))
         sys.err.println()
       }
     }
