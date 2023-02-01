@@ -97,16 +97,26 @@ object Lint {
           out.println(info(s"    ${fiFine} NO SNAPSHOTS in other files found", color))
         }
         if (rootFolderFiles.exists(_.getName == "pom.xml")) {
-          val pomMod = PomMod.withRepo(file, opts, repo)
+          val pomModTry = PomMod.withRepoTry(file, opts, repo)
+          if (pomModTry.isSuccess) {
+            out.println(info("    WIP", color))
+          } else {
+            warnExit.set(true)
+            out.println(warn(s"    ${fiWarn} ${pomModTry.failed.get.getMessage}", color))
+          }
           out.println(info("--- .mvn @ maven ---", color))
           out.println(info("    WIP", color))
           out.println(info("--- check for snapshots @ maven ---", color))
           out.println(info("    WIP", color))
           out.println(info("--- suggest dependency updates / configurable @ maven ---", color))
 
-          pomMod.showDependencyUpdates(120, Term.select("dumb", "lint", opts.simpleChars), opts.depUpOpts,
-            new Sys(null, out, err), printProgress = false) // TODO toggle
-          out.println(info("    WIP", color))
+          if (pomModTry.isSuccess) {
+            pomModTry.get.showDependencyUpdates(120, Term.select("dumb", "lint", opts.simpleChars), opts.depUpOpts,
+              new Sys(null, out, err), printProgress = false) // TODO toggle
+            out.println(info("    WIP", color))
+          } else {
+            out.println(warn(s"    skipped because of previous problems ${fiWarn}", color))
+          }
           out.println(info("--- dep.tree @ maven ---", color))
           out.println(info("    WIP", color))
         }

@@ -186,10 +186,10 @@ object TermTest extends LazyLogging {
         @nowarn("cat=deprecation")
         val unit = System.setSecurityManager(oldSecurityManager)
       }
+      Assert.assertEquals(expectedErr.mkString("\n"), err.toString.linesIterator.toList.mkString("\n"))
       Assert.assertEquals(expectedOut, out.toString.linesIterator.toList
         .map(outFn)
         .mkString("\n"))
-      Assert.assertEquals(expectedErr, err.toString.linesIterator.toList)
       Assert.assertEquals(expectedExitCode, exitCode)
     }
   }

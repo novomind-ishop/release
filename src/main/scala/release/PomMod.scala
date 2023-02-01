@@ -495,6 +495,15 @@ object PomMod {
     withRepo(file, opts, repo)
   }
 
+  def withRepoTry(file: File, opts: Opts, repo: Repo, skipPropertyReplacement: Boolean = false,
+                  withSubPoms: Boolean = true): Try[PomMod] = {
+    try {
+      Success(withRepo(file, opts, repo, skipPropertyReplacement, withSubPoms))
+    } catch {
+      case e:Exception => Failure(e)
+    }
+  }
+
   def withRepo(file: File, opts: Opts, repo: Repo, skipPropertyReplacement: Boolean = false,
                withSubPoms: Boolean = true): PomMod = {
     PomMod(file, repo, opts, skipPropertyReplacement, withSubPoms)

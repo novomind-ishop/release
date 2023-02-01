@@ -135,6 +135,7 @@ class LintTest extends AssertionsForJUnit {
         |[INFO] --- -SNAPSHOTS @ maven ---
         |[WARNING]   found snapshot in: notes.md 😬
         |              This is the documentation for 0.11-SNAPSHOT
+        |[INFO]     WIP
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- check for snapshots @ maven ---
@@ -158,7 +159,7 @@ class LintTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[ERROR] exit 42 - because lint found warnings, see above ❌""".stripMargin
-    TermTest.testSys(Nil, expected, Nil, outFn = outT)(sys => {
+    TermTest.testSys(Nil, expected, Nil, outFn = outT, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.isReachable(false)).thenReturn(true)
@@ -170,7 +171,79 @@ class LintTest extends AssertionsForJUnit {
       )
       Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(mockUpdates)
-      Assert.assertEquals(42, Lint.run(sys.out, sys.err, opts, mockRepo, file))
+      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, file))
+    })
+
+  }
+
+  @Test
+  def testRunMvnSimpleFail(): Unit = {
+    val file = temp.newFolder("release-lint-mvn-simple-fail")
+    val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
+    gitA.configSetLocal("user.email", "you@example.com")
+    gitA.configSetLocal("user.name", "Your Name")
+    Util.write(new File(file, "pom.xml"),
+      """<?xml version="1.0" encoding="UTF-8"?>
+        |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+        |  <modelVersion>4.0.0</modelVersion>
+        |  <groupId>com.novomind.ishop.any</groupId>
+        |  <artifactId>any</artifactId>
+        |  <version>0.11-SNAPSHOT</version>
+        |  <dependencies>
+        |    <dependency>
+        |      <groupId>org.springframework</groupId>
+        |      <artifactId>spring-non</artifactId>
+        |      <version>${non-existing}</version>
+        |    </dependency>
+        |  </dependencies>
+        |</project>
+        |""".stripMargin.linesIterator.toSeq)
+    val notes = new File(file, "notes.md")
+    Util.write(notes,
+      """
+        |This is the documentation for 0.11-SNAPSHOT
+        |""".stripMargin.linesIterator.toSeq)
+    gitA.add(notes)
+    gitA.commitAll("some")
+    val expected =
+      """
+        |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO] --- check clone config / no shallow clone @ git ---
+        |[INFO]     ✅ NO shallow clone
+        |[INFO] --- .gitattributes @ git ---
+        |[INFO] --- .gitignore @ git ---
+        |[WARNING]  Found local changes 😬
+        |[INFO] --- list-remotes @ git ---
+        |[WARNING]  NO remotes found 😬
+        |[WARNING]  % git remote -v # returns nothing
+        |[INFO] --- -SNAPSHOTS @ maven ---
+        |[WARNING]   found snapshot in: notes.md 😬
+        |              This is the documentation for 0.11-SNAPSHOT
+        |[WARNING]     😬 No property replacement found in pom.xmls for: "${non-existing}" - define properties where they are required and not in parent pom.xml. Input is Nil.
+        |[INFO] --- .mvn @ maven ---
+        |[INFO]     WIP
+        |[INFO] --- check for snapshots @ maven ---
+        |[INFO]     WIP
+        |[INFO] --- suggest dependency updates / configurable @ maven ---
+        |[WARNING]     skipped because of previous problems 😬
+        |[INFO] --- dep.tree @ maven ---
+        |[INFO]     WIP
+        |
+        |/tmp/junit-REPLACED/release-lint-mvn-simple-fail/.git
+        |/tmp/junit-REPLACED/release-lint-mvn-simple-fail/notes.md
+        |/tmp/junit-REPLACED/release-lint-mvn-simple-fail/pom.xml
+        |[INFO] ----------------------------[ end of lint ]----------------------------
+        |[ERROR] exit 42 - because lint found warnings, see above ❌""".stripMargin
+    TermTest.testSys(Nil, expected, Nil, outFn = outT, expectedExitCode = 42)(sys => {
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+      val mockRepo = Mockito.mock(classOf[Repo])
+      Mockito.when(mockRepo.isReachable(false)).thenReturn(true)
+      Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+        .thenReturn(None)
+      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, file))
+
     })
 
   }
