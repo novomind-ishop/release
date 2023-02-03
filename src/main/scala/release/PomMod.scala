@@ -233,7 +233,10 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
   def changeShopGroupArtifact(newValue: String): Unit = {
     val pattern = "[a-z0-9]+"
     if (!newValue.matches(pattern)) {
-      throw new IllegalArgumentException("invalid groupidArtifactName \"" + newValue + "\"; must match " + pattern)
+      throw new PreconditionsException("invalid groupidArtifactName \"" + newValue + "\"; must match '" + pattern +
+        "' - We enforce this to build GAs like: 'org.example.{groupidArtifactName}.main:{groupidArtifactName}-service' -" +
+        " for example dashes (-) are not part of the naming conventions for groupIds and dots (.) not for artifactIds -" +
+        " see also: https://maven.apache.org/guides/mini/guide-naming-conventions.html")
     }
 
     val replaceInArtifactId: (String => String) = in => {

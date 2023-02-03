@@ -96,7 +96,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
       |
       |showDependencyUpdates                => shows dependency updates from nexus option
       |versionSet newVersion                => changes version like maven
-      |shopGASet newGroupIdAndArtifactId    => changes GroupId and ArtifactId for Shops
+      |shopGASet newGroupIdAndArtifactId    => changes GroupId and ArtifactId exclusively for Shops
       |nothing-but-create-feature-branch    => creates a feature branch and changes pom.xmls
       |
       |Possible environment variables:

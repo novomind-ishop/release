@@ -8,7 +8,7 @@ import release.PomChecker.ValidationException
 import release.PomMod.DepTree
 import release.PomModTest._
 import release.ProjectMod._
-import release.Starter.Opts
+import release.Starter.{Opts, PreconditionsException}
 import release.Util.linuxPath
 
 import java.io.{BufferedWriter, File, FileWriter}
@@ -505,6 +505,23 @@ class PomModTest extends AssertionsForJUnit {
     TestHelper.assertException("property map is empty", classOf[IllegalStateException], () => {
       PomMod.replaceProperty(Map.empty)("a${b}")
     })
+  }
+
+  @Test
+  def changeGA_fail(): Unit = {
+    // GIVEN
+    val orgPoms = TestHelper.testResources("shop1")
+    // WHEN
+    val mod = PomModTest.withRepoForTests(orgPoms, repo)
+
+    TestHelper.assertException(
+      "invalid groupidArtifactName \"x-anyshop\"; must match '[a-z0-9]+'" +
+        " - We enforce this to build GAs like: 'org.example.{groupidArtifactName}.main:{groupidArtifactName}-service'" +
+        " - for example dashes (-) are not part of the naming conventions for groupIds and dots (.) not for artifactIds" +
+        " - see also: https://maven.apache.org/guides/mini/guide-naming-conventions.html", classOf[PreconditionsException], () => {
+      mod.changeShopGroupArtifact("x-anyshop")
+    })
+
   }
 
   @Test

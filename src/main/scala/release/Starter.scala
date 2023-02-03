@@ -623,7 +623,7 @@ object Starter extends LazyLogging {
       out.println()
       out.println("showDependencyUpdates                => shows dependency updates from nexus option")
       out.println("versionSet newVersion                => changes version like maven")
-      out.println("shopGASet newGroupIdAndArtifactId    => changes GroupId and ArtifactId for Shops")
+      out.println("shopGASet newGroupIdAndArtifactId    => changes GroupId and ArtifactId exclusively for Shops")
       out.println("nothing-but-create-feature-branch    => creates a feature branch and changes pom.xmls")
       out.println()
       out.println("Possible environment variables:")
