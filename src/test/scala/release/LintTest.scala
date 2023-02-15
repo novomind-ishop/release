@@ -166,7 +166,7 @@ class LintTest extends AssertionsForJUnit {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
-      Mockito.when(mockRepo.isReachable(false)).thenReturn(true)
+      Mockito.when(mockRepo.isReachable(false)).thenReturn((true, "200"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       val mockUpdates = Seq(
@@ -243,7 +243,7 @@ class LintTest extends AssertionsForJUnit {
     TermTest.testSys(Nil, expected, Nil, outFn = outT, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
-      Mockito.when(mockRepo.isReachable(false)).thenReturn(true)
+      Mockito.when(mockRepo.isReachable(false)).thenReturn((true, "202"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, file))

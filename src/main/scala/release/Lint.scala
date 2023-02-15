@@ -1,7 +1,7 @@
 package release
 
 import com.google.common.base.Stopwatch
-import release.Starter.{Opts, init}
+import release.Starter.{Opts, PreconditionsException, init}
 import release.Term._
 
 import java.io.{File, IOException, PrintStream}
@@ -120,8 +120,13 @@ object Lint {
             } else {
               out.println(info(s"    RELEASE_NEXUS_WORK_URL=${repo.workNexusUrl()}", color, limit = lineMax))
             }
-            pomModTry.get.showDependencyUpdates(120, Term.select("dumb", "lint", opts.simpleChars), opts.depUpOpts,
-              new Sys(null, out, err), printProgress = false) // TODO toggle
+            try {
+              pomModTry.get.showDependencyUpdates(120, Term.select("dumb", "lint", opts.simpleChars), opts.depUpOpts,
+                new Sys(null, out, err), printProgress = false) // TODO toggle
+            } catch {
+              case pce: PreconditionsException => out.println(warn(pce.getMessage, color, limit = lineMax))
+            }
+
             out.println(info("    WIP", color))
           } else {
             out.println(warn(s"    skipped because of previous problems ${fiWarn}", color))

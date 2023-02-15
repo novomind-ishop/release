@@ -54,7 +54,7 @@ class Repo(opts: Opts) extends LazyLogging {
   def depDate(groupId: String, artifactId: String, version: String) =
     Repo.depDate(workNexus)(groupId, artifactId, version)
 
-  private[release] def isReachable(showTrace: Boolean = true): Boolean = {
+  private[release] def isReachable(showTrace: Boolean = true): (Boolean, String) = {
     val config = RequestConfig.custom()
       .setConnectTimeout(1000)
       .setConnectionRequestTimeout(1000)
@@ -63,7 +63,7 @@ class Repo(opts: Opts) extends LazyLogging {
     val httpclient = HttpClients.custom()
       .setDefaultRequestConfig(config)
       .build()
-    val httpGet = new HttpGet(workNexus.getUrl)
+    val httpGet = new HttpGet(workNexusUrl())
     var response: CloseableHttpResponse = null
     val code: Int = try {
 
@@ -74,7 +74,7 @@ class Repo(opts: Opts) extends LazyLogging {
         if (showTrace) {
           any.printStackTrace()
         }
-        return false
+        return (false, any.getMessage)
       }
     } finally {
       if (response != null) {
@@ -82,7 +82,7 @@ class Repo(opts: Opts) extends LazyLogging {
       }
 
     }
-    code != 0
+    (code != 0, code.toString)
 
   }
 
@@ -254,7 +254,7 @@ object Repo extends LazyLogging {
     }
   }
 
-  def tryResolveReqWorkNexus(repo:Repo)(request: String): Try[(File, VersionString)] = {
+  def tryResolveReqWorkNexus(repo: Repo)(request: String): Try[(File, VersionString)] = {
     tryResolveReq(repo.workNexus)(request)
   }
 

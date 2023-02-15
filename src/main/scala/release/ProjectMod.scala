@@ -397,9 +397,12 @@ object ProjectMod extends LazyLogging {
 
   def showDependencyUpdates(shellWidth: Int, termOs: Term, depUpOpts: OptsDepUp, workNexusUrl: () => String,
                             rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], repo: Repo,
-                            sys: Term.Sys, printProgress: Boolean, checkOnline:Boolean): Seq[(GavWithRef, (Seq[String], Duration))] = {
-    if (checkOnline && !repo.isReachable(false)) {
-      throw new PreconditionsException("repo feels offline")
+                            sys: Term.Sys, printProgress: Boolean, checkOnline: Boolean): Seq[(GavWithRef, (Seq[String], Duration))] = {
+    if (checkOnline) {
+      val reache = repo.isReachable(false)
+      if (!reache._1) {
+        throw new PreconditionsException(repo.workNexusUrl() + " - repo feels offline - " + reache._2)
+      }
     }
     val now = LocalDate.now()
     val stopw = Stopwatch.createStarted()
@@ -579,11 +582,11 @@ trait ProjectMod extends LazyLogging {
   val skipPropertyReplacement: Boolean
 
   def showDependencyUpdates(shellWidth: Int, termOs: Term, depUpOpts: OptsDepUp,
-                            sys: Term.Sys, printProgress:Boolean): Unit = {
+                            sys: Term.Sys, printProgress: Boolean): Unit = {
     val depForCheck: Seq[Dep] = listDependeciesForCheck()
     val sdm = selfDepsMod
     val result = ProjectMod.showDependencyUpdates(shellWidth, termOs, depUpOpts, () => repo.workNexusUrl(),
-      depForCheck, sdm, repo, sys, printProgress, checkOnline=true)
+      depForCheck, sdm, repo, sys, printProgress, checkOnline = true)
     if (depUpOpts.changeToLatest) {
       val localDepUpFile = new File(file, ".release-dependency-updates")
       val fn: (Gav3, Seq[String]) => String = if (localDepUpFile.canRead) {
