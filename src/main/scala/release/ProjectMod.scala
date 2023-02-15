@@ -582,7 +582,7 @@ trait ProjectMod extends LazyLogging {
                             sys: Term.Sys, printProgress:Boolean): Unit = {
     val depForCheck: Seq[Dep] = listDependeciesForCheck()
     val sdm = selfDepsMod
-    val result = ProjectMod.showDependencyUpdates(shellWidth, termOs, depUpOpts, () => repo.workNexus.getUrl,
+    val result = ProjectMod.showDependencyUpdates(shellWidth, termOs, depUpOpts, () => repo.workNexusUrl(),
       depForCheck, sdm, repo, sys, printProgress, checkOnline=true)
     if (depUpOpts.changeToLatest) {
       val localDepUpFile = new File(file, ".release-dependency-updates")

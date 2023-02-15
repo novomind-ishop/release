@@ -333,8 +333,8 @@ object Starter extends LazyLogging {
         println(s"download artifacts for diff of: ${groupId}:${artifactId}:(${left}..${right})")
 
         val ty = s":${ga._3}:"
-        val ar = Repo.tryResolveReq(repo.workNexus)(groupId + ":" + artifactId + ty + left).map(t => (t._1, t._2, ga._3))
-        val br = Repo.tryResolveReq(repo.workNexus)(groupId + ":" + artifactId + ty + right).map(t => (t._1, t._2, ga._3))
+        val ar = Repo.tryResolveReqWorkNexus(repo)(groupId + ":" + artifactId + ty + left).map(t => (t._1, t._2, ga._3))
+        val br = Repo.tryResolveReqWorkNexus(repo)(groupId + ":" + artifactId + ty + right).map(t => (t._1, t._2, ga._3))
         (ar, br)
       }).seq
     if (inOpt.apiDiff.pomOnly) {

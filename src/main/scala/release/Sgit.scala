@@ -177,6 +177,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
         throw new Sgit.MissingCommitHookException(
           """
             |E: please download a commit-message hook and retry
+            |Hint: if this not a gerrit repo use '--no-gerrit'
             |E: The hook should be at: %s
             |I: see %s/Documentation/user-changeid.html#creation
             |# scp -p -P %s $USERNAME@%s:hooks/commit-msg .git/hooks/

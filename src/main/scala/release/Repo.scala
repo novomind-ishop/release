@@ -37,16 +37,17 @@ import java.util.concurrent.ConcurrentHashMap
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
-
 class Repo(opts: Opts) extends LazyLogging {
 
-  lazy val newRepositoriesCentral: RemoteRepository = Repo.newDefaultRepository(Repo.centralUrl)
+  private lazy val newRepositoriesCentral: RemoteRepository = Repo.newDefaultRepository(Repo.centralUrl)
 
-  lazy val mirrorNexus: RemoteRepository = Repo.newDefaultRepository(ReleaseConfig.default(opts.useDefaults).mirrorNexusUrl())
+  private lazy val mirrorNexus: RemoteRepository = Repo.newDefaultRepository(ReleaseConfig.default(opts.useDefaults).mirrorNexusUrl())
 
-  lazy val workNexus: RemoteRepository = Repo.newDefaultRepository(ReleaseConfig.default(opts.useDefaults).workNexusUrl())
+  private lazy val workNexus: RemoteRepository = Repo.newDefaultRepository(ReleaseConfig.default(opts.useDefaults).workNexusUrl())
 
-  lazy val allRepos: Seq[RemoteRepository] = Seq(workNexus, mirrorNexus)
+  def workNexusUrl(): String = workNexus.getUrl
+
+  private lazy val allRepos: Seq[RemoteRepository] = Seq(workNexus, mirrorNexus)
 
   private def getVersionsOf(req: String) = Repo.getVersions(workNexus)(req)
 
@@ -253,6 +254,10 @@ object Repo extends LazyLogging {
     }
   }
 
+  def tryResolveReqWorkNexus(repo:Repo)(request: String): Try[(File, VersionString)] = {
+    tryResolveReq(repo.workNexus)(request)
+  }
+
   def tryResolveReq(repository: RemoteRepository)(request: String): Try[(File, VersionString)] = {
     try {
       Success(doResolve(repository)(request))
@@ -265,7 +270,6 @@ object Repo extends LazyLogging {
     val request = Seq(groupID, artifactId, version).mkString(":")
     doResolve(repository)(request)
   }
-
 
   def doResolve(repository: RemoteRepository)(request: String): (File, VersionString) = {
     // expected format is <groupId>:<artifactId>[:<extension>[:<classifier>]]:<version>

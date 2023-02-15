@@ -1,7 +1,7 @@
 package release
 
 import com.google.common.base.Stopwatch
-import release.Starter.Opts
+import release.Starter.{Opts, init}
 import release.Term._
 
 import java.io.{File, IOException, PrintStream}
@@ -111,6 +111,15 @@ object Lint {
           out.println(info("--- suggest dependency updates / configurable @ maven ---", color))
 
           if (pomModTry.isSuccess) {
+
+            val releasenexusworkurl = System.getenv("RELEASE_NEXUS_WORK_URL")
+            if (repo.workNexusUrl() == Repo.centralUrl) {
+              out.println(warn(s" work nexus points to central ${repo.workNexusUrl()} ${fiWarn}", color, limit = lineMax))
+              out.println(info(s"    RELEASE_NEXUS_WORK_URL=${releasenexusworkurl}", color, limit = lineMax))
+              // warnExit.set(true) // TODO later
+            } else {
+              out.println(info(s"    RELEASE_NEXUS_WORK_URL=${repo.workNexusUrl()}", color, limit = lineMax))
+            }
             pomModTry.get.showDependencyUpdates(120, Term.select("dumb", "lint", opts.simpleChars), opts.depUpOpts,
               new Sys(null, out, err), printProgress = false) // TODO toggle
             out.println(info("    WIP", color))

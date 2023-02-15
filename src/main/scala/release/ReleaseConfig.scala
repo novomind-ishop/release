@@ -167,7 +167,6 @@ object ReleaseConfig extends LazyLogging {
     if (useDefaults) {
       new ReleaseConfig(defaults)
     } else {
-      val removeConfigUrl = "https://release-ishop.novomind.com/ishop-release.conf"
       val localConfig = if (defaultConfigFile.canRead) {
         fileConfig(defaultConfigFile)
       } else {
@@ -179,6 +178,7 @@ object ReleaseConfig extends LazyLogging {
         update
       }
       val work = if (localConfig == Map.empty || refresh) {
+      val removeConfigUrl = "https://release-ishop.novomind.com/ishop-release.conf"
         val rc = remoteConfig(removeConfigUrl)
         Util.handleWindowsFilesystem { _ =>
           defaultUpdateFile.delete()
@@ -194,6 +194,7 @@ object ReleaseConfig extends LazyLogging {
         localConfig
       }
       if (work == Map.empty) {
+        // TODO try parse settings.xml for workingNexus and mirrorNexus
         new ReleaseConfig(defaults)
       } else {
         new ReleaseConfig(work)

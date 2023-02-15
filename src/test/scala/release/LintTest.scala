@@ -1,5 +1,6 @@
 package release
 
+import org.eclipse.aether.repository.RemoteRepository
 import org.junit.{Assert, Rule, Test}
 import org.junit.rules.TemporaryFolder
 import org.mockito.{ArgumentMatchers, Mockito}
@@ -141,6 +142,8 @@ class LintTest extends AssertionsForJUnit {
         |[INFO] --- check for snapshots @ maven ---
         |[INFO]     WIP
         |[INFO] --- suggest dependency updates / configurable @ maven ---
+        |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬
+        |[INFO]     RELEASE_NEXUS_WORK_URL=null
         |I: checking dependecies against nexus - please wait
         |
         |I: checked 1 dependecies in 999ms (2000-01-01)
@@ -162,6 +165,7 @@ class LintTest extends AssertionsForJUnit {
     TermTest.testSys(Nil, expected, Nil, outFn = outT, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
+      Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
       Mockito.when(mockRepo.isReachable(false)).thenReturn(true)
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)

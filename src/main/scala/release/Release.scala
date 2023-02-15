@@ -544,7 +544,13 @@ object Release extends LazyLogging {
         showManual()
       }
     } else {
-      sys.err.println("W: No gerrit -> push is not implemented")
+      if (newMod.isShop) {
+        sys.err.println("W: No gerrit (shop) -> push is not implemented")
+      } else {
+        sys.err.println("W: No gerrit -> push is not implemented")
+      }
+      showManual()
+
     }
 
     Nil
@@ -579,16 +585,16 @@ object Release extends LazyLogging {
       .filter(_.version.contains("SNAPSHOT")) ++
       boClientVersion.map(in => Gav("com.novomind.ishop.backoffice", "bo-client", in, "war"))
 
-    val aetherStateLine = StatusLine(snaps.size, shellWidth, System.out, enabled = true)
+    val repoStateLine = StatusLine(snaps.size, shellWidth, System.out, enabled = true)
     val snapState: Seq[ReleaseInfo] = snaps
       .par
       .map(in => {
-        aetherStateLine.start()
+        repoStateLine.start()
         val released = repo.existsGav(in.groupId, in.artifactId, in.version.replace("-SNAPSHOT", ""))
-        aetherStateLine.end()
+        repoStateLine.end()
         ReleaseInfo(in.formatted, released)
       }).seq
-    aetherStateLine.finish()
+    repoStateLine.finish()
 
     val snapshotProperties = mod.listProperties
       .filter(_._2.contains("-SNAPSHOT"))
