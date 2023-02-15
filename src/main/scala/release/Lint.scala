@@ -116,7 +116,7 @@ object Lint {
             if (repo.workNexusUrl() == Repo.centralUrl) {
               out.println(warn(s" work nexus points to central ${repo.workNexusUrl()} ${fiWarn}", color, limit = lineMax))
               out.println(info(s"    RELEASE_NEXUS_WORK_URL=${releasenexusworkurl}", color, limit = lineMax))
-              // warnExit.set(true) // TODO later
+              warnExit.set(true)
             } else {
               out.println(info(s"    RELEASE_NEXUS_WORK_URL=${repo.workNexusUrl()}", color, limit = lineMax))
             }

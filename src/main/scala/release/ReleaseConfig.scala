@@ -77,6 +77,8 @@ sealed class ReleaseConfig(map: Map[String, String]) {
 
 object ReleaseConfig extends LazyLogging {
 
+  case class WorkAndMirror(workUrl: String, mirrorUrl: String)
+
   private val home = new File(System.getProperty("user.home"))
   private val defaultConfigFile: File = new File(home, ".ishop-release")
   private val defaultUpdateFile: File = new File(home, ".ishop-release-remote-update")
@@ -163,6 +165,26 @@ object ReleaseConfig extends LazyLogging {
     }
   }
 
+  def extractWorkAndMirror(in: String): Option[WorkAndMirror] = {
+    try {
+      val doc = Xpath.newDocument(in)
+      val uEl = Xpath.toSeq(doc, "//url").flatMap(n => Xpath.nodeElementValue(n, "."))
+        .distinct
+        .filterNot(_.contains("0.0.0.0"))
+        .filterNot(_.contains("//central"))
+      if (uEl.size == 1) {
+        Some(WorkAndMirror(workUrl = uEl(0), mirrorUrl = uEl(0)))
+      } else if (uEl.size == 2) {
+        Some(WorkAndMirror(workUrl = uEl(1), mirrorUrl = uEl(0)))
+      } else {
+        None
+      }
+    } catch {
+      case e: Exception => None
+    }
+
+  }
+
   def default(useDefaults: Boolean): ReleaseConfig = {
     if (useDefaults) {
       new ReleaseConfig(defaults)
@@ -178,7 +200,7 @@ object ReleaseConfig extends LazyLogging {
         update
       }
       val work = if (localConfig == Map.empty || refresh) {
-      val removeConfigUrl = "https://release-ishop.novomind.com/ishop-release.conf"
+        val removeConfigUrl = "https://release-ishop.novomind.com/ishop-release.conf"
         val rc = remoteConfig(removeConfigUrl)
         Util.handleWindowsFilesystem { _ =>
           defaultUpdateFile.delete()
@@ -194,11 +216,25 @@ object ReleaseConfig extends LazyLogging {
         localConfig
       }
       if (work == Map.empty) {
-        // TODO try parse settings.xml for workingNexus and mirrorNexus
-        new ReleaseConfig(defaults)
+        fromSettings()
       } else {
         new ReleaseConfig(work)
       }
+    }
+
+  }
+
+  def fromSettings(root: File = new File(".")): ReleaseConfig = {
+    val settings = new File(root, "settings.xml")
+    if (settings.canRead) {
+      val mir = ReleaseConfig.extractWorkAndMirror(Util.read(settings))
+      if (mir.isDefined) {
+        new ReleaseConfig(defaults + (keyNexusWorkUrl -> mir.get.workUrl)+ (keyNexusMirrorUrl -> mir.get.mirrorUrl))
+      } else {
+        new ReleaseConfig(defaults)
+      }
+    } else {
+      new ReleaseConfig(defaults)
     }
 
   }

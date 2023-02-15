@@ -84,6 +84,10 @@ object Util {
     b.result()
   }
 
+  def write(f: File, content: String): Unit = {
+    write(f, content.linesIterator.toSeq)
+  }
+
   def write(f: File, content: Seq[String]): Unit = {
     val list: java.util.List[String] = content.asJava
     Files.write(f.toPath, list)
