@@ -124,7 +124,10 @@ object Lint {
               pomModTry.get.showDependencyUpdates(120, Term.select("dumb", "lint", opts.simpleChars), opts.depUpOpts,
                 new Sys(null, out, err), printProgress = false) // TODO toggle
             } catch {
-              case pce: PreconditionsException => out.println(warn(pce.getMessage, color, limit = lineMax))
+              case pce: PreconditionsException => {
+                out.println(warn(pce.getMessage + s"${fiWarn}", color, limit = lineMax))
+                warnExit.set(true)
+              }
             }
 
             out.println(info("    WIP", color))

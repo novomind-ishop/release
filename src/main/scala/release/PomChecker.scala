@@ -55,8 +55,10 @@ object PomChecker {
 
         val msg = "found overlapping scopes\n" + diff.map(select => {
 
-          val str = select.formatted + "\n related to\n" +
-            listDependecies.filter(dep => select == (dep.copy(scope = "").gav())).mkString("\n")
+          val str = select.formatted + "\n found in\n" +
+            listDependecies.filter(dep => select == (dep.copy(scope = "").gav()))
+              .map(d =>  s"${d.pomRef.id} with scope: ${d.gav().formatted.replace(select.formatted, "...")}")
+              .mkString("\n")
           str
         }).mkString("\n\n")
         Some(msg)

@@ -80,14 +80,14 @@ class PomCheckerTest extends AssertionsForJUnit {
     TestHelper.assertException(
       """found overlapping scopes
         |any.group:some:1.0.0
-        | related to
-        |Dep(SelfRef(com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war),any.group,some,1.0.0,,compile,,)
-        |Dep(SelfRef(com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war),any.group,some,1.0.0,,runtime,,)
+        | found in
+        |com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war with scope: ...:compile
+        |com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war with scope: ...:runtime
         |
         |any.group:wrong:1.0.0
-        | related to
-        |Dep(SelfRef(com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war),any.group,wrong,1.0.0,,test,,)
-        |Dep(SelfRef(com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war),any.group,wrong,1.0.0,,compile,,)
+        | found in
+        |com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war with scope: ...:test
+        |com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war with scope: ...:compile
         |""".stripMargin.trim,
       classOf[PomChecker.ValidationException],
       () => PomChecker.checkDepScopes(deps))
