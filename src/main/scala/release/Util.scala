@@ -8,6 +8,8 @@ import javax.xml.bind.DatatypeConverter
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 import scala.util.Random
+import java.nio.file.attribute.BasicFileAttributes
+import java.nio.file.{FileSystemException, FileVisitResult, FileVisitor, Files, Path}
 import scala.language.implicitConversions
 
 object Util {
@@ -103,6 +105,31 @@ object Util {
     } else {
       throw new IllegalStateException(f.getAbsolutePath + " is no regular file")
     }
+  }
+
+  def recursive(start: File): Seq[File] = {
+    var s: mutable.Seq[Path] = mutable.Seq()
+    val value: FileVisitor[Path] = new FileVisitor[Path] {
+      override def preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult = {
+        FileVisitResult.CONTINUE
+      }
+
+      override def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
+        s = s.appended(file)
+        FileVisitResult.TERMINATE
+      }
+
+      override def visitFileFailed(file: Path, exc: IOException): FileVisitResult = {
+        FileVisitResult.TERMINATE
+      }
+
+      override def postVisitDirectory(dir: Path, exc: IOException): FileVisitResult = {
+        FileVisitResult.CONTINUE
+      }
+    }
+    Files.walkFileTree(start.toPath, value)
+    s.toSeq.map(_.toFile)
+
   }
 
   def deleteRecursive(file: File): Unit = {

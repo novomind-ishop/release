@@ -1,13 +1,18 @@
 package release
 
 import com.google.common.base.Stopwatch
+import com.google.common.io.{CharSink, CharSource}
+import com.google.googlejavaformat.java.Formatter
 import release.Starter.{Opts, PreconditionsException, init}
 import release.Term._
 
 import java.io.{File, IOException, PrintStream}
+import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{FileVisitResult, FileVisitor, Files, Path}
 import java.util.concurrent.atomic.AtomicBoolean
+import scala.util.{Failure, Try, Success}
+import scala.collection.parallel.CollectionConverters._
 
 object Lint {
 
@@ -56,6 +61,31 @@ object Lint {
         } else {
           out.println(info(s"    ${fiFine} NO shallow clone", color))
         }
+
+        if (System.getenv("CI_CONFIG_PATH") != null) {
+          try {
+            val allFiles = sgit.lsFilesAbsolute().par
+              .filter(_.getName.endsWith(".java"))
+            val formatter = new Formatter()
+            val result = allFiles.map(bFile => {
+              try {
+                val bSrc: CharSource = com.google.common.io.Files.asCharSource(bFile, StandardCharsets.UTF_8)
+                val bSink: CharSink = com.google.common.io.Files.asCharSink(bFile, StandardCharsets.UTF_8)
+                formatter.formatSource(bSrc, bSink)
+                (Success(()), bFile.getAbsoluteFile)
+              } catch {
+                case e: Throwable => (Failure(e), bFile.getAbsoluteFile)
+              }
+            }).filter(_._1.isFailure)
+
+            result.foreach(f => {
+              out.println(warn(f._2.toString + " " + f._1.failed.get.getMessage, color, limit = lineMax))
+            })
+          } catch {
+            case e: Throwable => out.println(warn(e.getMessage, color, limit = lineMax))
+          }
+        }
+
         out.println(info("--- .gitattributes @ git ---", color))
         out.println(info("--- .gitignore @ git ---", color))
         if (sgit.hasLocalChanges) {
@@ -141,6 +171,7 @@ object Lint {
           out.println(info("--- ??? @ sbt ---", color))
           out.println(info("    WIP", color))
         }
+
         out.println()
         rootFolderFiles.sortBy(_.toString)
           .take(5).foreach(f => out.println(f.toPath.normalize().toAbsolutePath.toFile.getAbsolutePath))

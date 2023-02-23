@@ -34,6 +34,8 @@ libraryDependencies += "com.github.siom79.japicmp" % "japicmp" % "0.17.1"
 
 libraryDependencies += "com.typesafe" % "config" % "1.4.2"
 
+libraryDependencies += "com.google.googlejavaformat" % "google-java-format" % "1.15.0"
+
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.15" % "test"
 
 libraryDependencies += "org.scalatestplus" %% "junit-4-13" % "3.2.15.0" % Test
