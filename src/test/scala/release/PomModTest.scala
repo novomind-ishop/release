@@ -267,6 +267,11 @@ class PomModTest extends AssertionsForJUnit {
 
     Assert.assertEquals(Seq(baseVersion, noVersion, testScope, testsScope, pomClassifier).sortBy(_.toString()),
       Xpath.mapToSeqMap(nodes).sortBy(_.toString()))
+    Assert.assertEquals(Seq(
+      Gav3("com.novomind.ishop.shops", "anyshop", ""),
+      Gav3("com.novomind.ishop.shops.anyshop", "anyshop-erp", ""),
+      Gav3("com.novomind.ishop.shops.anyshop", "anyshop-projects", ""),
+    ), pomMod.selfDepsModGavs())
   }
 
   @Test
@@ -519,8 +524,8 @@ class PomModTest extends AssertionsForJUnit {
         " - We enforce this to build GAs like: 'org.example.{groupidArtifactName}.main:{groupidArtifactName}-service'" +
         " - for example dashes (-) are not part of the naming conventions for groupIds and dots (.) not for artifactIds" +
         " - see also: https://maven.apache.org/guides/mini/guide-naming-conventions.html", classOf[PreconditionsException], () => {
-      mod.changeShopGroupArtifact("x-anyshop")
-    })
+        mod.changeShopGroupArtifact("x-anyshop")
+      })
 
   }
 

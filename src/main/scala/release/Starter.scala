@@ -245,7 +245,9 @@ object Starter extends LazyLogging {
                   depUpOpts: OptsDepUp = OptsDepUp(), apiDiff: OptsApidiff = OptsApidiff(),
                   useJlineInput: Boolean = true, skipProperties: Seq[String] = Nil,
                   colors: Boolean = true, useDefaults: Boolean = false, versionIncrement: Option[Increment] = None,
-                  lintOpts: LintOpts = LintOpts(), checkOverlapping: Boolean = true)
+                  lintOpts: LintOpts = LintOpts(), checkOverlapping: Boolean = true,
+                  showSelf: Boolean = false
+                 )
 
   @tailrec
   def argsRead(params: Seq[String], inOpt: Opts): Opts = {
@@ -270,8 +272,8 @@ object Starter extends LazyLogging {
       case "--skip-property" :: value :: tail => argsRead(tail, inOpt.copy(skipProperties = inOpt.skipProperties ++ Seq(value)))
       // CMDs
       case "lint" :: tail => argsRead(tail, inOpt.copy(lintOpts = inOpt.lintOpts.copy(doLint = true)))
-      case "apidiff" :: tail =>
-        argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(showApiDiff = true)))
+      case "showSelf" :: tail => argsRead(tail, inOpt.copy(showSelf = true))
+      case "apidiff" :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(showApiDiff = true)))
 
       case "versionSet" :: value :: _ => argsRead(Nil, inOpt.copy(versionSet = Some(value)))
       case "shopGASet" :: value :: _ => argsRead(Nil, inOpt.copy(shopGA = Some(value)))
@@ -592,11 +594,7 @@ object Starter extends LazyLogging {
       case Term.Os.Windows => argSeq(5).replace('/', '\\')
       case _ => argSeq(5)
     }
-    val showUpdateCmd = opts.showUpdateCmd
-    val createFeatureBranch = opts.createFeature
-    val verifyGerrit = opts.useGerrit
-    val versionSetMode = opts.versionSet.isDefined
-    val shopGASetMode = opts.shopGA.isDefined
+
 
     // TODO --batch ## alles mit default wählen
 
@@ -674,6 +672,13 @@ object Starter extends LazyLogging {
       }
       "(cd " + updatePath + " && git rebase -q --autostash || git reset --hard @{upstream} && cd -)"
     }
+
+    val showUpdateCmd = opts.showUpdateCmd
+    val createFeatureBranch = opts.createFeature
+    val verifyGerrit = opts.useGerrit
+    val versionSetMode = opts.versionSet.isDefined
+    val shopGASetMode = opts.shopGA.isDefined
+
     if (showUpdateCmd) {
       out.println(updateCmd)
       return 0
@@ -692,6 +697,12 @@ object Starter extends LazyLogging {
 
     if (opts.lintOpts.doLint) {
       return Lint.run(out, err, opts, new Repo(opts))
+    }
+    if (opts.showSelf) {
+      val file: File = new File(".").getAbsoluteFile
+      val pomModTry = PomMod.withRepoTry(file, opts,  new Repo(opts))
+      pomModTry.get.selfDepsModGavs().foreach(gav => out.println(gav.formatted))
+      return 0
     }
     if (opts.apiDiff.showApiDiff) {
       apidiff(opts, opts.apiDiff.left, opts.apiDiff.right)

@@ -2,7 +2,7 @@ package release
 
 import com.google.common.base.Stopwatch
 import com.typesafe.scalalogging.LazyLogging
-import release.PomMod.{abbreviate, selectFirstVersionFrom, unmanged}
+import release.PomMod.{abbreviate, selectFirstVersionFrom, selfDep, unmanged}
 import release.ProjectMod.{Dep, Gav3, PluginDep}
 import release.Starter.{Opts, OptsDepUp, PreconditionsException}
 
@@ -628,6 +628,10 @@ trait ProjectMod extends LazyLogging {
   }
 
   def isShop: Boolean
+
+  def selfDepsModGavs():Seq[Gav3] = {
+    selfDepsMod.map(_.gav().simpleGav().copy(version = "")).distinct
+  }
 
   def selfDepsMod: Seq[Dep]
 
