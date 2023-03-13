@@ -61,21 +61,16 @@ object Lint {
         } else {
           out.println(info(s"    ${fiFine} NO shallow clone", color))
         }
+        
 
-        if (System.getenv("CI_CONFIG_PATH") != null) {
+        if (false && System.getenv("CI_CONFIG_PATH") != null) {
           try {
             val allFiles = sgit.lsFilesAbsolute().par
-              .filter(_.getName.endsWith(".java"))
+              .take(1)
+              .filter(_.getName.toLowerCase().endsWith(".java"))
             val formatter = new Formatter()
             val result = allFiles.map(bFile => {
-              try {
-                val bSrc: CharSource = com.google.common.io.Files.asCharSource(bFile, StandardCharsets.UTF_8)
-                val bSink: CharSink = com.google.common.io.Files.asCharSink(bFile, StandardCharsets.UTF_8)
-                formatter.formatSource(bSrc, bSink)
-                (Success(()), bFile.getAbsoluteFile)
-              } catch {
-                case e: Throwable => (Failure(e), bFile.getAbsoluteFile)
-              }
+              doGoogleFmt(formatter, bFile)
             }).filter(_._1.isFailure)
 
             result.foreach(f => {
@@ -199,4 +194,18 @@ object Lint {
     1
   }
 
+  def doGoogleFmt(formatter: Formatter, src: File): (Try[Unit], File) = {
+    doGoogleFmt(formatter, src, src)
+  }
+
+  def doGoogleFmt(formatter: Formatter, src: File, target: File): (Try[Unit], File) = {
+    try {
+      val bSrc: CharSource = com.google.common.io.Files.asCharSource(src, StandardCharsets.UTF_8)
+      val bSink: CharSink = com.google.common.io.Files.asCharSink(target, StandardCharsets.UTF_8)
+      formatter.formatSource(bSrc, bSink)
+      (Success(()), src.getAbsoluteFile)
+    } catch {
+      case e: Throwable => (Failure(e), src.getAbsoluteFile)
+    }
+  }
 }

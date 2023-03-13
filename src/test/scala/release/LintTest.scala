@@ -1,5 +1,6 @@
 package release
 
+import com.google.googlejavaformat.java.Formatter
 import org.eclipse.aether.repository.RemoteRepository
 import org.junit.{Assert, Rule, Test}
 import org.junit.rules.TemporaryFolder
@@ -20,6 +21,22 @@ class LintTest extends AssertionsForJUnit {
       .replaceAll(": git version 2\\.[0-9]+\\.[0-9]+", ": git version 2.999.999")
       .replaceAll("[a-f0-9]{40}$", "a79849c3042ef887a5477d73d958814317675be1")
       .replaceAll("dependecies in [0-9]+ms \\([0-9]{4}-[0-9]{2}-[0-9]{2}\\)", "dependecies in 999ms (2000-01-01)")
+  }
+
+  @Test
+  def testGoogleFmt(): Unit = {
+    val file = temp.newFile("Demo.java")
+    Util.write(file,
+      """
+        |public class Demo {
+        |
+        |}
+        |""".stripMargin)
+    val tuple = Lint.doGoogleFmt(new Formatter(), file)
+    println(tuple)
+    if (tuple._1.isFailure) {
+      tuple._1.get
+    }
   }
 
   @Test
