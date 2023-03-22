@@ -69,7 +69,7 @@ class ProjectModTest extends AssertionsForJUnit {
     val repo = mock[Repo]
     val result = TermTest.withOutErr[Unit]()(sys => {
       val innerResult = ProjectMod.showDependencyUpdates(100, term,
-        OptsDepUp(),  () => "workingNExusUrl", rootDeps, selfDepsMod, repo, sys, printProgress = true, checkOnline = false)
+        OptsDepUp(), () => "workingNexusUrl", rootDeps, selfDepsMod, repo, sys, printProgress = true, checkOnline = false)
       Assert.assertEquals(Nil, innerResult)
     })
     Assert.assertEquals("", result.err)

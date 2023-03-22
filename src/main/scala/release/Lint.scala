@@ -61,7 +61,6 @@ object Lint {
         } else {
           out.println(info(s"    ${fiFine} NO shallow clone", color))
         }
-        
 
         if (false && System.getenv("CI_CONFIG_PATH") != null) {
           try {
@@ -110,7 +109,7 @@ object Lint {
           }
         }
 
-        out.println(info("--- -SNAPSHOTS @ maven ---", color))
+        out.println(info("--- -SNAPSHOTS in files @ maven ---", color))
         val rootFolderFiles = files.toSeq
         val snapshotsInFiles = PomChecker.getSnapshotsInFiles(sgit.lsFilesAbsolute().map(_.getAbsolutePath))
         if (snapshotsInFiles.nonEmpty) {
@@ -129,13 +128,22 @@ object Lint {
             warnExit.set(true)
             out.println(warn(s"    ${fiWarn} ${pomModTry.failed.get.getMessage}", color, limit = lineMax))
           }
-          out.println(info("--- .mvn @ maven ---", color))
-          out.println(info("    WIP", color))
-          out.println(info("--- check for snapshots @ maven ---", color))
-          out.println(info("    WIP", color))
-          out.println(info("--- suggest dependency updates / configurable @ maven ---", color))
-
           if (pomModTry.isSuccess) {
+            val pomMod = pomModTry.get
+            out.println(info("--- .mvn @ maven ---", color))
+            out.println(info("    WIP", color))
+            out.println(info("--- check for snapshots @ maven ---", color))
+            pomMod.listSnapshots.foreach(dep => {
+              out.println(warn("  found snapshot: " + dep.gav().formatted + s" ${fiWarn}", color, limit = lineMax))
+            })
+            out.println(info("--- check for preview releases @ maven ---", color))
+            pomMod.listDependeciesForCheck()
+              .filter(dep => ProjectMod.isUnwanted(dep.gav().simpleGav()))
+              .foreach(dep => {
+                out.println(warn("  found preview: " + dep.gav().formatted + s" ${fiWarn}", color, limit = lineMax))
+              })
+            out.println(info("    WIP", color))
+            out.println(info("--- suggest dependency updates / configurable @ maven ---", color))
 
             val releasenexusworkurl = System.getenv("RELEASE_NEXUS_WORK_URL")
             if (repo.workNexusUrl() == Repo.centralUrl) {
@@ -146,7 +154,8 @@ object Lint {
               out.println(info(s"    RELEASE_NEXUS_WORK_URL=${repo.workNexusUrl()}", color, limit = lineMax))
             }
             try {
-              pomModTry.get.showDependencyUpdates(120, Term.select("dumb", "lint", opts.simpleChars), opts.depUpOpts,
+
+              pomMod.showDependencyUpdates(120, Term.select("dumb", "lint", opts.simpleChars), opts.depUpOpts,
                 new Sys(null, out, err), printProgress = false) // TODO toggle
             } catch {
               case pce: PreconditionsException => {

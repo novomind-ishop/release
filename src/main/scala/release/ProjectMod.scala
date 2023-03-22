@@ -98,49 +98,59 @@ object ProjectMod extends LazyLogging {
 
   }
 
+  def isUnwanted(gav: Gav3): Boolean = {
+    isUnwantedLiteral(gav.version)
+  }
+
+  def isUnwantedLiteral(versionLiteral: String): Boolean = {
+    versionLiteral.endsWith("-SNAPSHOT") ||
+      versionLiteral.contains("patch") ||
+      versionLiteral.matches(".*[Mm][0-9]+$") ||
+      versionLiteral.matches(".*-[Mm][0-9]+-.*") ||
+      versionLiteral.matches(".*-ea-[0-9]+$") || // used by org.immutables
+      versionLiteral.matches(".*-rc[0-9]+-.*") || // com.fasterxml.jackson.module:jackson-module-scala_2.13:2.13.0-rc3-preview2
+      versionLiteral.matches(".*-rc-[0-9]+$") ||
+      versionLiteral.matches(".*-rc\\.[0-9]+$") || // nosqlunit-redis 1.0.0-rc.4, 1.0.0-rc.5
+      versionLiteral.matches(".*-rc$") || // org.mariadb.jdbc:mariadb-java-client:3.0.2-rc
+      versionLiteral.matches(".*-[0-9a-f]{7}$") || // used by org.typelevel:cats-effect
+      versionLiteral.matches(".*-g[0-9a-f]{9}$") || // used by coursier
+      versionLiteral.matches(".*-dev$") || // used by commons-discovery:commons-discovery
+      versionLiteral.matches(".*pr[0-9]+$") ||
+      versionLiteral.contains("alpha") ||
+      versionLiteral.contains("Alpha") ||
+      versionLiteral.contains("ALPHA") ||
+      versionLiteral.contains("BETA") ||
+      versionLiteral.contains("Beta") ||
+      versionLiteral.contains("beta") ||
+      versionLiteral.contains("brew") ||
+      versionLiteral.matches(".*b[0-9]+.*") ||
+      versionLiteral.matches(".*\\-beta$") ||
+      versionLiteral.matches(".*SP[0-9]+$") ||
+      versionLiteral.matches(".*-SNAP[0-9]+$") ||
+      versionLiteral.matches(".*[(sec|SEC)][0-9]+$") ||
+      versionLiteral.endsWith("-incubating") ||
+      versionLiteral.endsWith("SONATYPE") ||
+      versionLiteral.contains("jbossorg") ||
+      versionLiteral.contains("-atlassian-") ||
+      versionLiteral.matches(".*jenkins-[0-9]+$") ||
+      versionLiteral.contains("PFD") ||
+      versionLiteral.matches(".*\\.CR[0-9]+$") || // hibernate-validator
+      // .versionLiteral.contains("-cdh") || // Cloudera Distribution Including Apache Hadoop
+      versionLiteral.contains("darft") ||
+      versionLiteral.startsWith("2003") || // too old
+      versionLiteral.startsWith("2004") || // too old
+      versionLiteral.endsWith("0.11.0-sshd-314-1") || // org.apache.sshd:sshd-sftp
+      versionLiteral.endsWith("-NIGHTLY") || // org.scala-lang:scala3-library_3
+      versionLiteral.endsWith("does-not-exist") || // commons-logging:commons-logging:99.0-does-not-exist
+      versionLiteral.endsWith("-PUBLISHED-BY-MISTAKE") ||
+      versionLiteral.endsWith("230521-nf-execution") || // com.graphql-java:graphql-java
+      versionLiteral.matches("^[1-9][0-9]{3}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}.*$") // com.graphql-java:graphql-java
+
+  }
+
   def normalizeUnwantedVersions(gav: Gav3, inVersions: Seq[String]): Seq[String] = {
-    val out: Seq[String] = inVersions.filterNot(_.endsWith("-SNAPSHOT"))
-      .filterNot(_.contains("patch"))
-      .filterNot(_.matches(".*[Mm][0-9]+$"))
-      .filterNot(_.matches(".*-[Mm][0-9]+-.*"))
-      .filterNot(_.matches(".*-ea-[0-9]+$")) // used by org.immutables
-      .filterNot(_.matches(".*-rc[0-9]+-.*")) // com.fasterxml.jackson.module:jackson-module-scala_2.13:2.13.0-rc3-preview2
-      .filterNot(_.matches(".*-rc-[0-9]+$"))
-      .filterNot(_.matches(".*-rc\\.[0-9]+$")) // nosqlunit-redis 1.0.0-rc.4, 1.0.0-rc.5
-      .filterNot(_.matches(".*-rc$")) // org.mariadb.jdbc:mariadb-java-client:3.0.2-rc
-      .filterNot(_.matches(".*-[0-9a-f]{7}$")) // used by org.typelevel:cats-effect
-      .filterNot(_.matches(".*-g[0-9a-f]{9}$")) // used by coursier
-      .filterNot(_.matches(".*-dev$")) // used by commons-discovery:commons-discovery
-      .filterNot(_.matches(".*pr[0-9]+$"))
-      .filterNot(_.contains("alpha"))
-      .filterNot(_.contains("Alpha"))
-      .filterNot(_.contains("ALPHA"))
-      .filterNot(_.contains("BETA"))
-      .filterNot(_.contains("Beta"))
-      .filterNot(_.contains("beta"))
-      .filterNot(_.contains("brew"))
-      .filterNot(_.matches(".*b[0-9]+.*"))
-      .filterNot(_.matches(".*\\-beta$"))
-      .filterNot(_.matches(".*SP[0-9]+$"))
-      .filterNot(_.matches(".*-SNAP[0-9]+$"))
-      .filterNot(_.matches(".*[(sec|SEC)][0-9]+$"))
-      .filterNot(_.endsWith("-incubating"))
-      .filterNot(_.endsWith("SONATYPE"))
-      .filterNot(_.contains("jbossorg"))
-      .filterNot(_.contains("-atlassian-"))
-      .filterNot(_.matches(".*jenkins-[0-9]+$"))
-      .filterNot(_.contains("PFD"))
-      .filterNot(_.matches(".*\\.CR[0-9]+$")) // hibernate-validator
-      // .filterNot(_.contains("-cdh")) // Cloudera Distribution Including Apache Hadoop
-      .filterNot(_.contains("darft"))
-      .filterNot(_.startsWith("2003")) // too old
-      .filterNot(_.startsWith("2004")) // too old
-      .filterNot(_.endsWith("0.11.0-sshd-314-1")) // org.apache.sshd:sshd-sftp
-      .filterNot(_.endsWith("-NIGHTLY")) // org.scala-lang:scala3-library_3
-      .filterNot(_.endsWith("does-not-exist")) // commons-logging:commons-logging:99.0-does-not-exist
-      .filterNot(_.endsWith("-PUBLISHED-BY-MISTAKE"))
-      .filterNot(_.endsWith("230521-nf-execution")) // com.graphql-java:graphql-java
-      .filterNot(_.matches("^[1-9][0-9]{3}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}.*$")) // com.graphql-java:graphql-java
+    val out: Seq[String] = inVersions
+      .filterNot(isUnwantedLiteral)
 
     val result = if (inVersions.contains(gav.version)) {
       (Seq(gav.version) ++ out).distinct
@@ -629,7 +639,7 @@ trait ProjectMod extends LazyLogging {
 
   def isShop: Boolean
 
-  def selfDepsModGavs():Seq[Gav3] = {
+  def selfDepsModGavs(): Seq[Gav3] = {
     selfDepsMod.map(_.gav().simpleGav().copy(version = "")).distinct
   }
 

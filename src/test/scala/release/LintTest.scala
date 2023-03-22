@@ -2,7 +2,7 @@ package release
 
 import com.google.googlejavaformat.java.Formatter
 import org.eclipse.aether.repository.RemoteRepository
-import org.junit.{Assert, Rule, Test}
+import org.junit.{Assert, Ignore, Rule, Test}
 import org.junit.rules.TemporaryFolder
 import org.mockito.{ArgumentMatchers, Mockito}
 import org.scalatestplus.junit.AssertionsForJUnit
@@ -56,12 +56,12 @@ class LintTest extends AssertionsForJUnit {
 
   @Test
   def testRunMvnSimpleShallow(): Unit = {
-    val fileA = temp.newFolder("release-lint-mvn-simple-init")
+    val remote = temp.newFolder("release-lint-mvn-simple-init")
     val fileB = temp.newFolder("release-lint-mvn-simple")
-    val gitA = Sgit.init(fileA, SgitTest.hasCommitMsg)
+    val gitA = Sgit.init(remote, SgitTest.hasCommitMsg)
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
-    val any = new File(fileA, "any.xml")
+    val any = new File(remote, "any.xml")
     Util.write(any,
       """some
         |""".stripMargin.linesIterator.toSeq)
@@ -72,7 +72,7 @@ class LintTest extends AssertionsForJUnit {
         |""".stripMargin.linesIterator.toSeq)
     gitA.add(any)
     gitA.commitAll("blub")
-    val gitB = Sgit.doCloneRemote(fileA.toURI.toString.replaceFirst("file:/", "file:///"), fileB, depth = 1)
+    val gitB = Sgit.doCloneRemote(remote.toURI.toString.replaceFirst("file:/", "file:///"), fileB, depth = 1)
 
     val expected =
       """
@@ -94,7 +94,7 @@ class LintTest extends AssertionsForJUnit {
         |[INFO] --- list-remotes @ git ---
         |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(fetch))
         |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(push))
-        |[INFO] --- -SNAPSHOTS @ maven ---
+        |[INFO] --- -SNAPSHOTS in files @ maven ---
         |[INFO]     ✅ NO SNAPSHOTS in other files found
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
@@ -108,6 +108,172 @@ class LintTest extends AssertionsForJUnit {
 
   }
 
+  @Test
+  def testValid(): Unit = {
+
+    val remote = temp.newFolder("release-lint-mvn-simple-init")
+    val fileB = temp.newFolder("release-lint-mvn-simple")
+    val gitA = Sgit.init(remote, SgitTest.hasCommitMsg)
+    gitA.configSetLocal("user.email", "you@example.com")
+    gitA.configSetLocal("user.name", "Your Name")
+    val pom = new File(remote, "pom.xml")
+    Util.write(pom,
+      """<?xml version="1.0" encoding="UTF-8"?>
+        |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+        |  <modelVersion>4.0.0</modelVersion>
+        |  <groupId>com.novomind.ishop.any</groupId>
+        |  <artifactId>any</artifactId>
+        |  <version>0.11-SNAPSHOT</version>
+        |  <dependencies>
+        |    <dependency>
+        |      <groupId>org.springframework</groupId>
+        |      <artifactId>spring-context</artifactId>
+        |      <version>1.0.0</version>
+        |    </dependency>
+        |  </dependencies>
+        |</project>
+        |""".stripMargin.linesIterator.toSeq)
+    gitA.add(pom)
+    gitA.commitAll("bla")
+    val gitB = Sgit.doCloneRemote(remote.toURI.toString.replaceFirst("file:/", "file:///"), fileB)
+
+    val expected =
+      """
+        |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO] --- check clone config / no shallow clone @ git ---
+        |[INFO]     ✅ NO shallow clone
+        |[INFO] --- .gitattributes @ git ---
+        |[INFO] --- .gitignore @ git ---
+        |[INFO] --- list-remotes @ git ---
+        |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(fetch))
+        |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(push))
+        |[INFO] --- -SNAPSHOTS in files @ maven ---
+        |[INFO]     ✅ NO SNAPSHOTS in other files found
+        |[INFO]     WIP
+        |[INFO] --- .mvn @ maven ---
+        |[INFO]     WIP
+        |[INFO] --- check for snapshots @ maven ---
+        |[INFO] --- check for preview releases @ maven ---
+        |[INFO]     WIP
+        |[INFO] --- suggest dependency updates / configurable @ maven ---
+        |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org
+        |I: checking dependecies against nexus - please wait
+        |
+        |I: checked 1 dependecies in 999ms (2000-01-01)
+        |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
+        |╠═╦═ org.springframework:spring-context:1.0.0
+        |║ ╚═══ 1.0.1, .., 1.2.8, 1.2.9
+        |║
+        |term: Term(dumb,lint,false)
+        |[INFO]     WIP
+        |[INFO] --- dep.tree @ maven ---
+        |[INFO]     WIP
+        |
+        |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
+        |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
+        |[INFO] ----------------------------[ end of lint ]----------------------------""".stripMargin
+    TermTest.testSys(Nil, expected, Nil, outFn = outT, expectedExitCode = 0)(sys => {
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+      val mockRepo = Mockito.mock(classOf[Repo])
+      Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org")
+      Mockito.when(mockRepo.isReachable(false)).thenReturn((true, "200"))
+      Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+        .thenReturn(None)
+      val mockUpdates = Seq(
+        "1.0.0", "1.0.1", "1.0.2", "1.2.8", "1.2.9",
+      )
+      Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+        .thenReturn(mockUpdates)
+      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, fileB))
+    })
+
+  }
+
+  @Ignore // TODO later
+  @Test
+  def testFailOldMilestone(): Unit = {
+
+    val remote = temp.newFolder("release-lint-mvn-simple-init")
+    val fileB = temp.newFolder("release-lint-mvn-simple")
+    val gitA = Sgit.init(remote, SgitTest.hasCommitMsg)
+    gitA.configSetLocal("user.email", "you@example.com")
+    gitA.configSetLocal("user.name", "Your Name")
+    val pom = new File(remote, "pom.xml")
+    Util.write(pom,
+      """<?xml version="1.0" encoding="UTF-8"?>
+        |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+        |  <modelVersion>4.0.0</modelVersion>
+        |  <groupId>com.novomind.ishop.any</groupId>
+        |  <artifactId>any</artifactId>
+        |  <version>0.11-SNAPSHOT</version>
+        |  <dependencies>
+        |    <dependency>
+        |      <groupId>org.springframework</groupId>
+        |      <artifactId>spring-context</artifactId>
+        |      <version>1.0.0-M1</version>
+        |    </dependency>
+        |  </dependencies>
+        |</project>
+        |""".stripMargin.linesIterator.toSeq)
+    gitA.add(pom)
+    gitA.commitAll("bla")
+    val gitB = Sgit.doCloneRemote(remote.toURI.toString.replaceFirst("file:/", "file:///"), fileB)
+
+    val expected =
+      """
+        |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO] --- check clone config / no shallow clone @ git ---
+        |[INFO]     ✅ NO shallow clone
+        |[INFO] --- .gitattributes @ git ---
+        |[INFO] --- .gitignore @ git ---
+        |[INFO] --- list-remotes @ git ---
+        |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(fetch))
+        |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(push))
+        |[INFO] --- -SNAPSHOTS in files @ maven ---
+        |[INFO]     ✅ NO SNAPSHOTS in other files found
+        |[INFO]     WIP
+        |[INFO] --- .mvn @ maven ---
+        |[INFO]     WIP
+        |[INFO] --- check for snapshots @ maven ---
+        |[INFO]     WIP
+        |[INFO] --- suggest dependency updates / configurable @ maven ---
+        |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org
+        |I: checking dependecies against nexus - please wait
+        |
+        |I: checked 1 dependecies in 999ms (2000-01-01)
+        |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
+        |╠═╦═ org.springframework:spring-context:1.0.0-M1
+        |║ ╚═══ 1.0.0, .., 1.2.8, 1.2.9
+        |║
+        |term: Term(dumb,lint,false)
+        |[INFO]     WIP
+        |[INFO] --- dep.tree @ maven ---
+        |[INFO]     WIP
+        |
+        |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
+        |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
+        |[INFO] ----------------------------[ end of lint ]----------------------------
+        |[ERROR] exit 42 - because lint found warnings, see above ❌""".stripMargin
+    TermTest.testSys(Nil, expected, Nil, outFn = outT, expectedExitCode = 42)(sys => {
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+      val mockRepo = Mockito.mock(classOf[Repo])
+      Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org")
+      Mockito.when(mockRepo.isReachable(false)).thenReturn((true, "200"))
+      Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+        .thenReturn(None)
+      val mockUpdates = Seq(
+        "1.0.0", "1.0.1", "1.0.2", "1.2.8", "1.2.9",
+      )
+      Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+        .thenReturn(mockUpdates)
+      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, fileB))
+    })
+
+  }
   @Test
   def testRunMvnSimple(): Unit = {
     val file = temp.newFolder("release-lint-mvn-simple")
@@ -150,13 +316,14 @@ class LintTest extends AssertionsForJUnit {
         |[INFO] --- list-remotes @ git ---
         |[WARNING]  NO remotes found 😬
         |[WARNING]  % git remote -v # returns nothing
-        |[INFO] --- -SNAPSHOTS @ maven ---
+        |[INFO] --- -SNAPSHOTS in files @ maven ---
         |[WARNING]   found snapshot in: notes.md 😬
         |              This is the documentation for 0.11-SNAPSHOT
         |[INFO]     WIP
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- check for snapshots @ maven ---
+        |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬
@@ -239,15 +406,10 @@ class LintTest extends AssertionsForJUnit {
         |[INFO] --- list-remotes @ git ---
         |[WARNING]  NO remotes found 😬
         |[WARNING]  % git remote -v # returns nothing
-        |[INFO] --- -SNAPSHOTS @ maven ---
+        |[INFO] --- -SNAPSHOTS in files @ maven ---
         |[WARNING]   found snapshot in: notes.md 😬
         |              This is the documentation for 0.11-SNAPSHOT
         |[WARNING]     😬 No property replacement found in pom.xmls for: "${non-existing}" - define properties where they are required and not in parent pom.xml. Input is Nil.
-        |[INFO] --- .mvn @ maven ---
-        |[INFO]     WIP
-        |[INFO] --- check for snapshots @ maven ---
-        |[INFO]     WIP
-        |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[WARNING]     skipped because of previous problems 😬
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP

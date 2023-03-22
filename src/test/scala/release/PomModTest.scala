@@ -190,6 +190,50 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testVersionProjectVersion(): Unit = {
+    val k = "{project.version}"
+    val srcPoms: File = pomTestFile(temp, document(<project>
+      <modelVersion>4.0.0</modelVersion>
+      <groupId>com.novomind.ishop.shops.any</groupId>
+      <artifactId>any-projects</artifactId>
+      <version>27.0.0-SNAPSHOT</version>
+      <packaging>pom</packaging>
+
+      <modules>
+        <module>any-erp</module>
+      </modules>
+      <dependencies>
+        <dependency>
+          <groupId>org.glassfish.jaxb</groupId>
+          <artifactId>jaxb-core</artifactId>
+          <version>${k}</version>
+        </dependency>
+      </dependencies>
+    </project>
+    )).sub("any-erp", document(<project>
+      <modelVersion>4.0.0</modelVersion>
+
+      <parent>
+        <groupId>com.novomind.ishop.shops.any</groupId>
+        <artifactId>any-projects</artifactId>
+        <version>28.0.0-SNAPSHOT</version>
+        <relativePath>..</relativePath>
+      </parent>
+
+      <artifactId>any-erp</artifactId>
+      <name>any-erp</name>
+      <version>${k}</version>
+    </project>
+    )).create()
+
+    TestHelper.assertException("More then one Version found in your pom.xmls: " +
+      "Dep(SelfRef(any-erp:${project.version}),com.novomind.ishop.shops.any,any-erp,${project.version},,,,) (27.0.0-SNAPSHOT, ${project.version})",
+      classOf[IllegalArgumentException], () => {
+        PomModTest.withRepoForTests(srcPoms, repo)
+      })
+  }
+
+  @Test
   def writeSelf_sub_sub_tree(): Unit = {
     // GIVEN
     val srcPoms = TestHelper.testResources("sub-sub-tree")
