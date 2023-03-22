@@ -625,13 +625,17 @@ trait ProjectMod extends LazyLogging {
     in
   })
 
-  private[release] def listDependeciesForCheck(): Seq[Dep] = replacedVersionProperties(listDependecies) ++
-    listPluginDependencies.map(_.fakeDep())
+  private[release] def listDependeciesForCheck(): Seq[Dep] = {
+    val gavs = selfDepsMod.map(_.gav())
+    (replacedVersionProperties(listDependecies) ++
+      listPluginDependencies.map(_.fakeDep()))
       .filterNot(_.version == "") // managed plugins are okay
+      .filterNot(dep => gavs.contains(dep.gav()))
       .map(in => in.groupId match {
         case "" => in.copy(groupId = "org.apache.maven.plugins")
         case _ => in
-      })
+      }).distinctBy(_.gav().simpleGav())
+  }
 
   def isNoShop: Boolean = {
     !isShop
@@ -643,7 +647,7 @@ trait ProjectMod extends LazyLogging {
     selfDepsMod.map(_.gav().simpleGav().copy(version = "")).distinct
   }
 
-  def selfDepsMod: Seq[Dep]
+  val selfDepsMod: Seq[Dep]
 
   def suggestReleaseVersion(branchNames: Seq[String] = Nil, tagNames: Seq[String] = Nil, increment: Option[Increment] = None): Seq[String]
 

@@ -35,7 +35,7 @@ case class SbtMod(file: File, repo: Repo, opts: Opts) extends ProjectMod {
 
   def isShop: Boolean = false
 
-  def selfDepsMod: Seq[ProjectMod.Dep] = Nil // TODO
+  val selfDepsMod: Seq[ProjectMod.Dep] = Nil // TODO
 
   def suggestReleaseVersion(branchNames: Seq[String], tagNames: Seq[String], increment:Option[Increment] = None): Seq[String] = throw new UnsupportedOperationException()
 

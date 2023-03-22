@@ -4,10 +4,11 @@ import org.junit.{Assert, Test}
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.MockitoSugar._
 import org.scalatestplus.junit.AssertionsForJUnit
-import release.ProjectMod.{Gav, GavWithRef, SelfRef}
+import release.ProjectMod.{Dep, Gav, Gav3, GavWithRef, SelfRef}
 import release.SbtModTest.d
 import release.Starter.OptsDepUp
 
+import java.io.File
 import java.time.{Duration, ZonedDateTime}
 
 class ProjectModTest extends AssertionsForJUnit {
@@ -39,6 +40,69 @@ class ProjectModTest extends AssertionsForJUnit {
       Assert.assertEquals(Seq(scala2, scala3), innerResult)
     })
     Assert.assertEquals("", result.err)
+  }
+
+  class MockMod extends ProjectMod {
+    override val file: File = new File("")
+    override val repo: Repo = null
+    override val opts: Starter.Opts = Starter.Opts()
+    override val selfVersion: String = "???"
+    override val listDependecies: Seq[ProjectMod.Dep] = Nil
+    override val listPluginDependencies: Seq[ProjectMod.PluginDep] = Nil
+    override val listProperties: Map[String, String] = Map("undef" -> "undef")
+
+    override def isShop: Boolean = false
+
+    override val skipPropertyReplacement: Boolean = false
+
+    override val selfDepsMod: Seq[ProjectMod.Dep] = Nil
+
+    override def suggestReleaseVersion(branchNames: Seq[String], tagNames: Seq[String], increment: Option[Increment]): Seq[String] = Nil
+
+    override def suggestNextRelease(releaseVersion: String): String = "???"
+
+    override def listSnapshotsDistinct: Seq[ProjectMod.Dep] = Nil
+
+    override def writeTo(targetFolder: File): Unit = {
+
+    }
+
+    override def changeVersion(newVersion: String): Unit = {
+
+    }
+
+    override def changeDependecyVersion(patch: Seq[(ProjectMod.Gav3, String)]): Unit = {
+
+    }
+
+    override def depTreeFilenameList(): Seq[String] = Nil
+  }
+
+  @Test
+  def testListDependeciesForCheck_empty(): Unit = {
+    val testee = new MockMod()
+    Assert.assertEquals(Nil, testee.listDependeciesForCheck())
+  }
+
+  @Test
+  def testListDependeciesForCheck(): Unit = {
+    val testee = new MockMod() {
+
+      override val selfDepsMod: Seq[ProjectMod.Dep] = Seq(
+        Dep(SelfRef("ou"), "gg", "a", "v", "", "", "", ""),
+      )
+      override val listDependecies: Seq[ProjectMod.Dep] = Seq(
+        Dep(SelfRef.undef, "g", "a", "v", "", "", "", ""),
+        Dep(SelfRef.undef, "g", "a", "v", "", "runtime", "", ""),
+          Dep(SelfRef.undef, "g", "a", "v", "", "", "", ""),
+        Dep(SelfRef("bert"), "g", "a", "v", "", "", "", ""),
+        Dep(SelfRef("se"), "gg", "a", "v", "", "", "", ""),
+      )
+    }
+    Assert.assertEquals(Seq(
+
+      Dep(SelfRef.undef, "g", "a", "v", "", "", "", "")
+    ), testee.listDependeciesForCheck())
   }
 
   @Test

@@ -60,6 +60,25 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
     allPomsDocs.map(PomMod.selfDep(depU))
   }
 
+  val selfDepsMod: Seq[Dep] = {
+    val selfDeps: Seq[Dep] = listSelf ++
+      listSelf.map(_.copy(scope = "test")) ++
+      listSelf.map(_.copy(scope = "test", classifier = "tests")) ++
+      listSelf.map(_.copy(scope = "test", classifier = "tests", packaging = "")) ++
+      listSelf.map(_.copy(scope = "test", packaging = "")) ++
+      listSelf.map(_.copy(classifier = "tests")) ++
+      listSelf.map(_.copy(classifier = "tests", packaging = "")) ++
+      listSelf.map(_.copy(classifier = "sources")) ++ // for bo-client
+      listSelf.map(_.copy(classifier = "", typeN = "war", scope = "runtime", packaging = "")) ++ // for bo-client
+      listSelf.map(_.copy(packaging = ""))
+    val pomMods = selfDeps.map(_.copy(typeN = "pom"))
+    val pomModsImport = pomMods.map(_.copy(scope = "import"))
+    (pomMods ++ pomModsImport ++ selfDeps)
+      .map(_.copy(pomRef = SelfRef.undef))
+      .distinct
+      .sortBy(_.toString)
+  }
+
   private val rootPomGav: Seq[Gav] = selfDepsMod.map(_.gav().copy(packageing = "")).distinct
 
   val selfVersion: String = {
@@ -354,25 +373,6 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
       })
   }
 
-  def selfDepsMod: Seq[Dep] = {
-    val selfDeps: Seq[Dep] = listSelf ++
-      listSelf.map(_.copy(scope = "test")) ++
-      listSelf.map(_.copy(scope = "test", classifier = "tests")) ++
-      listSelf.map(_.copy(scope = "test", classifier = "tests", packaging = "")) ++
-      listSelf.map(_.copy(scope = "test", packaging = "")) ++
-      listSelf.map(_.copy(classifier = "tests")) ++
-      listSelf.map(_.copy(classifier = "tests", packaging = "")) ++
-      listSelf.map(_.copy(classifier = "sources")) ++ // for bo-client
-      listSelf.map(_.copy(classifier = "", typeN = "war", scope = "runtime", packaging = "")) ++ // for bo-client
-      listSelf.map(_.copy(packaging = ""))
-    val pomMods = selfDeps.map(_.copy(typeN = "pom"))
-    val pomModsImport = pomMods.map(_.copy(scope = "import"))
-    (pomMods ++ pomModsImport ++ selfDeps)
-      .map(_.copy(pomRef = SelfRef.undef))
-      .distinct
-      .sortBy(_.toString)
-  }
-
   def isShop: Boolean = {
     val filtered = listSelf.filterNot(_.packaging == "pom")
     filtered.map(_.groupId).contains("com.novomind.ishop.shops")
@@ -386,17 +386,14 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
 
   def listSnapshots: Seq[Dep] = {
     val deps = listDependecies
-    val selfMods = selfDepsMod
     val filteredDeps = deps.filterNot(dep => {
       val mod = dep.copy(pomRef = SelfRef.undef)
       //      if (mod.toString.contains("runtime")) {
       //        println("chech dep: " + mod)
       //        println("inn " + selfMods.filter(_.toString.contains("runtime")))
       //      }
-      selfMods.contains(mod)
-    }
-
-    )
+      selfDepsMod.contains(mod)
+    })
 
     val replacedParams = replacedVersionProperties(filteredDeps)
     val onlySnapshots = replacedParams.filter(_.version.contains("SNAPSHOT"))
@@ -503,7 +500,7 @@ object PomMod {
     try {
       Success(withRepo(file, opts, repo, skipPropertyReplacement, withSubPoms))
     } catch {
-      case e:Exception => Failure(e)
+      case e: Exception => Failure(e)
     }
   }
 
