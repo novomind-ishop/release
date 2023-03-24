@@ -163,6 +163,8 @@ object Term {
 
   def info(text: String, useColor: Boolean, limit: Int = 82 - 4): String = colorB(34, "INFO", useColor) + checkedLength(limit)(text)
 
+  def warnSoft(text: String, useColor: Boolean, limit: Int = 82 - 7): String = colorB(34, "WARNING", useColor) + checkedLength(limit)(text)
+
   def warn(text: String, useColor: Boolean, limit: Int = 82 - 7): String = colorB(33, "WARNING", useColor) + checkedLength(limit)(text)
 
   def error(text: String, useColor: Boolean, limit: Int = 82 - 5): String = colorB(31, "ERROR", useColor) + checkedLength(limit)(text)

@@ -116,7 +116,7 @@ object Lint {
         val snapshotsInFiles = PomChecker.getSnapshotsInFiles(sgit.lsFilesAbsolute().map(_.getAbsolutePath))
         if (snapshotsInFiles.nonEmpty) {
           snapshotsInFiles.foreach(f => {
-            out.println(warn("  found snapshot in: " + file.toPath.relativize(f._3.normalize()) + s" ${fiWarn}\n" +
+            out.println(warnSoft("  found snapshot in: " + file.toPath.relativize(f._3.normalize()) + s" ${fiWarn}\n" +
               "              " + f._2, color, limit = lineMax))
           })
         } else {
@@ -139,14 +139,14 @@ object Lint {
               .filter(dep => ProjectMod.isUnwanted(dep.gav().simpleGav()))
               .filter(_.version.endsWith("-SNAPSHOT"))
               .foreach(dep => {
-                out.println(warn("  found snapshot: " + dep.gav().formatted + s" ${fiWarn}", color, limit = lineMax))
+                out.println(warnSoft("  found snapshot: " + dep.gav().formatted + s" ${fiWarn}", color, limit = lineMax))
               })
             out.println(info("--- check for preview releases @ maven ---", color))
             pomMod.listGavsForCheck()
               .filter(dep => ProjectMod.isUnwanted(dep.gav().simpleGav()))
               .filterNot(_.version.endsWith("-SNAPSHOT"))
               .foreach(dep => {
-                out.println(warn("  found preview: " + dep.gav().formatted + s" ${fiWarn}", color, limit = lineMax))
+                out.println(warnSoft("  found preview: " + dep.gav().formatted + s" ${fiWarn}", color, limit = lineMax))
               })
             out.println(info("    WIP", color))
             out.println(info("--- suggest dependency updates / configurable @ maven ---", color))
