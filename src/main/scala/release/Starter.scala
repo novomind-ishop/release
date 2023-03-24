@@ -694,8 +694,10 @@ object Starter extends LazyLogging {
 
     }
     if (opts.suggestDockerTag) {
-      out.println("latest-release")
-      return 0
+
+      val result = SuggestDockerTag.suggest(System.getenv("CI_COMMIT_REF_NAME"))
+      out.println(result._1)
+      return result._2
     }
     if (opts.lintOpts.doLint) {
       return Lint.run(out, err, opts, new Repo(opts))
