@@ -246,7 +246,7 @@ object Starter extends LazyLogging {
                   useJlineInput: Boolean = true, skipProperties: Seq[String] = Nil,
                   colors: Boolean = true, useDefaults: Boolean = false, versionIncrement: Option[Increment] = None,
                   lintOpts: LintOpts = LintOpts(), checkOverlapping: Boolean = true,
-                  showSelf: Boolean = false
+                  showSelf: Boolean = false, showStartupDone: Boolean = true, suggestDockerTag: Boolean = false
                  )
 
   @tailrec
@@ -257,7 +257,7 @@ object Starter extends LazyLogging {
       case "--help" :: tail => argsRead(tail, inOpt.copy(showHelp = true))
       case "-h" :: tail => argsRead(tail, inOpt.copy(showHelp = true))
       case "--replace" :: tail => argsRead(tail, inOpt) // handled by shell
-      case "--show-update-cmd" :: tail => argsRead(tail, inOpt.copy(showUpdateCmd = true))
+      case "--show-update-cmd" :: tail => argsRead(tail, inOpt.copy(showUpdateCmd = true, showStartupDone = false))
       case "--no-gerrit" :: tail => argsRead(tail, inOpt.copy(useGerrit = false))
       case "--no-update" :: tail => argsRead(tail, inOpt.copy(doUpdate = false))
       case "--defaults" :: tail => argsRead(tail, inOpt.copy(useDefaults = true))
@@ -271,10 +271,10 @@ object Starter extends LazyLogging {
       case "--demo-chars" :: _ => showDemoChars(inOpt)
       case "--skip-property" :: value :: tail => argsRead(tail, inOpt.copy(skipProperties = inOpt.skipProperties ++ Seq(value)))
       // CMDs
-      case "lint" :: tail => argsRead(tail, inOpt.copy(lintOpts = inOpt.lintOpts.copy(doLint = true)))
+      case "lint" :: tail => argsRead(tail, inOpt.copy(lintOpts = inOpt.lintOpts.copy(doLint = true), showStartupDone = false))
       case "showSelf" :: tail => argsRead(tail, inOpt.copy(showSelf = true))
       case "apidiff" :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(showApiDiff = true)))
-
+      case "suggest-docker-tag" :: tail => argsRead(tail, inOpt.copy(suggestDockerTag = true))
       case "versionSet" :: value :: _ => argsRead(Nil, inOpt.copy(versionSet = Some(value)))
       case "shopGASet" :: value :: _ => argsRead(Nil, inOpt.copy(shopGA = Some(value)))
       case "nothing-but-create-feature-branch" :: _ => argsRead(Nil, inOpt.copy(createFeature = true))
@@ -584,7 +584,7 @@ object Starter extends LazyLogging {
     val otherArgs = argSeq.drop(6).filter(_ != null).map(_.trim).toList
 
     val opts = argsRead(otherArgs, Opts())
-    if (!opts.showUpdateCmd) {
+    if (opts.showStartupDone) {
       out.println(". done")
     }
     val config = ReleaseConfig.default(opts.useDefaults)
@@ -673,13 +673,12 @@ object Starter extends LazyLogging {
       "(cd " + updatePath + " && git rebase -q --autostash || git reset --hard @{upstream} && cd -)"
     }
 
-    val showUpdateCmd = opts.showUpdateCmd
     val createFeatureBranch = opts.createFeature
     val verifyGerrit = opts.useGerrit
     val versionSetMode = opts.versionSet.isDefined
     val shopGASetMode = opts.shopGA.isDefined
 
-    if (showUpdateCmd) {
+    if (opts.showUpdateCmd) {
       out.println(updateCmd)
       return 0
     } else if (opts.doUpdate && releaseToolGit.tryFetchAll().isSuccess) {
@@ -694,13 +693,16 @@ object Starter extends LazyLogging {
       }
 
     }
-
+    if (opts.suggestDockerTag) {
+      out.println("latest-release")
+      return 0
+    }
     if (opts.lintOpts.doLint) {
       return Lint.run(out, err, opts, new Repo(opts))
     }
     if (opts.showSelf) {
       val file: File = new File(".").getAbsoluteFile
-      val pomModTry = PomMod.withRepoTry(file, opts,  new Repo(opts))
+      val pomModTry = PomMod.withRepoTry(file, opts, new Repo(opts))
       pomModTry.get.selfDepsModGavs().foreach(gav => out.println(gav.formatted))
       return 0
     }

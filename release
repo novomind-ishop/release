@@ -6,8 +6,14 @@ trace_setup() {
   echo "$(date '+%H:%M:%S.000') shell-script - $1" >> "${HOME}/.release.log"
 }
 trace_setup "init scripting"
-echo -n "I: Starting release vm .."
 argLine="${*:-}"
+
+if tty -s; then
+  echo -n "I: Starting release vm interactive .." 1>&2
+else
+  echo -n "I: Starting release vm non interactive .." 1>&2
+fi
+
 # TODO test java installation # java -v
 if [[ -n $(echo "${argLine}" | egrep -- "--replace") ]]; then
   pushd .  > /dev/null

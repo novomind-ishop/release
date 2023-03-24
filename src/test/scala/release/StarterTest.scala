@@ -202,7 +202,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
 
   @Test
   def testArgRead_updateCmd(): Unit = {
-    Assert.assertEquals(Opts(showUpdateCmd = true), Starter.argsRead(Seq("--show-update-cmd"), Opts()))
+    Assert.assertEquals(Opts(showUpdateCmd = true, showStartupDone = false), Starter.argsRead(Seq("--show-update-cmd"), Opts()))
   }
 
   @Test
