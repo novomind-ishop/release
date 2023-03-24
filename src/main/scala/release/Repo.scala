@@ -63,10 +63,9 @@ class Repo(opts: Opts) extends LazyLogging {
     val httpclient = HttpClients.custom()
       .setDefaultRequestConfig(config)
       .build()
-    val httpGet = new HttpGet(workNexusUrl())
     var response: CloseableHttpResponse = null
     val code: Int = try {
-
+      val httpGet = new HttpGet(workNexusUrl())
       response = httpclient.execute(httpGet)
       response.getStatusLine.getStatusCode
     } catch {
@@ -105,7 +104,8 @@ class Repo(opts: Opts) extends LazyLogging {
 }
 
 object Repo extends LazyLogging {
-  case class ReachableResult(online:Boolean, msg:String)
+  case class ReachableResult(online: Boolean, msg: String)
+
   logger.debug("init aether to suppress replayed slf4j logging - See also http://www.slf4j.org/codes.html#replay")
 
   val centralUrl = "https://repo1.maven.org/maven2/"

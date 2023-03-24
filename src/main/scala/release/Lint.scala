@@ -33,10 +33,12 @@ object Lint {
       // https://polaris.docs.fairwinds.com/infrastructure-as-code/
 
       val warnExitCode = 42
+      val failExitCode = 2
       val lineMax = 100_000
       // TODO print $HOME
       println(info("    " + file.getAbsolutePath, color, lineMax))
       val warnExit = new AtomicBoolean(false)
+      val failExit = new AtomicBoolean(false)
       val files = file.listFiles()
       if (files == null || files.isEmpty) {
         out.println(error(s"E: NO FILES FOUND in ${file.getAbsolutePath}", color))
@@ -166,6 +168,10 @@ object Lint {
                 out.println(warn(pce.getMessage + s"${fiWarn}", color, limit = lineMax))
                 warnExit.set(true)
               }
+              case pce: Exception => {
+                out.println(error(pce.getMessage + s"${fiWarn}", color, limit = lineMax))
+                failExit.set(true)
+              }
             }
 
             out.println(info("    WIP", color))
@@ -189,9 +195,11 @@ object Lint {
           ""
         }
         out.println(info(center("[ end of lint" + timerResult + " ]"), color))
-
-        if (warnExit.get()) {
-          out.println(error(s"exit 42 - because lint found warnings, see above ${fiError}", color))
+        if (failExit.get()) {
+          out.println(error(s"exit ${failExitCode} - because lint found errors, see above ${fiError}", color))
+          return failExitCode
+        } else if (warnExit.get()) {
+          out.println(warn(s"exit ${warnExitCode} - because lint found warnings, see above ${fiError}", color))
           return warnExitCode
         } else {
           return 0

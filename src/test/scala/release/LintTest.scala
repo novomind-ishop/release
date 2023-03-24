@@ -101,7 +101,7 @@ class LintTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/any.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
-        |[ERROR] exit 42 - because lint found warnings, see above ❌""".stripMargin
+        |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
     TermTest.testSys(Nil, expected, Nil, outFn = outT)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       Assert.assertEquals(42, Lint.run(sys.out, sys.err, opts, new Repo(opts), fileB))
@@ -351,7 +351,7 @@ class LintTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/notes.md
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
-        |[ERROR] exit 42 - because lint found warnings, see above ❌""".stripMargin
+        |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
     TermTest.testSys(Nil, expected, Nil, outFn = outT, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
@@ -424,7 +424,7 @@ class LintTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple-fail/notes.md
         |/tmp/junit-REPLACED/release-lint-mvn-simple-fail/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
-        |[ERROR] exit 42 - because lint found warnings, see above ❌""".stripMargin
+        |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
     TermTest.testSys(Nil, expected, Nil, outFn = outT, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
