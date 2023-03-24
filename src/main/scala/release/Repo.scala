@@ -54,7 +54,7 @@ class Repo(opts: Opts) extends LazyLogging {
   def depDate(groupId: String, artifactId: String, version: String) =
     Repo.depDate(workNexus)(groupId, artifactId, version)
 
-  private[release] def isReachable(showTrace: Boolean = true): (Boolean, String) = {
+  private[release] def isReachable(showTrace: Boolean = true): Repo.ReachableResult = {
     val config = RequestConfig.custom()
       .setConnectTimeout(1000)
       .setConnectionRequestTimeout(1000)
@@ -74,7 +74,7 @@ class Repo(opts: Opts) extends LazyLogging {
         if (showTrace) {
           any.printStackTrace()
         }
-        return (false, any.getMessage)
+        return Repo.ReachableResult(false, any.getClass.getCanonicalName + ": " + any.getMessage)
       }
     } finally {
       if (response != null) {
@@ -82,7 +82,7 @@ class Repo(opts: Opts) extends LazyLogging {
       }
 
     }
-    (code != 0, code.toString)
+    Repo.ReachableResult(code != 0, code.toString)
 
   }
 
@@ -105,6 +105,7 @@ class Repo(opts: Opts) extends LazyLogging {
 }
 
 object Repo extends LazyLogging {
+  case class ReachableResult(online:Boolean, msg:String)
   logger.debug("init aether to suppress replayed slf4j logging - See also http://www.slf4j.org/codes.html#replay")
 
   val centralUrl = "https://repo1.maven.org/maven2/"

@@ -61,7 +61,7 @@ class ProjectModTest extends AssertionsForJUnit {
 
     override def suggestNextRelease(releaseVersion: String): String = "???"
 
-    override def listSnapshotsDistinct: Seq[ProjectMod.Dep] = Nil
+    override def listSnapshotDependenciesDistinct: Seq[ProjectMod.Dep] = Nil
 
     override def writeTo(targetFolder: File): Unit = {
 
@@ -81,7 +81,7 @@ class ProjectModTest extends AssertionsForJUnit {
   @Test
   def testListDependeciesForCheck_empty(): Unit = {
     val testee = new MockMod()
-    Assert.assertEquals(Nil, testee.listDependeciesForCheck())
+    Assert.assertEquals(Nil, testee.listGavsForCheck())
   }
 
   @Test
@@ -102,7 +102,7 @@ class ProjectModTest extends AssertionsForJUnit {
     Assert.assertEquals(Seq(
 
       Dep(SelfRef.undef, "g", "a", "v", "", "", "", "")
-    ), testee.listDependeciesForCheck())
+    ), testee.listGavsForCheck())
   }
 
   @Test

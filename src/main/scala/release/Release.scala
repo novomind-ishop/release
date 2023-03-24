@@ -579,7 +579,7 @@ object Release extends LazyLogging {
       .filter(_._1 == "bo-client")
       .filter(_._2.contains("-SNAPSHOT")).values
 
-    val snaps: Seq[Gav] = mod.listSnapshotsDistinct
+    val snaps: Seq[Gav] = mod.listSnapshotDependenciesDistinct
       .map(_.gav())
       .filterNot(noShops) ++ plugins.map(_.fakeDep().gav())
       .filter(_.version.contains("SNAPSHOT")) ++

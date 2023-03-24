@@ -133,12 +133,16 @@ object Lint {
             out.println(info("--- .mvn @ maven ---", color))
             out.println(info("    WIP", color))
             out.println(info("--- check for snapshots @ maven ---", color))
-            pomMod.listSnapshots.foreach(dep => {
-              out.println(warn("  found snapshot: " + dep.gav().formatted + s" ${fiWarn}", color, limit = lineMax))
-            })
-            out.println(info("--- check for preview releases @ maven ---", color))
-            pomMod.listDependeciesForCheck()
+            pomMod.listGavsForCheck()
               .filter(dep => ProjectMod.isUnwanted(dep.gav().simpleGav()))
+              .filter(_.version.endsWith("-SNAPSHOT"))
+              .foreach(dep => {
+                out.println(warn("  found snapshot: " + dep.gav().formatted + s" ${fiWarn}", color, limit = lineMax))
+              })
+            out.println(info("--- check for preview releases @ maven ---", color))
+            pomMod.listGavsForCheck()
+              .filter(dep => ProjectMod.isUnwanted(dep.gav().simpleGav()))
+              .filterNot(_.version.endsWith("-SNAPSHOT"))
               .foreach(dep => {
                 out.println(warn("  found preview: " + dep.gav().formatted + s" ${fiWarn}", color, limit = lineMax))
               })

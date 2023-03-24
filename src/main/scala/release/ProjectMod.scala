@@ -409,9 +409,9 @@ object ProjectMod extends LazyLogging {
                             rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], repo: Repo,
                             sys: Term.Sys, printProgress: Boolean, checkOnline: Boolean): Seq[(GavWithRef, (Seq[String], Duration))] = {
     if (checkOnline) {
-      val reache = repo.isReachable(false)
-      if (!reache._1) {
-        throw new PreconditionsException(repo.workNexusUrl() + " - repo feels offline - " + reache._2)
+      val reachableResult = repo.isReachable(false)
+      if (!reachableResult.online) {
+        throw new PreconditionsException(repo.workNexusUrl() + " - repo feels offline - " + reachableResult.msg)
       }
     }
     val now = LocalDate.now()
@@ -593,7 +593,7 @@ trait ProjectMod extends LazyLogging {
 
   def showDependencyUpdates(shellWidth: Int, termOs: Term, depUpOpts: OptsDepUp,
                             sys: Term.Sys, printProgress: Boolean): Unit = {
-    val depForCheck: Seq[Dep] = listDependeciesForCheck()
+    val depForCheck: Seq[Dep] = listGavsForCheck()
     val sdm = selfDepsMod
     val result = ProjectMod.showDependencyUpdates(shellWidth, termOs, depUpOpts, () => repo.workNexusUrl(),
       depForCheck, sdm, repo, sys, printProgress, checkOnline = true)
@@ -625,12 +625,12 @@ trait ProjectMod extends LazyLogging {
     in
   })
 
-  private[release] def listDependeciesForCheck(): Seq[Dep] = {
-    val gavs = selfDepsMod.map(_.gav())
+  private[release] def listGavsForCheck(): Seq[Dep] = {
+    val selfGavs = selfDepsMod.map(_.gav())
     (replacedVersionProperties(listDependecies) ++
       listPluginDependencies.map(_.fakeDep()))
       .filterNot(_.version == "") // managed plugins are okay
-      .filterNot(dep => gavs.contains(dep.gav()))
+      .filterNot(dep => selfGavs.contains(dep.gav()))
       .map(in => in.groupId match {
         case "" => in.copy(groupId = "org.apache.maven.plugins")
         case _ => in
@@ -653,7 +653,7 @@ trait ProjectMod extends LazyLogging {
 
   def suggestNextRelease(releaseVersion: String): String
 
-  def listSnapshotsDistinct: Seq[Dep]
+  def listSnapshotDependenciesDistinct: Seq[Dep]
 
   def writeTo(targetFolder: File): Unit
 

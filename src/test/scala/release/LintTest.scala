@@ -6,6 +6,7 @@ import org.junit.{Assert, Ignore, Rule, Test}
 import org.junit.rules.TemporaryFolder
 import org.mockito.{ArgumentMatchers, Mockito}
 import org.scalatestplus.junit.AssertionsForJUnit
+import release.Repo.ReachableResult
 import release.Starter.Opts
 
 import java.io.File
@@ -178,7 +179,7 @@ class LintTest extends AssertionsForJUnit {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org")
-      Mockito.when(mockRepo.isReachable(false)).thenReturn((true, "200"))
+      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       val mockUpdates = Seq(
@@ -191,8 +192,8 @@ class LintTest extends AssertionsForJUnit {
 
   }
 
-  @Ignore // TODO later
   @Test
+  @Ignore // TODO later
   def testFailOldMilestone(): Unit = {
 
     val remote = temp.newFolder("release-lint-mvn-simple-init")
@@ -214,6 +215,11 @@ class LintTest extends AssertionsForJUnit {
         |      <groupId>org.springframework</groupId>
         |      <artifactId>spring-context</artifactId>
         |      <version>1.0.0-M1</version>
+        |    </dependency>
+        |    <dependency>
+        |      <groupId>org.springframework</groupId>
+        |      <artifactId>spring-vals</artifactId>
+        |      <version>1.0.0-SNAPSHOT</version>
         |    </dependency>
         |  </dependencies>
         |</project>
@@ -262,7 +268,7 @@ class LintTest extends AssertionsForJUnit {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org")
-      Mockito.when(mockRepo.isReachable(false)).thenReturn((true, "200"))
+      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       val mockUpdates = Seq(
@@ -350,7 +356,7 @@ class LintTest extends AssertionsForJUnit {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
-      Mockito.when(mockRepo.isReachable(false)).thenReturn((true, "200"))
+      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       val mockUpdates = Seq(
@@ -422,7 +428,7 @@ class LintTest extends AssertionsForJUnit {
     TermTest.testSys(Nil, expected, Nil, outFn = outT, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
-      Mockito.when(mockRepo.isReachable(false)).thenReturn((true, "202"))
+      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "202"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, file))

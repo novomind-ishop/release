@@ -41,7 +41,7 @@ case class SbtMod(file: File, repo: Repo, opts: Opts) extends ProjectMod {
 
   def suggestNextRelease(releaseVersion: String): String = throw new UnsupportedOperationException()
 
-  def listSnapshotsDistinct: Seq[ProjectMod.Dep] = throw new UnsupportedOperationException()
+  def listSnapshotDependenciesDistinct: Seq[ProjectMod.Dep] = throw new UnsupportedOperationException()
 
   def writeTo(targetFolder: File): Unit = throw new UnsupportedOperationException()
 

@@ -289,7 +289,7 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
 
   def changeDependecyVersion(patch: Seq[(Gav3, String)]): Unit = {
     println("@Beta: update all dependecies to latest")
-    val allTo = listDependeciesForCheck()
+    val allTo = listGavsForCheck()
     val toUp = allTo.flatMap(d => {
       val ups = patch.filter(pe => pe._1 == d.gav().simpleGav())
       if (ups.isEmpty) {
@@ -380,11 +380,11 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
 
   private def replacedVersionProperty(dep: PluginDep) = dep.copy(version = replacedPropertyOf(dep.version))
 
-  def listSnapshotsDistinct: Seq[Dep] = {
-    Util.distinctOn[Dep, Dep](listSnapshots, _.copy(pomRef = SelfRef.undef))
+  def listSnapshotDependenciesDistinct: Seq[Dep] = {
+    Util.distinctOn[Dep, Dep](listSnapshotDependencies, _.copy(pomRef = SelfRef.undef))
   }
 
-  def listSnapshots: Seq[Dep] = {
+  def listSnapshotDependencies: Seq[Dep] = {
     val deps = listDependecies
     val filteredDeps = deps.filterNot(dep => {
       val mod = dep.copy(pomRef = SelfRef.undef)

@@ -451,7 +451,7 @@ class PomModTest extends AssertionsForJUnit {
       Dep(SelfRef("c:1.0.0-SNAPSHOT"),
         "any", "final", "1.0.1", "", "", "", "")
     ), orgMod.listDependecies)
-    assertDeps(Seq(Dep(SelfRef("c:1.0.0-SNAPSHOT"), "any", "other", "1.0.0-SNAPSHOT", "", "", "", "")), orgMod.listSnapshots)
+    assertDeps(Seq(Dep(SelfRef("c:1.0.0-SNAPSHOT"), "any", "other", "1.0.0-SNAPSHOT", "", "", "", "")), orgMod.listSnapshotDependencies)
     orgMod.changeVersion("master-SNAPSHOT")
     orgMod.writeTo(orgPoms)
     val orgMod1 = PomModTest.withRepoForTests(orgPoms, repo)
@@ -1274,7 +1274,7 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("shop1")
 
     // WHEN
-    val deps = PomModTest.withRepoForTests(srcPoms, repo).listSnapshots
+    val deps = PomModTest.withRepoForTests(srcPoms, repo).listSnapshotDependencies
 
     // THEN
     assertDeps(Anyshop1Deps.snapshots(), deps)
@@ -1286,7 +1286,7 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("mini")
 
     // WHEN
-    val deps = PomModTest.withRepoForTests(srcPoms, repo).listSnapshots
+    val deps = PomModTest.withRepoForTests(srcPoms, repo).listSnapshotDependencies
 
     // THEN
     assertDeps(Seq(Dep(SelfRef("com.novomind.ishop.any:any:0.11-SNAPSHOT"),
@@ -1298,7 +1298,7 @@ class PomModTest extends AssertionsForJUnit {
     // GIVEN
     val srcPoms = TestHelper.testResources("pom-packaged")
 
-    val deps = PomModTest.withRepoForTests(srcPoms, repo).listSnapshots
+    val deps = PomModTest.withRepoForTests(srcPoms, repo).listSnapshotDependencies
 
     // THEN
     assertDeps(Nil, deps)
