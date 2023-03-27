@@ -8,7 +8,7 @@ trace_setup() {
 trace_setup "init scripting"
 argLine="${*:-}"
 
-if tty -s; then
+if tty -s > /dev/null; then
   echo -n "I: Starting release vm interactive .." 1>&2
 # else
 #   echo -n "I: Starting release vm non interactive .." 1>&2

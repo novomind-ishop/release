@@ -281,7 +281,7 @@ object Starter extends LazyLogging {
       case "lint" :: tail => argsRead(tail, inOpt.copy(lintOpts = inOpt.lintOpts.copy(doLint = true), showStartupDone = false))
       case "showSelf" :: tail => argsRead(tail, inOpt.copy(showSelf = true))
       case "apidiff" :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(showApiDiff = true)))
-      case "suggest-docker-tag" :: tail => argsRead(tail, inOpt.copy(suggestDockerTag = true))
+      case "suggest-docker-tag" :: tail => argsRead(tail, inOpt.copy(suggestDockerTag = true, showStartupDone = false))
       case "versionSet" :: value :: _ => argsRead(Nil, inOpt.copy(versionSet = Some(value)))
       case "shopGASet" :: value :: _ => argsRead(Nil, inOpt.copy(shopGA = Some(value)))
       case "nothing-but-create-feature-branch" :: _ => argsRead(Nil, inOpt.copy(createFeature = true))
