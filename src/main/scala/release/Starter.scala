@@ -118,8 +118,13 @@ object Starter extends LazyLogging {
         val selectedBraches = git.listBranchesLocal().filter(_.commitId == latestCommit)
         val found = selectedBraches.map(_.branchName.replaceFirst("refs/heads/", "")).filterNot(_ == "HEAD")
         if (found.size != 1) {
-          sys.out.println("W: more than one branch found: " + found.mkString(", ") + "; using \"master\"")
-          "master"
+          val selected:String = found match {
+            case k if k.contains("main") =>  "main"
+            case k if k.contains("master") =>  "master"
+            case _ => "main"
+          }
+          sys.out.println("W: more than one branch found: " + found.mkString(", ") + s"; using \"${selected}\"")
+          selected
         } else {
           found.head
         }
@@ -246,6 +251,7 @@ object Starter extends LazyLogging {
                   useJlineInput: Boolean = true, skipProperties: Seq[String] = Nil,
                   colors: Boolean = true, useDefaults: Boolean = false, versionIncrement: Option[Increment] = None,
                   lintOpts: LintOpts = LintOpts(), checkOverlapping: Boolean = true,
+                  checkProjectDeps: Boolean = true,
                   showSelf: Boolean = false, showStartupDone: Boolean = true, suggestDockerTag: Boolean = false
                  )
 
@@ -264,6 +270,7 @@ object Starter extends LazyLogging {
       case "--no-jline" :: tail => argsRead(tail, inOpt.copy(useJlineInput = false))
       case "--no-color" :: tail => argsRead(tail, inOpt.copy(colors = false))
       case "--no-check-overlap" :: tail => argsRead(tail, inOpt.copy(checkOverlapping = false))
+      case "--no-check-project-vars" :: tail => argsRead(tail, inOpt.copy(checkProjectDeps = false))
       // TODO no color env propertie
       case "--100" :: tail => argsRead(tail, inOpt.copy(versionIncrement = Increment.major))
       case "--010" :: tail => argsRead(tail, inOpt.copy(versionIncrement = Increment.minor))
@@ -423,10 +430,10 @@ object Starter extends LazyLogging {
             val aPoms = extractPomFile(ar.get._1, Files.createTempDirectory("release-").toFile)
             val bPoms = extractPomFile(br.get._1, Files.createTempDirectory("release-").toFile)
             val modA = PomMod.withRepo(aPoms, inOpt, repo, skipPropertyReplacement = true, withSubPoms = false)
-            val aDeps = modA.listDependecies
+            val aDeps = modA.listDependencies
             val selfA = modA.selfDepsMod.map(_.gav().simpleGav())
             val modB = PomMod.withRepo(bPoms, inOpt, repo, skipPropertyReplacement = true, withSubPoms = false)
-            val bDeps = modB.listDependecies
+            val bDeps = modB.listDependencies
 
             val selfB = modB.selfDepsMod.map(_.gav().simpleGav())
             Seq(((aDeps, selfA, modA.listProperties), (bDeps, selfB, modB.listProperties)))

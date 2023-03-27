@@ -45,6 +45,18 @@ object PomChecker {
     snapsF
   }
 
+  def checkExternalWithProjectScope(listRawDeps: Seq[Dep], selfDepsMod: Seq[Dep], listProperties: Map[String, String]) = {
+    def k(iz:Seq[Dep]) = PomMod.replacedVersionProperties(listProperties.filter(t => t._1.startsWith("project")), skipPropertyReplacement = true)(iz)
+    val externals = listRawDeps.filterNot(d => {
+      selfDepsMod.map(_.gav()).contains(k(Seq(d)).head.gav()) || selfDepsMod.map(_.gav()).contains(d.gav())
+    })
+    val projectReplaced = k(externals)
+    val relevant = externals.diff(projectReplaced).map(_.gav()).distinct
+    if (relevant.nonEmpty) {
+      throw new ValidationException(s"Project variables are not allowed in external dependencies: ${relevant.map(_.formatted).mkString(", ")}")
+    }
+  }
+
   def checkDepScopes(listDependecies: Seq[Dep]) = {
     val byRef = listDependecies.groupBy(_.pomRef)
     val msgs = byRef.flatMap(deps => {
@@ -57,7 +69,7 @@ object PomChecker {
 
           val str = select.formatted + "\n found in\n" +
             listDependecies.filter(dep => select == (dep.copy(scope = "").gav()))
-              .map(d =>  s"${d.pomRef.id} with scope: ${d.gav().formatted.replace(select.formatted, "...")}")
+              .map(d => s"${d.pomRef.id} with scope: ${d.gav().formatted.replace(select.formatted, "...")}")
               .mkString("\n")
           str
         }).mkString("\n\n")

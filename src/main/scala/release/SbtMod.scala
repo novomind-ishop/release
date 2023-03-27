@@ -22,7 +22,7 @@ case class SbtMod(file: File, repo: Repo, opts: Opts) extends ProjectMod {
     Seq(props, plugins).filter(_.exists())
   }
 
-  val listDependecies: Seq[ProjectMod.Dep] = (Seq(file) ++ sbtFile(file))
+  val listDependencies: Seq[ProjectMod.Dep] = (Seq(file) ++ sbtFile(file))
     .map(f => Files.readAllLines(f.toPath, StandardCharsets.UTF_8)
       .asScala.mkString("\n"))
     .flatMap(SbtMod.SloppyParser.doParse())

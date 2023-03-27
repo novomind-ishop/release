@@ -126,11 +126,15 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
     allProps
   }
 
-  val listDependecies: Seq[Dep] = {
-    replacedVersionProperties(allPomsDocs.flatMap(deps)).distinct // TODO distinct?
+  val listRawDeps: Seq[Dep] = allPomsDocs.flatMap(deps)
+  val listDependencies: Seq[Dep] = {
+    replacedVersionProperties(listProperties, skipPropertyReplacement)(listRawDeps).distinct // TODO distinct?
   }
   if (opts.checkOverlapping) {
-    PomChecker.checkDepScopes(listDependecies)
+    PomChecker.checkDepScopes(listDependencies)
+  }
+  if (opts.checkProjectDeps) {
+    PomChecker.checkExternalWithProjectScope(listRawDeps, selfDepsMod, listProperties)
   }
 
   val listPluginDependencies: Seq[PluginDep] = {
@@ -356,7 +360,7 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
   }
 
   def findNodes(groupId: String, artifactId: String, version: String): Seq[Node] = {
-    depMap.toList.filter(dep => replacedPropertyOf(dep._1.artifactId) == artifactId).map(_._2).filter(_ != null)
+    depMap.toList.filter(dep => replacedPropertyOf(listProperties, skipPropertyReplacement)(dep._1.artifactId) == artifactId).map(_._2).filter(_ != null)
   }
 
   def writeTo(targetFolder: File): Unit = {
@@ -378,14 +382,14 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
     filtered.map(_.groupId).contains("com.novomind.ishop.shops")
   }
 
-  private def replacedVersionProperty(dep: PluginDep) = dep.copy(version = replacedPropertyOf(dep.version))
+  private def replacedVersionProperty(dep: PluginDep) = dep.copy(version = replacedPropertyOf(listProperties, skipPropertyReplacement)(dep.version))
 
   def listSnapshotDependenciesDistinct: Seq[Dep] = {
     Util.distinctOn[Dep, Dep](listSnapshotDependencies, _.copy(pomRef = SelfRef.undef))
   }
 
   def listSnapshotDependencies: Seq[Dep] = {
-    val deps = listDependecies
+    val deps = listDependencies
     val filteredDeps = deps.filterNot(dep => {
       val mod = dep.copy(pomRef = SelfRef.undef)
       //      if (mod.toString.contains("runtime")) {
@@ -395,7 +399,7 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
       selfDepsMod.contains(mod)
     })
 
-    val replacedParams = replacedVersionProperties(filteredDeps)
+    val replacedParams = replacedVersionProperties(listProperties, skipPropertyReplacement)(filteredDeps)
     val onlySnapshots = replacedParams.filter(_.version.contains("SNAPSHOT"))
     onlySnapshots
   }
@@ -461,6 +465,27 @@ case class RawPomFile(pomFile: File, document: Document, file: File) {
 }
 
 object PomMod {
+
+  private[release] def replacedPropertyOf(listProperties: Map[String, String], skipPropertyReplacement: Boolean)(string: String) = {
+    PomMod.replaceProperty(listProperties, skipPropertyReplacement)(string)
+  }
+
+  private[release] def replacedVersionProperties(listProperties: Map[String, String], skipPropertyReplacement: Boolean)(deps: Seq[Dep]): Seq[Dep] = {
+    def r(k: String) = replacedPropertyOf(listProperties, skipPropertyReplacement)(k)
+
+    deps.map(dep => dep.copy(
+      version = r(dep.version),
+      packaging = r(dep.packaging),
+      typeN = r(dep.typeN),
+      scope = r(dep.scope))
+    ).map(in => {
+      if (in.toString.contains("$") && !skipPropertyReplacement) {
+        throw new IllegalStateException("missing var in " + in)
+      }
+      in
+    })
+  }
+
   def toPluginDep(file: File): Seq[PluginDep] = {
     try {
       val document = Xpath.documentOfFile(file)

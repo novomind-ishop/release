@@ -216,19 +216,18 @@ class PomModTest extends AssertionsForJUnit {
       <parent>
         <groupId>com.novomind.ishop.shops.any</groupId>
         <artifactId>any-projects</artifactId>
-        <version>28.0.0-SNAPSHOT</version>
+        <version>27.0.0-SNAPSHOT</version>
         <relativePath>..</relativePath>
       </parent>
 
       <artifactId>any-erp</artifactId>
       <name>any-erp</name>
-      <version>${k}</version>
+      <version>27.0.0-SNAPSHOT</version>
     </project>
     )).create()
 
-    TestHelper.assertException("More then one Version found in your pom.xmls: " +
-      "Dep(SelfRef(any-erp:${project.version}),com.novomind.ishop.shops.any,any-erp,${project.version},,,,) (27.0.0-SNAPSHOT, ${project.version})",
-      classOf[IllegalArgumentException], () => {
+    TestHelper.assertException("Project variables are not allowed in external dependencies: org.glassfish.jaxb:jaxb-core:${project.version}",
+      classOf[ValidationException], () => {
         PomModTest.withRepoForTests(srcPoms, repo)
       })
   }
@@ -387,7 +386,7 @@ class PomModTest extends AssertionsForJUnit {
     val orgPoms = TestHelper.testResources("shop1")
     val orgMod = PomModTest.withRepoForTests(orgPoms, repo)
     Assert.assertEquals("27.0.0-SNAPSHOT", orgMod.selfVersion)
-    assertDeps(Anyshop1Deps.ownDeps(), orgMod.listDependecies.filter(_.artifactId.contains("anyshop")))
+    assertDeps(Anyshop1Deps.ownDeps(), orgMod.listDependencies.filter(_.artifactId.contains("anyshop")))
     val value = Map("dep.tree" -> Nil,
       "anyshop-erp" -> Seq("com.novomind.ishop.shops.anyshop:anyshop-erp:jar:27.0.0-SNAPSHOT"),
       "anyshop-shop" -> Seq("+- com.novomind.ishop.shops.anyshop:anyshop-erp:jar:tests:27.0.0-SNAPSHOT:test",
@@ -419,7 +418,7 @@ class PomModTest extends AssertionsForJUnit {
     } else {
       in
     })
-    assertDeps(erpVersionChanged, newTargetMod.listDependecies.filter(_.artifactId.contains("anyshop")))
+    assertDeps(erpVersionChanged, newTargetMod.listDependencies.filter(_.artifactId.contains("anyshop")))
     targetMod.findNodesAndChangeVersion("com.novomind.ishop.shops.anyshop", "anyshop-erp", newVersion, "27.0.0-SNAPSHOT")
     targetMod.writeTo(targetPoms)
 
@@ -450,7 +449,7 @@ class PomModTest extends AssertionsForJUnit {
         "any", "other", "1.0.0-SNAPSHOT", "", "", "", ""),
       Dep(SelfRef("c:1.0.0-SNAPSHOT"),
         "any", "final", "1.0.1", "", "", "", "")
-    ), orgMod.listDependecies)
+    ), orgMod.listDependencies)
     assertDeps(Seq(Dep(SelfRef("c:1.0.0-SNAPSHOT"), "any", "other", "1.0.0-SNAPSHOT", "", "", "", "")), orgMod.listSnapshotDependencies)
     orgMod.changeVersion("master-SNAPSHOT")
     orgMod.writeTo(orgPoms)
@@ -471,7 +470,7 @@ class PomModTest extends AssertionsForJUnit {
     val mod = PomModTest.withRepoForTests(srcPoms, repo)
     assertDeps(Anyshop1Deps.selfVersion("27.0.0-SNAPSHOT"), mod.listSelf)
     assert("27.0.0-SNAPSHOT" === mod.getVersionFromDocs())
-    assertDeps(Anyshop1Deps.all(), mod.listDependecies)
+    assertDeps(Anyshop1Deps.all(), mod.listDependencies)
 
     mod.changeVersion("RC-2017.01-SNAPSHOT")
     mod.writeTo(srcPoms)
@@ -489,7 +488,7 @@ class PomModTest extends AssertionsForJUnit {
 
     // THEN
     val newMod = PomModTest.withRepoForTests(srcPoms, repo)
-    assertDeps(allMod, newMod.listDependecies)
+    assertDeps(allMod, newMod.listDependencies)
   }
 
   @Test
@@ -585,7 +584,7 @@ class PomModTest extends AssertionsForJUnit {
     val mod = PomModTest.withRepoForTests(srcPoms, repo)
     assertDeps(Anyshop1Deps.selfVersion("27.0.0-SNAPSHOT"), mod.listSelf)
     assert("27.0.0-SNAPSHOT" === mod.getVersionFromDocs())
-    assertDeps(Anyshop1Deps.all(), mod.listDependecies)
+    assertDeps(Anyshop1Deps.all(), mod.listDependencies)
 
     mod.changeShopGroupArtifact("anyshop")
     mod.writeTo(srcPoms)
@@ -610,7 +609,7 @@ class PomModTest extends AssertionsForJUnit {
     )
     val newMod = PomModTest.withRepoForTests(srcPoms, repo)
     assertDeps(s, newMod.listSelf)
-    assertDeps(allMod, newMod.listDependecies)
+    assertDeps(allMod, newMod.listDependencies)
 
   }
 
@@ -1262,7 +1261,7 @@ class PomModTest extends AssertionsForJUnit {
     val srcPoms = TestHelper.testResources("shop1")
 
     // WHEN
-    val deps = PomModTest.withRepoForTests(srcPoms, repo).listDependecies
+    val deps = PomModTest.withRepoForTests(srcPoms, repo).listDependencies
 
     // THEN
     assertDeps(Anyshop1Deps.all(), deps)

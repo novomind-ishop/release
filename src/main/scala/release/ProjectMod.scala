@@ -585,7 +585,7 @@ trait ProjectMod extends LazyLogging {
   val opts: Opts
   val selfVersion: String
 
-  val listDependecies: Seq[Dep]
+  val listDependencies: Seq[Dep]
   val listPluginDependencies: Seq[PluginDep]
 
   val listProperties: Map[String, String]
@@ -609,25 +609,10 @@ trait ProjectMod extends LazyLogging {
     }
   }
 
-  private[release] def replacedPropertyOf(string: String) = {
-    PomMod.replaceProperty(listProperties, skipPropertyReplacement)(string)
-  }
-
-  private[release] def replacedVersionProperties(deps: Seq[Dep]) = deps.map(dep => dep.copy(
-    version = replacedPropertyOf(dep.version),
-    packaging = replacedPropertyOf(dep.packaging),
-    typeN = replacedPropertyOf(dep.typeN),
-    scope = replacedPropertyOf(dep.scope))
-  ).map(in => {
-    if (in.toString.contains("$") && !skipPropertyReplacement) {
-      throw new IllegalStateException("missing var in " + in)
-    }
-    in
-  })
 
   private[release] def listGavsForCheck(): Seq[Dep] = {
     val selfGavs = selfDepsMod.map(_.gav())
-    (replacedVersionProperties(listDependecies) ++
+    (PomMod.replacedVersionProperties(listProperties, skipPropertyReplacement)(listDependencies) ++
       listPluginDependencies.map(_.fakeDep()))
       .filterNot(_.version == "") // managed plugins are okay
       .filterNot(dep => selfGavs.contains(dep.gav()))

@@ -247,10 +247,10 @@ object Release extends LazyLogging {
     val nextReleaseWithoutSnapshot = readNextReleaseVersionsWithoutSnapshot
 
     val relevantDeps = if (mod.isNoShop) {
-      mod.listDependecies.filter(in => in.groupId.startsWith("com.novomind.ishop.core"))
+      mod.listDependencies.filter(in => in.groupId.startsWith("com.novomind.ishop.core"))
     } else {
       val selfGavs = mod.selfDepsMod.map(_.gav())
-      mod.listDependecies
+      mod.listDependencies
         .filter(in => in.groupId.startsWith("com.novomind.ishop"))
         .filterNot(in => selfGavs.contains(in.gav()))
     }
@@ -564,7 +564,7 @@ object Release extends LazyLogging {
       // TODO check if core needs this checks too
       PomChecker.checkPlugins(plugins)
     }
-    PomChecker.checkGavFormat(mod.listDependecies ++ plugins.map(_.fakeDep()), sys.out)
+    PomChecker.checkGavFormat(mod.listDependencies ++ plugins.map(_.fakeDep()), sys.out)
     PomChecker.printSnapshotsInFiles(gitFiles, sys.out)
 
     case class ReleaseInfo(gav: String, released: Boolean)

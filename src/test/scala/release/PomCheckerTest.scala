@@ -94,6 +94,54 @@ class PomCheckerTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testCheckExternalWithProjectScope_noException(): Unit = {
+    // GIVEN
+    val ref1 = SelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
+    val a = Dep(ref1, "com.novomind.ishop.shops", "valid", "1.0.0", "", "test", "", "")
+    val b = Dep(ref1, "any.group", "valid", "1.0.0", "", "test", "", "")
+
+    // WHEN / THEN
+    PomChecker.checkExternalWithProjectScope(Seq(a, b), Seq(a), Map("project.version" -> "27.0.0-SNAPSHOT")) // no exception
+  }
+
+  @Test
+  def testCheckExternalWithProjectScope_selfvar(): Unit = {
+    // GIVEN
+    val ref1 = SelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
+    val a = Dep(ref1, "com.novomind.ishop.shops", "valid", "${project.version}", "", "test", "", "")
+    val b = Dep(ref1, "any.group", "valid", "1.0.0", "", "test", "", "")
+
+    // WHEN / THEN
+    PomChecker.checkExternalWithProjectScope(Seq(a, b), Seq(a), Map("project.version" -> "27.0.0-SNAPSHOT")) // no exception
+  }
+
+  @Test
+  def testCheckExternalWithProjectScope_selfvar1(): Unit = {
+    // GIVEN
+    val ref1 = SelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
+    val a = Dep(ref1, "com.novomind.ishop.shops", "valid", "${project.version}", "", "", "", "")
+    val a1 = Dep(ref1, "com.novomind.ishop.shops", "valid", "27.0.0-SNAPSHOT", "", "", "", "")
+    val b = Dep(ref1, "any.group", "valid", "1.0.0", "", "test", "", "")
+
+    // WHEN / THEN
+    PomChecker.checkExternalWithProjectScope(Seq(a, b), Seq(a1), Map("project.version" -> "27.0.0-SNAPSHOT")) // no exception
+  }
+
+  @Test
+  def testCheckExternalWithProjectScope_exception(): Unit = {
+    // GIVEN
+    val ref1 = SelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
+    val a = Dep(ref1, "com.novomind.ishop.shops", "valid", "${project.version}", "", "test", "", "")
+    val b = Dep(ref1, "any.group", "valid", "${project.version}", "", "test", "", "")
+
+    // WHEN / THEN
+    TestHelper.assertException(
+      "Project variables are not allowed in external dependencies: any.group:valid:${project.version}:test",
+      classOf[ValidationException], () =>
+        PomChecker.checkExternalWithProjectScope(Seq(a, b), Seq(a), Map("project.version" -> "27.0.0-SNAPSHOT")))
+  }
+
+  @Test
   def testCheckRootFirstChildPropertiesVar_noChilds(): Unit = {
 
     val root = PomModTest.document(<project>

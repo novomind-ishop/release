@@ -86,7 +86,7 @@
       <dependency>
         <groupId>com.novomind.ishop.shops.anyshop</groupId>
         <artifactId>anyshop-erp</artifactId>
-        <version>${project.version}</version>
+        <version>27.0.0-SNAPSHOT</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

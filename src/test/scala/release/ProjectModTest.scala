@@ -47,7 +47,7 @@ class ProjectModTest extends AssertionsForJUnit {
     override val repo: Repo = null
     override val opts: Starter.Opts = Starter.Opts()
     override val selfVersion: String = "???"
-    override val listDependecies: Seq[ProjectMod.Dep] = Nil
+    override val listDependencies: Seq[ProjectMod.Dep] = Nil
     override val listPluginDependencies: Seq[ProjectMod.PluginDep] = Nil
     override val listProperties: Map[String, String] = Map("undef" -> "undef")
 
@@ -91,7 +91,7 @@ class ProjectModTest extends AssertionsForJUnit {
       override val selfDepsMod: Seq[ProjectMod.Dep] = Seq(
         Dep(SelfRef("ou"), "gg", "a", "v", "", "", "", ""),
       )
-      override val listDependecies: Seq[ProjectMod.Dep] = Seq(
+      override val listDependencies: Seq[ProjectMod.Dep] = Seq(
         Dep(SelfRef.undef, "g", "a", "v", "", "", "", ""),
         Dep(SelfRef.undef, "g", "a", "v", "", "runtime", "", ""),
           Dep(SelfRef.undef, "g", "a", "v", "", "", "", ""),
