@@ -10,8 +10,8 @@ argLine="${*:-}"
 
 if tty -s; then
   echo -n "I: Starting release vm interactive .." 1>&2
-else
-  echo -n "I: Starting release vm non interactive .." 1>&2
+# else
+#   echo -n "I: Starting release vm non interactive .." 1>&2
 fi
 
 # TODO test java installation # java -v
