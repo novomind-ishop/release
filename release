@@ -8,10 +8,8 @@ trace_setup() {
 trace_setup "init scripting"
 argLine="${*:-}"
 
-if tty -s > /dev/null; then
-  echo -n "I: Starting release vm interactive .." 1>&2
-# else
-#   echo -n "I: Starting release vm non interactive .." 1>&2
+if tty -s 2>&1 > /dev/null; then
+  echo -n "I: Starting release vm .." 1>&2
 fi
 
 # TODO test java installation # java -v
