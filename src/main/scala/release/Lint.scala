@@ -109,6 +109,8 @@ object Lint {
           } else {
             out.println(info("    ci path: " + ciconfigpath, color))
           }
+          out.println(info("    CI_COMMIT_REF_NAME : " + System.getenv("CI_COMMIT_REF_NAME"), color))
+          out.println(info("    CI_COMMIT_TAG : " + System.getenv("CI_COMMIT_TAG"), color))
         }
 
         out.println(info("--- -SNAPSHOTS in files @ maven ---", color))
