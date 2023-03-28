@@ -82,7 +82,8 @@ class LintTest extends AssertionsForJUnit {
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[WARNING]  shallow clone detected 😬
         |[WARNING]    % git rev-parse --is-shallow-repository # returns true
-        |[WARNING]    % git log -n1 --pretty=%H # returns a79849c3042ef887a5477d73d958814317675be1
+        |[WARNING]    % git log -n1 --pretty=%H # returns
+        |[WARNING]   a79849c3042ef887a5477d73d958814317675be1
         |[WARNING]    We do not want shallow clones because the commit id used in runtime
         |[WARNING]    info will not point to a known commit
         |[WARNING]    on Gitlab, change 'Settings' -> 'CI/CD' -> 'General pipelines' ->

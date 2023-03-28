@@ -4,6 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import org.junit._
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.Starter.Opts
+import release.TermTest.testSys
 
 import java.io._
 import java.nio.charset.StandardCharsets
@@ -61,7 +62,7 @@ class TermTest extends AssertionsForJUnit {
   @Test
   def testReadDirect(): Unit = {
     TermTest.testSys(Seq("a", "b"), "", Nil)(sys => {
-      val bin:BufferedReader = new BufferedReader(new InputStreamReader(sys.inS))
+      val bin: BufferedReader = new BufferedReader(new InputStreamReader(sys.inS))
       Assert.assertEquals("a", bin.readLine())
       Assert.assertEquals("b", bin.readLine())
       Assert.assertEquals(null, bin.readLine())
@@ -103,6 +104,26 @@ class TermTest extends AssertionsForJUnit {
     Assert.assertEquals(72, value.size)
     Assert.assertEquals("---------------------------------[ b ]--------------------------------- ", value)
 
+  }
+
+  @Test
+  def testWrapText_1(): Unit = {
+    Assert.assertEquals(Seq("a"), Term.wrapText("a", 3))
+  }
+
+  @Test
+  def testWrapText_2(): Unit = {
+    Assert.assertEquals(Seq("aaaa"), Term.wrapText("aaaa", 3))
+  }
+
+  @Test
+  def testWrapText_3(): Unit = {
+    Assert.assertEquals(Seq("aa", "  aa"), Term.wrapText("aa aa", 3))
+  }
+
+  @Test
+  def testWrapText_4(): Unit = {
+    Assert.assertEquals(Seq("  aa", "  aa"), Term.wrapText("  aa aa", 5))
   }
 }
 
@@ -160,23 +181,22 @@ object TermTest extends LazyLogging {
       @nowarn("cat=deprecation")
       val unit = System.setSecurityManager(manager)
 
-
       val out = new ByteArrayOutputStream()
       val err = new ByteArrayOutputStream()
 
       val preparedLines = input.mkString("\n")
       val in = new ByteArrayInputStream(preparedLines.getBytes)
       try {
-        fn.apply(new Term.Sys(in, out, err){
-         override lazy val inReader = new BufferedReader(new InputStreamReader(inS)) {
-           override def readLine(): String = {
-             val line = super.readLine()
-             if (line != null) {
-               out.println(line)
-             }
-             line
-           }
-         }
+        fn.apply(new Term.Sys(in, out, err) {
+          override lazy val inReader = new BufferedReader(new InputStreamReader(inS)) {
+            override def readLine(): String = {
+              val line = super.readLine()
+              if (line != null) {
+                out.println(line)
+              }
+              line
+            }
+          }
         })
       } catch {
         case e: SecurityException => // nothing

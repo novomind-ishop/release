@@ -2,6 +2,7 @@ package release
 
 import org.scalatestplus.junit.AssertionsForJUnit
 import org.junit.{Assert, Ignore, Rule, Test}
+import scala.util.Success
 
 class SuggestDockerTagTest extends AssertionsForJUnit {
 
@@ -60,4 +61,30 @@ class SuggestDockerTagTest extends AssertionsForJUnit {
     Assert.assertEquals("some-v1.2.3-ber", tuple._1)
     Assert.assertEquals(0, tuple._2)
   }
+
+  @Test
+  def testFindTagname_null(): Unit = {
+    val tuple = SuggestDockerTag.findTagname(null, null)
+    Assert.assertEquals("nor tag nor ref", tuple.failed.get.getMessage)
+  }
+
+  @Test
+  def testFindTagname_branch(): Unit = {
+    val tuple = SuggestDockerTag.findTagname("main", null)
+    Assert.assertEquals("no tag", tuple.failed.get.getMessage)
+  }
+
+  @Test
+  def testFindTagname_validTag(): Unit = {
+    val tuple = SuggestDockerTag.findTagname("v1.0.0", "v1.0.0")
+    Assert.assertEquals(Success("v1.0.0"), tuple.get)
+  }
+
+  @Test
+  def testFindTagname_invalidTag(): Unit = {
+    val tuple = SuggestDockerTag.findTagname("main", "main")
+    Assert.assertEquals("» main « is no valid tag name. This could lead to build problems later.", tuple.get.failed.get.getMessage)
+  }
+
+
 }

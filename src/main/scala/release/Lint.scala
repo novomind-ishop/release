@@ -49,16 +49,18 @@ object Lint {
         out.println(info(s"    ${fiFine} git version: " + sgit.version(), color))
         out.println(info("--- check clone config / no shallow clone @ git ---", color))
         if (sgit.isShallowClone) {
-          out.println(warn(s" shallow clone detected ${fiWarn}", color))
-          out.println(warn("   % git rev-parse --is-shallow-repository # returns " + sgit.isShallowClone, color))
-          out.println(warn("   % git log -n1 --pretty=%H # returns " + sgit.commitIdHeadOpt().getOrElse("n/a"), color, limit = lineMax))
-          out.println(warn("   We do not want shallow clones because the commit id used in runtime", color))
-          out.println(warn("   info will not point to a known commit", color))
-          out.println(warn("   on Gitlab, change 'Settings' -> 'CI/CD' -> 'General pipelines' ->", color))
-          out.println(warn("     'Git shallow clone' to 0 or blank.", color))
-          out.println(warn("     If this does not fix this warning, toggle", color))
-          out.println(warn("     the .. -> 'Git strategy' to 'git clone' for maybe a", color))
-          out.println(warn("     single build to wipe out gitlab caches.", color))
+          Term.wrap(out, Term.warn,
+            s""" shallow clone detected ${fiWarn}
+               |   % git rev-parse --is-shallow-repository # returns ${sgit.isShallowClone}
+               |   % git log -n1 --pretty=%H # returns ${sgit.commitIdHeadOpt().getOrElse("n/a")}
+               |   We do not want shallow clones because the commit id used in runtime
+               |   info will not point to a known commit
+               |   on Gitlab, change 'Settings' -> 'CI/CD' -> 'General pipelines' ->
+               |     'Git shallow clone' to 0 or blank.
+               |     If this does not fix this warning, toggle
+               |     the .. -> 'Git strategy' to 'git clone' for maybe a
+               |     single build to wipe out gitlab caches.
+               |""".stripMargin, color)
           warnExit.set(true)
         } else {
           out.println(info(s"    ${fiFine} NO shallow clone", color))
@@ -103,16 +105,23 @@ object Lint {
         if (ciconfigpath != null) {
           out.println(info("--- gitlabci.yml @ gitlab ---", color))
           if (ciconfigpath != defaultCiFilename) {
-            out.println(warn("    ci path: " + ciconfigpath, color))
+            out.println(warn("   ci path: " + ciconfigpath, color))
             out.println(warn(s"   use ${defaultCiFilename} ${fiWarn}", color))
             warnExit.set(true)
           } else {
-            out.println(info("    ci path: " + ciconfigpath, color))
+            out.println(info("      ci path: " + ciconfigpath, color))
           }
-          out.println(info("    CI_COMMIT_REF_NAME : " + System.getenv("CI_COMMIT_REF_NAME"), color))
-          out.println(info("    CI_COMMIT_TAG : " + System.getenv("CI_COMMIT_TAG"), color))
-        }
+          val tag = SuggestDockerTag.findTagname(System.getenv("CI_COMMIT_REF_NAME"), System.getenv("CI_COMMIT_TAG"))
+          if (tag.isSuccess) {
+            if (tag.get.isSuccess) {
+              out.println(info("   CI_COMMIT_TAG : " + tag.get, color))
+            } else {
+              Term.wrap(out, Term.warn, "   CI_COMMIT_TAG : " + tag.get.failed.get.getMessage + s" ${fiWarn}", color)
+              warnExit.set(true)
+            }
+          }
 
+        }
         out.println(info("--- -SNAPSHOTS in files @ maven ---", color))
         val rootFolderFiles = files.toSeq
         val snapshotsInFiles = PomChecker.getSnapshotsInFiles(sgit.lsFilesAbsolute().map(_.getAbsolutePath))

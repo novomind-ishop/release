@@ -1,11 +1,14 @@
 package release
 
+import org.apache.commons.lang3.StringUtils
+import org.apache.commons.lang3.text.WordUtils
+
 import java.io.{BufferedReader, IOError, InputStream, InputStreamReader, OutputStream, PrintStream}
 import org.jline.reader._
 import org.jline.terminal.TerminalBuilder
 import release.Starter.Opts
 
-import scala.annotation.tailrec
+import scala.annotation.{nowarn, tailrec}
 
 object Term {
 
@@ -161,13 +164,49 @@ object Term {
     in
   }
 
-  def info(text: String, useColor: Boolean, limit: Int = 82 - 4): String = colorB(34, "INFO", useColor) + checkedLength(limit)(text)
+  case class ColoredLiner(defaultLimit: Int, fn: (String, Boolean, Int) => String) {
+    def ex(text: String, useColor: Boolean): String = {
+      ex(text, useColor, defaultLimit)
+    }
 
-  def warnSoft(text: String, useColor: Boolean, limit: Int = 82 - 7): String = colorB(34, "WARNING", useColor) + checkedLength(limit)(text)
+    def ex(text: String, useColor: Boolean, limit: Int): String = {
+      fn.apply(text, useColor, limit)
+    }
+  }
 
-  def warn(text: String, useColor: Boolean, limit: Int = 82 - 7): String = colorB(33, "WARNING", useColor) + checkedLength(limit)(text)
+  val info = ColoredLiner(82 - 4, (text, useColor, limit) => colorB(34, "INFO", useColor) + checkedLength(limit)(text))
+  val warnSoft = ColoredLiner(82 - 7, (text, useColor, limit) => colorB(34, "WARNING", useColor) + checkedLength(limit)(text))
+  val warn = ColoredLiner(82 - 7, (text, useColor, limit) => colorB(33, "WARNING", useColor) + checkedLength(limit)(text))
+  val error = ColoredLiner(82 - 5, (text, useColor, limit) => colorB(31, "ERROR", useColor) + checkedLength(limit)(text))
 
-  def error(text: String, useColor: Boolean, limit: Int = 82 - 5): String = colorB(31, "ERROR", useColor) + checkedLength(limit)(text)
+  def wrap(out: PrintStream, coloredLiner: ColoredLiner, text: String, useColor: Boolean): Unit = {
+    text.linesIterator
+      .flatMap(line => {
+        if (line.length > coloredLiner.defaultLimit) {
+          wrapText(line, coloredLiner.defaultLimit)
+        } else {
+          Seq(line)
+        }
+      })
+      .foreach(line => out.println(coloredLiner.ex(line, useColor)))
+
+  }
+
+  @nowarn("cat=deprecation")
+  def wrapText(str: String, limit: Int): Seq[String] = {
+
+    val prefixed = str.linesIterator.map(k => s"@${k}").mkString("\n")
+    val lines = WordUtils.wrap(prefixed, limit).split("\n").toSeq
+    lines.headOption.toSeq.map(_.substring(1)) ++ lines.tail.map(_.trim).map(k => s"  ${k}")
+  }
+
+  def info(text: String, useColor: Boolean, limit: Int = info.defaultLimit): String = info.ex(text, useColor, limit)
+
+  def warnSoft(text: String, useColor: Boolean, limit: Int = warnSoft.defaultLimit): String = warnSoft.ex(text, useColor, limit)
+
+  def warn(text: String, useColor: Boolean, limit: Int = warn.defaultLimit): String = warn.ex(text, useColor, limit)
+
+  def error(text: String, useColor: Boolean, limit: Int = error.defaultLimit): String = error.ex(text, useColor, limit)
 
   def center(text: String): String = {
     val lenght = 72
