@@ -707,7 +707,7 @@ object Starter extends LazyLogging {
       return result._2
     }
     if (opts.lintOpts.doLint) {
-      return Lint.run(out, err, opts, new Repo(opts))
+      return Lint.run(out, err, opts, new Repo(opts), Util.toScalaMapNonNull(System.getenv()))
     }
     if (opts.showSelf) {
       val file: File = new File(".").getAbsoluteFile

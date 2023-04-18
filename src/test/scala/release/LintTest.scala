@@ -50,7 +50,7 @@ class LintTest extends AssertionsForJUnit {
         |[[31mERROR[0m] ----------------------------[ end of lint ]----------------------------""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT)(sys => {
       val opts = Opts()
-      Assert.assertEquals(1, Lint.run(sys.out, sys.err, opts, new Repo(opts), file))
+      Assert.assertEquals(1, Lint.run(sys.out, sys.err, opts, new Repo(opts), Map.empty, file))
     })
 
   }
@@ -83,7 +83,7 @@ class LintTest extends AssertionsForJUnit {
         |[WARNING]  shallow clone detected 😬
         |[WARNING]    % git rev-parse --is-shallow-repository # returns true
         |[WARNING]    % git log -n1 --pretty=%H # returns
-        |[WARNING]   a79849c3042ef887a5477d73d958814317675be1
+        |[WARNING]      a79849c3042ef887a5477d73d958814317675be1
         |[WARNING]    We do not want shallow clones because the commit id used in runtime
         |[WARNING]    info will not point to a known commit
         |[WARNING]    on Gitlab, change 'Settings' -> 'CI/CD' -> 'General pipelines' ->
@@ -105,7 +105,7 @@ class LintTest extends AssertionsForJUnit {
         |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
-      Assert.assertEquals(42, Lint.run(sys.out, sys.err, opts, new Repo(opts), fileB))
+      Assert.assertEquals(42, Lint.run(sys.out, sys.err, opts, new Repo(opts), Map.empty, fileB))
     })
 
   }
@@ -189,7 +189,54 @@ class LintTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(Nil)
 
-      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, fileB))
+      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, fileB))
+    })
+
+  }
+
+  @Test
+  def testCiVars(): Unit = {
+
+    val remote = temp.newFolder("release-lint-mvn-simple-init")
+    val fileB = temp.newFolder("release-lint-mvn-simple")
+    val gitA = Sgit.init(remote, SgitTest.hasCommitMsg)
+    gitA.configSetLocal("user.email", "you@example.com")
+    gitA.configSetLocal("user.name", "Your Name")
+    val gitB = Sgit.doCloneRemote(remote.toURI.toString.replaceFirst("file:/", "file:///"), fileB)
+
+    val expected =
+      """
+        |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO] --- check clone config / no shallow clone @ git ---
+        |[INFO]     ✅ NO shallow clone
+        |[INFO] --- .gitattributes @ git ---
+        |[INFO] --- .gitignore @ git ---
+        |[INFO] --- list-remotes @ git ---
+        |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(fetch))
+        |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(push))
+        |[INFO] --- gitlabci.yml @ gitlab ---
+        |[WARNING]    ci path: a
+        |[WARNING]    use .gitlab-ci.yml 😬 RL1005-WIP
+        |[WARNING]    CI_COMMIT_TAG : » u « is no valid tag name. This could lead to build
+        |[WARNING]      problems later. A tag must match the pattern
+        |[WARNING]      » ^v[0-9]+\.[0-9]+\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ « 😬 RL1006-WIP
+        |[INFO] --- -SNAPSHOTS in files @ maven ---
+        |[INFO]     ✅ NO SNAPSHOTS in other files found
+        |
+        |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
+        |[INFO] ----------------------------[ end of lint ]----------------------------
+        |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
+    TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+      val mockRepo = Mockito.mock(classOf[Repo])
+
+      val value = Map(
+        "CI_CONFIG_PATH" -> "a",
+        "CI_COMMIT_REF_NAME" -> "u",
+        "CI_COMMIT_TAG" -> "u",
+      )
+      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, value, fileB))
     })
 
   }
@@ -272,7 +319,7 @@ class LintTest extends AssertionsForJUnit {
       )
       Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(mockUpdates)
-      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, fileB))
+      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, fileB))
     })
 
   }
@@ -361,7 +408,7 @@ class LintTest extends AssertionsForJUnit {
       )
       Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(mockUpdates)
-      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, fileB))
+      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, fileB))
     })
 
   }
@@ -450,7 +497,7 @@ class LintTest extends AssertionsForJUnit {
       )
       Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(mockUpdates)
-      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, file))
+      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, file))
     })
 
   }
@@ -516,7 +563,7 @@ class LintTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "202"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
-      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, file))
+      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, file))
 
     })
 

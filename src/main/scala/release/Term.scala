@@ -8,6 +8,7 @@ import org.jline.reader._
 import org.jline.terminal.TerminalBuilder
 import release.Starter.Opts
 
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 import scala.annotation.{nowarn, tailrec}
 
 object Term {
@@ -180,24 +181,46 @@ object Term {
   val error = ColoredLiner(82 - 5, (text, useColor, limit) => colorB(31, "ERROR", useColor) + checkedLength(limit)(text))
 
   def wrap(out: PrintStream, coloredLiner: ColoredLiner, text: String, useColor: Boolean): Unit = {
-    text.linesIterator
-      .flatMap(line => {
-        if (line.length > coloredLiner.defaultLimit) {
-          wrapText(line, coloredLiner.defaultLimit)
-        } else {
-          Seq(line)
-        }
-      })
+    wrapText(text, coloredLiner.defaultLimit)
       .foreach(line => out.println(coloredLiner.ex(line, useColor)))
 
   }
 
   @nowarn("cat=deprecation")
   def wrapText(str: String, limit: Int): Seq[String] = {
+    val indent = str.takeWhile(_ == ' ')
+    val indent2 = indent + "  "
+    val flip = new AtomicBoolean(true)
 
-    val prefixed = str.linesIterator.map(k => s"@${k}").mkString("\n")
-    val lines = WordUtils.wrap(prefixed, limit).split("\n").toSeq
-    lines.headOption.toSeq.map(_.substring(1)) ++ lines.tail.map(_.trim).map(k => s"  ${k}")
+    val o = str.trim.linesIterator.map(_.split(" ").toSeq).toSeq
+
+    def asdf(words: Seq[String]): Seq[Seq[String]] = {
+      val wcount = new AtomicInteger(0)
+      if (words.isEmpty) {
+        Nil
+      } else {
+        val taken = words.takeWhile(word => {
+          val r = wcount.get() + word.length + 1<= limit - indent2.length || wcount.get() == 0
+          if (r) {
+            wcount.addAndGet(word.length + 1)
+          }
+          r
+        }).toList
+        val value = words.drop(taken.length)
+        Seq(taken) ++ asdf(value)
+      }
+    }
+
+    val wer:Seq[Seq[String]] = o.flatMap(asdf)
+    val l = wer.map(line => {
+      if (flip.getAndSet(false)) {
+        indent + line.mkString(" ")
+      } else {
+        indent2 + line.mkString(" ")
+      }
+    }
+    )
+    l
   }
 
   def info(text: String, useColor: Boolean, limit: Int = info.defaultLimit): String = info.ex(text, useColor, limit)

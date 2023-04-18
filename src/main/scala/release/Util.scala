@@ -10,9 +10,11 @@ import scala.jdk.CollectionConverters._
 import scala.util.Random
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{FileSystemException, FileVisitResult, FileVisitor, Files, Path}
+import java.util
 import scala.language.implicitConversions
 
 object Util {
+
 
   class PluralString(in: String) {
     def pluralize(int: Int): String = {
@@ -161,6 +163,10 @@ object Util {
   def toSeq[A](set: java.util.Collection[A]): Seq[A] = set.asScala.toList
 
   def toJavaMap[K, V](map: Map[K, V]): java.util.Map[K, V] = map.asJava
+
+  def toScalaMapNonNull[K, V](in: util.Map[K, V]): Map[K, V] = {
+    in.asScala.filterNot(_._1 == null).filterNot(_._2 == null).toMap
+  }
 
   def toJavaList[V](map: Seq[V]): java.util.List[V] = map.asJava
 

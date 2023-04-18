@@ -42,23 +42,44 @@ class SuggestDockerTagTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testSuggest_tag_milestone(): Unit = {
+    val tuple = SuggestDockerTag.suggest("v1.2.3-M1")
+    Assert.assertEquals("1.2.3-M1", tuple._1)
+    Assert.assertEquals(0, tuple._2)
+  }
+
+  @Test
+  def testSuggest_noV_tag_milestone(): Unit = {
+    val tuple = SuggestDockerTag.suggest("1.2.3-M1")
+    Assert.assertEquals("1.2.3-m1_b7b0aa67_TEMP", tuple._1)
+    Assert.assertEquals(0, tuple._2)
+  }
+
+  @Test
   def testSuggest_feature(): Unit = {
     val tuple = SuggestDockerTag.suggest("feature/v1.2.3")
-    Assert.assertEquals("v1.2.3", tuple._1)
+    Assert.assertEquals("1.2.3_7026bb42_TEMP", tuple._1)
+    Assert.assertEquals(0, tuple._2)
+  }
+
+  @Test
+  def testSuggest_feature_vLess(): Unit = {
+    val tuple = SuggestDockerTag.suggest("feature/1.2.3")
+    Assert.assertEquals("1.2.3_e99748d1_TEMP", tuple._1)
     Assert.assertEquals(0, tuple._2)
   }
 
   @Test
   def testSuggest_release(): Unit = {
     val tuple = SuggestDockerTag.suggest("release/v1.2.3")
-    Assert.assertEquals("v1.2.3", tuple._1)
+    Assert.assertEquals("1.2.3_e3d473f9_TEMP", tuple._1)
     Assert.assertEquals(0, tuple._2)
   }
 
   @Test
   def testSuggest_some(): Unit = {
     val tuple = SuggestDockerTag.suggest(":some/v1.2.3-Ber::-")
-    Assert.assertEquals("some-v1.2.3-ber", tuple._1)
+    Assert.assertEquals("some-v1.2.3-ber_3416b6f8_TEMP", tuple._1)
     Assert.assertEquals(0, tuple._2)
   }
 
@@ -89,8 +110,8 @@ class SuggestDockerTagTest extends AssertionsForJUnit {
   @Test
   def testFindTagname_invalidTag(): Unit = {
     val tuple = SuggestDockerTag.findTagname("main", "main")
-    Assert.assertEquals("» main « is no valid tag name. This could lead to build problems later. " +
-      "A tag must match the pattern » ^v[0-9]+\\.[0-9]+\\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ «", tuple.get.failed.get.getMessage)
+    Assert.assertEquals("» main « is no valid tag name. This could lead to build problems later. " +
+      "A tag must match the pattern » ^v[0-9]+\\.[0-9]+\\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ «", tuple.get.failed.get.getMessage)
   }
 
 

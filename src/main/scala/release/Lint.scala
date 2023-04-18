@@ -37,11 +37,13 @@ object Lint {
   val fiCodeGitLocalChanges = uniqCode(1003)
   val fiCodeGitNoRemotes = uniqCode(1004)
   val fiCodeGitlabCiFilename = uniqCode(1005)
+  val fiCodeGitlabCiTagname = uniqCode(1006)
   val fiWarn = "\uD83D\uDE2C"
   val fiError = "❌"
 
   def run(out: PrintStream, err: PrintStream, opts: Starter.Opts,
-          repo: Repo, file: File = new File(".").getAbsoluteFile): Int = {
+          repo: Repo, envs: Map[String, String],
+          file: File = new File(".").getAbsoluteFile): Int = {
     out.println()
 
     // TODO handle --simple-chars
@@ -73,22 +75,23 @@ object Lint {
         if (sgit.isShallowClone) {
           Term.wrap(out, Term.warn,
             s""" shallow clone detected ${fiWarn}
-               |   % git rev-parse --is-shallow-repository # returns ${sgit.isShallowClone}
-               |   % git log -n1 --pretty=%H # returns ${sgit.commitIdHeadOpt().getOrElse("n/a")}
-               |   We do not want shallow clones because the commit id used in runtime
-               |   info will not point to a known commit
-               |   on Gitlab, change 'Settings' -> 'CI/CD' -> 'General pipelines' ->
-               |     'Git shallow clone' to 0 or blank.
-               |     If this does not fix this warning, toggle
-               |     the .. -> 'Git strategy' to 'git clone' for maybe a
-               |     single build to wipe out gitlab caches.
+               |% git rev-parse --is-shallow-repository # returns ${sgit.isShallowClone}
+               |% git log -n1 --pretty=%H # returns
+               |  ${sgit.commitIdHeadOpt().getOrElse("n/a")}
+               |We do not want shallow clones because the commit id used in runtime
+               |info will not point to a known commit
+               |on Gitlab, change 'Settings' -> 'CI/CD' -> 'General pipelines' ->
+               |  'Git shallow clone' to 0 or blank.
+               |  If this does not fix this warning, toggle
+               |  the .. -> 'Git strategy' to 'git clone' for maybe a
+               |  single build to wipe out gitlab caches.
                |""".stripMargin, color)
           warnExit.set(true)
         } else {
           out.println(info(s"    ${fiFine} NO shallow clone", color))
         }
 
-        if (false && System.getenv("CI_CONFIG_PATH") != null) {
+        if (false && envs.get("CI_CONFIG_PATH").orNull != null) {
           try {
             val allFiles = sgit.lsFilesAbsolute().par
               .take(1)
@@ -122,8 +125,10 @@ object Lint {
           remotes.foreach(r => out.println(info("      remote: " + r, useColor = color, limit = lineMax)))
         }
 
-        val tag = SuggestDockerTag.findTagname(System.getenv("CI_COMMIT_REF_NAME"), System.getenv("CI_COMMIT_TAG"))
-        val ciconfigpath = System.getenv("CI_CONFIG_PATH")
+        val ciconfigpath = envs.get("CI_CONFIG_PATH").orNull
+        val ciCommitRefName = envs.get("CI_COMMIT_REF_NAME").orNull
+        val ciCommitTag = envs.get("CI_COMMIT_TAG").orNull
+        val tag = SuggestDockerTag.findTagname(ciCommitRefName, ciCommitTag)
         val defaultCiFilename = ".gitlab-ci.yml"
         if (ciconfigpath != null) {
           out.println(info("--- gitlabci.yml @ gitlab ---", color))
@@ -137,9 +142,9 @@ object Lint {
 
           if (tag.isSuccess) {
             if (tag.get.isSuccess) {
-              out.println(info("   CI_COMMIT_TAG : " + tag.get, color))
+              out.println(info("      CI_COMMIT_TAG : " + tag.get.get, color))
             } else {
-              Term.wrap(out, Term.warn, "   CI_COMMIT_TAG : " + tag.get.failed.get.getMessage + s" ${fiWarn}", color)
+              Term.wrap(out, Term.warn, "   CI_COMMIT_TAG : " + tag.get.failed.get.getMessage + s" ${fiWarn} ${fiCodeGitlabCiTagname}", color)
               warnExit.set(true)
             }
           }
@@ -185,7 +190,7 @@ object Lint {
             out.println(info("    WIP", color))
             out.println(info("--- suggest dependency updates / configurable @ maven ---", color))
 
-            val releasenexusworkurl = System.getenv("RELEASE_NEXUS_WORK_URL")
+            val releasenexusworkurl: String = envs.get("RELEASE_NEXUS_WORK_URL").orNull
             if (repo.workNexusUrl() == Repo.centralUrl) {
               out.println(warn(s" work nexus points to central ${repo.workNexusUrl()} ${fiWarn} ${fiCodeNexusCentral}", color, limit = lineMax))
               out.println(info(s"    RELEASE_NEXUS_WORK_URL=${releasenexusworkurl}", color, limit = lineMax))
@@ -247,6 +252,8 @@ object Lint {
 
     } catch {
       case e: Exception => {
+
+
         Starter.handleException(err, e)
       }
     }

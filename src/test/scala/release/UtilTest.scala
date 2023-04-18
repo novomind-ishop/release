@@ -1,9 +1,10 @@
 package release
 
 import java.io.File
-
 import org.junit.{Assert, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
+
+import java.util
 
 class UtilTest extends AssertionsForJUnit {
 
@@ -104,5 +105,32 @@ class UtilTest extends AssertionsForJUnit {
     Assert.assertFalse(Util.isNullOrEmpty("bert"))
     Assert.assertTrue(Util.isNullOrEmpty(""))
     Assert.assertTrue(Util.isNullOrEmpty(null))
+  }
+
+  @Test
+  def testToScalaMap_empty(): Unit = {
+    val in = new util.HashMap[String, String]()
+    Assert.assertEquals(Map.empty[String, String], Util.toScalaMapNonNull(in))
+  }
+
+  @Test
+  def testToScalaMap_null_value(): Unit = {
+    val in = new util.HashMap[String, String]()
+    in.put("a", null)
+    Assert.assertEquals(Map.empty[String, String], Util.toScalaMapNonNull(in))
+  }
+
+  @Test
+  def testToScalaMap_null_key(): Unit = {
+    val in = new util.HashMap[String, String]()
+    in.put(null, "a")
+    Assert.assertEquals(Map.empty[String, String], Util.toScalaMapNonNull(in))
+  }
+
+  @Test
+  def testToScalaMap(): Unit = {
+    val in = new util.HashMap[String, String]()
+    in.put("b", "a")
+    Assert.assertEquals(Map("b" -> "a"), Util.toScalaMapNonNull(in))
   }
 }
