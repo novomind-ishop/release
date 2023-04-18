@@ -45,7 +45,7 @@ class TermTest extends AssertionsForJUnit {
   def testReadFrom(): Unit = {
     val value = "My string"
 
-    TermTest.testSys(Seq(value), "enter some [word]: My string", Nil)(sys => {
+    TermTest.testSys(Seq(value), "enter some [word]: My string", "")(sys => {
       val result = Term.readFrom(sys, "enter some", "word", Opts(useJlineInput = false))
       Assert.assertEquals(value, result)
     })
@@ -54,14 +54,14 @@ class TermTest extends AssertionsForJUnit {
 
   @Test
   def testReadNull(): Unit = {
-    TermTest.testSys(Nil, "enter some [word]: ", Seq("invalid readFrom(..) => exit 14"), 14)(sys => {
+    TermTest.testSys(Nil, "enter some [word]: ", "invalid readFrom(..) => exit 14", 14)(sys => {
       Term.readFrom(sys, "enter some", "word", Opts(useJlineInput = false))
     })
   }
 
   @Test
   def testReadDirect(): Unit = {
-    TermTest.testSys(Seq("a", "b"), "", Nil)(sys => {
+    TermTest.testSys(Seq("a", "b"), "", "")(sys => {
       val bin: BufferedReader = new BufferedReader(new InputStreamReader(sys.inS))
       Assert.assertEquals("a", bin.readLine())
       Assert.assertEquals("b", bin.readLine())
@@ -72,7 +72,7 @@ class TermTest extends AssertionsForJUnit {
   @Test
   def testThrows(): Unit = {
     TestHelper.assertComparisonFailure("expected:<[a]> but was:<[b]>", () => {
-      TermTest.testSys(Nil, "", Nil)(_ => {
+      TermTest.testSys(Nil, "", "")(_ => {
         Assert.assertEquals("a", "b")
       })
     })
@@ -81,7 +81,7 @@ class TermTest extends AssertionsForJUnit {
   @Test
   def testThrowsAll(): Unit = {
     TestHelper.assertException("hello", classOf[Exception], () => {
-      TermTest.testSys(Nil, "", Nil)(_ => {
+      TermTest.testSys(Nil, "", "")(_ => {
         throw new Exception("hello")
       })
     })
@@ -158,7 +158,7 @@ object TermTest extends LazyLogging {
 
   case class OutErr[T](out: String, err: String, value: T)
 
-  def testSys(input: Seq[String], expectedOut: String, expectedErr: Seq[String], expectedExitCode: Int = 0,
+  def testSys(input: Seq[String], expectedOut: String, expectedErr: String, expectedExitCode: Int = 0,
               outFn: String => String = a => a)
              (fn: Term.Sys => Unit): Unit = {
     this.synchronized {
@@ -206,10 +206,10 @@ object TermTest extends LazyLogging {
         @nowarn("cat=deprecation")
         val unit = System.setSecurityManager(oldSecurityManager)
       }
-      Assert.assertEquals(expectedErr.mkString("\n"), err.toString.linesIterator.toList.mkString("\n"))
       Assert.assertEquals(expectedOut, out.toString.linesIterator.toList
         .map(outFn)
         .mkString("\n"))
+      Assert.assertEquals(expectedErr, err.toString.linesIterator.toList.mkString("\n"))
       Assert.assertEquals(expectedExitCode, exitCode)
     }
   }

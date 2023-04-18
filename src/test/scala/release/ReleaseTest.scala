@@ -136,7 +136,7 @@ class ReleaseTest extends AssertionsForJUnit {
         |Push to Gerrit and publish release? [y/n]: y
         |done.""".stripMargin
 
-    TermTest.testSys(Seq("", "", "y", ""), expected, Nil, outFn = repSha)(sys => {
+    TermTest.testSys(Seq("", "", "y", ""), expected, "", outFn = repSha)(sys => {
       val opts = Opts(useJlineInput = false)
       Release.work(localWorkFolder, sys,
         rebaseFn = () => {
@@ -203,7 +203,7 @@ class ReleaseTest extends AssertionsForJUnit {
         |Push to Gerrit and publish release? [y/n]: y
         |done.""".stripMargin
 
-    TermTest.testSys(Seq("", "", "y", ""), expected, Nil, outFn = repSha)(sys => {
+    TermTest.testSys(Seq("", "", "y", ""), expected, "", outFn = repSha)(sys => {
       val opts = Opts(useJlineInput = false)
       Release.work(localWorkFolder, sys,
         rebaseFn = () => {
@@ -265,7 +265,7 @@ class ReleaseTest extends AssertionsForJUnit {
         |Push to Gerrit and publish release? [y/n]: y
         |done.""".stripMargin
 
-    TermTest.testSys(Seq("", "y", ""), expected, Nil, outFn = repSha)(sys => {
+    TermTest.testSys(Seq("", "y", ""), expected, "", outFn = repSha)(sys => {
       val opts = Opts(useJlineInput = false, versionIncrement = Increment.patch)
       Release.work(localWorkFolder, sys,
         rebaseFn = () => {
@@ -327,7 +327,7 @@ class ReleaseTest extends AssertionsForJUnit {
         |Push to Gerrit and publish release? [y/n]: y
         |done.""".stripMargin
 
-    TermTest.testSys(Seq("", "y", ""), expected, Nil, outFn = repSha)(sys => {
+    TermTest.testSys(Seq("", "y", ""), expected, "", outFn = repSha)(sys => {
       val opts = Opts(useJlineInput = false, versionIncrement = Increment.minor)
       Release.work(localWorkFolder, sys,
         rebaseFn = () => {
@@ -389,7 +389,7 @@ class ReleaseTest extends AssertionsForJUnit {
         |Push to Gerrit and publish release? [y/n]: y
         |done.""".stripMargin
 
-    TermTest.testSys(Seq("", "y", ""), expected, Nil, outFn = repSha)(sys => {
+    TermTest.testSys(Seq("", "y", ""), expected, "", outFn = repSha)(sys => {
       val opts = Opts(useJlineInput = false, versionIncrement = Increment.major)
       Release.work(localWorkFolder, sys,
         rebaseFn = () => {

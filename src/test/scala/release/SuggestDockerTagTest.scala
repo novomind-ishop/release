@@ -81,9 +81,16 @@ class SuggestDockerTagTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testFindTagname_validTag_milestone(): Unit = {
+    val tuple = SuggestDockerTag.findTagname("v1.0.0-M1", "v1.0.0-M1")
+    Assert.assertEquals(Success("v1.0.0-M1"), tuple.get)
+  }
+
+  @Test
   def testFindTagname_invalidTag(): Unit = {
     val tuple = SuggestDockerTag.findTagname("main", "main")
-    Assert.assertEquals("» main « is no valid tag name. This could lead to build problems later.", tuple.get.failed.get.getMessage)
+    Assert.assertEquals("» main « is no valid tag name. This could lead to build problems later. " +
+      "A tag must match the pattern » ^v[0-9]+\\.[0-9]+\\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ «", tuple.get.failed.get.getMessage)
   }
 
 

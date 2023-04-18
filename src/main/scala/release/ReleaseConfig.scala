@@ -17,7 +17,8 @@ import scala.io.Source
 sealed class ReleaseConfig(map: Map[String, String]) {
 
   def workNexusUrl(): String = {
-    scala.util.Properties.envOrNone("RELEASE_NEXUS_WORK_URL").getOrElse(map(ReleaseConfig.keyNexusWorkUrl))
+    scala.util.Properties.envOrNone("RELEASE_NEXUS_WORK_URL")
+      .getOrElse(map(ReleaseConfig.keyNexusWorkUrl))
   }
 
   def mirrorNexusUrl(): String = {

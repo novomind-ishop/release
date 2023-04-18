@@ -16,14 +16,36 @@ import scala.collection.parallel.CollectionConverters._
 
 object Lint {
 
+  type UniqCode = String
+  var codes = Set.empty[UniqCode]
+
+  def uniqCode(i: Int): UniqCode = {
+    val result = s"RL$i-WIP"
+    if (codes.contains(result)) {
+      throw new IllegalStateException(s"code ${result} already defined")
+    } else {
+      codes = codes + result
+      result
+    }
+
+  }
+
+  val fiFine = "✅"
+
+  val fiCodeNexusUrlSlash = uniqCode(1001)
+  val fiCodeNexusCentral = uniqCode(1002)
+  val fiCodeGitLocalChanges = uniqCode(1003)
+  val fiCodeGitNoRemotes = uniqCode(1004)
+  val fiCodeGitlabCiFilename = uniqCode(1005)
+  val fiWarn = "\uD83D\uDE2C"
+  val fiError = "❌"
+
   def run(out: PrintStream, err: PrintStream, opts: Starter.Opts,
           repo: Repo, file: File = new File(".").getAbsoluteFile): Int = {
     out.println()
 
     // TODO handle --simple-chars
-    val fiFine = "✅"
-    val fiWarn = "\uD83D\uDE2C"
-    val fiError = "❌"
+
     val color = opts.colors
 
     out.println(info(center("[ lint ]"), color))
@@ -87,31 +109,32 @@ object Lint {
         out.println(info("--- .gitattributes @ git ---", color))
         out.println(info("--- .gitignore @ git ---", color))
         if (sgit.hasLocalChanges) {
-          out.println(warn(s" Found local changes ${fiWarn}", color))
+          out.println(warn(s" Found local changes ${fiWarn} ${fiCodeGitLocalChanges}", color))
           warnExit.set(true)
         }
         out.println(info("--- list-remotes @ git ---", color))
         val remotes = sgit.listRemotes()
         if (remotes.isEmpty) {
-          out.println(warn(s" NO remotes found ${fiWarn}", color))
+          out.println(warn(s" NO remotes found ${fiWarn} ${fiCodeGitNoRemotes}", color))
           out.println(warn(" % git remote -v # returns nothing", color))
           warnExit.set(true)
         } else {
           remotes.foreach(r => out.println(info("      remote: " + r, useColor = color, limit = lineMax)))
         }
 
+        val tag = SuggestDockerTag.findTagname(System.getenv("CI_COMMIT_REF_NAME"), System.getenv("CI_COMMIT_TAG"))
         val ciconfigpath = System.getenv("CI_CONFIG_PATH")
         val defaultCiFilename = ".gitlab-ci.yml"
         if (ciconfigpath != null) {
           out.println(info("--- gitlabci.yml @ gitlab ---", color))
           if (ciconfigpath != defaultCiFilename) {
             out.println(warn("   ci path: " + ciconfigpath, color))
-            out.println(warn(s"   use ${defaultCiFilename} ${fiWarn}", color))
+            out.println(warn(s"   use ${defaultCiFilename} ${fiWarn} ${fiCodeGitlabCiFilename}", color))
             warnExit.set(true)
           } else {
             out.println(info("      ci path: " + ciconfigpath, color))
           }
-          val tag = SuggestDockerTag.findTagname(System.getenv("CI_COMMIT_REF_NAME"), System.getenv("CI_COMMIT_TAG"))
+
           if (tag.isSuccess) {
             if (tag.get.isSuccess) {
               out.println(info("   CI_COMMIT_TAG : " + tag.get, color))
@@ -164,11 +187,15 @@ object Lint {
 
             val releasenexusworkurl = System.getenv("RELEASE_NEXUS_WORK_URL")
             if (repo.workNexusUrl() == Repo.centralUrl) {
-              out.println(warn(s" work nexus points to central ${repo.workNexusUrl()} ${fiWarn}", color, limit = lineMax))
+              out.println(warn(s" work nexus points to central ${repo.workNexusUrl()} ${fiWarn} ${fiCodeNexusCentral}", color, limit = lineMax))
               out.println(info(s"    RELEASE_NEXUS_WORK_URL=${releasenexusworkurl}", color, limit = lineMax))
               warnExit.set(true)
             } else {
               out.println(info(s"    RELEASE_NEXUS_WORK_URL=${repo.workNexusUrl()}", color, limit = lineMax))
+            }
+            if (!repo.workNexusUrl().endsWith("/")) {
+              out.println(warn(s" nexus work url must end with a '/' - ${repo.workNexusUrl()} ${fiWarn} ${fiCodeNexusUrlSlash}", color, limit = lineMax))
+              warnExit.set(true)
             }
             try {
 

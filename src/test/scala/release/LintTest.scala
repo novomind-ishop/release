@@ -48,7 +48,7 @@ class LintTest extends AssertionsForJUnit {
         |[[34mINFO[0m] --------------------------------[ lint ]--------------------------------
         |[[31mERROR[0m] E: NO FILES FOUND in /tmp/junit-REPLACED/release-lint-empty
         |[[31mERROR[0m] ----------------------------[ end of lint ]----------------------------""".stripMargin
-    TermTest.testSys(Nil, expected, Nil, outFn = outT)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = outT)(sys => {
       val opts = Opts()
       Assert.assertEquals(1, Lint.run(sys.out, sys.err, opts, new Repo(opts), file))
     })
@@ -103,9 +103,93 @@ class LintTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/any.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
-    TermTest.testSys(Nil, expected, Nil, outFn = outT)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = outT)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       Assert.assertEquals(42, Lint.run(sys.out, sys.err, opts, new Repo(opts), fileB))
+    })
+
+  }
+
+  @Test
+  def testWorkUrl(): Unit = {
+
+    val remote = temp.newFolder("release-lint-mvn-simple-init")
+    val fileB = temp.newFolder("release-lint-mvn-simple")
+    val gitA = Sgit.init(remote, SgitTest.hasCommitMsg)
+    gitA.configSetLocal("user.email", "you@example.com")
+    gitA.configSetLocal("user.name", "Your Name")
+    val pom = new File(remote, "pom.xml")
+    Util.write(pom,
+      """<?xml version="1.0" encoding="UTF-8"?>
+        |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+        |  <modelVersion>4.0.0</modelVersion>
+        |  <groupId>com.novomind.ishop.any</groupId>
+        |  <artifactId>any</artifactId>
+        |  <version>0.11-SNAPSHOT</version>
+        |  <dependencies>
+        |    <dependency>
+        |      <groupId>org.springframework</groupId>
+        |      <artifactId>spring-context</artifactId>
+        |      <version>1.0.0</version>
+        |    </dependency>
+        |  </dependencies>
+        |</project>
+        |""".stripMargin.linesIterator.toSeq)
+    gitA.add(pom)
+    gitA.commitAll("bla")
+    val gitB = Sgit.doCloneRemote(remote.toURI.toString.replaceFirst("file:/", "file:///"), fileB)
+
+    val expected =
+      """
+        |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO] --- check clone config / no shallow clone @ git ---
+        |[INFO]     ✅ NO shallow clone
+        |[INFO] --- .gitattributes @ git ---
+        |[INFO] --- .gitignore @ git ---
+        |[INFO] --- list-remotes @ git ---
+        |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(fetch))
+        |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(push))
+        |[INFO] --- -SNAPSHOTS in files @ maven ---
+        |[INFO]     ✅ NO SNAPSHOTS in other files found
+        |[INFO]     WIP
+        |[INFO] --- .mvn @ maven ---
+        |[INFO]     WIP
+        |[INFO] --- check for snapshots @ maven ---
+        |[INFO] --- check for preview releases @ maven ---
+        |[INFO]     WIP
+        |[INFO] --- suggest dependency updates / configurable @ maven ---
+        |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org
+        |[WARNING]  nexus work url must end with a '/' - https://repo.example.org 😬 RL1001-WIP
+        |I: checking dependecies against nexus - please wait
+        |
+        |I: checked 1 dependecies in 999ms (2000-01-01)
+        |term: Term(dumb,lint,false)
+        |[INFO]     WIP
+        |[INFO] --- dep.tree @ maven ---
+        |[INFO]     WIP
+        |
+        |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
+        |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
+        |[INFO] ----------------------------[ end of lint ]----------------------------
+        |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
+        val expectedE =
+          """Non existing dependencies for:
+            |org.springframework:spring-context:1.0.0->Nil
+            |  https://repo.example.orgorg/springframework/spring-context/maven-metadata.xml
+            |""".stripMargin
+    TermTest.testSys(Nil, expected, expectedE, outFn = outT, expectedExitCode = 42)(sys => {
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+      val mockRepo = Mockito.mock(classOf[Repo])
+      Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org")
+      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
+      Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+        .thenReturn(None)
+      Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+        .thenReturn(Nil)
+
+      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, fileB))
     })
 
   }
@@ -160,7 +244,7 @@ class LintTest extends AssertionsForJUnit {
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
         |[INFO] --- suggest dependency updates / configurable @ maven ---
-        |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org
+        |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/
         |I: checking dependecies against nexus - please wait
         |
         |I: checked 1 dependecies in 999ms (2000-01-01)
@@ -176,10 +260,10 @@ class LintTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------""".stripMargin
-    TermTest.testSys(Nil, expected, Nil, outFn = outT, expectedExitCode = 0)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 0)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
-      Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org")
+      Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org/")
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
@@ -265,7 +349,7 @@ class LintTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[ERROR] exit 42 - because lint found warnings, see above ❌""".stripMargin
-    TermTest.testSys(Nil, expected, Nil, outFn = outT, expectedExitCode = 42)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org")
@@ -319,9 +403,9 @@ class LintTest extends AssertionsForJUnit {
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
         |[INFO] --- .gitignore @ git ---
-        |[WARNING]  Found local changes 😬
+        |[WARNING]  Found local changes 😬 RL1003-WIP
         |[INFO] --- list-remotes @ git ---
-        |[WARNING]  NO remotes found 😬
+        |[WARNING]  NO remotes found 😬 RL1004-WIP
         |[WARNING]  % git remote -v # returns nothing
         |[INFO] --- -SNAPSHOTS in files @ maven ---
         |[WARNING]   found snapshot in: notes.md 😬
@@ -333,7 +417,7 @@ class LintTest extends AssertionsForJUnit {
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
         |[INFO] --- suggest dependency updates / configurable @ maven ---
-        |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬
+        |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002-WIP
         |[INFO]     RELEASE_NEXUS_WORK_URL=null
         |I: checking dependecies against nexus - please wait
         |
@@ -353,7 +437,7 @@ class LintTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
-    TermTest.testSys(Nil, expected, Nil, outFn = outT, expectedExitCode = 42)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
@@ -409,9 +493,9 @@ class LintTest extends AssertionsForJUnit {
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
         |[INFO] --- .gitignore @ git ---
-        |[WARNING]  Found local changes 😬
+        |[WARNING]  Found local changes 😬 RL1003-WIP
         |[INFO] --- list-remotes @ git ---
-        |[WARNING]  NO remotes found 😬
+        |[WARNING]  NO remotes found 😬 RL1004-WIP
         |[WARNING]  % git remote -v # returns nothing
         |[INFO] --- -SNAPSHOTS in files @ maven ---
         |[WARNING]   found snapshot in: notes.md 😬
@@ -426,7 +510,7 @@ class LintTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple-fail/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
-    TermTest.testSys(Nil, expected, Nil, outFn = outT, expectedExitCode = 42)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "202"))
