@@ -128,8 +128,15 @@ object Lint {
         val ciconfigpath = envs.get("CI_CONFIG_PATH").orNull
         val ciCommitRefName = envs.get("CI_COMMIT_REF_NAME").orNull
         val ciCommitTag = envs.get("CI_COMMIT_TAG").orNull
-        val tag = SuggestDockerTag.findTagname(ciCommitRefName, ciCommitTag)
+        val rootFolderFiles = files.toSeq
+        val pompom = if (rootFolderFiles.exists(_.getName == "pom.xml")) {
+          Some(PomMod.withRepoTry(file, opts, repo))
+        } else {
+          None
+        }
+        val tag = SuggestDockerTag.findTagname(ciCommitRefName, ciCommitTag, pompom.flatMap(_.toOption.map(_.selfVersion)))
         val defaultCiFilename = ".gitlab-ci.yml"
+
         if (ciconfigpath != null) {
           out.println(info("--- gitlabci.yml @ gitlab ---", color))
           if (ciconfigpath != defaultCiFilename) {
@@ -151,7 +158,7 @@ object Lint {
 
         }
         out.println(info("--- -SNAPSHOTS in files @ maven ---", color))
-        val rootFolderFiles = files.toSeq
+
         val snapshotsInFiles = PomChecker.getSnapshotsInFiles(sgit.lsFilesAbsolute().map(_.getAbsolutePath))
         if (snapshotsInFiles.nonEmpty) {
           snapshotsInFiles.foreach(f => {
@@ -161,8 +168,9 @@ object Lint {
         } else {
           out.println(info(s"    ${fiFine} NO SNAPSHOTS in other files found", color))
         }
-        if (rootFolderFiles.exists(_.getName == "pom.xml")) {
-          val pomModTry = PomMod.withRepoTry(file, opts, repo)
+
+        if (pompom.isDefined) {
+          val pomModTry = pompom.get
           if (pomModTry.isSuccess) {
             out.println(info("    WIP", color))
           } else {
@@ -252,7 +260,6 @@ object Lint {
 
     } catch {
       case e: Exception => {
-
 
         Starter.handleException(err, e)
       }

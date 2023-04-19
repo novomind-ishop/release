@@ -118,9 +118,9 @@ object Starter extends LazyLogging {
         val selectedBraches = git.listBranchesLocal().filter(_.commitId == latestCommit)
         val found = selectedBraches.map(_.branchName.replaceFirst("refs/heads/", "")).filterNot(_ == "HEAD")
         if (found.size != 1) {
-          val selected:String = found match {
-            case k if k.contains("main") =>  "main"
-            case k if k.contains("master") =>  "master"
+          val selected: String = found match {
+            case k if k.contains("main") => "main"
+            case k if k.contains("master") => "master"
             case _ => "main"
           }
           sys.out.println("W: more than one branch found: " + found.mkString(", ") + s"; using \"${selected}\"")
@@ -252,7 +252,7 @@ object Starter extends LazyLogging {
                   colors: Boolean = true, useDefaults: Boolean = false, versionIncrement: Option[Increment] = None,
                   lintOpts: LintOpts = LintOpts(), checkOverlapping: Boolean = true,
                   checkProjectDeps: Boolean = true,
-                  showSelf: Boolean = false, showStartupDone: Boolean = true, suggestDockerTag: Boolean = false
+                  showSelfGa: Boolean = false, showStartupDone: Boolean = true, suggestDockerTag: Boolean = false
                  )
 
   @tailrec
@@ -279,7 +279,7 @@ object Starter extends LazyLogging {
       case "--skip-property" :: value :: tail => argsRead(tail, inOpt.copy(skipProperties = inOpt.skipProperties ++ Seq(value)))
       // CMDs
       case "lint" :: tail => argsRead(tail, inOpt.copy(lintOpts = inOpt.lintOpts.copy(doLint = true), showStartupDone = false))
-      case "showSelf" :: tail => argsRead(tail, inOpt.copy(showSelf = true))
+      case "showSelf" :: tail => argsRead(tail, inOpt.copy(showSelfGa = true))
       case "apidiff" :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(showApiDiff = true)))
       case "suggest-docker-tag" :: tail => argsRead(tail, inOpt.copy(suggestDockerTag = true, showStartupDone = false))
       case "versionSet" :: value :: _ => argsRead(Nil, inOpt.copy(versionSet = Some(value)))
@@ -701,15 +701,17 @@ object Starter extends LazyLogging {
 
     }
     if (opts.suggestDockerTag) {
-
-      val result = SuggestDockerTag.suggest(System.getenv("CI_COMMIT_REF_NAME"))
+      val file: File = new File(".").getAbsoluteFile
+      val pomModTry = PomMod.withRepoTry(file, opts, new Repo(opts))
+      val selfV = pomModTry.map(pm => pm.selfVersion).toOption
+      val result = SuggestDockerTag.suggest(System.getenv("CI_COMMIT_REF_NAME"), System.getenv("CI_COMMIT_TAG"), selfV)
       out.println(result._1)
       return result._2
     }
     if (opts.lintOpts.doLint) {
       return Lint.run(out, err, opts, new Repo(opts), Util.toScalaMapNonNull(System.getenv()))
     }
-    if (opts.showSelf) {
+    if (opts.showSelfGa) {
       val file: File = new File(".").getAbsoluteFile
       val pomModTry = PomMod.withRepoTry(file, opts, new Repo(opts))
       pomModTry.get.selfDepsModGavs().foreach(gav => out.println(gav.formatted))
