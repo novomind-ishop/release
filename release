@@ -9,6 +9,12 @@ trace_setup "init scripting"
 argLine="${*:-}"
 
 if tty -s > /dev/null 2>&1; then
+  interactive="true"
+else
+  interactive="false"
+fi
+
+if [[ "true" = "${interactive}" ]]; then
   echo -n "I: Starting release vm .." 1>&2
 fi
 
@@ -54,17 +60,17 @@ if [[ -f ${release_bin} ]]; then
   echo ""
   echo "W: Experimental native image ${release_bin}"
   set +e
-  ${release_bin} "$(dirname $0)" "$(pwd)" "${os}" "${TERM}" "${terminal_cols}" "${HOME}" ${argLine}
+  ${release_bin} "$(dirname $0)" "$(pwd)" "${os}" "${TERM}" "${terminal_cols}" "${interactive}" "${HOME}" ${argLine}
   java_exit=$?
   set -e
 elif [[ "${os}" = "Cygwin" ]]; then
   set +e
-  $java_bin -Dfile.encoding=UTF-8 ${release_opts} -jar $(cygpath -aw ${release_jar}) "$(cygpath -aw $(dirname $0))" "$(cygpath -aw $(pwd))" "${os}" "${TERM}" "${terminal_cols}" "${HOME}" ${argLine}
+  $java_bin -Dfile.encoding=UTF-8 ${release_opts} -jar $(cygpath -aw ${release_jar}) "$(cygpath -aw $(dirname $0))" "$(cygpath -aw $(pwd))" "${os}" "${TERM}" "${terminal_cols}" "${interactive}" "${HOME}" ${argLine}
   java_exit=$?
   set -e
 else
   set +e
-  $java_bin -Dfile.encoding=UTF-8 ${release_opts} -jar ${release_jar} "$(dirname $0)" "$(pwd)" "${os}" "${TERM}" "${terminal_cols}" "${HOME}" ${argLine}
+  $java_bin -Dfile.encoding=UTF-8 ${release_opts} -jar ${release_jar} "$(dirname $0)" "$(pwd)" "${os}" "${TERM}" "${terminal_cols}" "${interactive}" "${HOME}" ${argLine}
   java_exit=$?
   set -e
 fi
@@ -73,7 +79,7 @@ if [[ ${java_exit} -eq 99 ]]; then
     ps -fp $$ | egrep -v "COMMAND"
   fi
   if [[ ${ISHOP_RELEASE_UPDATE_AUTO:-0} -eq 1 ]]; then
-    update_cmd=$(java -Dfile.encoding=UTF-8 ${release_opts} -jar ${release_jar} "$(dirname $0)" "$(pwd)" "${os}" "${TERM}" "${terminal_cols}" "${HOME}" --show-update-cmd)
+    update_cmd=$(java -Dfile.encoding=UTF-8 ${release_opts} -jar ${release_jar} "$(dirname $0)" "$(pwd)" "${os}" "${TERM}" "${terminal_cols}" "${interactive}" "${HOME}" --show-update-cmd)
     echo "I: starting self update"
     eval "${update_cmd}"
     if [[ ${ISHOP_RELEASE_UPDATE_EXEC_AUTO:-0} -eq 1 ]]; then

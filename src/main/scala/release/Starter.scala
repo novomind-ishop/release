@@ -97,7 +97,7 @@ object Starter extends LazyLogging {
 
   def fetchGitAndAskForBranch(sys: Term.Sys, noVerify: Boolean,
                               gitBinEnv: Option[String], workDirFile: File, opts: Opts,
-                              skipFetch: Boolean): (Sgit, String) = {
+                              skipFetch: Boolean, skipAskForBranchFetch: Boolean): (Sgit, String) = {
     val global = ExecutionContext.global
 
     def fetchGit(file: File): Sgit = {
@@ -131,6 +131,7 @@ object Starter extends LazyLogging {
 
       }
 
+// TODO use current branch if non interactive
       val branch = Term.readFrom(sys, "Enter branch name where to start from", suggestCurrentBranch(workDirFile), opts)
       val git = workGit(workDirFile)
       val allBranches = git.listBranchNamesAllFull()
@@ -588,14 +589,15 @@ object Starter extends LazyLogging {
     val workDir = argSeq(1)
     val workDirFile = new File(workDir).getAbsoluteFile
     val shellWidth = argSeq(4).toInt
-    val otherArgs = argSeq.drop(6).filter(_ != null).map(_.trim).toList
+    val interactiveShell = argSeq(5).toBoolean
+    val otherArgs = argSeq.drop(7).filter(_ != null).map(_.trim).toList
 
     val opts = argsRead(otherArgs, Opts())
     if (opts.showStartupDone) {
       out.println(". done")
     }
     val config = ReleaseConfig.default(opts.useDefaults)
-    val termOs: Term = Term.select(argSeq(3), argSeq(2), opts.simpleChars)
+    val termOs: Term = Term.select(argSeq(3), argSeq(2), opts.simpleChars, interactiveShell)
 
     val home = Term.Os.getCurrent match {
       case Term.Os.Windows => argSeq(5).replace('/', '\\')
@@ -635,6 +637,7 @@ object Starter extends LazyLogging {
       out.println("export RELEASE_GIT_BIN=$PATH_TO_GIT_EXECUTABLE")
       out.println()
       out.println("Your home dir is: " + config.getUserHome(home))
+      out.println(s"InteractiveShell: ${interactiveShell}")
       return 0
     }
 
@@ -701,6 +704,7 @@ object Starter extends LazyLogging {
 
     }
     if (opts.suggestDockerTag) {
+
       val file: File = new File(".").getAbsoluteFile
       val pomModTry = PomMod.withRepoTry(file, opts, new Repo(opts))
       val selfV = pomModTry.map(pm => pm.selfVersion).toOption
@@ -722,7 +726,8 @@ object Starter extends LazyLogging {
       return 0
     }
     try {
-      val gitAndBranchname = fetchGitAndAskForBranch(sys, verifyGerrit, gitBinEnv, workDirFile, opts, skipFetch = false)
+      val gitAndBranchname = fetchGitAndAskForBranch(sys, verifyGerrit, gitBinEnv, workDirFile, opts,
+        skipFetch = termOs.isInteractice, skipAskForBranchFetch = termOs.isInteractice)
 
       def suggestLocalNotesReviewRemoval(activeGit: Sgit): Unit = {
         // git config --add remote.origin.fetch refs/notes/review:refs/notes/review

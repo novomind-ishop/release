@@ -18,7 +18,7 @@ class ProjectModTest extends AssertionsForJUnit {
     val now = ZonedDateTime.now()
     val scala = d("org.scala-lang", "scala-library", "2.13.0")
 
-    val term = Term.select("xterm", "os", simpleChars = false)
+    val term = Term.select("xterm", "os", simpleChars = false, isInteractice = false)
     val rootDeps: Seq[ProjectMod.Dep] = Seq(scala)
     val selfDepsMod: Seq[ProjectMod.Dep] = Nil
     val repo = mock[Repo]
@@ -127,7 +127,7 @@ class ProjectModTest extends AssertionsForJUnit {
 
   @Test
   def testShowDependencyUpdates_empty(): Unit = {
-    val term = Term.select("xterm", "os", simpleChars = false)
+    val term = Term.select("xterm", "os", simpleChars = false, isInteractice = false)
     val rootDeps: Seq[ProjectMod.Dep] = Nil
     val selfDepsMod: Seq[ProjectMod.Dep] = Nil
     val repo = mock[Repo]
@@ -151,7 +151,7 @@ class ProjectModTest extends AssertionsForJUnit {
       """
         |I: checking dependecies against nexus - please wait
         |I: checked 0 dependecies in ...
-        |term: Term(xterm,os,false)
+        |term: Term(xterm,os,false,false)
         |""".stripMargin.trim, filteredOut)
 
   }

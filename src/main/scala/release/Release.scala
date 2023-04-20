@@ -461,6 +461,12 @@ object Release extends LazyLogging {
         ""
       }
 
+      val gerritHint = if (opts.useGerrit) {
+        """
+          |NOTE: the "send to remote" command pushes the HEAD via Gerrit Code Review, this might not be needed for branches != master"""
+      } else {
+        ""
+      }
       sys.out.println(
         ("""commands for local rollback:
            |  """ + (resetCmd + " " + deleteTagOrBranch).trim +
@@ -468,8 +474,7 @@ object Release extends LazyLogging {
             |
             |commands for sending to remote:
             |  """ + (pushCmd + " " + pushTagOrBranch).trim +
-          """
-            |NOTE: the "send to remote" command pushes the HEAD via Gerrit Code Review, this might not be needed for branches != master""").stripMargin)
+          gerritHint).stripMargin)
     }
 
     if (opts.useGerrit) {

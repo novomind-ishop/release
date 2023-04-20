@@ -212,7 +212,7 @@ object Lint {
             }
             try {
 
-              pomMod.showDependencyUpdates(120, Term.select("dumb", "lint", opts.simpleChars), opts.depUpOpts,
+              pomMod.showDependencyUpdates(120, Term.select("dumb", "lint", opts.simpleChars, isInteractice = false), opts.depUpOpts,
                 new Sys(null, out, err), printProgress = false) // TODO toggle
             } catch {
               case pce: PreconditionsException => {

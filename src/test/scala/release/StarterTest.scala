@@ -102,17 +102,18 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
       |Possible environment variables:
       |export RELEASE_GIT_BIN=$PATH_TO_GIT_EXECUTABLE
       |
-      |Your home dir is: test""".stripMargin
+      |Your home dir is: test
+      |InteractiveShell: false""".stripMargin
 
   @Test
   def test_help_dash(): Unit = {
-    val result = doInit(Seq("self_dir", "workdir", "Cygwin", "cygwin", "80", "--no-update", "--help"))
+    val result = doInit(Seq("self_dir", "workdir", "Cygwin", "cygwin", "80", "false", "--no-update", "--help"))
     assertMessage(helpMessage, result)
   }
 
   @Test
   def test_help(): Unit = {
-    val result = doInit(Seq("self_dir", "workdir", "Cygwin", "cygwin", "80", "--no-update", "help"))
+    val result = doInit(Seq("self_dir", "workdir", "Cygwin", "cygwin", "80", "false", "--no-update", "help"))
     assertMessage(
       """. done
         |Invalid options:
@@ -146,7 +147,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
       in.linesIterator.toSeq(1)),
       classOf[Sgit.MissingCommitHookException], () => {
         TermTest.withOutErrIn[Unit](in)(sys => Starter.fetchGitAndAskForBranch(sys, noVerify = true, None,
-          testRepoD, Opts(), skipFetch = true))
+          testRepoD, Opts(), skipFetch = true, skipAskForBranchFetch = false))
       })
   }
 
@@ -157,7 +158,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
     // WHEN
     val in = TermTest.willReadFrom("master\n")
     val result = TermTest.withOutErrIn[Unit](in)(sys => Starter.fetchGitAndAskForBranch(sys,
-      noVerify = SgitTest.hasCommitMsg, None, testRepoD, Opts(useJlineInput = false), skipFetch = true))
+      noVerify = SgitTest.hasCommitMsg, None, testRepoD, Opts(useJlineInput = false), skipFetch = true, skipAskForBranchFetch = false))
 
     // THEN
     Assert.assertEquals("Enter branch name where to start from [master]:", result.out)
@@ -170,7 +171,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
     // WHEN
     val in = TermTest.willReadFrom("master\n")
     val result = TermTest.withOutErrIn[Unit](in)(sys => Starter.fetchGitAndAskForBranch(sys, noVerify = false,
-      None, testRepoD, Opts(useJlineInput = false), skipFetch = true))
+      None, testRepoD, Opts(useJlineInput = false), skipFetch = true, skipAskForBranchFetch = false))
 
     // THEN
     Assert.assertEquals("Enter branch name where to start from [master]:", result.out)

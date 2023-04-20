@@ -113,7 +113,7 @@ class ReleaseTest extends AssertionsForJUnit {
     val gitLocal = Sgit.doClone(remoteWorkFolder, localWorkFolder, verify = false)
     gitLocal.configSetLocal("user.email", "you@example.com")
     gitLocal.configSetLocal("user.name", "Your Name")
-    val term = Term.select("xterm", "b", simpleChars = true)
+    val term = Term.select("xterm", "b", simpleChars = true, isInteractice = false)
     val expected =
       """I: Reading pom.xmls ... done
         |---------
@@ -178,7 +178,7 @@ class ReleaseTest extends AssertionsForJUnit {
     val gitLocal = Sgit.doClone(remoteWorkFolder, localWorkFolder, verify = false)
     gitLocal.configSetLocal("user.email", "you@example.com")
     gitLocal.configSetLocal("user.name", "Your Name")
-    val term = Term.select("xterm", "b", simpleChars = true)
+    val term = Term.select("xterm", "b", simpleChars = true, isInteractice = false)
     val expected =
       """I: Reading pom.xmls ... done
         |---------
@@ -245,7 +245,7 @@ class ReleaseTest extends AssertionsForJUnit {
     val gitLocal = Sgit.doClone(remoteWorkFolder, localWorkFolder, verify = false)
     gitLocal.configSetLocal("user.email", "you@example.com")
     gitLocal.configSetLocal("user.name", "Your Name")
-    val term = Term.select("xterm", "b", simpleChars = true)
+    val term = Term.select("xterm", "b", simpleChars = true, isInteractice = false)
     val expected =
       """I: Reading pom.xmls ... done
         |---------
@@ -307,7 +307,7 @@ class ReleaseTest extends AssertionsForJUnit {
     val gitLocal = Sgit.doClone(remoteWorkFolder, localWorkFolder, verify = false)
     gitLocal.configSetLocal("user.email", "you@example.com")
     gitLocal.configSetLocal("user.name", "Your Name")
-    val term = Term.select("xterm", "b", simpleChars = true)
+    val term = Term.select("xterm", "b", simpleChars = true, isInteractice = false)
     val expected =
       """I: Reading pom.xmls ... done
         |---------
@@ -369,7 +369,7 @@ class ReleaseTest extends AssertionsForJUnit {
     val gitLocal = Sgit.doClone(remoteWorkFolder, localWorkFolder, verify = false)
     gitLocal.configSetLocal("user.email", "you@example.com")
     gitLocal.configSetLocal("user.name", "Your Name")
-    val term = Term.select("xterm", "b", simpleChars = true)
+    val term = Term.select("xterm", "b", simpleChars = true, isInteractice = false)
     val expected =
       """I: Reading pom.xmls ... done
         |---------

@@ -25,11 +25,11 @@ object Term {
         "EndOfFileException"
       }
       case _: UserInterruptException => {
-        System.exit(28)
+        System.exit(29)
         "UserInterruptException"
       }
       case _: IOError => {
-        System.exit(28)
+        System.exit(30)
         "IOError"
       }
     }
@@ -263,13 +263,13 @@ object Term {
 
   sealed case class Os(name: String)
 
-  def select(term: String, os: String, simpleChars: Boolean) = term match {
-    case "xterm" => Term("xterm", os, simpleChars)
-    case "xterm-256color" => Term("xterm-256color", os, simpleChars)
-    case "screen-256color" => Term("screen-256color", os, simpleChars)
-    case "cygwin" => Term("cygwin", os, simpleChars)
-    case "screen" => Term("screen", os, simpleChars)
-    case "dumb" => Term("dumb", os, simpleChars)
+  def select(term: String, os: String, simpleChars: Boolean, isInteractice:Boolean) = term match {
+    case "xterm" => Term("xterm", os, simpleChars, isInteractice)
+    case "xterm-256color" => Term("xterm-256color", os, simpleChars, isInteractice)
+    case "screen-256color" => Term("screen-256color", os, simpleChars, isInteractice)
+    case "cygwin" => Term("cygwin", os, simpleChars, isInteractice)
+    case "screen" => Term("screen", os, simpleChars, isInteractice)
+    case "dumb" => Term("dumb", os, simpleChars, isInteractice)
     case t => throw new IllegalStateException(s"invalid terminal: ${t}")
   }
 
@@ -296,7 +296,7 @@ object Term {
   }
 }
 
-case class Term(term: String, os: String, simpleChars: Boolean) {
+case class Term(term: String, os: String, simpleChars: Boolean, isInteractice:Boolean) {
   val isCygwin: Boolean = os == "Cygwin" || term == "cygwin"
   val isMinGw: Boolean = os.contains("MINGW")
 }

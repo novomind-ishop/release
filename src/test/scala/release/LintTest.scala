@@ -165,7 +165,7 @@ class LintTest extends AssertionsForJUnit {
         |I: checking dependecies against nexus - please wait
         |
         |I: checked 1 dependecies in 999ms (2000-01-01)
-        |term: Term(dumb,lint,false)
+        |term: Term(dumb,lint,false,false)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -299,7 +299,7 @@ class LintTest extends AssertionsForJUnit {
         |╠═╦═ org.springframework:spring-context:1.0.0
         |║ ╚═══ 1.0.1, .., 1.2.8, 1.2.9
         |║
-        |term: Term(dumb,lint,false)
+        |term: Term(dumb,lint,false,false)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -474,7 +474,7 @@ class LintTest extends AssertionsForJUnit {
         |║ ╠═══ (1) 1.0.1, .., 1.2.8, 1.2.9
         |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6
         |║
-        |term: Term(dumb,lint,false)
+        |term: Term(dumb,lint,false,false)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
