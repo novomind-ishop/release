@@ -100,8 +100,12 @@ object Starter extends LazyLogging {
                               skipFetch: Boolean, skipAskForBranchFetch: Boolean): (Sgit, String) = {
     val global = ExecutionContext.global
 
-    def fetchGit(file: File): Sgit = {
-      val git = Sgit(file = file, doVerify = noVerify, out = sys.out, err = sys.err, gitBin = gitBinEnv, opts = opts)
+    def unfechtedGit(file: File): Sgit = {
+      Sgit(file = file, doVerify = noVerify, out = sys.out, err = sys.err, gitBin = gitBinEnv, opts = opts)
+    }
+
+    def fetchedGit(file: File): Sgit = {
+      val git = unfechtedGit(file)
       git.fetchAll()
       git
     }
@@ -148,8 +152,12 @@ object Starter extends LazyLogging {
     }
 
     val gitFetchF = futureOf(global, {
-      val result = Tracer.msgAround("fetch git", logger, () => fetchGit(workDirFile))
-      result
+      if (skipFetch) {
+        Tracer.msgAround("unfetch git", logger, () => unfechtedGit(workDirFile))
+      } else {
+        val result = Tracer.msgAround("fetch git", logger, () => fetchedGit(workDirFile))
+        result
+      }
     })
 
     val startBranchF = futureOf(global, askReleaseBranch())
@@ -168,7 +176,7 @@ object Starter extends LazyLogging {
           }
         }
         if (gitFetchF.wrapped.isCompleted && startBranchF.wrapped.isCompleted && !printFetching.get()) {
-          sys.out.println(". done")
+          sys.out.println(". done (a)")
         }
       }
 
@@ -598,10 +606,10 @@ object Starter extends LazyLogging {
     val otherArgs = argSeq.drop(7).filter(_ != null).map(_.trim).toList
 
     val opts = argsRead(otherArgs, Opts())
-    if (opts.showStartupDone) {
-      out.println(". done")
-    }
     val interactiveShell = argSeq(5).toBoolean && opts.isInteractive
+    if (opts.showStartupDone) {
+      out.println(". done (b)")
+    }
     val config = ReleaseConfig.default(opts.useDefaults)
     val termOs: Term = Term.select(argSeq(3), argSeq(2), opts.simpleChars, interactiveShell)
 

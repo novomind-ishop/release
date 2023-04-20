@@ -115,7 +115,7 @@ class ReleaseTest extends AssertionsForJUnit {
     gitLocal.configSetLocal("user.name", "Your Name")
     val term = Term.select("xterm", "b", simpleChars = true, isInteractice = false)
     val expected =
-      """I: Reading pom.xmls ... done
+      """I: Reading pom.xmls ... done (g)
         |---------
         |1. MAJOR version when you make incompatible API changes,
         |2. MINOR version when you add functionality in a backwards-compatible manner, and
@@ -125,10 +125,10 @@ class ReleaseTest extends AssertionsForJUnit {
         |Enter the release version [0.11]:
         |Selected release is 0.11
         |Enter the next version without -SNAPSHOT [0.12.0]:
-        |Committing pom changes ... done
-        |Checking out release/0.11 ... done
-        |Commiting pom changes ... done
-        |Checking out master ... done
+        |Committing pom changes ... done (f)
+        |Checking out release/0.11 ... done (e)
+        |Commiting pom changes ... done (d)
+        |Checking out master ... done (c)
         |
         |
         ||/
@@ -180,7 +180,7 @@ class ReleaseTest extends AssertionsForJUnit {
     gitLocal.configSetLocal("user.name", "Your Name")
     val term = Term.select("xterm", "b", simpleChars = true, isInteractice = false)
     val expected =
-      """I: Reading pom.xmls ... done
+      """I: Reading pom.xmls ... done (g)
         |---------
         |1. MAJOR version when you make incompatible API changes,
         |2. MINOR version when you add functionality in a backwards-compatible manner, and
@@ -195,9 +195,9 @@ class ReleaseTest extends AssertionsForJUnit {
         |Selected release is 1.0.1
         |Enter the next version without -SNAPSHOT [1x]:
         |skipped release commit on master
-        |Checking out release/1.0.1 ... done
-        |Commiting pom changes ... done
-        |Checking out master ... done
+        |Checking out release/1.0.1 ... done (e)
+        |Commiting pom changes ... done (d)
+        |Checking out master ... done (c)
         |
         |
         |Push to Gerrit and publish release? [y/n]: y
@@ -247,7 +247,7 @@ class ReleaseTest extends AssertionsForJUnit {
     gitLocal.configSetLocal("user.name", "Your Name")
     val term = Term.select("xterm", "b", simpleChars = true, isInteractice = false)
     val expected =
-      """I: Reading pom.xmls ... done
+      """I: Reading pom.xmls ... done (g)
         |---------
         |1. MAJOR version when you make incompatible API changes,
         |2. MINOR version when you add functionality in a backwards-compatible manner, and
@@ -257,9 +257,9 @@ class ReleaseTest extends AssertionsForJUnit {
         |Selected release is 1.0.1
         |Enter the next version without -SNAPSHOT [1x]:
         |skipped release commit on master
-        |Checking out release/1.0.1 ... done
-        |Commiting pom changes ... done
-        |Checking out master ... done
+        |Checking out release/1.0.1 ... done (e)
+        |Commiting pom changes ... done (d)
+        |Checking out master ... done (c)
         |
         |
         |Push to Gerrit and publish release? [y/n]: y
@@ -309,7 +309,7 @@ class ReleaseTest extends AssertionsForJUnit {
     gitLocal.configSetLocal("user.name", "Your Name")
     val term = Term.select("xterm", "b", simpleChars = true, isInteractice = false)
     val expected =
-      """I: Reading pom.xmls ... done
+      """I: Reading pom.xmls ... done (g)
         |---------
         |1. MAJOR version when you make incompatible API changes,
         |2. MINOR version when you add functionality in a backwards-compatible manner, and
@@ -319,9 +319,9 @@ class ReleaseTest extends AssertionsForJUnit {
         |Selected release is 1.1.0
         |Enter the next version without -SNAPSHOT [1x]:
         |skipped release commit on master
-        |Checking out release/1.1.0 ... done
-        |Commiting pom changes ... done
-        |Checking out master ... done
+        |Checking out release/1.1.0 ... done (e)
+        |Commiting pom changes ... done (d)
+        |Checking out master ... done (c)
         |
         |
         |Push to Gerrit and publish release? [y/n]: y
@@ -371,7 +371,7 @@ class ReleaseTest extends AssertionsForJUnit {
     gitLocal.configSetLocal("user.name", "Your Name")
     val term = Term.select("xterm", "b", simpleChars = true, isInteractice = false)
     val expected =
-      """I: Reading pom.xmls ... done
+      """I: Reading pom.xmls ... done (g)
         |---------
         |1. MAJOR version when you make incompatible API changes,
         |2. MINOR version when you add functionality in a backwards-compatible manner, and
@@ -381,9 +381,9 @@ class ReleaseTest extends AssertionsForJUnit {
         |Selected release is 2.0.0
         |Enter the next version without -SNAPSHOT [1x]:
         |skipped release commit on master
-        |Checking out release/2.0.0 ... done
-        |Commiting pom changes ... done
-        |Checking out master ... done
+        |Checking out release/2.0.0 ... done (e)
+        |Commiting pom changes ... done (d)
+        |Checking out master ... done (c)
         |
         |
         |Push to Gerrit and publish release? [y/n]: y

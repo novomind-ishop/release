@@ -14,6 +14,10 @@ else
   interactive="false"
 fi
 
+if [[ -n $(echo "${argLine}" | egrep -- "--no-interactive") ]]; then
+  interactive="false"
+fi
+
 if [[ "true" = "${interactive}" ]]; then
   echo -n "I: Starting release vm .." 1>&2
 fi

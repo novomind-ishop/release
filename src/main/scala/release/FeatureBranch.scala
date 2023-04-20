@@ -50,7 +50,7 @@ object FeatureBranch {
         msgs,
         config.signedOfBy(), Starter.sign(sgit), toolSh1), mod.depTreeFilenameList())
 
-    sys.out.println(". done")
+    sys.out.println(". done (h)")
     sys.out.println("To push this branch to remote: $ git push --set-upstream origin " + featureBranchName)
   }
 

@@ -78,7 +78,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
   }
 
   private val helpMessage =
-    """. done
+    """. done (b)
       |Usage: release [OPTION] [CMD] ...
       |Note: Calling release without any options creates a normal release.
       |All options are non-mandatory.
@@ -115,7 +115,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
   def test_help(): Unit = {
     val result = doInit(Seq("self_dir", "workdir", "Cygwin", "cygwin", "80", "false", "--no-update", "help"))
     assertMessage(
-      """. done
+      """. done (b)
         |Invalid options:
         |help
         |

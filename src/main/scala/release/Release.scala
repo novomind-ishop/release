@@ -136,7 +136,7 @@ object Release extends LazyLogging {
 
     val mod: ProjectMod = ProjectMod.read(workDirFile, sys, opts, repo)
 
-    sys.out.println(". done")
+    sys.out.println(". done (g)")
     if (opts.depUpOpts.showDependencyUpdates) {
       mod.showDependencyUpdates(shellWidth, termOs, opts.depUpOpts, sys, printProgress = true)
       System.exit(0)
@@ -391,12 +391,12 @@ object Release extends LazyLogging {
           releaseMod.depTreeFilenameList())
       }
 
-      sys.out.println(". done")
+      sys.out.println(". done (f)")
       true
     }
     sys.out.print("Checking out " + releaseBrachName + " ..")
     sgit.checkout(releaseBrachName)
-    sys.out.println(". done")
+    sys.out.println(". done (e)")
 
     if (releaseMod.selfVersion != release) {
       releaseMod.changeVersion(release)
@@ -423,14 +423,14 @@ object Release extends LazyLogging {
             |Releasetool-sha1: %s""".stripMargin.format(config.releasPrefix(), release,
             msgs, Starter.sign(sgit), releaseToolGitSha1), releaseMod.depTreeFilenameList())
       }
-      sys.out.println(". done")
+      sys.out.println(". done (d)")
     }
     if (releaseMod.isNoShop) {
       sgit.doTag(release)
     }
     sys.out.print("Checking out " + branch + " ..")
     sgit.checkout(branch)
-    sys.out.println(". done")
+    sys.out.println(". done (c)")
     if (newMod.isNoShop) {
       sgit.deleteBranch(releaseBrachName)
     }
