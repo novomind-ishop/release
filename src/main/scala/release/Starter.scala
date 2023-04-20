@@ -131,8 +131,11 @@ object Starter extends LazyLogging {
 
       }
 
-// TODO use current branch if non interactive
-      val branch = Term.readFrom(sys, "Enter branch name where to start from", suggestCurrentBranch(workDirFile), opts)
+      val branch = if (skipAskForBranchFetch) {
+        suggestCurrentBranch(workDirFile)
+      } else {
+        Term.readFrom(sys, "Enter branch name where to start from", suggestCurrentBranch(workDirFile), opts)
+      }
       val git = workGit(workDirFile)
       val allBranches = git.listBranchNamesAllFull()
 
@@ -253,7 +256,8 @@ object Starter extends LazyLogging {
                   colors: Boolean = true, useDefaults: Boolean = false, versionIncrement: Option[Increment] = None,
                   lintOpts: LintOpts = LintOpts(), checkOverlapping: Boolean = true,
                   checkProjectDeps: Boolean = true,
-                  showSelfGa: Boolean = false, showStartupDone: Boolean = true, suggestDockerTag: Boolean = false
+                  showSelfGa: Boolean = false, showStartupDone: Boolean = true, suggestDockerTag: Boolean = false,
+                  isInteractive: Boolean = true
                  )
 
   @tailrec
@@ -267,6 +271,7 @@ object Starter extends LazyLogging {
       case "--show-update-cmd" :: tail => argsRead(tail, inOpt.copy(showUpdateCmd = true, showStartupDone = false))
       case "--no-gerrit" :: tail => argsRead(tail, inOpt.copy(useGerrit = false))
       case "--no-update" :: tail => argsRead(tail, inOpt.copy(doUpdate = false))
+      case "--no-interactive" :: tail => argsRead(tail, inOpt.copy(isInteractive = false))
       case "--defaults" :: tail => argsRead(tail, inOpt.copy(useDefaults = true))
       case "--no-jline" :: tail => argsRead(tail, inOpt.copy(useJlineInput = false))
       case "--no-color" :: tail => argsRead(tail, inOpt.copy(colors = false))
@@ -589,13 +594,14 @@ object Starter extends LazyLogging {
     val workDir = argSeq(1)
     val workDirFile = new File(workDir).getAbsoluteFile
     val shellWidth = argSeq(4).toInt
-    val interactiveShell = argSeq(5).toBoolean
+
     val otherArgs = argSeq.drop(7).filter(_ != null).map(_.trim).toList
 
     val opts = argsRead(otherArgs, Opts())
     if (opts.showStartupDone) {
       out.println(". done")
     }
+    val interactiveShell = argSeq(5).toBoolean && opts.isInteractive
     val config = ReleaseConfig.default(opts.useDefaults)
     val termOs: Term = Term.select(argSeq(3), argSeq(2), opts.simpleChars, interactiveShell)
 
@@ -727,7 +733,7 @@ object Starter extends LazyLogging {
     }
     try {
       val gitAndBranchname = fetchGitAndAskForBranch(sys, verifyGerrit, gitBinEnv, workDirFile, opts,
-        skipFetch = termOs.isInteractice, skipAskForBranchFetch = termOs.isInteractice)
+        skipFetch = !termOs.isInteractice, skipAskForBranchFetch = !termOs.isInteractice)
 
       def suggestLocalNotesReviewRemoval(activeGit: Sgit): Unit = {
         // git config --add remote.origin.fetch refs/notes/review:refs/notes/review
@@ -773,7 +779,11 @@ object Starter extends LazyLogging {
       val git = gitAndBranchname._1
       suggestLocalNotesReviewRemoval(git)
       val startBranch = gitAndBranchname._2
-      val askForRebase = suggestRebase(sys, git, startBranch, opts)
+      val askForRebase: () => Unit = if (interactiveShell) {
+        suggestRebase(sys, git, startBranch, opts)
+      } else {
+        () => {}
+      }
       logger.trace("readFromPrompt")
       Tracer.withFn(logger, () => "local branches: " + git.listBranchNamesLocal())
       if (versionSetMode) {
