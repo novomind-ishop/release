@@ -469,7 +469,16 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     commitIdHead() + modStar
   }
 
-  def graph(): String = {
+  def log(): String = {
+    try {
+      gitNative(Seq("log", "HEAD", "--no-color", "--branches", "--remotes", "--tags", "--"))
+        .map(_.trim).mkString("\n")
+    } catch {
+      case e: Exception => e.printStackTrace(); "no - log"
+    }
+  }
+
+  def logGraph(): String = {
     try {
       gitNative(Seq("log", "HEAD", "--no-color", "--branches", "--remotes", "--tags", "--graph",
         "-3", "--oneline", "--decorate", "--"))

@@ -565,6 +565,7 @@ object Starter extends LazyLogging {
               _: PomChecker.ValidationException | _: PreconditionsException | _: Sgit.BranchAlreadyExistsException) => {
         err.println()
         err.println("E: " + x.getMessage)
+        x.printStackTrace()
         1
       }
       case x@(_: TimeoutException) => {
@@ -818,7 +819,7 @@ object Starter extends LazyLogging {
       } else {
         lazy val repo = new Repo(opts)
         Release.work(workDirFile, sys, askForRebase, startBranch,
-          git, termOs, shellWidth, releaseToolGit.headStatusValue(), config, repo, opts)
+          git, termOs, shellWidth, () => releaseToolGit.headStatusValue(), config, repo, opts)
       }
 
       return 0

@@ -141,10 +141,11 @@ class ReleaseTest extends AssertionsForJUnit {
       Release.work(localWorkFolder, sys,
         rebaseFn = () => {
 
-        }, branch = "master", gitLocal, term, 72, "abc",
+        }, branch = "master", gitLocal, term, 72, () => "abc",
         ReleaseConfig.default(true), new Repo(opts), opts)
 
     })
+    Assert.assertEquals(Seq("Releasetool-sha1: abc"), gitRemote.log().linesIterator.filter(_.startsWith("Releasetool-sha1")).toSeq)
 
   }
 
@@ -208,7 +209,7 @@ class ReleaseTest extends AssertionsForJUnit {
       Release.work(localWorkFolder, sys,
         rebaseFn = () => {
 
-        }, branch = "master", gitLocal, term, 72, "abc",
+        }, branch = "master", gitLocal, term, 72, () => "abc",
         ReleaseConfig.default(true), new Repo(opts), opts)
 
     })
@@ -270,7 +271,7 @@ class ReleaseTest extends AssertionsForJUnit {
       Release.work(localWorkFolder, sys,
         rebaseFn = () => {
 
-        }, branch = "master", gitLocal, term, 72, "abc",
+        }, branch = "master", gitLocal, term, 72, () => "abc",
         ReleaseConfig.default(true), new Repo(opts), opts)
 
     })
@@ -332,7 +333,7 @@ class ReleaseTest extends AssertionsForJUnit {
       Release.work(localWorkFolder, sys,
         rebaseFn = () => {
 
-        }, branch = "master", gitLocal, term, 72, "abc",
+        }, branch = "master", gitLocal, term, 72, () => "abc",
         ReleaseConfig.default(true), new Repo(opts), opts)
 
     })
@@ -394,7 +395,7 @@ class ReleaseTest extends AssertionsForJUnit {
       Release.work(localWorkFolder, sys,
         rebaseFn = () => {
 
-        }, branch = "master", gitLocal, term, 72, "abc",
+        }, branch = "master", gitLocal, term, 72, () => "abc",
         ReleaseConfig.default(true), new Repo(opts), opts)
 
     })

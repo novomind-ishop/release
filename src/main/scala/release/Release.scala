@@ -109,7 +109,7 @@ object Release extends LazyLogging {
 
   // TODO @tailrec
   def work(workDirFile: File, sys: Term.Sys, rebaseFn: () => Unit, branch: String, sgit: Sgit,
-           termOs: Term, shellWidth: Int, releaseToolGitSha1: String, config: ReleaseConfig,
+           termOs: Term, shellWidth: Int, releaseToolGitSha1: () => String, config: ReleaseConfig,
            repo: Repo, opts: Opts): Seq[Unit] = {
     if (sgit.hasLocalChanges) {
       val message = localChangeMessage(sgit)
@@ -366,6 +366,7 @@ object Release extends LazyLogging {
       case Nil => ""
       case found => "\nReleasetool-Prop-Skip: " + found.mkString(", ")
     }
+    val releaseToolSelfGitSha1 = releaseToolGitSha1.apply()
     val changedVersion = if (sgit.hasNoLocalChanges) {
       sys.out.println("skipped release commit on " + branch)
       false
@@ -379,7 +380,7 @@ object Release extends LazyLogging {
             |Signed-off-by: %s
             |Releasetool-sign: %s
             |Releasetool-sha1: %s""".stripMargin.format(config.releasPrefix(), nextReleaseWithoutSnapshot,
-            msgs, config.signedOfBy(), Starter.sign(sgit), releaseToolGitSha1),
+            msgs, config.signedOfBy(), Starter.sign(sgit), releaseToolSelfGitSha1),
           releaseMod.depTreeFilenameList())
       } else {
         sgit.doCommitPomXmlsAnd(
@@ -387,7 +388,7 @@ object Release extends LazyLogging {
             |%s
             |Releasetool-sign: %s
             |Releasetool-sha1: %s""".stripMargin.format(config.releasPrefix(), nextReleaseWithoutSnapshot,
-            msgs, Starter.sign(sgit), releaseToolGitSha1),
+            msgs, Starter.sign(sgit), releaseToolSelfGitSha1),
           releaseMod.depTreeFilenameList())
       }
 
@@ -414,14 +415,14 @@ object Release extends LazyLogging {
             |Signed-off-by: %s
             |Releasetool-sign: %s
             |Releasetool-sha1: %s""".stripMargin.format(config.releasPrefix(), release,
-            msgs, config.signedOfBy(), Starter.sign(sgit), releaseToolGitSha1), releaseMod.depTreeFilenameList())
+            msgs, config.signedOfBy(), Starter.sign(sgit), releaseToolSelfGitSha1), releaseMod.depTreeFilenameList())
       } else {
         sgit.doCommitPomXmlsAnd(
           """[%s] perform to - %s
             |%s
             |Releasetool-sign: %s
             |Releasetool-sha1: %s""".stripMargin.format(config.releasPrefix(), release,
-            msgs, Starter.sign(sgit), releaseToolGitSha1), releaseMod.depTreeFilenameList())
+            msgs, Starter.sign(sgit), releaseToolSelfGitSha1), releaseMod.depTreeFilenameList())
       }
       sys.out.println(". done (d)")
     }
@@ -434,7 +435,7 @@ object Release extends LazyLogging {
     if (newMod.isNoShop) {
       sgit.deleteBranch(releaseBrachName)
     }
-    sys.out.println(sgit.graph())
+    sys.out.println(sgit.logGraph())
 
     val selectedBranch = sgit.findUpstreamBranch().getOrElse(branch)
 

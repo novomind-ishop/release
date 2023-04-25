@@ -1,4 +1,5 @@
-FROM eclipse-temurin:17.0.3_7-jre-alpine
+FROM eclipse-temurin:17.0.6_10-jre-alpine
+# https://hub.docker.com/_/eclipse-temurin/tags
 LABEL maintainer="ishop-dev-infra@novomind.com" \
       novomind.deko.color="ec601a" \
       novomind.deko.linux.distribution="alpine/3.10"
