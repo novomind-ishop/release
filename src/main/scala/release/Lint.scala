@@ -38,6 +38,8 @@ object Lint {
   val fiCodeGitNoRemotes = uniqCode(1004)
   val fiCodeGitlabCiFilename = uniqCode(1005)
   val fiCodeGitlabCiTagname = uniqCode(1006)
+  val fiCodePomModPreconditionsException = uniqCode(1007)
+  val fiCodePomModException = uniqCode(1008)
   val fiWarn = "\uD83D\uDE2C"
   val fiError = "❌"
 
@@ -201,10 +203,10 @@ object Lint {
             val releasenexusworkurl: String = envs.get("RELEASE_NEXUS_WORK_URL").orNull
             if (repo.workNexusUrl() == Repo.centralUrl) {
               out.println(warn(s" work nexus points to central ${repo.workNexusUrl()} ${fiWarn} ${fiCodeNexusCentral}", color, limit = lineMax))
-              out.println(info(s"    RELEASE_NEXUS_WORK_URL=${releasenexusworkurl}", color, limit = lineMax))
+              out.println(info(s"    RELEASE_NEXUS_WORK_URL=${releasenexusworkurl} # (${Util.ipFromUrl(releasenexusworkurl).getOrElse("no ip")})", color, limit = lineMax))
               warnExit.set(true)
             } else {
-              out.println(info(s"    RELEASE_NEXUS_WORK_URL=${repo.workNexusUrl()}", color, limit = lineMax))
+              out.println(info(s"    RELEASE_NEXUS_WORK_URL=${repo.workNexusUrl()} # (${Util.ipFromUrl(repo.workNexusUrl()).getOrElse("no ip")})", color, limit = lineMax))
             }
             if (!repo.workNexusUrl().endsWith("/")) {
               out.println(warn(s" nexus work url must end with a '/' - ${repo.workNexusUrl()} ${fiWarn} ${fiCodeNexusUrlSlash}", color, limit = lineMax))
@@ -216,11 +218,11 @@ object Lint {
                 new Sys(null, out, err), printProgress = false) // TODO toggle
             } catch {
               case pce: PreconditionsException => {
-                out.println(warn(pce.getMessage + s"${fiWarn}", color, limit = lineMax))
+                out.println(warn(pce.getMessage + s"${fiWarn} ${fiCodePomModPreconditionsException}", color, limit = lineMax))
                 warnExit.set(true)
               }
               case pce: Exception => {
-                out.println(error(pce.getMessage + s"${fiWarn}", color, limit = lineMax))
+                out.println(error(pce.getMessage + s"${fiWarn} ${fiCodePomModException}", color, limit = lineMax))
                 failExit.set(true)
               }
             }

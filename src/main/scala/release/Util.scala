@@ -1,6 +1,10 @@
 package release
 
+import com.google.common.base.Strings
+import com.google.common.net.InetAddresses
+
 import java.io.{File, IOException}
+import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.nio.file.{FileSystemException, Files, Path}
 import java.security.MessageDigest
@@ -14,7 +18,6 @@ import java.util
 import scala.language.implicitConversions
 
 object Util {
-
 
   class PluralString(in: String) {
     def pluralize(int: Int): String = {
@@ -106,6 +109,14 @@ object Util {
       Files.readAllLines(f.toPath, StandardCharsets.UTF_8).asScala.toList
     } else {
       throw new IllegalStateException(f.getAbsolutePath + " is no regular file")
+    }
+  }
+
+  def ipFromUrl(in: String): Option[String] = {
+    try {
+      Some(java.net.InetAddress.getByName(URI.create(Strings.emptyToNull(in)).getHost).getHostAddress)
+    } catch {
+      case e: Exception => None
     }
   }
 

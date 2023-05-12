@@ -72,6 +72,17 @@ class UtilTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testIpFromUrl(): Unit = {
+    println(Util.ipFromUrl("http://www.example.org/bert"))
+    println(Util.ipFromUrl("example.org"))
+    println(Util.ipFromUrl("1"))
+    println(Util.ipFromUrl("#"))
+    println(Util.ipFromUrl(""))
+    println(Util.ipFromUrl(" "))
+    println(Util.ipFromUrl(null))
+  }
+
+  @Test
   def testOnlyOpt(): Unit = {
     TestHelper.assertException(classOf[IllegalArgumentException], () => Util.onlyOpt(Seq(1, 2)))
     Assert.assertEquals(Some(1), Util.onlyOpt(Seq(1)))

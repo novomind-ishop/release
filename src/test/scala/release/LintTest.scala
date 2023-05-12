@@ -160,7 +160,7 @@ class LintTest extends AssertionsForJUnit {
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
         |[INFO] --- suggest dependency updates / configurable @ maven ---
-        |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org
+        |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org # (no ip)
         |[WARNING]  nexus work url must end with a '/' - https://repo.example.org 😬 RL1001-WIP
         |I: checking dependecies against nexus - please wait
         |
@@ -174,11 +174,11 @@ class LintTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
-        val expectedE =
-          """Non existing dependencies for:
-            |org.springframework:spring-context:1.0.0->Nil
-            |  https://repo.example.orgorg/springframework/spring-context/maven-metadata.xml
-            |""".stripMargin
+    val expectedE =
+      """Non existing dependencies for:
+        |org.springframework:spring-context:1.0.0->Nil
+        |  https://repo.example.orgorg/springframework/spring-context/maven-metadata.xml
+        |""".stripMargin
     TermTest.testSys(Nil, expected, expectedE, outFn = outT, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
@@ -291,7 +291,7 @@ class LintTest extends AssertionsForJUnit {
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
         |[INFO] --- suggest dependency updates / configurable @ maven ---
-        |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/
+        |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)
         |I: checking dependecies against nexus - please wait
         |
         |I: checked 1 dependecies in 999ms (2000-01-01)
@@ -410,8 +410,8 @@ class LintTest extends AssertionsForJUnit {
         .thenReturn(mockUpdates)
       System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, fileB))
     })
-
   }
+
   @Test
   def testRunMvnSimple(): Unit = {
     val file = temp.newFolder("release-lint-mvn-simple")
@@ -465,7 +465,7 @@ class LintTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002-WIP
-        |[INFO]     RELEASE_NEXUS_WORK_URL=null
+        |[INFO]     RELEASE_NEXUS_WORK_URL=null # (no ip)
         |I: checking dependecies against nexus - please wait
         |
         |I: checked 1 dependecies in 999ms (2000-01-01)
@@ -492,7 +492,7 @@ class LintTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       val mockUpdates = Seq(
-        "1.0.0", "1.0.1","1.0.2", "1.2.8", "1.2.9",
+        "1.0.0", "1.0.1", "1.0.2", "1.2.8", "1.2.9",
         "2.0", "2.1.1", "2.5.5", "2.5.6",
       )
       Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
