@@ -62,7 +62,7 @@ sealed class ReleaseConfig(map: Map[String, String]) {
   }
 
   def gitBinEnv(): Option[String] = {
-    scala.util.Properties.envOrNone("RELEASE_GIT_BIN")
+    Util.systemEnvs().get("RELEASE_GIT_BIN")
   }
 
   def getUserHome(shellHome: String): String = {

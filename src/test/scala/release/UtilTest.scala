@@ -129,6 +129,7 @@ class UtilTest extends AssertionsForJUnit {
     val in = new util.HashMap[String, String]()
     in.put("a", null)
     Assert.assertEquals(Map.empty[String, String], Util.toScalaMapNonNull(in))
+    Assert.assertEquals(Map.empty[String, String], Util.toScalaMapNonBlank(in))
   }
 
   @Test
@@ -136,6 +137,7 @@ class UtilTest extends AssertionsForJUnit {
     val in = new util.HashMap[String, String]()
     in.put(null, "a")
     Assert.assertEquals(Map.empty[String, String], Util.toScalaMapNonNull(in))
+    Assert.assertEquals(Map.empty[String, String], Util.toScalaMapNonBlank(in))
   }
 
   @Test
@@ -143,5 +145,22 @@ class UtilTest extends AssertionsForJUnit {
     val in = new util.HashMap[String, String]()
     in.put("b", "a")
     Assert.assertEquals(Map("b" -> "a"), Util.toScalaMapNonNull(in))
+    Assert.assertEquals(Map("b" -> "a"), Util.toScalaMapNonBlank(in))
+  }
+
+  @Test
+  def testToScalaMap_blank_value(): Unit = {
+    val in = new util.HashMap[String, String]()
+    in.put("b", "")
+    Assert.assertEquals(Map("b" -> ""), Util.toScalaMapNonNull(in))
+    Assert.assertEquals(Map.empty, Util.toScalaMapNonBlank(in))
+  }
+
+  @Test
+  def testToScalaMap_blank_key(): Unit = {
+    val in = new util.HashMap[String, String]()
+    in.put("", "b")
+    Assert.assertEquals(Map("" -> "b"), Util.toScalaMapNonNull(in))
+    Assert.assertEquals(Map.empty, Util.toScalaMapNonBlank(in))
   }
 }

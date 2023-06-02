@@ -101,6 +101,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
       |
       |Possible environment variables:
       |export RELEASE_GIT_BIN=$PATH_TO_GIT_EXECUTABLE
+      |export RELEASE_NO_GERRIT=true
       |
       |Your home dir is: test
       |InteractiveShell: false""".stripMargin
@@ -215,6 +216,18 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
   def testArgRead_noGerrit_skip_property(): Unit = {
     Assert.assertEquals(Opts(useGerrit = false, skipProperties = Seq("a", "b")),
       Starter.argsRead(Seq("--no-gerrit", "--skip-property", "a", "--skip-property", "b"), Opts()))
+  }
+
+  @Test
+  def testArgRead_noGerrit_env(): Unit = {
+    Assert.assertEquals(Opts(useGerrit = false, skipProperties = Seq("a", "b")),
+      Starter.argsRead(Seq("--skip-property", "a", "--skip-property", "b"), Opts(), Map("RELEASE_NO_GERRIT" -> "true")))
+  }
+
+  @Test
+  def testArgRead_noGerrit_env_false(): Unit = {
+    Assert.assertEquals(Opts(skipProperties = Seq("a", "b")),
+      Starter.argsRead(Seq("--skip-property", "a", "--skip-property", "b"), Opts(), Map("RELEASE_NO_GERRIT" -> "false")))
   }
 
   @Test

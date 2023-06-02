@@ -175,6 +175,12 @@ object Util {
 
   def toJavaMap[K, V](map: Map[K, V]): java.util.Map[K, V] = map.asJava
 
+  def systemEnvs(): Map[String, String] = toScalaMapNonBlank(System.getenv())
+
+  def toScalaMapNonBlank[K, V](in: util.Map[K, V]): Map[K, V] = {
+    toScalaMapNonNull(in).filterNot(_._1.toString.isBlank).filterNot(_._2.toString.isBlank)
+  }
+
   def toScalaMapNonNull[K, V](in: util.Map[K, V]): Map[K, V] = {
     in.asScala.filterNot(_._1 == null).filterNot(_._2 == null).toMap
   }
