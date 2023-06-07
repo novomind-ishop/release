@@ -73,7 +73,8 @@ class Repo(opts: Opts) extends LazyLogging {
         if (showTrace) {
           any.printStackTrace()
         }
-        return Repo.ReachableResult(false, any.getClass.getCanonicalName + ": " + any.getMessage)
+        return Repo.ReachableResult(false, any.getClass.getCanonicalName +
+          ": " + any.getMessage + " requestConfig: " + config.toString)
       }
     } finally {
       if (response != null) {

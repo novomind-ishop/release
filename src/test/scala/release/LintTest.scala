@@ -455,7 +455,7 @@ class LintTest extends AssertionsForJUnit {
         |[WARNING]  NO remotes found 😬 RL1004-WIP
         |[WARNING]  % git remote -v # returns nothing
         |[INFO] --- -SNAPSHOTS in files @ maven ---
-        |[WARNING]   found snapshot in: notes.md 😬
+        |[warning]   found snapshot in: notes.md 😬
         |              This is the documentation for 0.11-SNAPSHOT
         |[INFO]     WIP
         |[INFO] --- .mvn @ maven ---
@@ -475,6 +475,107 @@ class LintTest extends AssertionsForJUnit {
         |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6
         |║
         |term: Term(dumb,lint,false,false)
+        |[INFO]     WIP
+        |[INFO] --- dep.tree @ maven ---
+        |[INFO]     WIP
+        |
+        |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
+        |/tmp/junit-REPLACED/release-lint-mvn-simple/notes.md
+        |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
+        |[INFO] ----------------------------[ end of lint ]----------------------------
+        |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
+    TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+      val mockRepo = Mockito.mock(classOf[Repo])
+      Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
+      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
+      Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+        .thenReturn(None)
+      val mockUpdates = Seq(
+        "1.0.0", "1.0.1", "1.0.2", "1.2.8", "1.2.9",
+        "2.0", "2.1.1", "2.5.5", "2.5.6",
+      )
+      Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+        .thenReturn(mockUpdates)
+      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, file))
+    })
+
+  }
+
+  @Test
+  def testSnapUpdate(): Unit = {
+    val file = temp.newFolder("release-lint-mvn-simple")
+    val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
+    gitA.configSetLocal("user.email", "you@example.com")
+    gitA.configSetLocal("user.name", "Your Name")
+    Util.write(new File(file, "pom.xml"),
+      """<?xml version="1.0" encoding="UTF-8"?>
+        |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+        |  <modelVersion>4.0.0</modelVersion>
+        |  <groupId>com.novomind.ishop.any</groupId>
+        |  <artifactId>any</artifactId>
+        |  <version>0.11-SNAPSHOT</version>
+        |  <dependencies>
+        |    <dependency>
+        |      <groupId>org.springframework</groupId>
+        |      <artifactId>spring-context</artifactId>
+        |      <version>1.0.1-SNAPSHOT</version>
+        |    </dependency>
+        |    <dependency>
+        |      <groupId>org.springframework</groupId>
+        |      <artifactId>spring-other</artifactId>
+        |      <version>1.0.0-SNAPSHOT</version>
+        |    </dependency>
+        |  </dependencies>
+        |</project>
+        |""".stripMargin.linesIterator.toSeq)
+    val notes = new File(file, "notes.md")
+    Util.write(notes,
+      """
+        |This is the documentation for 0.11-SNAPSHOT
+        |""".stripMargin.linesIterator.toSeq)
+    gitA.add(notes)
+    gitA.commitAll("some")
+    val expected =
+      """
+        |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO] --- check clone config / no shallow clone @ git ---
+        |[INFO]     ✅ NO shallow clone
+        |[INFO] --- .gitattributes @ git ---
+        |[INFO] --- .gitignore @ git ---
+        |[WARNING]  Found local changes 😬 RL1003-WIP
+        |[INFO] --- list-remotes @ git ---
+        |[WARNING]  NO remotes found 😬 RL1004-WIP
+        |[WARNING]  % git remote -v # returns nothing
+        |[INFO] --- -SNAPSHOTS in files @ maven ---
+        |[warning]   found snapshot in: notes.md 😬
+        |              This is the documentation for 0.11-SNAPSHOT
+        |[INFO]     WIP
+        |[INFO] --- .mvn @ maven ---
+        |[INFO]     WIP
+        |[INFO] --- check for snapshots @ maven ---
+        |[warning]   found snapshot: org.springframework:spring-context:1.0.1-SNAPSHOT 😬
+        |[warning]   found snapshot: org.springframework:spring-other:1.0.0-SNAPSHOT 😬
+        |[INFO] --- check for preview releases @ maven ---
+        |[INFO]     WIP
+        |[INFO] --- suggest dependency updates / configurable @ maven ---
+        |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002-WIP
+        |[INFO]     RELEASE_NEXUS_WORK_URL=null # (no ip)
+        |I: checking dependecies against nexus - please wait
+        |
+        |I: checked 2 dependecies in 999ms (2000-01-01)
+        |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
+        |╠═╦═ org.springframework:spring-context:1.0.1-SNAPSHOT
+        |║ ╠═══ (1) 1.0.1, .., 1.2.8, 1.2.9
+        |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6
+        |╠═╦═ org.springframework:spring-other:1.0.0-SNAPSHOT
+        |║ ╠═══ (1) 1.0.1, .., 1.2.8, 1.2.9
+        |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6
+        |║
+        |term: Term(dumb,lint,false,false)
+        |[WARNING] org.springframework:spring-context:1.0.1-SNAPSHOT is already released, remove '-SNAPSHOT' suffix 😬 RL1009-WIP
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -545,10 +646,10 @@ class LintTest extends AssertionsForJUnit {
         |[WARNING]  NO remotes found 😬 RL1004-WIP
         |[WARNING]  % git remote -v # returns nothing
         |[INFO] --- -SNAPSHOTS in files @ maven ---
-        |[WARNING]   found snapshot in: notes.md 😬
+        |[warning]   found snapshot in: notes.md 😬
         |              This is the documentation for 0.11-SNAPSHOT
         |[WARNING]     😬 No property replacement found in pom.xmls for: "${non-existing}" - define properties where they are required and not in parent pom.xml. Input is Nil.
-        |[WARNING]     skipped because of previous problems 😬
+        |[WARNING]     skipped because of previous problems - No property replacement found in pom.xmls for: "${non-existing}" - define properties where they are required and not in parent pom.xml. Input is Nil. 😬
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
         |

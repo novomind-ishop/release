@@ -593,7 +593,7 @@ trait ProjectMod extends LazyLogging {
   val skipPropertyReplacement: Boolean
 
   def showDependencyUpdates(shellWidth: Int, termOs: Term, depUpOpts: OptsDepUp,
-                            sys: Term.Sys, printProgress: Boolean): Unit = {
+                            sys: Term.Sys, printProgress: Boolean): Seq[(ProjectMod.GavWithRef, (Seq[String], Duration))] = {
     val depForCheck: Seq[Dep] = listGavsForCheck()
     val sdm = selfDepsMod
     val result = ProjectMod.showDependencyUpdates(shellWidth, termOs, depUpOpts, () => repo.workNexusUrl(),
@@ -608,8 +608,8 @@ trait ProjectMod extends LazyLogging {
       changeDependecyVersion(ProjectMod.toUpdats(result, fn))
       writeTo(file)
     }
+    result
   }
-
 
   private[release] def listGavsForCheck(): Seq[Dep] = {
     val selfGavs = selfDepsMod.map(_.gav())

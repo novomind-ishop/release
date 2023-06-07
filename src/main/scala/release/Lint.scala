@@ -40,6 +40,7 @@ object Lint {
   val fiCodeGitlabCiTagname = uniqCode(1006)
   val fiCodePomModPreconditionsException = uniqCode(1007)
   val fiCodePomModException = uniqCode(1008)
+  val fiCodeNexusFoundRelease =uniqCode(1009)
   val fiWarn = "\uD83D\uDE2C"
   val fiError = "❌"
 
@@ -184,9 +185,10 @@ object Lint {
             out.println(info("--- .mvn @ maven ---", color))
             out.println(info("    WIP", color))
             out.println(info("--- check for snapshots @ maven ---", color))
-            pomMod.listGavsForCheck()
+            val snaps = pomMod.listGavsForCheck()
               .filter(dep => ProjectMod.isUnwanted(dep.gav().simpleGav()))
               .filter(_.version.endsWith("-SNAPSHOT"))
+            snaps
               .foreach(dep => {
                 out.println(warnSoft("  found snapshot: " + dep.gav().formatted + s" ${fiWarn}", color, limit = lineMax))
               })
@@ -212,10 +214,22 @@ object Lint {
               out.println(warn(s" nexus work url must end with a '/' - ${repo.workNexusUrl()} ${fiWarn} ${fiCodeNexusUrlSlash}", color, limit = lineMax))
               warnExit.set(true)
             }
-            try {
 
-              pomMod.showDependencyUpdates(120, Term.select("dumb", "lint", opts.simpleChars, isInteractice = false), opts.depUpOpts,
-                new Sys(null, out, err), printProgress = false) // TODO toggle
+            try {
+              val updateResult = pomMod.showDependencyUpdates(120, Term.select("dumb", "lint", opts.simpleChars, isInteractice = false), opts.depUpOpts,
+                new Sys(null, out, err), printProgress = false)
+              val snapUpdates = updateResult.filter(e => snaps.map(_.gav()).contains(e._1.gav))
+              val releaseOfSnapshotPresent = snapUpdates.map(e => (e._1.gav, e._2._1.contains(e._1.gav.version.replaceFirst("-SNAPSHOT", ""))))
+              if (releaseOfSnapshotPresent.nonEmpty) {
+                val releasesFound = releaseOfSnapshotPresent.filter(_._2)
+                if (releasesFound.nonEmpty) {
+                  releasesFound.map(_._1).foreach(found => {
+                    out.println(warn(s"${found.formatted} is already released, remove '-SNAPSHOT' suffix ${fiWarn} ${fiCodeNexusFoundRelease}", color, limit = lineMax))
+                  })
+                  warnExit.set(true)
+                }
+              }
+
             } catch {
               case pce: PreconditionsException => {
                 out.println(warn(pce.getMessage + s"${fiWarn} ${fiCodePomModPreconditionsException}", color, limit = lineMax))
@@ -229,7 +243,7 @@ object Lint {
 
             out.println(info("    WIP", color))
           } else {
-            out.println(warn(s"    skipped because of previous problems ${fiWarn}", color))
+            out.println(warn(s"    skipped because of previous problems - ${pomModTry.failed.get.getMessage} ${fiWarn}", color, limit = lineMax))
           }
           out.println(info("--- dep.tree @ maven ---", color))
           out.println(info("    WIP", color))

@@ -145,11 +145,11 @@ object Term {
     }
   }
 
-  def colorB(color: Int, text: String, useColor: Boolean): String = {
+  def colorB(color: Int, text: String, useColor: Boolean, noColorText: Option[String] = None): String = {
     if (useColor) {
       "[" + "\u001B[" + color + "m" + text + "\u001B[0m" + "] "
     } else {
-      "[" + text + "] "
+      "[" + noColorText.getOrElse(text) + "] "
     }
 
   }
@@ -175,10 +175,14 @@ object Term {
     }
   }
 
-  val info = ColoredLiner(82 - 4, (text, useColor, limit) => colorB(34, "INFO", useColor) + checkedLength(limit)(text))
-  val warnSoft = ColoredLiner(82 - 7, (text, useColor, limit) => colorB(34, "WARNING", useColor) + checkedLength(limit)(text))
-  val warn = ColoredLiner(82 - 7, (text, useColor, limit) => colorB(33, "WARNING", useColor) + checkedLength(limit)(text))
-  val error = ColoredLiner(82 - 5, (text, useColor, limit) => colorB(31, "ERROR", useColor) + checkedLength(limit)(text))
+  val info = ColoredLiner(82 - 4, (text, useColor, limit) =>
+    colorB(34, "INFO", useColor) + checkedLength(limit)(text))
+  val warnSoft = ColoredLiner(82 - 7, (text, useColor, limit) =>
+    colorB(34, "WARNING", useColor, Some("warning")) + checkedLength(limit)(text))
+  val warn = ColoredLiner(82 - 7, (text, useColor, limit) =>
+    colorB(33, "WARNING", useColor) + checkedLength(limit)(text))
+  val error = ColoredLiner(82 - 5, (text, useColor, limit) =>
+    colorB(31, "ERROR", useColor) + checkedLength(limit)(text))
 
   def wrap(out: PrintStream, coloredLiner: ColoredLiner, text: String, useColor: Boolean): Unit = {
     wrapText(text, coloredLiner.defaultLimit)
@@ -200,7 +204,7 @@ object Term {
         Nil
       } else {
         val taken = words.takeWhile(word => {
-          val r = wcount.get() + word.length + 1<= limit - indent2.length || wcount.get() == 0
+          val r = wcount.get() + word.length + 1 <= limit - indent2.length || wcount.get() == 0
           if (r) {
             wcount.addAndGet(word.length + 1)
           }
@@ -211,7 +215,7 @@ object Term {
       }
     }
 
-    val wer:Seq[Seq[String]] = o.flatMap(asdf)
+    val wer: Seq[Seq[String]] = o.flatMap(asdf)
     val l = wer.map(line => {
       if (flip.getAndSet(false)) {
         indent + line.mkString(" ")
@@ -220,8 +224,6 @@ object Term {
       }
     }
     )
-
-
 
     l
   }
@@ -263,7 +265,7 @@ object Term {
 
   sealed case class Os(name: String)
 
-  def select(term: String, os: String, simpleChars: Boolean, isInteractice:Boolean) = term match {
+  def select(term: String, os: String, simpleChars: Boolean, isInteractice: Boolean) = term match {
     case "xterm" => Term("xterm", os, simpleChars, isInteractice)
     case "xterm-256color" => Term("xterm-256color", os, simpleChars, isInteractice)
     case "screen-256color" => Term("screen-256color", os, simpleChars, isInteractice)
@@ -296,7 +298,7 @@ object Term {
   }
 }
 
-case class Term(term: String, os: String, simpleChars: Boolean, isInteractice:Boolean) {
+case class Term(term: String, os: String, simpleChars: Boolean, isInteractice: Boolean) {
   val isCygwin: Boolean = os == "Cygwin" || term == "cygwin"
   val isMinGw: Boolean = os.contains("MINGW")
 }
