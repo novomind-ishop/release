@@ -41,6 +41,7 @@ object Lint {
   val fiCodePomModPreconditionsException = uniqCode(1007)
   val fiCodePomModException = uniqCode(1008)
   val fiCodeNexusFoundRelease =uniqCode(1009)
+  val fiCodeUnusualGav =uniqCode(1010)
   val fiWarn = "\uD83D\uDE2C"
   val fiError = "❌"
 
@@ -192,6 +193,17 @@ object Lint {
               .foreach(dep => {
                 out.println(warnSoft("  found snapshot: " + dep.gav().formatted + s" ${fiWarn}", color, limit = lineMax))
               })
+            out.println(info("--- check for GAV format @ maven ---", color))
+            val gavs = pomMod.listGavsForCheck().map(_.gav())
+            val unusualGavs = gavs.filter(_.feelsUnusual())
+            if (unusualGavs.nonEmpty) {
+              unusualGavs.foreach(found => {
+                out.println(warn(s"${found.formatted} uses unusual format, please repair ${fiWarn} ${fiCodeUnusualGav}", color, limit = lineMax))
+              })
+              warnExit.set(true)
+            } else {
+              out.println(info(s"    ${fiFine} all GAVs looks fine", color))
+            }
             out.println(info("--- check for preview releases @ maven ---", color))
             pomMod.listGavsForCheck()
               .filter(dep => ProjectMod.isUnwanted(dep.gav().simpleGav()))
@@ -261,6 +273,7 @@ object Lint {
         } else {
           ""
         }
+
         out.println(info(center("[ end of lint" + timerResult + " ]"), color))
         if (failExit.get()) {
           out.println(error(s"exit ${failExitCode} - because lint found errors, see above ${fiError}", color))

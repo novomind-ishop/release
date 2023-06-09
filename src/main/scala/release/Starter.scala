@@ -393,6 +393,7 @@ object Starter extends LazyLogging {
 
     val opts = argsRead(otherArgs, Opts())
     val interactiveShell = argSeq(5).toBoolean && opts.isInteractive
+    println(opts.showStartupDone)
     if (opts.showStartupDone) {
       out.println(". done (b)")
     }
@@ -420,6 +421,7 @@ object Starter extends LazyLogging {
       out.println("Possible options:")
       out.println("--help, -h            => shows this and exits")
       out.println("--no-gerrit           => use this toggle for non gerrit projects")
+      out.println("--no-interactive      => suppresses startup messages")
       out.println("--skip-property value => if you get false positives with property definitions")
       out.println("--defaults            => do not read ${HOME}/.ishop-release")
       out.println()
@@ -432,6 +434,11 @@ object Starter extends LazyLogging {
       out.println("versionSet newVersion                => changes version like maven")
       out.println("shopGASet newGroupIdAndArtifactId    => changes GroupId and ArtifactId exclusively for Shops")
       out.println("nothing-but-create-feature-branch    => creates a feature branch and changes pom.xmls")
+      out.println("apidiff                              => compares two versions of this repo")
+      out.println("lint                                 => check project for release problems (read-only)")
+      out.println("showSelf                             => a list of groupId:artifactId of current project")
+      out.println("suggest-docker-tag                   => use with '--no-interactive', reads environment variables")
+      out.println("                                        CI_COMMIT_REF_NAME and CI_COMMIT_TAG")
       out.println()
       out.println("Possible environment variables:")
       out.println("export RELEASE_GIT_BIN=$PATH_TO_GIT_EXECUTABLE")

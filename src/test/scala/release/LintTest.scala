@@ -157,6 +157,8 @@ class LintTest extends AssertionsForJUnit {
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- check for snapshots @ maven ---
+        |[INFO] --- check for GAV format @ maven ---
+        |[INFO]     ✅ all GAVs looks fine
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
         |[INFO] --- suggest dependency updates / configurable @ maven ---
@@ -288,6 +290,8 @@ class LintTest extends AssertionsForJUnit {
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- check for snapshots @ maven ---
+        |[INFO] --- check for GAV format @ maven ---
+        |[INFO]     ✅ all GAVs looks fine
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
         |[INFO] --- suggest dependency updates / configurable @ maven ---
@@ -461,6 +465,8 @@ class LintTest extends AssertionsForJUnit {
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- check for snapshots @ maven ---
+        |[INFO] --- check for GAV format @ maven ---
+        |[INFO]     ✅ all GAVs looks fine
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
         |[INFO] --- suggest dependency updates / configurable @ maven ---
@@ -526,6 +532,7 @@ class LintTest extends AssertionsForJUnit {
         |      <groupId>org.springframework</groupId>
         |      <artifactId>spring-other</artifactId>
         |      <version>1.0.0-SNAPSHOT</version>
+        |      <scope>bert</scope>
         |    </dependency>
         |  </dependencies>
         |</project>
@@ -557,7 +564,9 @@ class LintTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- check for snapshots @ maven ---
         |[warning]   found snapshot: org.springframework:spring-context:1.0.1-SNAPSHOT 😬
-        |[warning]   found snapshot: org.springframework:spring-other:1.0.0-SNAPSHOT 😬
+        |[warning]   found snapshot: org.springframework:spring-other:1.0.0-SNAPSHOT:bert 😬
+        |[INFO] --- check for GAV format @ maven ---
+        |[WARNING] org.springframework:spring-other:1.0.0-SNAPSHOT:bert uses unusual format, please repair 😬 RL1010-WIP
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
         |[INFO] --- suggest dependency updates / configurable @ maven ---
@@ -570,7 +579,7 @@ class LintTest extends AssertionsForJUnit {
         |╠═╦═ org.springframework:spring-context:1.0.1-SNAPSHOT
         |║ ╠═══ (1) 1.0.1, .., 1.2.8, 1.2.9
         |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6
-        |╠═╦═ org.springframework:spring-other:1.0.0-SNAPSHOT
+        |╠═╦═ org.springframework:spring-other:1.0.0-SNAPSHOT:bert
         |║ ╠═══ (1) 1.0.1, .., 1.2.8, 1.2.9
         |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6
         |║

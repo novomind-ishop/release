@@ -193,8 +193,8 @@ object ProjectMod extends LazyLogging {
     def simpleGav() = Gav3(groupId, artifactId, version)
 
     def feelsUnusual(): Boolean = {
-      Gav.isUnu(groupId) || Gav.isUnu(artifactId) || Gav.isUnu(version) ||
-        Gav.isUnu(packageing) || Gav.isUnu(classifier) || Gav.isUnu(scope)
+      Gav.isUnusual(groupId) || Gav.isUnusual(artifactId) || Gav.isUnusual(version) ||
+        Gav.isUnusual(packageing) || Gav.isUnusual(classifier) || Gav.isUnknownScope(scope)
     }
 
   }
@@ -204,10 +204,14 @@ object ProjectMod extends LazyLogging {
 
     val empty = Gav(groupId = "", artifactId = "", version = "")
 
-    def isUnu(in: String): Boolean = {
+    def isUnusual(in: String): Boolean = {
       val repl = in.replaceFirst("^[^\\p{Alpha}^\\p{Digit}]", "")
         .replaceFirst("[^\\p{Alpha}^\\p{Digit}]$", "")
       repl != in
+    }
+
+    def isUnknownScope(in:String): Boolean = {
+      isUnusual(in) || !Set("provided", "compile", "runtime", "test", "system", "").contains(in)
     }
   }
 
@@ -406,9 +410,10 @@ object ProjectMod extends LazyLogging {
     updates
   }
 
-  def showDependencyUpdates(shellWidth: Int, termOs: Term, depUpOpts: OptsDepUp, workNexusUrl: () => String,
-                            rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], repo: Repo,
+  def showDependencyUpdates(shellWidth: Int, termOs: Term, depUpOpts: OptsDepUp,
+                            rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], repos: Seq[Repo],
                             sys: Term.Sys, printProgress: Boolean, checkOnline: Boolean): Seq[(GavWithRef, (Seq[String], Duration))] = {
+    val repo = repos.head // TODO work with all repos
     if (checkOnline) {
       val reachableResult = repo.isReachable(false)
       if (!reachableResult.online) {
@@ -531,7 +536,7 @@ object ProjectMod extends LazyLogging {
           versionNotFound.toList.map(in => in._1.formatted + "->" + (in._2._1 match {
             case Nil => "Nil"
             case e => e
-          }) + "\n  " + workNexusUrl.apply() + in._1.slashedMeta).sorted.mkString("\n"))
+          }) + "\n  " + repo.workNexusUrl() + in._1.slashedMeta).sorted.mkString("\n"))
         sys.err.println()
       }
     }
@@ -596,8 +601,8 @@ trait ProjectMod extends LazyLogging {
                             sys: Term.Sys, printProgress: Boolean): Seq[(ProjectMod.GavWithRef, (Seq[String], Duration))] = {
     val depForCheck: Seq[Dep] = listGavsForCheck()
     val sdm = selfDepsMod
-    val result = ProjectMod.showDependencyUpdates(shellWidth, termOs, depUpOpts, () => repo.workNexusUrl(),
-      depForCheck, sdm, repo, sys, printProgress, checkOnline = true)
+    val result = ProjectMod.showDependencyUpdates(shellWidth, termOs, depUpOpts,
+      depForCheck, sdm, Seq(repo), sys, printProgress, checkOnline = true)
     if (depUpOpts.changeToLatest) {
       val localDepUpFile = new File(file, ".release-dependency-updates")
       val fn: (Gav3, Seq[String]) => String = if (localDepUpFile.canRead) {

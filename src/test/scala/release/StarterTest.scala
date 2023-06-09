@@ -86,6 +86,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
       |Possible options:
       |--help, -h            => shows this and exits
       |--no-gerrit           => use this toggle for non gerrit projects
+      |--no-interactive      => suppresses startup messages
       |--skip-property value => if you get false positives with property definitions
       |--defaults            => do not read ${HOME}/.ishop-release
       |
@@ -98,6 +99,11 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
       |versionSet newVersion                => changes version like maven
       |shopGASet newGroupIdAndArtifactId    => changes GroupId and ArtifactId exclusively for Shops
       |nothing-but-create-feature-branch    => creates a feature branch and changes pom.xmls
+      |apidiff                              => compares two versions of this repo
+      |lint                                 => check project for release problems (read-only)
+      |showSelf                             => a list of groupId:artifactId of current project
+      |suggest-docker-tag                   => use with '--no-interactive', reads environment variables
+      |                                        CI_COMMIT_REF_NAME and CI_COMMIT_TAG
       |
       |Possible environment variables:
       |export RELEASE_GIT_BIN=$PATH_TO_GIT_EXECUTABLE

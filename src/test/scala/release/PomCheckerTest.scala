@@ -672,24 +672,24 @@ class PomCheckerTest extends AssertionsForJUnit {
 
   @Test
   def testCheckGav(): Unit = {
-    Assert.assertFalse(Gav.isUnu(""))
-    Assert.assertFalse(Gav.isUnu("a"))
-    Assert.assertFalse(Gav.isUnu("a_b"))
-    Assert.assertFalse(Gav.isUnu("a-b"))
-    Assert.assertTrue(Gav.isUnu(" "))
-    Assert.assertTrue(Gav.isUnu("a "))
-    Assert.assertTrue(Gav.isUnu("a ;"))
-    Assert.assertTrue(Gav.isUnu(" a"))
-    Assert.assertTrue(Gav.isUnu(". a"))
-    Assert.assertTrue(Gav.isUnu("a;"))
-    Assert.assertTrue(Gav.isUnu("a-"))
-    Assert.assertTrue(Gav.isUnu("a_"))
+    Assert.assertFalse(Gav.isUnusual(""))
+    Assert.assertFalse(Gav.isUnusual("a"))
+    Assert.assertFalse(Gav.isUnusual("a_b"))
+    Assert.assertFalse(Gav.isUnusual("a-b"))
+    Assert.assertTrue(Gav.isUnusual(" "))
+    Assert.assertTrue(Gav.isUnusual("a "))
+    Assert.assertTrue(Gav.isUnusual("a ;"))
+    Assert.assertTrue(Gav.isUnusual(" a"))
+    Assert.assertTrue(Gav.isUnusual(". a"))
+    Assert.assertTrue(Gav.isUnusual("a;"))
+    Assert.assertTrue(Gav.isUnusual("a-"))
+    Assert.assertTrue(Gav.isUnusual("a_"))
   }
 
   @Test
   def testCheckGavFormat(): Unit = {
     val result = TermTest.withOutErr[Unit]()(sys => {
-      val base = ProjectMod.Dep(SelfRef.undef, "g", "a", "v", "t", "s", "jar", "classi")
+      val base = ProjectMod.Dep(SelfRef.undef, "g", "a", "v", "t", "runtime", "jar", "classi")
       PomChecker.checkGavFormat(Seq(
         base,
         base.copy(groupId = "g."),
@@ -706,12 +706,12 @@ class PomCheckerTest extends AssertionsForJUnit {
     })
     Assert.assertEquals(
       """Warning: Found dependencies with unusual symbols - please check your dependencies
-        |  " g:a:v:jar:classi:s"
-        |  "g.:a:v:jar:classi:s"
-        |  "g:/a:v:jar:classi:s"
+        |  " g:a:v:jar:classi:runtime"
+        |  "g.:a:v:jar:classi:runtime"
+        |  "g:/a:v:jar:classi:runtime"
         |  "g:a:v:jar:classi: s"
         |  "g:a:v:jar:classi:s "
-        |  "g:a:v:~p:classi:s"
-        |  "g:a:v;:jar:classi:s"""".stripMargin, result.out)
+        |  "g:a:v:~p:classi:runtime"
+        |  "g:a:v;:jar:classi:runtime"""".stripMargin, result.out)
   }
 }
