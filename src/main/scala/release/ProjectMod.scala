@@ -211,7 +211,7 @@ object ProjectMod extends LazyLogging {
     }
 
     def isUnknownScope(in:String): Boolean = {
-      isUnusual(in) || !Set("provided", "compile", "runtime", "test", "system", "").contains(in)
+      isUnusual(in) || !Set("provided", "compile", "runtime", "test", "system", "import", "").contains(in)
     }
   }
 
