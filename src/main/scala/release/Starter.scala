@@ -393,7 +393,6 @@ object Starter extends LazyLogging {
 
     val opts = argsRead(otherArgs, Opts())
     val interactiveShell = argSeq(5).toBoolean && opts.isInteractive
-    println(opts.showStartupDone)
     if (opts.showStartupDone) {
       out.println(". done (b)")
     }
