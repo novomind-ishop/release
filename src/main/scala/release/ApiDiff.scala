@@ -23,7 +23,7 @@ object ApiDiff {
   def apidiff(inOpt: Opts, left: String, right: String): Opts = {
     println("")
     // TODO load api diff definition from file
-    val repo = new Repo(inOpt)
+    val repo = Repo.of(inOpt)
     val workDirFile = new File(".").getAbsoluteFile // TODO get this from other location
 
     val pommod = PomMod.withRepo(workDirFile, inOpt, repo)

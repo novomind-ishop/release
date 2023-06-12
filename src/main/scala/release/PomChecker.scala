@@ -46,7 +46,8 @@ object PomChecker {
   }
 
   def checkExternalWithProjectScope(listRawDeps: Seq[Dep], selfDepsMod: Seq[Dep], listProperties: Map[String, String]) = {
-    def k(iz:Seq[Dep]) = PomMod.replacedVersionProperties(listProperties.filter(t => t._1.startsWith("project")), skipPropertyReplacement = true)(iz)
+    def k(iz: Seq[Dep]) = PomMod.replacedVersionProperties(listProperties.filter(t => t._1.startsWith("project")), skipPropertyReplacement = true)(iz)
+
     val externals = listRawDeps.filterNot(d => {
       selfDepsMod.map(_.gav()).contains(k(Seq(d)).head.gav()) || selfDepsMod.map(_.gav()).contains(d.gav())
     })
@@ -54,6 +55,29 @@ object PomChecker {
     val relevant = externals.diff(projectReplaced).map(_.gav()).distinct
     if (relevant.nonEmpty) {
       throw new ValidationException(s"Project variables are not allowed in external dependencies: ${relevant.map(_.formatted).mkString(", ")}")
+    }
+  }
+
+  def checkDepVersions(listDependecies: Seq[Dep]) = {
+    val byRef = listDependecies
+      .filterNot(_.version.isBlank)
+      .groupBy(_.pomRef)
+    val msgs = byRef.flatMap(deps => {
+      val allGavs = deps._2.map(_.gav()).distinct
+      val withoutVersion = allGavs.map(_.copy(version = "")).groupBy(x => x).filter(_._2.size > 1).keySet
+      val diff = allGavs.filter(g => withoutVersion.contains(g.copy(version = "")))
+      if (diff.nonEmpty) {
+        val msg = "found overlapping versions in\n" + deps._1.id + "\n" + diff.map(select => {
+          val str = "  " + select.formatted
+          str
+        }).mkString("\n")
+        Some(msg)
+      } else {
+        None
+      }
+    })
+    if (msgs.nonEmpty) {
+      throw new ValidationException(msgs.mkString("\n\n"))
     }
   }
 

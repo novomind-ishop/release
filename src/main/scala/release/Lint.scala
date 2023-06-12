@@ -194,15 +194,14 @@ object Lint {
                 out.println(warnSoft("  found snapshot: " + dep.gav().formatted + s" ${fiWarn}", color, limit = lineMax))
               })
             out.println(info("--- check for GAV format @ maven ---", color))
-            val gavs = pomMod.listGavsForCheck().map(_.gav())
-            val unusualGavs = gavs.filter(_.feelsUnusual())
+            val unusualGavs = pomMod.listGavsWithUnusualScope()
             if (unusualGavs.nonEmpty) {
               unusualGavs.foreach(found => {
                 out.println(warn(s"${found.formatted} uses unusual format, please repair ${fiWarn} ${fiCodeUnusualGav}", color, limit = lineMax))
               })
               warnExit.set(true)
             } else {
-              out.println(info(s"    ${fiFine} all GAVs looks fine", color))
+              out.println(info(s"    ${fiFine} all GAVs scopes looks fine", color))
             }
             out.println(info("--- check for preview releases @ maven ---", color))
             pomMod.listGavsForCheck()

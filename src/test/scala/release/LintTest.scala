@@ -50,7 +50,7 @@ class LintTest extends AssertionsForJUnit {
         |[[31mERROR[0m] ----------------------------[ end of lint ]----------------------------""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT)(sys => {
       val opts = Opts()
-      Assert.assertEquals(1, Lint.run(sys.out, sys.err, opts, new Repo(opts), Map.empty, file))
+      Assert.assertEquals(1, Lint.run(sys.out, sys.err, opts, Repo.of(opts), Map.empty, file))
     })
 
   }
@@ -105,7 +105,7 @@ class LintTest extends AssertionsForJUnit {
         |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
-      Assert.assertEquals(42, Lint.run(sys.out, sys.err, opts, new Repo(opts), Map.empty, fileB))
+      Assert.assertEquals(42, Lint.run(sys.out, sys.err, opts, Repo.of(opts), Map.empty, fileB))
     })
 
   }
@@ -158,7 +158,7 @@ class LintTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- check for snapshots @ maven ---
         |[INFO] --- check for GAV format @ maven ---
-        |[INFO]     ✅ all GAVs looks fine
+        |[INFO]     ✅ all GAVs scopes looks fine
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
         |[INFO] --- suggest dependency updates / configurable @ maven ---
@@ -291,7 +291,7 @@ class LintTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- check for snapshots @ maven ---
         |[INFO] --- check for GAV format @ maven ---
-        |[INFO]     ✅ all GAVs looks fine
+        |[INFO]     ✅ all GAVs scopes looks fine
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
         |[INFO] --- suggest dependency updates / configurable @ maven ---
@@ -466,7 +466,7 @@ class LintTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- check for snapshots @ maven ---
         |[INFO] --- check for GAV format @ maven ---
-        |[INFO]     ✅ all GAVs looks fine
+        |[INFO]     ✅ all GAVs scopes looks fine
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
         |[INFO] --- suggest dependency updates / configurable @ maven ---

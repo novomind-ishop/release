@@ -43,6 +43,7 @@ class ProjectModTest extends AssertionsForJUnit {
   }
 
   class MockMod extends ProjectMod {
+
     override val file: File = new File("")
     override val repo: Repo = null
     override val opts: Starter.Opts = Starter.Opts()
@@ -85,7 +86,7 @@ class ProjectModTest extends AssertionsForJUnit {
   }
 
   @Test
-  def testListDependeciesForCheck(): Unit = {
+  def testListDependenciesForCheck(): Unit = {
     val testee = new MockMod() {
 
       override val selfDepsMod: Seq[ProjectMod.Dep] = Seq(
@@ -94,15 +95,19 @@ class ProjectModTest extends AssertionsForJUnit {
       override val listDependencies: Seq[ProjectMod.Dep] = Seq(
         Dep(SelfRef.undef, "g", "a", "v", "", "", "", ""),
         Dep(SelfRef.undef, "g", "a", "v", "", "runtime", "", ""),
-          Dep(SelfRef.undef, "g", "a", "v", "", "", "", ""),
+        Dep(SelfRef.undef, "g", "a", "v", "", "john", "", ""),
+        Dep(SelfRef.undef, "g", "a", "v", "", "", "", ""),
         Dep(SelfRef("bert"), "g", "a", "v", "", "", "", ""),
         Dep(SelfRef("se"), "gg", "a", "v", "", "", "", ""),
       )
     }
     Assert.assertEquals(Seq(
-
       Dep(SelfRef.undef, "g", "a", "v", "", "", "", "")
     ), testee.listGavsForCheck())
+
+    Assert.assertEquals(Seq(
+     Gav("g", "a", "v", scope = "john")
+    ), testee.listGavsWithUnusualScope())
   }
 
   @Test

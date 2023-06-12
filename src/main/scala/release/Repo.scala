@@ -37,7 +37,7 @@ import java.util.concurrent.ConcurrentHashMap
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
-class Repo(opts: Opts) extends LazyLogging {
+class Repo private(opts: Opts) extends LazyLogging {
 
   private lazy val newRepositoriesCentral: RemoteRepository = Repo.newDefaultRepository(Repo.centralUrl)
 
@@ -105,6 +105,9 @@ class Repo(opts: Opts) extends LazyLogging {
 }
 
 object Repo extends LazyLogging {
+
+  def of(opts: Opts): Repo = new Repo(opts)
+
   case class ReachableResult(online: Boolean, msg: String)
 
   logger.debug("init aether to suppress replayed slf4j logging - See also http://www.slf4j.org/codes.html#replay")

@@ -163,4 +163,13 @@ class UtilTest extends AssertionsForJUnit {
     Assert.assertEquals(Map("" -> "b"), Util.toScalaMapNonNull(in))
     Assert.assertEquals(Map.empty, Util.toScalaMapNonBlank(in))
   }
+
+  @Test
+  def testShow(): Unit = {
+    case class Bert(name:String, s:Seq[Int], innerBerts:Seq[Bert])
+    Assert.assertEquals(
+      """Bert(name = Bert, s = 1,2, innerBerts = List(Bert(name = Treb, s = List(), innerBerts = List())))
+        |""".stripMargin.trim, Util.show(Bert(name = "Bert", s = Seq(1,2),
+        innerBerts = List(Bert(name = "Treb", Nil, Nil)))))
+  }
 }

@@ -132,6 +132,7 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
   }
   if (opts.checkOverlapping) {
     PomChecker.checkDepScopes(listDependencies)
+    PomChecker.checkDepVersions(listDependencies)
   }
   if (opts.checkProjectDeps) {
     PomChecker.checkExternalWithProjectScope(listRawDeps, selfDepsMod, listProperties)
@@ -516,7 +517,7 @@ object PomMod {
   }
 
   def of(file: File, opts: Opts): PomMod = {
-    lazy val repo = new Repo(opts)
+    lazy val repo = Repo.of(opts)
     withRepo(file, opts, repo)
   }
 

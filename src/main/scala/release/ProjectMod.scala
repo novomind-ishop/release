@@ -616,16 +616,25 @@ trait ProjectMod extends LazyLogging {
     result
   }
 
-  private[release] def listGavsForCheck(): Seq[Dep] = {
-    val selfGavs = selfDepsMod.map(_.gav())
+  private[release] def listDeps(): Seq[ProjectMod.Dep] = {
     (PomMod.replacedVersionProperties(listProperties, skipPropertyReplacement)(listDependencies) ++
       listPluginDependencies.map(_.fakeDep()))
-      .filterNot(_.version == "") // managed plugins are okay
-      .filterNot(dep => selfGavs.contains(dep.gav()))
       .map(in => in.groupId match {
         case "" => in.copy(groupId = "org.apache.maven.plugins")
         case _ => in
-      }).distinctBy(_.gav().simpleGav())
+      })
+  }
+
+  private[release] def listGavs(): Seq[ProjectMod.Gav] = {
+    listDeps().map(_.gav()).distinct
+  }
+
+  private[release] def listGavsForCheck(): Seq[Dep] = {
+    val selfGavs = selfDepsMod.map(_.gav())
+    listDeps()
+      .filterNot(_.version == "") // managed plugins are okay
+      .filterNot(dep => selfGavs.contains(dep.gav()))
+      .distinctBy(_.gav().simpleGav())
   }
 
   def isNoShop: Boolean = {
@@ -653,4 +662,10 @@ trait ProjectMod extends LazyLogging {
   def changeDependecyVersion(patch: Seq[(Gav3, String)]): Unit
 
   def depTreeFilenameList(): Seq[String]
+
+  def listGavsWithUnusualScope(): Seq[ProjectMod.Gav] = {
+    val gavs = listGavs()
+    val unusualGavs = gavs.filter(_.feelsUnusual())
+    unusualGavs
+  }
 }

@@ -226,8 +226,10 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
 
   @Test
   def testArgRead_noGerrit_env(): Unit = {
-    Assert.assertEquals(Opts(useGerrit = false, skipProperties = Seq("a", "b")),
-      Starter.argsRead(Seq("--skip-property", "a", "--skip-property", "b"), Opts(), Map("RELEASE_NO_GERRIT" -> "true")))
+    val read = Starter.argsRead(Seq("--skip-property", "a", "--skip-property", "b"), Opts(), Map("RELEASE_NO_GERRIT" -> "true"))
+    val expected = Opts(useGerrit = false, skipProperties = Seq("a", "b"))
+    Assert.assertEquals(Util.show(expected), Util.show(read))
+    Assert.assertEquals(expected, read)
   }
 
   @Test

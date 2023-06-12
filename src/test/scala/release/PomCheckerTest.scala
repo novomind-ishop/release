@@ -45,6 +45,57 @@ class PomCheckerTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testCheckDepVersions_noException(): Unit = {
+    // GIVEN
+    val ref1 = SelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
+    val ref2 = SelfRef("com.novomind.ishop.shops:util:27.0.0-SNAPSHOT:jar")
+    val deps: Seq[Dep] = Seq(
+      Dep(ref2, "any.group", "valid", "1.0.0", "", "test", "", ""),
+      Dep(ref1, "any.group", "valid", "1.0.0", "", "compile", "", ""),
+    )
+
+    // WHEN / THEN
+    PomChecker.checkDepVersions(deps) // no exception
+  }
+
+  @Test
+  def testCheckDepVersions(): Unit = {
+    // GIVEN
+    val ref1 = SelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
+    val ref2 = SelfRef("com.novomind.ishop.shops:util:27.0.0-SNAPSHOT:jar")
+    val deps: Seq[Dep] = Seq(
+      Dep(ref1, "any.group", "some", "1.0.0", "", "compile", "", ""),
+      Dep(ref1, "any.group", "some", "1.0.0", "", "compile", "", ""),
+
+      Dep(ref1, "any.group", "other", "1.0.0", "", "runtime", "", ""),
+
+      Dep(ref1, "any.group", "wrong", "1.0.0", "", "test", "", ""),
+      Dep(ref1, "any.group", "wrong", "2.0.0", "", "test", "", ""),
+
+      Dep(ref2, "any.group", "different-ref", "1.0.0", "", "test", "", ""),
+      Dep(ref1, "any.group", "different-ref", "1.2.0", "", "test", "", ""),
+
+      Dep(ref2, "any.group", "wrong2", "1.0.0", "", "test", "", ""),
+      Dep(ref2, "any.group", "wrong2", "1.2.0", "", "test", "", ""),
+    )
+
+    // WHEN / THEN
+    TestHelper.assertException(
+      """found overlapping versions in
+        |com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war
+        |  any.group:wrong:1.0.0:test
+        |  any.group:wrong:2.0.0:test
+        |
+        |found overlapping versions in
+        |com.novomind.ishop.shops:util:27.0.0-SNAPSHOT:jar
+        |  any.group:wrong2:1.0.0:test
+        |  any.group:wrong2:1.2.0:test
+        |""".stripMargin.trim,
+      classOf[PomChecker.ValidationException],
+      () => PomChecker.checkDepVersions(deps))
+  }
+
+  @Test
   def testCheckDepScopes_noException(): Unit = {
     // GIVEN
     val ref1 = SelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")

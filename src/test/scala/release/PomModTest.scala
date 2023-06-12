@@ -22,7 +22,7 @@ class PomModTest extends AssertionsForJUnit {
 
   @Rule def temp = _temporarayFolder
 
-  lazy val repo = new Repo(Opts())
+  lazy val repo = Repo.of(Opts())
 
   @Test
   def testTeset(): Unit = {

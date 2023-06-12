@@ -246,9 +246,10 @@ object Starter extends LazyLogging {
                   lintOpts: LintOpts = LintOpts(), checkOverlapping: Boolean = true,
                   checkProjectDeps: Boolean = true,
                   showSelfGa: Boolean = false, showStartupDone: Boolean = true, suggestDockerTag: Boolean = false,
-                  isInteractive: Boolean = true
+                  isInteractive: Boolean = true, showOpts: Boolean = false
                  )
 
+  @tailrec
   def envRead(envs: Seq[(String, String)], inOpt: Opts): Opts = {
     envs match {
       case ("RELEASE_NO_GERRIT", k) :: tail => envRead(tail, {
@@ -274,6 +275,7 @@ object Starter extends LazyLogging {
         case "--defaults" :: tail => argsRead(tail, inOpt.copy(useDefaults = true))
         case "--no-jline" :: tail => argsRead(tail, inOpt.copy(useJlineInput = false))
         case "--no-color" :: tail => argsRead(tail, inOpt.copy(colors = false))
+        case "--show-opts" :: tail => argsRead(tail, inOpt.copy(showOpts = true))
         case "--no-check-overlap" :: tail => argsRead(tail, inOpt.copy(checkOverlapping = false))
         case "--no-check-project-vars" :: tail => argsRead(tail, inOpt.copy(checkProjectDeps = false))
         // TODO no color env property
@@ -390,8 +392,10 @@ object Starter extends LazyLogging {
     val shellWidth = argSeq(4).toInt
 
     val otherArgs = argSeq.drop(7).filter(_ != null).map(_.trim).toList
-
     val opts = argsRead(otherArgs, Opts())
+    if (opts.showOpts) {
+      out.println(Util.show(opts))
+    }
     val interactiveShell = argSeq(5).toBoolean && opts.isInteractive
     if (opts.showStartupDone) {
       out.println(". done (b)")
@@ -513,18 +517,18 @@ object Starter extends LazyLogging {
     if (opts.suggestDockerTag) {
 
       val file: File = new File(".").getAbsoluteFile
-      val pomModTry = PomMod.withRepoTry(file, opts, new Repo(opts))
+      val pomModTry = PomMod.withRepoTry(file, opts, Repo.of(opts))
       val selfV = pomModTry.map(pm => pm.selfVersion).toOption
       val result = SuggestDockerTag.suggest(System.getenv("CI_COMMIT_REF_NAME"), System.getenv("CI_COMMIT_TAG"), selfV)
       out.println(result._1)
       return result._2
     }
     if (opts.lintOpts.doLint) {
-      return Lint.run(out, err, opts, new Repo(opts), Util.systemEnvs())
+      return Lint.run(out, err, opts, Repo.of(opts), Util.systemEnvs())
     }
     if (opts.showSelfGa) {
       val file: File = new File(".").getAbsoluteFile
-      val pomModTry = PomMod.withRepoTry(file, opts, new Repo(opts))
+      val pomModTry = PomMod.withRepoTry(file, opts, Repo.of(opts))
       pomModTry.get.selfDepsModGavs().foreach(gav => out.println(gav.formatted))
       return 0
     }
@@ -609,7 +613,7 @@ object Starter extends LazyLogging {
       } else if (createFeatureBranch) {
         FeatureBranch.work(workDirFile, sys, git, startBranch, askForRebase, releaseToolGit.headStatusValue(), config, opts)
       } else {
-        lazy val repo = new Repo(opts)
+        lazy val repo = Repo.of(opts)
         Release.work(workDirFile, sys, askForRebase, startBranch,
           git, termOs, shellWidth, () => releaseToolGit.headStatusValue(), config, repo, opts)
       }

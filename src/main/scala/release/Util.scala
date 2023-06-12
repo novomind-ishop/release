@@ -15,6 +15,7 @@ import scala.util.Random
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{FileSystemException, FileVisitResult, FileVisitor, Files, Path}
 import java.util
+import scala.collection.immutable.Iterable
 import scala.language.implicitConversions
 
 object Util {
@@ -37,6 +38,26 @@ object Util {
   }
 
   implicit def pluralize(input: String): PluralString = new PluralString(input)
+
+  def show(product: Product): String = {
+    val className = product.productPrefix
+    val fieldNames = product.productElementNames.toList
+    val fieldValues = product.productIterator.toList
+    val fields = fieldNames.zip(fieldValues).map {
+      case (name, value) if value.isInstanceOf[Iterable[Any]] => {
+        try {
+          s"$name = ${value.asInstanceOf[Iterable[Product]].map(show)}"
+        } catch {
+          case e:Exception => s"$name = ${value.asInstanceOf[Iterable[Any]].mkString(",")}"
+        }
+
+      }
+      case (name, value: Product) => s"$name = ${show(value)}"
+      case (name, value) => s"$name = $value"
+    }
+
+    fields.mkString(s"$className(", ", ", ")")
+  }
 
   class LinuxPath(in: Path) {
     def toStringLinux: String = {
