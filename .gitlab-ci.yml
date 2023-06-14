@@ -1,0 +1,5 @@
+include:
+  - project: 'dc_rd_dcp_pk/gitlab-ci-information-public/template-ci-pipeline/ishop-ci-template/gitlab-templates'
+    ref: "main"
+    file: 'sbt-docker.yml'
+
