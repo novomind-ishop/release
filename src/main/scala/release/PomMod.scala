@@ -131,8 +131,8 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
     replacedVersionProperties(listProperties, skipPropertyReplacement)(listRawDeps).distinct // TODO distinct?
   }
   if (opts.checkOverlapping) {
-    PomChecker.checkDepScopes(listDependencies)
-    PomChecker.checkDepVersions(listDependencies)
+    PomChecker.checkDepScopes(listDependencies, listRawDeps)
+    PomChecker.checkDepVersions(listDependencies, listRawDeps)
   }
   if (opts.checkProjectDeps) {
     PomChecker.checkExternalWithProjectScope(listRawDeps, selfDepsMod, listProperties)

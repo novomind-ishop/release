@@ -252,10 +252,11 @@ object Starter extends LazyLogging {
   @tailrec
   def envRead(envs: Seq[(String, String)], inOpt: Opts): Opts = {
     envs match {
+      case Nil => inOpt
       case ("RELEASE_NO_GERRIT", k) :: tail => envRead(tail, {
         inOpt.copy(useGerrit = k.toBooleanOption.forall(b => !b))
       })
-      case _ => inOpt
+      case (_, _) :: tail => envRead(tail, inOpt)
     }
   }
 

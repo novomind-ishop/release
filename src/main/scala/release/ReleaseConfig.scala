@@ -70,7 +70,7 @@ sealed class ReleaseConfig(map: Map[String, String]) {
     if (userHomeFromJava == shellHome) {
       userHomeFromJava
     } else {
-      userHomeFromJava + ";" + shellHome
+      userHomeFromJava + " # shellHome: " + shellHome
     }
 
   }

@@ -58,16 +58,21 @@ object PomChecker {
     }
   }
 
-  def checkDepVersions(listDependecies: Seq[Dep]) = {
+  def checkDepVersions(listDependecies: Seq[Dep], listDependeciesRaw: Seq[Dep]) = {
+
+    val ziped = listDependecies.zip(listDependeciesRaw)
+    val zg = ziped.groupBy(_._1).map(t => (t._1, t._2.map(_._2))).filterNot(_._2.size <= 1)
+
     val byRef = listDependecies
       .filterNot(_.version.isBlank)
+
       .groupBy(_.pomRef)
     val msgs = byRef.flatMap(deps => {
-      val allGavs = deps._2.map(_.gav()).distinct
+      val allGavs = deps._2.flatMap(d => Seq(d) ++ zg.getOrElse(d, Nil)).map(_.gav()).distinct
       val withoutVersion = allGavs.map(_.copy(version = "")).groupBy(x => x).filter(_._2.size > 1).keySet
       val diff = allGavs.filter(g => withoutVersion.contains(g.copy(version = "")))
       if (diff.nonEmpty) {
-        val msg = "found overlapping versions in\n" + deps._1.id + "\n" + diff.map(select => {
+        val msg = "found overlapping versions in\n" + deps._1.id + "\n" + diff.sortBy(_.toString).map(select => {
           val str = "  " + select.formatted
           str
         }).mkString("\n")
@@ -81,7 +86,7 @@ object PomChecker {
     }
   }
 
-  def checkDepScopes(listDependecies: Seq[Dep]) = {
+  def checkDepScopes(listDependecies: Seq[Dep], listDependeciesRaw: Seq[Dep]) = {
     val byRef = listDependecies.groupBy(_.pomRef)
     val msgs = byRef.flatMap(deps => {
       val allGavs = deps._2.map(_.gav()).distinct.map(_.copy(scope = "", packageing = ""))

@@ -55,7 +55,19 @@ class PomCheckerTest extends AssertionsForJUnit {
     )
 
     // WHEN / THEN
-    PomChecker.checkDepVersions(deps) // no exception
+    PomChecker.checkDepVersions(deps, deps) // no exception
+  }
+
+  @Test
+  def testCheckDepVersions_noException_var(): Unit = {
+    // GIVEN
+    val ref1 = SelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
+    val deps: Seq[Dep] = Seq(
+      Dep(ref1, "any.group", "valid", "${v}", "", "test", "", ""),
+    )
+    val props = Map("v" -> "1.2.0")
+    // WHEN / THEN
+    PomChecker.checkDepVersions(deps, PomMod.replacedVersionProperties(props, skipPropertyReplacement = false)(deps)) // no exception
   }
 
   @Test
@@ -77,8 +89,12 @@ class PomCheckerTest extends AssertionsForJUnit {
 
       Dep(ref2, "any.group", "wrong2", "1.0.0", "", "test", "", ""),
       Dep(ref2, "any.group", "wrong2", "1.2.0", "", "test", "", ""),
+      Dep(ref2, "any.group", "wrong2", "1.2.0", "", "test", "", ""),
+      Dep(ref2, "any.group", "wrong2", "${wrongV}", "", "test", "", ""),
+      Dep(ref2, "any.group", "wrong2", "${wrongV2}", "", "test", "", ""),
     )
 
+    val props = Map("wrongV" -> "1.2.0", "wrongV2" -> "1.2.1")
     // WHEN / THEN
     TestHelper.assertException(
       """found overlapping versions in
@@ -88,11 +104,13 @@ class PomCheckerTest extends AssertionsForJUnit {
         |
         |found overlapping versions in
         |com.novomind.ishop.shops:util:27.0.0-SNAPSHOT:jar
+        |  any.group:wrong2:${wrongV}:test
         |  any.group:wrong2:1.0.0:test
         |  any.group:wrong2:1.2.0:test
+        |  any.group:wrong2:1.2.1:test
         |""".stripMargin.trim,
       classOf[PomChecker.ValidationException],
-      () => PomChecker.checkDepVersions(deps))
+      () => PomChecker.checkDepVersions(PomMod.replacedVersionProperties(props, skipPropertyReplacement = false)(deps), deps))
   }
 
   @Test
@@ -106,7 +124,7 @@ class PomCheckerTest extends AssertionsForJUnit {
     )
 
     // WHEN / THEN
-    PomChecker.checkDepScopes(deps) // no exception
+    PomChecker.checkDepScopes(deps, deps) // no exception
   }
 
   @Test
@@ -141,7 +159,7 @@ class PomCheckerTest extends AssertionsForJUnit {
         |com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war with scope: ...:compile
         |""".stripMargin.trim,
       classOf[PomChecker.ValidationException],
-      () => PomChecker.checkDepScopes(deps))
+      () => PomChecker.checkDepScopes(deps, deps))
   }
 
   @Test

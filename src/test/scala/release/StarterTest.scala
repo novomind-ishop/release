@@ -409,6 +409,42 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
   }
 
   @Test
+  def testEnvRead_empty(): Unit = {
+    val result = Starter.envRead(Nil, Opts())
+    Assert.assertEquals(Opts(), result)
+  }
+
+  @Test
+  def testEnvRead_some(): Unit = {
+    val result = Starter.envRead(Seq(("a", "b")), Opts())
+    Assert.assertEquals(Opts(), result)
+  }
+
+  @Test
+  def testEnvRead_gerrit(): Unit = {
+    val result = Starter.envRead(Seq(("RELEASE_NO_GERRIT", "true")), Opts())
+    Assert.assertEquals(Opts(useGerrit = false), result)
+  }
+
+  @Test
+  def testEnvRead_gerrit_false(): Unit = {
+    val result = Starter.envRead(Seq(("RELEASE_NO_GERRIT", "false")), Opts())
+    Assert.assertEquals(Opts(), result)
+  }
+
+  @Test
+  def testEnvRead_gerrit_defect(): Unit = {
+    val result = Starter.envRead(Seq(("RELEASE_NO_GERRIT", "fw")), Opts())
+    Assert.assertEquals(Opts(), result)
+  }
+
+  @Test
+  def testEnvRead_gerrit_others(): Unit = {
+    val result = Starter.envRead(Seq(("a", "b"), ("RELEASE_NO_GERRIT", "true")), Opts())
+    Assert.assertEquals(Opts(useGerrit = false), result)
+  }
+
+  @Test
   def testFutures(): Unit = {
     implicit val global = ExecutionContext.global
 
