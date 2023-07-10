@@ -1,6 +1,7 @@
 package release
 
 import com.google.common.base.Stopwatch
+import com.google.common.hash.Hashing
 import com.google.common.io.{CharSink, CharSource}
 import com.google.googlejavaformat.java.Formatter
 import release.Starter.{Opts, PreconditionsException, init}
@@ -11,7 +12,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{FileVisitResult, FileVisitor, Files, Path}
 import java.util.concurrent.atomic.AtomicBoolean
-import scala.util.{Failure, Try, Success}
+import scala.util.{Failure, Success, Try}
 import scala.collection.parallel.CollectionConverters._
 
 object Lint {
@@ -19,29 +20,41 @@ object Lint {
   type UniqCode = String
   var codes = Set.empty[UniqCode]
 
-  def uniqCode(i: Int): UniqCode = {
+  private class CodeGen(code:String) {
+    def apply(dyn: Any = null):String = {
+      val suffix = if (dyn != ()) {
+        "-" + Hashing.murmur3_32_fixed().hashString(dyn.toString, StandardCharsets.UTF_8)
+      } else {
+        ""
+      }
+      code + suffix
+    }
+  }
+
+  def uniqCode(i: Int): PartialFunction[Any, UniqCode] = {
     val result = s"RL$i-WIP"
     if (codes.contains(result)) {
       throw new IllegalStateException(s"code ${result} already defined")
     } else {
       codes = codes + result
-      result
+      x => new CodeGen(result).apply(x)
     }
 
   }
 
   val fiFine = "✅"
 
-  val fiCodeNexusUrlSlash = uniqCode(1001)
-  val fiCodeNexusCentral = uniqCode(1002)
-  val fiCodeGitLocalChanges = uniqCode(1003)
-  val fiCodeGitNoRemotes = uniqCode(1004)
-  val fiCodeGitlabCiFilename = uniqCode(1005)
-  val fiCodeGitlabCiTagname = uniqCode(1006)
-  val fiCodePomModPreconditionsException = uniqCode(1007)
-  val fiCodePomModException = uniqCode(1008)
-  val fiCodeNexusFoundRelease =uniqCode(1009)
-  val fiCodeUnusualGav =uniqCode(1010)
+  val fiCodeNexusUrlSlash = uniqCode(1001)(())
+  val fiCodeNexusCentral = uniqCode(1002)(())
+  val fiCodeGitLocalChanges = uniqCode(1003)(())
+  val fiCodeGitNoRemotes = uniqCode(1004)(())
+  val fiCodeGitlabCiFilename = uniqCode(1005)(())
+  val fiCodeGitlabCiTagname = uniqCode(1006)(())
+  val fiCodePomModPreconditionsException = uniqCode(1007)(())
+  val fiCodePomModException = uniqCode(1008)(())
+  val fiCodeNexusFoundRelease = uniqCode(1009)(())
+  val fiCodeUnusualGav = uniqCode(1010)
+  val fiCodeSnapshotGav = uniqCode(1011)
   val fiWarn = "\uD83D\uDE2C"
   val fiError = "❌"
 
@@ -191,13 +204,13 @@ object Lint {
               .filter(_.version.endsWith("-SNAPSHOT"))
             snaps
               .foreach(dep => {
-                out.println(warnSoft("  found snapshot: " + dep.gav().formatted + s" ${fiWarn}", color, limit = lineMax))
+                out.println(warnSoft("  found snapshot: " + dep.gav().formatted + s" ${fiWarn} ${fiCodeSnapshotGav.apply(dep.gav())}", color, limit = lineMax))
               })
             out.println(info("--- check for GAV format @ maven ---", color))
             val unusualGavs = pomMod.listGavsWithUnusualScope()
             if (unusualGavs.nonEmpty) {
               unusualGavs.foreach(found => {
-                out.println(warn(s"${found.formatted} uses unusual format, please repair ${fiWarn} ${fiCodeUnusualGav}", color, limit = lineMax))
+                out.println(warn(s"${found.formatted} uses unusual format, please repair ${fiWarn} ${fiCodeUnusualGav.apply(found)}", color, limit = lineMax))
               })
               out.println(info(s"known scopes are: ${ProjectMod.knownScopes.filterNot(_.isEmpty).toSeq.sorted.mkString(", ")}", color))
               warnExit.set(true)
