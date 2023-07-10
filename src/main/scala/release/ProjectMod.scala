@@ -14,6 +14,8 @@ import scala.collection.parallel.CollectionConverters._
 
 object ProjectMod extends LazyLogging {
 
+  val knownScopes = Set("provided", "compile", "runtime", "test", "system", "import", "")
+
   def toUpdats(refs: Seq[(GavWithRef, (Seq[String], Duration))], fx: (Gav3, Seq[String]) => String): Seq[(Gav3, String)] = {
     refs.map(in => {
       (in._1.gav.simpleGav(), fx.apply(in._1.gav.simpleGav(), in._2._1))
@@ -211,7 +213,7 @@ object ProjectMod extends LazyLogging {
     }
 
     def isUnknownScope(in:String): Boolean = {
-      isUnusual(in) || !Set("provided", "compile", "runtime", "test", "system", "import", "").contains(in)
+      isUnusual(in) || !knownScopes.contains(in)
     }
   }
 

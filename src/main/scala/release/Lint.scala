@@ -199,6 +199,7 @@ object Lint {
               unusualGavs.foreach(found => {
                 out.println(warn(s"${found.formatted} uses unusual format, please repair ${fiWarn} ${fiCodeUnusualGav}", color, limit = lineMax))
               })
+              out.println(info(s"known scopes are: ${ProjectMod.knownScopes.filterNot(_.isEmpty).toSeq.sorted.mkString(", ")}", color))
               warnExit.set(true)
             } else {
               out.println(info(s"    ${fiFine} all GAVs scopes looks fine", color))

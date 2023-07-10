@@ -567,6 +567,7 @@ class LintTest extends AssertionsForJUnit {
         |[warning]   found snapshot: org.springframework:spring-other:1.0.0-SNAPSHOT:bert 😬
         |[INFO] --- check for GAV format @ maven ---
         |[WARNING] org.springframework:spring-other:1.0.0-SNAPSHOT:bert uses unusual format, please repair 😬 RL1010-WIP
+        |[INFO] known scopes are: compile, import, provided, runtime, system, test
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
         |[INFO] --- suggest dependency updates / configurable @ maven ---
