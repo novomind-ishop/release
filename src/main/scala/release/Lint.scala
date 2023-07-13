@@ -232,10 +232,12 @@ object Lint {
             out.println(info("--- check major versions @ ishop ---", color))
             val mrc = Release.coreMajorResultOf(pomMod, None)
             if (mrc.hasDifferentMajors) {
+              warnExit.set(true)
               out.println(warn(s"    Found core ${mrc.sortedMajors.mkString(", ")} ${fiWarn} ${fiCodeCoreDiff.apply(mrc)}", color, limit = lineMax))
-              mrc.coreMajorVersions.foreach(dep => {
-                out.println(warn(s"      ${dep._2.gav().formatted} ${fiWarn} ${fiCodeCoreDiff.apply(dep)}", color, limit = lineMax))
-                warnExit.set(true)
+              mrc.coreMajorVersions.map(_._2.gav())
+                .distinct
+                .foreach(gav => {
+                out.println(warn(s"      ${gav.formatted} ${fiWarn} ${fiCodeCoreDiff.apply(gav)}", color, limit = lineMax))
               })
 
             } else {

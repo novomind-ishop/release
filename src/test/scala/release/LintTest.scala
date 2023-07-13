@@ -482,8 +482,8 @@ class LintTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- check major versions @ ishop ---
         |[WARNING]     Found core 50, 51 😬 RL1013-WIP-592ca15f
-        |[WARNING]       com.novomind.ishop.core.other:other-context:50.2.3 😬 RL1013-WIP-18e3813f
-        |[WARNING]       com.novomind.ishop.core.some:core-some-context:51.2.3 😬 RL1013-WIP-ed710a11
+        |[WARNING]       com.novomind.ishop.core.other:other-context:50.2.3 😬 RL1013-WIP-c92c543b
+        |[WARNING]       com.novomind.ishop.core.some:core-some-context:51.2.3 😬 RL1013-WIP-f510cf29
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002-WIP
         |[INFO]     RELEASE_NEXUS_WORK_URL=null # (no ip)
