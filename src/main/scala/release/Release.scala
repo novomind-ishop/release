@@ -107,6 +107,60 @@ object Release extends LazyLogging {
     }
   }
 
+  case class CoreMajoResult(hasDifferentMajors: Boolean, sortedMajors: Seq[String], releaseMajorVersion: String, coreMajorVersions: Seq[(String, Dep)])
+
+  def coreMajorResultOf(mod: ProjectMod, release: Option[String]): CoreMajoResult = {
+    val relevantDeps = if (mod.isNoShop) {
+      mod.listDependencies.filter(in => in.groupId.startsWith("com.novomind.ishop.core"))
+    } else {
+      val selfGavs = mod.selfDepsMod.map(_.gav())
+      mod.listDependencies
+        .filter(in => in.groupId.startsWith("com.novomind.ishop"))
+        .filterNot(in => selfGavs.contains(in.gav()))
+    }
+    if (relevantDeps.nonEmpty) {
+      val releaseMajorVersion = if (mod.isNoShop && release.isDefined) {
+        release.get.replaceAll("\\..*", "")
+      } else {
+        relevantDeps.map(_.version).maxBy(Version.parse).replaceAll("\\..*", "")
+      }
+      val relevantFilteredDeps = if (releaseMajorVersion.matches("[0-9]+")) {
+        if (releaseMajorVersion.toInt > 36) {
+          relevantDeps
+            .filterNot(in => in.groupId == "com.novomind.ishop.shops" &&
+              in.artifactId == "ishop-shop-parent" &&
+              in.version.startsWith("36")) // TODO improve to .toInt > 36 later
+            .filterNot(in => in.groupId == "com.novomind.ishop" &&
+              in.artifactId == "ishop-meta-parent" &&
+              in.version.startsWith("36")) // TODO improve to .toInt > 36 later
+        } else if (releaseMajorVersion.toInt >= 32) {
+          relevantDeps
+        } else {
+          relevantDeps
+            .filterNot(in => in.groupId == "com.novomind.ishop.exi" && in.artifactId == "ishop-ext-authentication")
+        }
+      } else {
+        relevantDeps
+      }
+      val coreVersions: Seq[(String, Dep)] = relevantFilteredDeps
+        .map(in => (in.version, in))
+        .distinct
+        .filter(_._1.nonEmpty)
+        .sortBy(_._1)
+      val coreMajorVersions: Seq[(String, Dep)] = coreVersions
+        .map(in => (in._1.replaceAll("\\..*", "").replaceAll("\\D+", "").trim, in._2))
+        .distinct
+        .filter(_._1.nonEmpty)
+        .sortBy(_._1)
+
+      val sortedMajors = coreMajorVersions.map(_._1).distinct.sortBy(Version.parse)
+      CoreMajoResult(coreMajorVersions != Nil && sortedMajors != Seq(releaseMajorVersion), sortedMajors, releaseMajorVersion, coreMajorVersions)
+    } else {
+      CoreMajoResult(false, Nil, "", Nil)
+    }
+
+  }
+
   // TODO @tailrec
   def work(workDirFile: File, sys: Term.Sys, rebaseFn: () => Unit, branch: String, sgit: Sgit,
            termOs: Term, shellWidth: Int, releaseToolGitSha1: () => String, config: ReleaseConfig,
@@ -246,62 +300,18 @@ object Release extends LazyLogging {
     // TODO release a feature branch should not change the next version
     val nextReleaseWithoutSnapshot = readNextReleaseVersionsWithoutSnapshot
 
-    val relevantDeps = if (mod.isNoShop) {
-      mod.listDependencies.filter(in => in.groupId.startsWith("com.novomind.ishop.core"))
-    } else {
-      val selfGavs = mod.selfDepsMod.map(_.gav())
-      mod.listDependencies
-        .filter(in => in.groupId.startsWith("com.novomind.ishop"))
-        .filterNot(in => selfGavs.contains(in.gav()))
-    }
-    val releaseMajorVersion = if (mod.isNoShop) {
-      release.replaceAll("\\..*", "")
-    } else {
-      relevantDeps.map(_.version).maxBy(Version.parse).replaceAll("\\..*", "")
-    }
-
-    val relevantFilteredDeps = if (releaseMajorVersion.matches("[0-9]+")) {
-      if (releaseMajorVersion.toInt > 36) {
-        relevantDeps
-          .filterNot(in => in.groupId == "com.novomind.ishop.shops" &&
-            in.artifactId == "ishop-shop-parent" &&
-            in.version.startsWith("36")) // TODO improve to .toInt > 36 later
-          .filterNot(in => in.groupId == "com.novomind.ishop" &&
-            in.artifactId == "ishop-meta-parent" &&
-            in.version.startsWith("36")) // TODO improve to .toInt > 36 later
-      } else if (releaseMajorVersion.toInt >= 32) {
-        relevantDeps
-      } else {
-        relevantDeps
-          .filterNot(in => in.groupId == "com.novomind.ishop.exi" && in.artifactId == "ishop-ext-authentication")
-      }
-    } else {
-      relevantDeps
-    }
-
-    val coreVersions: Seq[(String, Dep)] = relevantFilteredDeps
-      .map(in => (in.version, in))
-      .distinct
-      .filter(_._1.nonEmpty)
-      .sortBy(_._1)
-    val coreMajorVersions: Seq[(String, Dep)] = coreVersions
-      .map(in => (in._1.replaceAll("\\..*", "").replaceAll("\\D+", "").trim, in._2))
-      .distinct
-      .filter(_._1.nonEmpty)
-      .sortBy(_._1)
-
-    val sortedMajors = coreMajorVersions.map(_._1).distinct.sortBy(Version.parse)
-    if (coreMajorVersions != Nil && sortedMajors != Seq(releaseMajorVersion)) {
+    val cmr = coreMajorResultOf(mod, Option(release))
+    if (cmr.hasDifferentMajors) {
       sys.out.println()
       if (opts.colors) {
         sys.out.print("\u001B[30;45m")
       }
       if (mod.isNoShop) {
-        sys.out.print(" W: You are trying to release major version " + releaseMajorVersion + " (" + release + ")")
+        sys.out.print(" W: You are trying to release major version " + cmr.releaseMajorVersion + " (" + release + ")")
       } else {
-        sys.out.print(" W: You are trying to use core major version " + releaseMajorVersion)
+        sys.out.print(" W: You are trying to use core major version " + cmr.releaseMajorVersion)
       }
-      sys.out.print(" but this artifact refers to: " + sortedMajors.mkString(" and ") + ".")
+      sys.out.print(" but this artifact refers to: " + cmr.sortedMajors.mkString(" and ") + ".")
       if (opts.colors) {
         sys.out.print("\u001B[0m")
       }
@@ -315,7 +325,7 @@ object Release extends LazyLogging {
       }
       sys.out.println()
       sys.out.println()
-      Release.formatVersionLinesGav(coreMajorVersions.map(_._2.gav()).sortBy(_.version), opts.colors)
+      Release.formatVersionLinesGav(cmr.coreMajorVersions.map(_._2.gav()).sortBy(_.version), opts.colors)
         .map(in => " " + in)
         .foreach(sys.out.println)
       val continue = Term.readFromOneOfYesNo(sys, "Continue?", opts)

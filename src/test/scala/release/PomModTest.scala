@@ -1561,25 +1561,29 @@ class PomModTest extends AssertionsForJUnit {
       Version.parse("2.2.3"),
       Version.parse("2.2.4"),
       Version.parse("2.3.0"),
+      Version.parseSloppy("4.0.0-SNAPSHOT"),
+      Version.parseSloppy("4.0.0"),
       Version.parse("7"),
       Version.parse("9.1"),
+      Version.parseSloppy("10-alpha"),
       Version.parseSloppy("10"),
-      Version.parseSloppy("10-alpha"), // FIXME alpha should be for 10
       Version.parse("10.2.3"),
       Version.parse("21.2.3"),
     )
-    val t = in.sliding(2, 1).flatMap(ts => {
+    val t = in.sliding(2, 1).map(ts => {
       if (ts.size != 2) {
         throw new IllegalStateException("d")
       } else {
-        Seq(Version.ordering.lt(ts.head, ts.last),
+        ((ts.head, ts.last), Seq(Version.ordering.lt(ts.head, ts.last),
           Version.ordering.equiv(ts.head, ts.head),
-          Version.ordering.equiv(ts.last, ts.last))
+          Version.ordering.equiv(ts.last, ts.last)))
       }
 
-    }).distinct.toList
-
-    Assert.assertEquals(1, t.size)
+    }).toList
+    t.foreach(l => {
+      println(s"${l._1._1.format()} <-> ${l._1._2.format()} = ${l._2.mkString(", ")}")
+    })
+    Assert.assertEquals(1, t.flatMap(_._2).distinct.size)
   }
 
   @Test

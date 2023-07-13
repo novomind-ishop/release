@@ -55,6 +55,8 @@ object Lint {
   val fiCodeNexusFoundRelease = uniqCode(1009)(())
   val fiCodeUnusualGav = uniqCode(1010)
   val fiCodeSnapshotGav = uniqCode(1011)
+  val fiCodeSnapshotText = uniqCode(1012)
+  val fiCodeCoreDiff = uniqCode(1013)
   val fiWarn = "\uD83D\uDE2C"
   val fiError = "❌"
 
@@ -179,7 +181,8 @@ object Lint {
         val snapshotsInFiles = PomChecker.getSnapshotsInFiles(sgit.lsFilesAbsolute().map(_.getAbsolutePath))
         if (snapshotsInFiles.nonEmpty) {
           snapshotsInFiles.foreach(f => {
-            out.println(warnSoft("  found snapshot in: " + file.toPath.relativize(f._3.normalize()) + s" ${fiWarn}\n" +
+            out.println(warnSoft("  found snapshot in: " + file.toPath.relativize(f._3.normalize()) +
+              s" ${fiWarn} ${fiCodeSnapshotText((f._2, f._3.getFileName))}\n" +
               "              " + f._2, color, limit = lineMax))
           })
         } else {
@@ -196,6 +199,7 @@ object Lint {
           }
           if (pomModTry.isSuccess) {
             val pomMod = pomModTry.get
+
             out.println(info("--- .mvn @ maven ---", color))
             out.println(info("    WIP", color))
             out.println(info("--- check for snapshots @ maven ---", color))
@@ -225,6 +229,13 @@ object Lint {
                 out.println(warnSoft("  found preview: " + dep.gav().formatted + s" ${fiWarn}", color, limit = lineMax))
               })
             out.println(info("    WIP", color))
+            out.println(info("--- check major versions @ ishop ---", color))
+            val mrc = Release.coreMajorResultOf(pomMod, None)
+            if (mrc.hasDifferentMajors) {
+              out.println(warn(s"    Found core ${mrc.sortedMajors.mkString(", ")} ${fiWarn} ${fiCodeCoreDiff.apply(mrc)}", color))
+            } else {
+              out.println(info(s"    ${fiFine} no major version diff", color))
+            }
             out.println(info("--- suggest dependency updates / configurable @ maven ---", color))
 
             val releasenexusworkurl: String = envs.get("RELEASE_NEXUS_WORK_URL").orNull

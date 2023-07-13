@@ -10,6 +10,7 @@ import release.Starter.OptsDepUp
 
 import java.io.File
 import java.time.{Duration, ZonedDateTime}
+import scala.collection.immutable.ListMap
 
 class ProjectModTest extends AssertionsForJUnit {
 
@@ -128,6 +129,34 @@ class ProjectModTest extends AssertionsForJUnit {
       ("1", Seq("1-alpha", "1.1")),
       ("-1", Seq("a")),
     ), result)
+  }
+
+  @Test
+  def testFilter(): Unit = {
+    val in:  Map[Gav3, (Seq[String], Duration)] = ListMap(
+      Gav3(groupId = "g", artifactId = "a", version = "1.0.0") -> (Nil, Duration.ZERO),
+      Gav3(groupId = "g", artifactId = "a1", version = "1.0.0") -> (Seq("1.0.0"), Duration.ZERO),
+      Gav3(groupId = "g", artifactId = "a2", version = "1.0.0-SNAPSHOT") -> (Seq("1.0.0"), Duration.ZERO),
+      Gav3(groupId = "g", artifactId = "a3", version = "1.0.0-M1") -> (Seq("1.0.0"), Duration.ZERO),
+      Gav3(groupId = "g", artifactId = "a4", version = "1.0.1-SNAPSHOT") -> (Seq("1.0.0", "1.0.1", "2.0.0"), Duration.ZERO),
+      Gav3(groupId = "g", artifactId = "a5", version = "1.0.1-M2") -> (Seq("2.0.0", "1.0.1", "1.0.0"), Duration.ZERO),
+      Gav3(groupId = "g", artifactId = "a6", version = "ok") -> (Seq("1.0.0"), Duration.ZERO),
+      Gav3(groupId = "g", artifactId = "a7", version = "ok") -> (Seq("1.0.0", "ok"), Duration.ZERO),
+      Gav3(groupId = "g", artifactId = "a8", version = "1.0.0-SNAPSHOT") -> (Seq("1.0.1"), Duration.ZERO),
+    )
+    val result = ProjectMod.reduceIn(in)
+    val expected = ListMap(
+      Gav3(groupId = "g", artifactId = "a", version = "1.0.0") -> (Nil, Duration.ZERO),
+      Gav3(groupId = "g", artifactId = "a1", version = "1.0.0") -> (Nil, Duration.ZERO),
+      Gav3(groupId = "g", artifactId = "a2", version = "1.0.0-SNAPSHOT") -> (Seq("1.0.0"), Duration.ZERO),
+      Gav3(groupId = "g", artifactId = "a3", version = "1.0.0-M1") -> (Seq("1.0.0"), Duration.ZERO),
+      Gav3(groupId = "g", artifactId = "a4", version = "1.0.1-SNAPSHOT") -> (Seq("1.0.1", "2.0.0"), Duration.ZERO),
+      Gav3(groupId = "g", artifactId = "a5", version = "1.0.1-M2") -> (Seq("1.0.1", "2.0.0"), Duration.ZERO),
+      Gav3(groupId = "g", artifactId = "a6", version = "ok") -> (Seq("1.0.0"), Duration.ZERO),
+      Gav3(groupId = "g", artifactId = "a7", version = "ok") -> (Seq("1.0.0"), Duration.ZERO),
+      Gav3(groupId = "g", artifactId = "a8", version = "1.0.0-SNAPSHOT") -> (Seq("1.0.1"), Duration.ZERO),
+    )
+    Assert.assertEquals(expected, result)
   }
 
   @Test

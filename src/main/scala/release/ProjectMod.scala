@@ -13,6 +13,22 @@ import scala.annotation.tailrec
 import scala.collection.parallel.CollectionConverters._
 
 object ProjectMod extends LazyLogging {
+  def reduceIn(in: Map[Gav3, (Seq[String], Duration)]): Map[Gav3, (Seq[String], Duration)] = {
+    in.map(gavAndVersion => {
+      val versionLiterals = gavAndVersion._2._1.map(Version.parseSloppy).sorted
+      if (versionLiterals == Nil) {
+        (gavAndVersion._1, (Nil, gavAndVersion._2._2)) // TODO remove this, because it is invalid
+      } else {
+        (gavAndVersion._1, {
+          val current = Version.parseSloppy(gavAndVersion._1.version)
+          (versionLiterals
+            .filter(v => Version.ordering.gteq(v, current))
+            .filter(_.orginal != gavAndVersion._1.version)
+            .map(_.orginal), gavAndVersion._2._2)
+        })
+      }
+    })
+  }
 
   val knownScopes = Set("provided", "compile", "runtime", "test", "system", "import", "")
 
@@ -212,7 +228,7 @@ object ProjectMod extends LazyLogging {
       repl != in
     }
 
-    def isUnknownScope(in:String): Boolean = {
+    def isUnknownScope(in: String): Boolean = {
       isUnusual(in) || !knownScopes.contains(in)
     }
   }
@@ -294,8 +310,11 @@ object ProjectMod extends LazyLogging {
     private[release] val number2 = "^([0-9]+)\\.([0-9]+)(.*)".r
     private[release] val number3 = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)(.*)".r
 
-    implicit def ordering[A <: Version]: Ordering[A] =
-      Ordering.by(e => (e.major, e.minor, e.patch, e.low, e.pre))
+    def ordering1 = Ordering.by[Version, (Int, Int, Int)](e => (e.major, e.minor, e.patch))
+    def ordering2: Ordering[Version] = Ordering.by[Version, (String, String)](e => (e.low, e.pre)).reverse
+    def ordering3: Ordering[Version] = ordering1.orElse(ordering2)
+
+    implicit def ordering: Ordering[Version] =ordering3
 
     val undef: Version = Version("n/a", -1, -1, -1, "", "")
 
@@ -457,13 +476,7 @@ object ProjectMod extends LazyLogging {
 
     // TODO move Version check to here
 
-    val checkedUpdates: Map[Gav3, (Seq[String], Duration)] = updates.map(gavAndVersion => {
-      if (gavAndVersion._2._1 == Nil) {
-        (gavAndVersion._1, (Nil, gavAndVersion._2._2)) // TODO remove this, because it is invalid
-      } else {
-        (gavAndVersion._1, (gavAndVersion._2._1.tail, gavAndVersion._2._2))
-      }
-    })
+    val checkedUpdates: Map[Gav3, (Seq[String], Duration)] = ProjectMod.reduceIn(updates)
 
     val allWithUpdate: Seq[(GavWithRef, (Seq[String], Duration))] = (relevant ++ ProjectMod.relocatedDeps(relevant, repo)).distinct
       .map(in => {

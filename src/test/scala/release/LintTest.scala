@@ -161,6 +161,8 @@ class LintTest extends AssertionsForJUnit {
         |[INFO]     ✅ all GAVs scopes looks fine
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
+        |[INFO] --- check major versions @ ishop ---
+        |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org # (no ip)
         |[WARNING]  nexus work url must end with a '/' - https://repo.example.org 😬 RL1001-WIP
@@ -294,6 +296,8 @@ class LintTest extends AssertionsForJUnit {
         |[INFO]     ✅ all GAVs scopes looks fine
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
+        |[INFO] --- check major versions @ ishop ---
+        |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)
         |I: checking dependecies against nexus - please wait
@@ -329,7 +333,6 @@ class LintTest extends AssertionsForJUnit {
   }
 
   @Test
-  @Ignore // TODO later
   def testFailOldMilestone(): Unit = {
 
     val remote = temp.newFolder("release-lint-mvn-simple-init")
@@ -381,17 +384,118 @@ class LintTest extends AssertionsForJUnit {
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- check for snapshots @ maven ---
+        |[warning]   found snapshot: org.springframework:spring-vals:1.0.0-SNAPSHOT 😬 RL1011-WIP-e1588892
+        |[INFO] --- check for GAV format @ maven ---
+        |[INFO]     ✅ all GAVs scopes looks fine
+        |[INFO] --- check for preview releases @ maven ---
+        |[warning]   found preview: org.springframework:spring-context:1.0.0-M1 😬
         |[INFO]     WIP
+        |[INFO] --- check major versions @ ishop ---
+        |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
-        |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org
+        |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)
         |I: checking dependecies against nexus - please wait
         |
-        |I: checked 1 dependecies in 999ms (2000-01-01)
+        |I: checked 2 dependecies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
         |╠═╦═ org.springframework:spring-context:1.0.0-M1
         |║ ╚═══ 1.0.0, .., 1.2.8, 1.2.9
+        |╠═╦═ org.springframework:spring-vals:1.0.0-SNAPSHOT
+        |║ ╚═══ 1.0.1, .., 1.2.8, 1.2.9
         |║
-        |term: Term(dumb,lint,false)
+        |term: Term(dumb,lint,false,false)
+        |[INFO]     WIP
+        |[INFO] --- dep.tree @ maven ---
+        |[INFO]     WIP
+        |
+        |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
+        |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
+        |[INFO] ----------------------------[ end of lint ]----------------------------""".stripMargin
+    TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 0)(sys => {
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+      val mockRepo = Mockito.mock(classOf[Repo])
+      Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org/")
+      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
+      Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+        .thenReturn(None)
+      Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-vals"), ArgumentMatchers.anyString()))
+        .thenReturn(Seq(
+          "1.0.1", "1.0.2", "1.2.8", "1.2.9",
+        ))
+      Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-context"), ArgumentMatchers.anyString()))
+        .thenReturn(Seq(
+          "1.0.0", "1.0.1", "1.0.2", "1.2.8", "1.2.9",
+        ))
+      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, fileB))
+    })
+  }
+
+  @Test
+  def testRunMvnMajorVersion(): Unit = {
+    val file = temp.newFolder("release-lint-mvn-simple")
+    val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
+    gitA.configSetLocal("user.email", "you@example.com")
+    gitA.configSetLocal("user.name", "Your Name")
+    Util.write(new File(file, "pom.xml"),
+      """<?xml version="1.0" encoding="UTF-8"?>
+        |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+        |  <modelVersion>4.0.0</modelVersion>
+        |  <groupId>com.novomind.ishop.any</groupId>
+        |  <artifactId>any</artifactId>
+        |  <version>0.11-SNAPSHOT</version>
+        |  <dependencies>
+        |    <dependency>
+        |      <groupId>com.novomind.ishop.core.other</groupId>
+        |      <artifactId>other-context</artifactId>
+        |      <version>50.2.3</version>
+        |    </dependency>
+        |    <dependency>
+        |      <groupId>com.novomind.ishop.core.some</groupId>
+        |      <artifactId>core-some-context</artifactId>
+        |      <version>51.2.3</version>
+        |    </dependency>
+        |  </dependencies>
+        |</project>
+        |""".stripMargin.linesIterator.toSeq)
+    val expected =
+      """
+        |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO] --- check clone config / no shallow clone @ git ---
+        |[INFO]     ✅ NO shallow clone
+        |[INFO] --- .gitattributes @ git ---
+        |[INFO] --- .gitignore @ git ---
+        |[WARNING]  Found local changes 😬 RL1003-WIP
+        |[INFO] --- list-remotes @ git ---
+        |[WARNING]  NO remotes found 😬 RL1004-WIP
+        |[WARNING]  % git remote -v # returns nothing
+        |[INFO] --- -SNAPSHOTS in files @ maven ---
+        |[INFO]     ✅ NO SNAPSHOTS in other files found
+        |[INFO]     WIP
+        |[INFO] --- .mvn @ maven ---
+        |[INFO]     WIP
+        |[INFO] --- check for snapshots @ maven ---
+        |[INFO] --- check for GAV format @ maven ---
+        |[INFO]     ✅ all GAVs scopes looks fine
+        |[INFO] --- check for preview releases @ maven ---
+        |[INFO]     WIP
+        |[INFO] --- check major versions @ ishop ---
+        |[WARNING]     Found core 50, 51 😬 RL1013-WIP-592ca15f
+        |[INFO] --- suggest dependency updates / configurable @ maven ---
+        |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002-WIP
+        |[INFO]     RELEASE_NEXUS_WORK_URL=null # (no ip)
+        |I: checking dependecies against nexus - please wait
+        |
+        |I: checked 2 dependecies in 999ms (2000-01-01)
+        |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
+        |╠═╦═ com.novomind.ishop.core.other:other-context:50.2.3
+        |║ ╠═══ (50) 50.4.0
+        |║ ╚═══ (51) 51.0.0, 51.2.5
+        |╠═╦═ com.novomind.ishop.core.some:core-some-context:51.2.3
+        |║ ╚═══ 51.2.5
+        |║
+        |term: Term(dumb,lint,false,false)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -399,21 +503,23 @@ class LintTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
-        |[ERROR] exit 42 - because lint found warnings, see above ❌""".stripMargin
+        |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
-      Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org")
+      Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       val mockUpdates = Seq(
-        "1.0.0", "1.0.1", "1.0.2", "1.2.8", "1.2.9",
+        "51.0.0","51.2.5",
+        "50.4.0","50.2.3"
       )
       Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(mockUpdates)
-      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, fileB))
+      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, file))
     })
+
   }
 
   @Test
@@ -440,12 +546,6 @@ class LintTest extends AssertionsForJUnit {
         |</project>
         |""".stripMargin.linesIterator.toSeq)
     val notes = new File(file, "notes.md")
-    Util.write(notes,
-      """
-        |This is the documentation for 0.11-SNAPSHOT
-        |""".stripMargin.linesIterator.toSeq)
-    gitA.add(notes)
-    gitA.commitAll("some")
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
@@ -459,8 +559,7 @@ class LintTest extends AssertionsForJUnit {
         |[WARNING]  NO remotes found 😬 RL1004-WIP
         |[WARNING]  % git remote -v # returns nothing
         |[INFO] --- -SNAPSHOTS in files @ maven ---
-        |[warning]   found snapshot in: notes.md 😬
-        |              This is the documentation for 0.11-SNAPSHOT
+        |[INFO]     ✅ NO SNAPSHOTS in other files found
         |[INFO]     WIP
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
@@ -469,6 +568,8 @@ class LintTest extends AssertionsForJUnit {
         |[INFO]     ✅ all GAVs scopes looks fine
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
+        |[INFO] --- check major versions @ ishop ---
+        |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002-WIP
         |[INFO]     RELEASE_NEXUS_WORK_URL=null # (no ip)
@@ -486,7 +587,6 @@ class LintTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
-        |/tmp/junit-REPLACED/release-lint-mvn-simple/notes.md
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
@@ -498,7 +598,7 @@ class LintTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       val mockUpdates = Seq(
-        "1.0.0", "1.0.1", "1.0.2", "1.2.8", "1.2.9",
+        "1.0.1", "1.0.2", "1.2.8", "1.2.9",
         "2.0", "2.1.1", "2.5.5", "2.5.6",
       )
       Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
@@ -557,7 +657,7 @@ class LintTest extends AssertionsForJUnit {
         |[WARNING]  NO remotes found 😬 RL1004-WIP
         |[WARNING]  % git remote -v # returns nothing
         |[INFO] --- -SNAPSHOTS in files @ maven ---
-        |[warning]   found snapshot in: notes.md 😬
+        |[warning]   found snapshot in: notes.md 😬 RL1012-WIP-eb0e9fd8
         |              This is the documentation for 0.11-SNAPSHOT
         |[INFO]     WIP
         |[INFO] --- .mvn @ maven ---
@@ -570,6 +670,8 @@ class LintTest extends AssertionsForJUnit {
         |[INFO] known scopes are: compile, import, provided, runtime, system, test
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
+        |[INFO] --- check major versions @ ishop ---
+        |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002-WIP
         |[INFO]     RELEASE_NEXUS_WORK_URL=null # (no ip)
@@ -602,12 +704,17 @@ class LintTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
-      val mockUpdates = Seq(
-        "1.0.0", "1.0.1", "1.0.2", "1.2.8", "1.2.9",
-        "2.0", "2.1.1", "2.5.5", "2.5.6",
-      )
-      Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
-        .thenReturn(mockUpdates)
+
+      Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-other"), ArgumentMatchers.anyString()))
+        .thenReturn(Seq(
+          "1.0.1", "1.0.2", "1.2.8", "1.2.9",
+          "2.0", "2.1.1", "2.5.5", "2.5.6",
+        ))
+      Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-context"), ArgumentMatchers.anyString()))
+        .thenReturn(Seq(
+          "1.0.1", "1.0.2", "1.2.8", "1.2.9",
+          "2.0", "2.1.1", "2.5.5", "2.5.6",
+        ))
       System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, file))
     })
 
@@ -656,7 +763,7 @@ class LintTest extends AssertionsForJUnit {
         |[WARNING]  NO remotes found 😬 RL1004-WIP
         |[WARNING]  % git remote -v # returns nothing
         |[INFO] --- -SNAPSHOTS in files @ maven ---
-        |[warning]   found snapshot in: notes.md 😬
+        |[warning]   found snapshot in: notes.md 😬 RL1012-WIP-eb0e9fd8
         |              This is the documentation for 0.11-SNAPSHOT
         |[WARNING]     😬 No property replacement found in pom.xmls for: "${non-existing}" - define properties where they are required and not in parent pom.xml. Input is Nil.
         |[WARNING]     skipped because of previous problems - No property replacement found in pom.xmls for: "${non-existing}" - define properties where they are required and not in parent pom.xml. Input is Nil. 😬
