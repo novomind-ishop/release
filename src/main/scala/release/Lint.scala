@@ -20,8 +20,8 @@ object Lint {
   type UniqCode = String
   var codes = Set.empty[UniqCode]
 
-  private class CodeGen(code:String) {
-    def apply(dyn: Any = null):String = {
+  private class CodeGen(code: String) {
+    def apply(dyn: Any = null): String = {
       val suffix = if (dyn != ()) {
         "-" + Hashing.murmur3_32_fixed().hashString(dyn.toString, StandardCharsets.UTF_8)
       } else {
@@ -232,7 +232,12 @@ object Lint {
             out.println(info("--- check major versions @ ishop ---", color))
             val mrc = Release.coreMajorResultOf(pomMod, None)
             if (mrc.hasDifferentMajors) {
-              out.println(warn(s"    Found core ${mrc.sortedMajors.mkString(", ")} ${fiWarn} ${fiCodeCoreDiff.apply(mrc)}", color))
+              out.println(warn(s"    Found core ${mrc.sortedMajors.mkString(", ")} ${fiWarn} ${fiCodeCoreDiff.apply(mrc)}", color, limit = lineMax))
+              mrc.coreMajorVersions.foreach(dep => {
+                out.println(warn(s"      ${dep._2.gav().formatted} ${fiWarn} ${fiCodeCoreDiff.apply(dep)}", color, limit = lineMax))
+                warnExit.set(true)
+              })
+
             } else {
               out.println(info(s"    ${fiFine} no major version diff", color))
             }
