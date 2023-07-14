@@ -165,7 +165,7 @@ class LintTest extends AssertionsForJUnit {
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org # (no ip)
-        |[WARNING]  nexus work url must end with a '/' - https://repo.example.org 😬 RL1001-WIP
+        |[WARNING]  nexus work url must end with a '/' - https://repo.example.org 😬 RL1001
         |I: checking dependecies against nexus - please wait
         |
         |I: checked 1 dependecies in 999ms (2000-01-01)
@@ -221,10 +221,10 @@ class LintTest extends AssertionsForJUnit {
         |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(push))
         |[INFO] --- gitlabci.yml @ gitlab ---
         |[WARNING]    ci path: a
-        |[WARNING]    use .gitlab-ci.yml 😬 RL1005-WIP
+        |[WARNING]    use .gitlab-ci.yml 😬 RL1005
         |[WARNING]    CI_COMMIT_TAG : » u « is no valid tag name. This could lead to build
         |[WARNING]      problems later. A tag must match the pattern
-        |[WARNING]      » ^v[0-9]+\.[0-9]+\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ « 😬 RL1006-WIP
+        |[WARNING]      » ^v[0-9]+\.[0-9]+\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ « 😬 RL1006
         |[INFO] --- -SNAPSHOTS in files @ maven ---
         |[INFO]     ✅ NO SNAPSHOTS in other files found
         |
@@ -384,7 +384,7 @@ class LintTest extends AssertionsForJUnit {
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- check for snapshots @ maven ---
-        |[warning]   found snapshot: org.springframework:spring-vals:1.0.0-SNAPSHOT 😬 RL1011-WIP-e1588892
+        |[warning]   found snapshot: org.springframework:spring-vals:1.0.0-SNAPSHOT 😬 RL1011-e1588892
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
         |[INFO] --- check for preview releases @ maven ---
@@ -466,9 +466,9 @@ class LintTest extends AssertionsForJUnit {
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
         |[INFO] --- .gitignore @ git ---
-        |[WARNING]  Found local changes 😬 RL1003-WIP
+        |[WARNING]  Found local changes 😬 RL1003
         |[INFO] --- list-remotes @ git ---
-        |[WARNING]  NO remotes found 😬 RL1004-WIP
+        |[WARNING]  NO remotes found 😬 RL1004
         |[WARNING]  % git remote -v # returns nothing
         |[INFO] --- -SNAPSHOTS in files @ maven ---
         |[INFO]     ✅ NO SNAPSHOTS in other files found
@@ -481,11 +481,13 @@ class LintTest extends AssertionsForJUnit {
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
         |[INFO] --- check major versions @ ishop ---
-        |[WARNING]     Found core 50, 51 😬 RL1013-WIP-592ca15f
-        |[WARNING]       com.novomind.ishop.core.other:other-context:50.2.3 😬 RL1013-WIP-c92c543b
-        |[WARNING]       com.novomind.ishop.core.some:core-some-context:51.2.3 😬 RL1013-WIP-f510cf29
+        |[WARNING]     Found core 50, 51 😬 RL1013-592ca15f
+        |[WARNING]       - 50 -
+        |[WARNING]       com.novomind.ishop.core.other:other-context:50.2.3 😬 RL1013-c92c543b
+        |[WARNING]       - 51 -
+        |[WARNING]       com.novomind.ishop.core.some:core-some-context:51.2.3 😬 RL1013-f510cf29
         |[INFO] --- suggest dependency updates / configurable @ maven ---
-        |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002-WIP
+        |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002
         |[INFO]     RELEASE_NEXUS_WORK_URL=null # (no ip)
         |I: checking dependecies against nexus - please wait
         |
@@ -556,9 +558,9 @@ class LintTest extends AssertionsForJUnit {
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
         |[INFO] --- .gitignore @ git ---
-        |[WARNING]  Found local changes 😬 RL1003-WIP
+        |[WARNING]  Found local changes 😬 RL1003
         |[INFO] --- list-remotes @ git ---
-        |[WARNING]  NO remotes found 😬 RL1004-WIP
+        |[WARNING]  NO remotes found 😬 RL1004
         |[WARNING]  % git remote -v # returns nothing
         |[INFO] --- -SNAPSHOTS in files @ maven ---
         |[INFO]     ✅ NO SNAPSHOTS in other files found
@@ -573,7 +575,7 @@ class LintTest extends AssertionsForJUnit {
         |[INFO] --- check major versions @ ishop ---
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
-        |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002-WIP
+        |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002
         |[INFO]     RELEASE_NEXUS_WORK_URL=null # (no ip)
         |I: checking dependecies against nexus - please wait
         |
@@ -654,28 +656,28 @@ class LintTest extends AssertionsForJUnit {
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
         |[INFO] --- .gitignore @ git ---
-        |[WARNING]  Found local changes 😬 RL1003-WIP
+        |[WARNING]  Found local changes 😬 RL1003
         |[INFO] --- list-remotes @ git ---
-        |[WARNING]  NO remotes found 😬 RL1004-WIP
+        |[WARNING]  NO remotes found 😬 RL1004
         |[WARNING]  % git remote -v # returns nothing
         |[INFO] --- -SNAPSHOTS in files @ maven ---
-        |[warning]   found snapshot in: notes.md 😬 RL1012-WIP-eb0e9fd8
+        |[warning]   found snapshot in: notes.md 😬 RL1012-eb0e9fd8
         |              This is the documentation for 0.11-SNAPSHOT
         |[INFO]     WIP
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- check for snapshots @ maven ---
-        |[warning]   found snapshot: org.springframework:spring-context:1.0.1-SNAPSHOT 😬 RL1011-WIP-70cecda6
-        |[warning]   found snapshot: org.springframework:spring-other:1.0.0-SNAPSHOT:bert 😬 RL1011-WIP-6c4775df
+        |[warning]   found snapshot: org.springframework:spring-context:1.0.1-SNAPSHOT 😬 RL1011-70cecda6
+        |[warning]   found snapshot: org.springframework:spring-other:1.0.0-SNAPSHOT:bert 😬 RL1011-6c4775df
         |[INFO] --- check for GAV format @ maven ---
-        |[WARNING] org.springframework:spring-other:1.0.0-SNAPSHOT:bert uses unusual format, please repair 😬 RL1010-WIP-6c4775df
+        |[WARNING] org.springframework:spring-other:1.0.0-SNAPSHOT:bert uses unusual format, please repair 😬 RL1010-6c4775df
         |[INFO] known scopes are: compile, import, provided, runtime, system, test
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
         |[INFO] --- check major versions @ ishop ---
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
-        |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002-WIP
+        |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002
         |[INFO]     RELEASE_NEXUS_WORK_URL=null # (no ip)
         |I: checking dependecies against nexus - please wait
         |
@@ -689,7 +691,7 @@ class LintTest extends AssertionsForJUnit {
         |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6
         |║
         |term: Term(dumb,lint,false,false)
-        |[WARNING] org.springframework:spring-context:1.0.1-SNAPSHOT is already released, remove '-SNAPSHOT' suffix 😬 RL1009-WIP
+        |[WARNING] org.springframework:spring-context:1.0.1-SNAPSHOT is already released, remove '-SNAPSHOT' suffix 😬 RL1009
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -760,12 +762,12 @@ class LintTest extends AssertionsForJUnit {
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
         |[INFO] --- .gitignore @ git ---
-        |[WARNING]  Found local changes 😬 RL1003-WIP
+        |[WARNING]  Found local changes 😬 RL1003
         |[INFO] --- list-remotes @ git ---
-        |[WARNING]  NO remotes found 😬 RL1004-WIP
+        |[WARNING]  NO remotes found 😬 RL1004
         |[WARNING]  % git remote -v # returns nothing
         |[INFO] --- -SNAPSHOTS in files @ maven ---
-        |[warning]   found snapshot in: notes.md 😬 RL1012-WIP-eb0e9fd8
+        |[warning]   found snapshot in: notes.md 😬 RL1012-eb0e9fd8
         |              This is the documentation for 0.11-SNAPSHOT
         |[WARNING]     😬 No property replacement found in pom.xmls for: "${non-existing}" - define properties where they are required and not in parent pom.xml. Input is Nil.
         |[WARNING]     skipped because of previous problems - No property replacement found in pom.xmls for: "${non-existing}" - define properties where they are required and not in parent pom.xml. Input is Nil. 😬

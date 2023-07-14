@@ -4,6 +4,7 @@ import com.google.common.base.Stopwatch
 import com.google.common.hash.Hashing
 import com.google.common.io.{CharSink, CharSource}
 import com.google.googlejavaformat.java.Formatter
+import release.ProjectMod.Gav
 import release.Starter.{Opts, PreconditionsException, init}
 import release.Term._
 
@@ -32,7 +33,7 @@ object Lint {
   }
 
   def uniqCode(i: Int): PartialFunction[Any, UniqCode] = {
-    val result = s"RL$i-WIP"
+    val result = s"RL$i"
     if (codes.contains(result)) {
       throw new IllegalStateException(s"code ${result} already defined")
     } else {
@@ -234,11 +235,18 @@ object Lint {
             if (mrc.hasDifferentMajors) {
               warnExit.set(true)
               out.println(warn(s"    Found core ${mrc.sortedMajors.mkString(", ")} ${fiWarn} ${fiCodeCoreDiff.apply(mrc)}", color, limit = lineMax))
-              mrc.coreMajorVersions.map(_._2.gav())
-                .distinct
-                .foreach(gav => {
-                out.println(warn(s"      ${gav.formatted} ${fiWarn} ${fiCodeCoreDiff.apply(gav)}", color, limit = lineMax))
-              })
+              val versions = mrc.coreMajorVersions
+              val mrcGrouped: Map[String, Seq[Gav]] = versions.groupBy(_._1)
+                .map(e => (e._1, e._2.map(_._2.gav()).distinct))
+
+              mrcGrouped.toSeq
+                .sortBy(_._1.toIntOption)
+                .foreach(gavE => {
+                  out.println(warn(s"      - ${gavE._1} -", color, limit = lineMax))
+                  gavE._2.foreach(gav => {
+                    out.println(warn(s"      ${gav.formatted} ${fiWarn} ${fiCodeCoreDiff.apply(gav)}", color, limit = lineMax))
+                  })
+                })
 
             } else {
               out.println(info(s"    ${fiFine} no major version diff", color))
