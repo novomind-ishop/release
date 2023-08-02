@@ -53,7 +53,7 @@ object Lint {
   val fiCodeGitlabCiTagname = uniqCode(1006)(())
   val fiCodePomModPreconditionsException = uniqCode(1007)(())
   val fiCodePomModException = uniqCode(1008)(())
-  val fiCodeNexusFoundRelease = uniqCode(1009)(())
+  val fiCodeNexusFoundRelease = uniqCode(1009)
   val fiCodeUnusualGav = uniqCode(1010)
   val fiCodeSnapshotGav = uniqCode(1011)
   val fiCodeSnapshotText = uniqCode(1012)
@@ -181,8 +181,11 @@ object Lint {
 
         val snapshotsInFiles = PomChecker.getSnapshotsInFiles(sgit.lsFilesAbsolute().map(_.getAbsolutePath))
         if (snapshotsInFiles.nonEmpty) {
-          snapshotsInFiles.foreach(f => {
-            out.println(warnSoft("  found snapshot in: " + file.toPath.relativize(f._3.normalize()) +
+          val relFiles: Seq[(Int, String, Path)] = snapshotsInFiles
+            .map(t => (t._1, t._2, file.toPath.relativize(t._3.normalize())))
+          out.println(warnSoft(s"  found snapshots: ${fiWarn} ${fiCodeSnapshotText(relFiles)}", color, limit = lineMax))
+          relFiles.foreach(f => {
+            out.println(warnSoft("  found snapshot in: " + f._3 +
               s" ${fiWarn} ${fiCodeSnapshotText((f._2, f._3.getFileName))}\n" +
               "              " + f._2, color, limit = lineMax))
           })
@@ -275,7 +278,7 @@ object Lint {
                 val releasesFound = releaseOfSnapshotPresent.filter(_._2)
                 if (releasesFound.nonEmpty) {
                   releasesFound.map(_._1).foreach(found => {
-                    out.println(warn(s"${found.formatted} is already released, remove '-SNAPSHOT' suffix ${fiWarn} ${fiCodeNexusFoundRelease}", color, limit = lineMax))
+                    out.println(warn(s"${found.formatted} is already released, remove '-SNAPSHOT' suffix ${fiWarn} ${fiCodeNexusFoundRelease(found)}", color, limit = lineMax))
                   })
                   warnExit.set(true)
                 }

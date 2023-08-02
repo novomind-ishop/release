@@ -661,6 +661,7 @@ class LintTest extends AssertionsForJUnit {
         |[WARNING]  NO remotes found 😬 RL1004
         |[WARNING]  % git remote -v # returns nothing
         |[INFO] --- -SNAPSHOTS in files @ maven ---
+        |[warning]   found snapshots: 😬 RL1012-63bb7557
         |[warning]   found snapshot in: notes.md 😬 RL1012-eb0e9fd8
         |              This is the documentation for 0.11-SNAPSHOT
         |[INFO]     WIP
@@ -691,7 +692,7 @@ class LintTest extends AssertionsForJUnit {
         |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6
         |║
         |term: Term(dumb,lint,false,false)
-        |[WARNING] org.springframework:spring-context:1.0.1-SNAPSHOT is already released, remove '-SNAPSHOT' suffix 😬 RL1009
+        |[WARNING] org.springframework:spring-context:1.0.1-SNAPSHOT is already released, remove '-SNAPSHOT' suffix 😬 RL1009-70cecda6
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -767,6 +768,7 @@ class LintTest extends AssertionsForJUnit {
         |[WARNING]  NO remotes found 😬 RL1004
         |[WARNING]  % git remote -v # returns nothing
         |[INFO] --- -SNAPSHOTS in files @ maven ---
+        |[warning]   found snapshots: 😬 RL1012-63bb7557
         |[warning]   found snapshot in: notes.md 😬 RL1012-eb0e9fd8
         |              This is the documentation for 0.11-SNAPSHOT
         |[WARNING]     😬 No property replacement found in pom.xmls for: "${non-existing}" - define properties where they are required and not in parent pom.xml. Input is Nil.
