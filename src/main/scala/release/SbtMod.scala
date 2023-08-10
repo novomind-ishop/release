@@ -198,12 +198,12 @@ object SbtMod {
             case lv if lv.get.startsWith("3") => Seq(ProjectMod.Dep(SelfRef.undef,
               groupId = "org.scala-lang",
               artifactId = "scala3-library_3",
-              version = lv.get,
+              version = Some(lv.get),
               "", "", "", ""))
             case lv => Seq(ProjectMod.Dep(SelfRef.undef,
               groupId = "org.scala-lang",
               artifactId = "scala-library",
-              version = lv.get,
+              version = Some(lv.get),
               "", "", "", ""))
           }
 
@@ -212,7 +212,7 @@ object SbtMod {
             case lv => Seq(ProjectMod.Dep(SelfRef.undef,
               groupId = "org.scala-sbt",
               artifactId = "sbt",
-              version = lv.get,
+              version = Some(lv.get),
               "", "", "", ""))
           }
           val allVals: Map[String, String] = vp.collect({ case o: ValDef => o })
@@ -257,7 +257,7 @@ object SbtMod {
             .map(d => ProjectMod.Dep(SelfRef.undef,
               groupId = eval(allVals)(d.groupId),
               artifactId = eval(allVals)(d.artifactId),
-              version = eval(allVals)(d.version),
+              version = Some(eval(allVals)(d.version)),
               "", "", "", ""))
           sbt ++ scala ++ result
         }

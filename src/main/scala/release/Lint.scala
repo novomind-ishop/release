@@ -209,7 +209,7 @@ object Lint {
             out.println(info("--- check for snapshots @ maven ---", color))
             val snaps = pomMod.listGavsForCheck()
               .filter(dep => ProjectMod.isUnwanted(dep.gav().simpleGav()))
-              .filter(_.version.endsWith("-SNAPSHOT"))
+              .filter(_.version.get.endsWith("-SNAPSHOT"))
             snaps
               .foreach(dep => {
                 out.println(warnSoft("  found snapshot: " + dep.gav().formatted + s" ${fiWarn} ${fiCodeSnapshotGav.apply(dep.gav())}", color, limit = lineMax))
@@ -228,7 +228,7 @@ object Lint {
             out.println(info("--- check for preview releases @ maven ---", color))
             pomMod.listGavsForCheck()
               .filter(dep => ProjectMod.isUnwanted(dep.gav().simpleGav()))
-              .filterNot(_.version.endsWith("-SNAPSHOT"))
+              .filterNot(_.version.get.endsWith("-SNAPSHOT"))
               .foreach(dep => {
                 out.println(warnSoft("  found preview: " + dep.gav().formatted + s" ${fiWarn}", color, limit = lineMax))
               })
@@ -273,7 +273,7 @@ object Lint {
               val updateResult = pomMod.showDependencyUpdates(120, Term.select("dumb", "lint", opts.simpleChars, isInteractice = false), opts.depUpOpts,
                 new Sys(null, out, err), printProgress = false)
               val snapUpdates = updateResult.filter(e => snaps.map(_.gav()).contains(e._1.gav))
-              val releaseOfSnapshotPresent = snapUpdates.map(e => (e._1.gav, e._2._1.contains(e._1.gav.version.replaceFirst("-SNAPSHOT", ""))))
+              val releaseOfSnapshotPresent = snapUpdates.map(e => (e._1.gav, e._2._1.contains(e._1.gav.version.get.replaceFirst("-SNAPSHOT", ""))))
               if (releaseOfSnapshotPresent.nonEmpty) {
                 val releasesFound = releaseOfSnapshotPresent.filter(_._2)
                 if (releasesFound.nonEmpty) {
@@ -290,7 +290,7 @@ object Lint {
                 warnExit.set(true)
               }
               case pce: Exception => {
-                out.println(error(pce.getMessage + s"${fiWarn} ${fiCodePomModException}", color, limit = lineMax))
+                out.println(error(pce.getMessage + s" ${fiWarn} ${fiCodePomModException}", color, limit = lineMax))
                 failExit.set(true)
               }
             }

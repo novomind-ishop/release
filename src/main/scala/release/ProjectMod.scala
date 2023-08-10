@@ -2,7 +2,7 @@ package release
 
 import com.google.common.base.Stopwatch
 import com.typesafe.scalalogging.LazyLogging
-import release.PomMod.{abbreviate, selectFirstVersionFrom, selfDep, unmanged}
+import release.PomMod.{abbreviate, selectFirstVersionFrom, selfDep, unmanaged}
 import release.ProjectMod.{Dep, Gav3, PluginDep}
 import release.Starter.{Opts, OptsDepUp, PreconditionsException}
 
@@ -20,10 +20,10 @@ object ProjectMod extends LazyLogging {
         (gavAndVersion._1, (Nil, gavAndVersion._2._2)) // TODO remove this, because it is invalid
       } else {
         (gavAndVersion._1, {
-          val current = Version.parseSloppy(gavAndVersion._1.version)
+          val current = Version.parseSloppy(gavAndVersion._1.version.get)
           (versionLiterals
             .filter(v => Version.ordering.gteq(v, current))
-            .filter(_.orginal != gavAndVersion._1.version)
+            .filter(_.orginal != gavAndVersion._1.version.get)
             .map(_.orginal), gavAndVersion._2._2)
         })
       }
@@ -82,7 +82,7 @@ object ProjectMod extends LazyLogging {
 
   def relocateGavs(gavs: Seq[Gav3], repo: Repo)(gav: Gav3): Seq[Gav3] = {
     // TODO plugins.sbt - name ?
-    val maybeGav = repo.getRelocationOf(gav.groupId, gav.artifactId, gav.version)
+    val maybeGav = repo.getRelocationOf(gav.groupId, gav.artifactId, gav.version.get)
     if (maybeGav.isDefined) {
       // TODO handle remote relocation
       Seq(gav)
@@ -94,7 +94,7 @@ object ProjectMod extends LazyLogging {
         (gavk.artifactId == sArtifactId || gavk.artifactId == s3ArtifactId))
       if (sFind.isDefined) {
         val scalaLib = sFind.get
-        val scalaMinor = scalaLib.version match {
+        val scalaMinor = scalaLib.version.get match {
           case o if o.startsWith("3") => o.replaceFirst("\\.[0-9]+\\.[0-9]+$", "")
           case o => o.replaceFirst("\\.[0-9]+$", "")
         }
@@ -104,7 +104,7 @@ object ProjectMod extends LazyLogging {
           Seq(gav, gav.copy(artifactId = newA)).distinct
         } else {
           if (gav.artifactId == sArtifactId && gav.groupId == sGroupId) {
-            Seq(gav, gav.copy(artifactId = s3ArtifactId, version = "-1"))
+            Seq(gav, gav.copy(artifactId = s3ArtifactId, version = Some("-1")))
           } else {
             Seq(gav)
           }
@@ -117,7 +117,7 @@ object ProjectMod extends LazyLogging {
   }
 
   def isUnwanted(gav: Gav3): Boolean = {
-    isUnwantedLiteral(gav.version)
+    isUnwantedLiteral(gav.version.get)
   }
 
   def isUnwantedLiteral(versionLiteral: String): Boolean = {
@@ -170,8 +170,8 @@ object ProjectMod extends LazyLogging {
     val out: Seq[String] = inVersions
       .filterNot(isUnwantedLiteral)
 
-    val result = if (inVersions.contains(gav.version)) {
-      (Seq(gav.version) ++ out).distinct
+    val result = if (inVersions.contains(gav.version.get)) {
+      (Seq(gav.version.get) ++ out).distinct
     } else {
       out
     }
@@ -181,62 +181,84 @@ object ProjectMod extends LazyLogging {
     result
   }
 
-  case class Dep(pomRef: SelfRef, groupId: String, artifactId: String, version: String, typeN: String,
+  case class Dep(pomRef: SelfRef, groupId: String, artifactId: String, version: Option[String], typeN: String,
                  scope: String, packaging: String, classifier: String) {
-    val gavWithDetailsFormatted: String = Gav.format(Seq(groupId, artifactId, version, typeN, scope, packaging, classifier))
+    val gavWithDetailsFormatted: String = Gav.format(Seq(groupId, artifactId, version.getOrElse(""), typeN, scope, packaging, classifier))
 
     def gav() = Gav(groupId, artifactId, version, packaging, classifier, scope)
   }
 
   case class PluginExec(id: String, goals: Seq[String], phase: String, config: Map[String, String])
 
-  case class PluginDep(pomRef: SelfRef, groupId: String, artifactId: String, version: String, execs: Seq[PluginExec], pomPath: Seq[String]) {
+  case class PluginDep(pomRef: SelfRef, groupId: String, artifactId: String, version: Option[String], execs: Seq[PluginExec], pomPath: Seq[String]) {
 
     def fakeDep() = Dep(pomRef, groupId, artifactId, version, "", "", "", "")
 
     def simpleGav() = Gav3(groupId, artifactId, version)
   }
 
-  case class Gav3(groupId: String, artifactId: String, version: String) {
+  object Gav3 {
+    def opt(groupId: Option[String], artifactId: Option[String], version: Option[String]): Gav3 = {
+      Gav3(groupId.getOrElse(""), artifactId.getOrElse(""), version) // XXX blank feels strange
+    }
+  }
+
+  case class Gav3(groupId: String, artifactId: String, version: Option[String]) {
     def toDep(pomRef: SelfRef): Dep = Dep(pomRef, groupId, artifactId, version, "", "", "", "")
 
-    def formatted: String = Gav.format(Seq(groupId, artifactId, version))
+    def formatted: String = Gav.format(Seq(groupId, artifactId, version.getOrElse("")))
 
     def slashedMeta: String = (groupId + '/' + artifactId).replace('.', '/') + "/maven-metadata.xml"
   }
 
-  case class Gav(groupId: String, artifactId: String, version: String, packageing: String = "", classifier: String = "", scope: String = "") {
-    def formatted: String = Gav.format(Seq(groupId, artifactId, version, packageing, classifier, scope))
+  case class Gav(groupId: String, artifactId: String, version: Option[String], packageing: String = "", classifier: String = "", scope: String = "") {
+    def formatted: String = Gav.format(Seq(groupId, artifactId, version.getOrElse(""), packageing, classifier, scope))
 
     def simpleGav() = Gav3(groupId, artifactId, version)
 
     def feelsUnusual(): Boolean = {
-      Gav.isUnusual(groupId) || Gav.isUnusual(artifactId) || Gav.isUnusual(version) ||
-        Gav.isUnusual(packageing) || Gav.isUnusual(classifier) || Gav.isUnknownScope(scope)
+      Gav.isUnusualElementValue(groupId) || Gav.isUnusualElementValue(artifactId) || (version.isDefined && Gav.isUnusualElementValue(version.get)) ||
+        Gav.isUnusualElementValue(packageing) || Gav.isUnusualElementValue(classifier) || Gav.isUnknownScope(scope)
     }
+
+    def isEmpty(): Boolean = this == Gav.empty
 
   }
 
   object Gav {
     def format(parts: Seq[String]): String = parts.mkString(":").replaceAll("[:]{2,}", ":").replaceFirst(":$", "")
 
-    val empty = Gav(groupId = "", artifactId = "", version = "")
+    val empty = Gav(groupId = "", artifactId = "", version = None)
 
-    def isUnusual(in: String): Boolean = {
+    def isUnusualElementValue(in: String): Boolean = {
       val repl = in.replaceFirst("^[^\\p{Alpha}^\\p{Digit}]", "")
         .replaceFirst("[^\\p{Alpha}^\\p{Digit}]$", "")
       repl != in
     }
 
     def isUnknownScope(in: String): Boolean = {
-      isUnusual(in) || !knownScopes.contains(in)
+      isUnusualElementValue(in) || !knownScopes.contains(in)
     }
   }
 
-  case class SelfRef(id: String)
+  case class SelfRef(id: String, gav3: Gav3) {
+    override def toString: String = s"SelfRef(${gav3.toString})"
+  }
 
   object SelfRef {
-    val undef = SelfRef("X")
+    val extensions = SelfRef(".mvn/extensions.xml", Gav3("maven", "extension", None))
+    val undef = SelfRef("X", Gav3("X", "X", None))
+
+    def ofGav3(gav3: Gav3): SelfRef = SelfRef(gav3.formatted, gav3)
+
+    @Deprecated
+    def parse(id: String): SelfRef = {
+      val splited = id.split(":").toSeq
+      if (splited.size < 3) {
+        throw new IllegalStateException(s"not valid id for ref splitting ${id}")
+      }
+      SelfRef(id, Gav3(splited.head, splited(1), Some(splited(2))))
+    }
   }
 
   case class Version(pre: String, major: Int, minor: Int, patch: Int, low: String, orginal: String) {
@@ -311,10 +333,12 @@ object ProjectMod extends LazyLogging {
     private[release] val number3 = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)(.*)".r
 
     def ordering1 = Ordering.by[Version, (Int, Int, Int)](e => (e.major, e.minor, e.patch))
+
     def ordering2: Ordering[Version] = Ordering.by[Version, (String, String)](e => (e.low, e.pre)).reverse
+
     def ordering3: Ordering[Version] = ordering1.orElse(ordering2)
 
-    implicit def ordering: Ordering[Version] =ordering3
+    implicit def ordering: Ordering[Version] = ordering3
 
     val undef: Version = Version("n/a", -1, -1, -1, "", "")
 
@@ -389,24 +413,24 @@ object ProjectMod extends LazyLogging {
       .map(dep => (dep, {
         statusLine.start()
         val newerVersions = if (depUpOpts.filter.isDefined && !depUpOpts.filter.get.matches(dep.formatted)) {
-          repo.newerVersionsOf(dep.groupId, dep.artifactId, dep.version).headOption.toSeq
+          repo.newerVersionsOf(dep.groupId, dep.artifactId, dep.version.get).headOption.toSeq
         } else {
-          repo.newerVersionsOf(dep.groupId, dep.artifactId, dep.version)
+          repo.newerVersionsOf(dep.groupId, dep.artifactId, dep.version.get)
         }
 
-        val selectedVersions = if (depUpOpts.filter.isDefined) {
-          newerVersions.map(v => dep.copy(version = v))
+        val selectedVersions: Seq[String] = if (depUpOpts.filter.isDefined) {
+          newerVersions.map(v => dep.copy(version = Some(v)))
             .filter(gav => depUpOpts.filter.get.matches(gav.formatted))
-            .map(_.version)
+            .map(_.version.get)
         } else if (depUpOpts.hideStageVersions) {
           ProjectMod.normalizeUnwantedVersions(dep, newerVersions)
         } else {
           newerVersions
         }
         val d = if (depUpOpts.showLibYears && selectedVersions.nonEmpty) {
-          val latest = selectedVersions.last // TODO version sort
-          if (dep != dep.copy(version = latest)) {
-            val currentDate = repo.depDate(dep.groupId, dep.artifactId, dep.version)
+          val latest: String = selectedVersions.last // TODO version sort
+          if (dep != dep.copy(version = Some(latest))) {
+            val currentDate = repo.depDate(dep.groupId, dep.artifactId, dep.version.get)
             val latestDate = repo.depDate(dep.groupId, dep.artifactId, latest)
             if (currentDate.isDefined && latestDate.isDefined) {
               logger.trace(s"libyear - ${dep.groupId}:${dep.artifactId}:(${dep.version},${selectedVersions.last}) => ${currentDate.get} to ${latestDate.get}")
@@ -447,7 +471,7 @@ object ProjectMod extends LazyLogging {
 
     val selfSimple = selfDepsMod.map(_.gav().simpleGav()).distinct
     val relevant: Seq[Dep] = rootDeps
-      .filterNot(_.version == "")
+      .filterNot(_.version.get == "")
       .filterNot(in => selfSimple.contains(in.gav().simpleGav()))
 
     val relevantGav = relevant
@@ -455,7 +479,7 @@ object ProjectMod extends LazyLogging {
       .distinct
 
     val emptyVersions = rootDeps
-      .filter(_.version == "")
+      .filter(_.version.get == "")
       .map(_.gav())
       .distinct
 
@@ -557,7 +581,7 @@ object ProjectMod extends LazyLogging {
     }
 
     {
-      val unmangedVersions = unmanged(emptyVersions, relevantGav)
+      val unmangedVersions = unmanaged(emptyVersions, relevantGav)
       if (unmangedVersions != Nil) {
         sys.err.println("Empty or managed versions found:")
         unmangedVersions.map(_.simpleGav()).foreach(sys.err.println)
@@ -632,12 +656,13 @@ trait ProjectMod extends LazyLogging {
   }
 
   private[release] def listDeps(): Seq[ProjectMod.Dep] = {
-    (PomMod.replacedVersionProperties(listProperties, skipPropertyReplacement)(listDependencies) ++
-      listPluginDependencies.map(_.fakeDep()))
+    val fromDeps = PomMod.replacedVersionProperties(listProperties, skipPropertyReplacement)(listDependencies)
+    val fromPlugins = listPluginDependencies.map(_.fakeDep())
       .map(in => in.groupId match {
         case "" => in.copy(groupId = "org.apache.maven.plugins")
         case _ => in
       })
+    (fromDeps ++ fromPlugins).filterNot(d => d.gav().isEmpty())
   }
 
   private[release] def listGavs(): Seq[ProjectMod.Gav] = {
@@ -647,7 +672,7 @@ trait ProjectMod extends LazyLogging {
   private[release] def listGavsForCheck(): Seq[Dep] = {
     val selfGavs = selfDepsMod.map(_.gav())
     listDeps()
-      .filterNot(_.version == "") // managed plugins are okay
+      .filterNot(_.version == None) // managed plugins are okay
       .filterNot(dep => selfGavs.contains(dep.gav()))
       .distinctBy(_.gav().simpleGav())
   }
@@ -659,7 +684,7 @@ trait ProjectMod extends LazyLogging {
   def isShop: Boolean
 
   def selfDepsModGavs(): Seq[Gav3] = {
-    selfDepsMod.map(_.gav().simpleGav().copy(version = "")).distinct
+    selfDepsMod.map(_.gav().simpleGav().copy(version = None)).distinct
   }
 
   val selfDepsMod: Seq[Dep]

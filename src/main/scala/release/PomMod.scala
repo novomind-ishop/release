@@ -82,10 +82,10 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
   private val rootPomGav: Seq[Gav] = selfDepsMod.map(_.gav().copy(packageing = "")).distinct
 
   val selfVersion: String = {
-    val v = listSelf.map(_.version).distinct
+    val v = listSelf.map(_.version.get).distinct
 
     Util.only(v, {
-      val selection: String = listSelf.groupBy(_.version) match {
+      val selection: String = listSelf.groupBy(_.version.get) match {
         case grouped: Map[String, Seq[Dep]] if grouped.keySet.size == 2 => {
 
           val sizeMap: Map[String, Int] = grouped.map(entry => (entry._1, entry._2.size))
@@ -114,7 +114,7 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
 
     def skip(key: String)(p: (String, String)) = p.copy(_2 = p._2.replace(key, "skip"))
 
-    val allProps = (result ++ Map("project.version" -> selfVersion))
+    val allProps = (result ++ Map("project.version" -> selfVersion.get))
       .map(skip("${project.basedir}"))
       .map(skip("${project.build.finalName}"))
       .map(skip("${project.build.directory}"))
@@ -128,8 +128,10 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
 
   val listRawDeps: Seq[Dep] = allPomsDocs.flatMap(deps)
   val listDependencies: Seq[Dep] = {
-    replacedVersionProperties(listProperties, skipPropertyReplacement)(listRawDeps).distinct // TODO distinct?
+    val oo = replacedVersionProperties(listProperties, skipPropertyReplacement)(listRawDeps).distinct // TODO distinct?
+    oo
   }
+
   if (opts.checkOverlapping) {
     PomChecker.checkDepScopes(listDependencies, listRawDeps)
     PomChecker.checkDepVersions(listDependencies, listRawDeps)
@@ -190,7 +192,7 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
     val node = Util.only(depSeq.map(_._3).distinct, "only a single instance is possible")
     val groupId = deps.getOrElse("groupId", "")
     val artifactId = deps.getOrElse("artifactId", "")
-    val version = deps.getOrElse("version", "")
+    val version = deps.get("version")
 
     val execNodes = Xpath.nodeElements(node, "executions/execution")
     val execs = execNodes.map(in => {
@@ -202,7 +204,7 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
       PluginExec(id, goals, phase, configNodes)
     })
 
-    replacedVersionProperty(PluginDep(SelfRef(id), groupId, artifactId, version, execs, nodePath(node)))
+    replacedVersionProperty(PluginDep(SelfRef.parse(id), groupId, artifactId, version, execs, nodePath(node)))
   }
 
   private def mavenDependencyPluginConfigsByGoal(goalname: String): Seq[(String, String)] = {
@@ -249,7 +251,7 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
       val parentVersion = Xpath.toSeq(d, PomMod.xPathToProjectParentVersion).map(_.getTextContent)
       val projectVersion = Xpath.toSeq(d, PomMod.xPathToProjectVersion).map(_.getTextContent)
 
-      parentVersion ++ projectVersion ++ listSelf.map(_.version)
+      parentVersion ++ projectVersion ++ listSelf.map(_.version.get)
     }).distinct
     Util.only(out, "only one Version is allowed")
   }
@@ -288,7 +290,7 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
       }
     })
     selfDepsMod.foreach(entry => {
-      changeDepTreesGA(entry.groupId, entry.artifactId, entry.version, _ => "com.novomind.ishop.shops." + newValue, replaceInArtifactId)
+      changeDepTreesGA(entry.groupId, entry.artifactId, entry.version.get, _ => "com.novomind.ishop.shops." + newValue, replaceInArtifactId)
     })
   }
 
@@ -328,7 +330,7 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
       }
     })
     selfDepsMod.foreach(entry => {
-      changeDepTreesVersion(entry.groupId, entry.artifactId, entry.version, newVersion)
+      changeDepTreesVersion(entry.groupId, entry.artifactId, entry.version.get, newVersion)
     })
 
   }
@@ -383,7 +385,9 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
     filtered.map(_.groupId).contains("com.novomind.ishop.shops")
   }
 
-  private def replacedVersionProperty(dep: PluginDep) = dep.copy(version = replacedPropertyOf(listProperties, skipPropertyReplacement)(dep.version))
+  private def replacedVersionProperty(dep: PluginDep):PluginDep = {
+    dep.copy(version = dep.version.map(replacedPropertyOf(listProperties, skipPropertyReplacement)))
+  }
 
   def listSnapshotDependenciesDistinct: Seq[Dep] = {
     Util.distinctOn[Dep, Dep](listSnapshotDependencies, _.copy(pomRef = SelfRef.undef))
@@ -401,14 +405,14 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
     })
 
     val replacedParams = replacedVersionProperties(listProperties, skipPropertyReplacement)(filteredDeps)
-    val onlySnapshots = replacedParams.filter(_.version.contains("SNAPSHOT"))
+    val onlySnapshots = replacedParams.filter(_.version.getOrElse("").contains("SNAPSHOT"))
     onlySnapshots
   }
 
   private def deps(document: Document): Seq[Dep] = {
     val self: Dep = PomMod.selfDep(depU)(document)
     val xmlNodes = Xpath.toSeqTuples(document, xPathToDependecies)
-    PomMod.parentDep(depU)(self, document) +: xmlNodes.filter(_.nonEmpty).map(PomMod.depFrom(self.pomRef.id, depU))
+    PomMod.parentDep(depU)(self, document) +: xmlNodes.filter(_.nonEmpty).map(PomMod.depFrom(self.pomRef.gav3, depU))
   }
 
   private def checkCurrentVersion(current: Option[String]): Unit = {
@@ -475,7 +479,7 @@ object PomMod {
     def r(k: String) = replacedPropertyOf(listProperties, skipPropertyReplacement)(k)
 
     deps.map(dep => dep.copy(
-      version = r(dep.version),
+      version = dep.version.map(r),
       packaging = r(dep.packaging),
       typeN = r(dep.typeN),
       scope = r(dep.scope))
@@ -495,8 +499,8 @@ object PomMod {
         val groupId = Xpath.nodeElementValue(node, "groupId")
         val artifactId = Xpath.nodeElementValue(node, "artifactId")
         val version = Xpath.nodeElementValue(node, "version")
-        PluginDep(SelfRef(".mvn/extensions.xml"),
-          groupId.get, artifactId.get, version.get, Nil, Nil)
+        PluginDep(SelfRef.extensions,
+          groupId.get, artifactId.get, Some(version.get), Nil, Nil)
       })
     } catch {
       case e: Exception => {
@@ -568,25 +572,26 @@ object PomMod {
     }
   }
 
-  def unmanged(emptyVersions: Seq[Gav], relevantGavs: Seq[Gav]): Seq[Gav] = {
-    if (emptyVersions.filterNot(_.version.isEmpty) != Nil) {
-      throw new IllegalArgumentException("invalid empty versions")
+  def unmanaged(emptyVersions: Seq[Gav], relevantGavs: Seq[Gav]): Seq[Gav] = {
+    val value = emptyVersions.filterNot(_.version.isEmpty)
+    if (value != Nil) {
+      throw new IllegalArgumentException("invalid empty versions:\n" + value.map(_.formatted).mkString("\n"))
     } else {
       emptyVersions
         .filterNot(_ == Gav.empty) // e.g. poms with no parent
         // TODO scope erasure might be problematic
-        .filterNot(gav => relevantGavs.exists(rGav => rGav.copy(version = "", scope = "") == gav.copy(scope = "")))
+        .filterNot(gav => relevantGavs.exists(rGav => rGav.copy(version = None, scope = "") == gav.copy(scope = "")))
     }
   }
 
   def rootPom(file: File) = new File(file, "pom.xml")
 
-  private def depFrom(id: String, dfn: Map[Dep, Node] => Unit)(depSeq: Seq[(String, String, Node)]): Dep = {
+  private def depFrom(id: Gav3, dfn: Map[Dep, Node] => Unit)(depSeq: Seq[(String, String, Node)]): Dep = {
     val deps = Xpath.toMapOf(depSeq)
-    val dep = Dep(pomRef = SelfRef(id),
+    val dep = Dep(pomRef = SelfRef.ofGav3(id),
       groupId = deps.getOrElse("groupId", ""),
       artifactId = deps.getOrElse("artifactId", ""),
-      version = deps.getOrElse("version", ""),
+      version = deps.get("version"),
       typeN = deps.getOrElse("type", ""),
       scope = deps.getOrElse("scope", ""),
       packaging = deps.getOrElse("packaging", ""),
@@ -637,14 +642,13 @@ object PomMod {
 
   private[release] def selfDep(dfn: Map[Dep, Node] => Unit)(document: Document): Dep = {
     val parentGroupid = Xpath.onlyString(document, PomMod.xPathToProjectParentGroupId)
-    val groupid = Xpath.onlyString(document, PomMod.xPathToProjectGroupId)
+    val groupId = Xpath.onlyString(document, PomMod.xPathToProjectGroupId)
     val artifactId = Xpath.onlyString(document, PomMod.xPathToProjectArtifactId)
     val packaging = Xpath.onlyString(document, PomMod.xPathToProjectPackaging)
     val parentVersion = Xpath.onlyString(document, PomMod.xPathToProjectParentVersion)
     val version = Xpath.onlyString(document, PomMod.xPathToProjectVersion)
-    val id = Seq(groupid, artifactId, version).flatten.mkString(":")
-    depFrom(id, dfn)(Map(
-      "groupId" -> groupid.orElse(parentGroupid).getOrElse(""),
+    depFrom(Gav3.opt(groupId.orElse(parentGroupid), artifactId, version.orElse(parentVersion)), dfn)(Map(
+      "groupId" -> groupId.orElse(parentGroupid).getOrElse(""),
       "artifactId" -> artifactId.getOrElse(""),
       "packaging" -> packaging.getOrElse(""),
       "version" -> version.orElse(parentVersion).getOrElse("")).toSeq.map(t => (t._1, t._2, null)))
@@ -655,12 +659,18 @@ object PomMod {
     val artifactId = Xpath.onlyString(document, PomMod.xPathToProjectParentArtifactId)
     val packaging = Xpath.onlyString(document, PomMod.xPathToProjectParentPackaging)
     val parentVersion = Xpath.onlyString(document, PomMod.xPathToProjectParentVersion)
-    val id = Seq(dep.groupId, dep.artifactId, dep.version).mkString(":")
-    depFrom(id, dfn)(Map(
+    val vT = if (parentVersion.isDefined) {
+      Map("version" -> parentVersion.get)
+    } else {
+      Map.empty
+    }
+    val pDep = depFrom(Gav3(dep.groupId, dep.artifactId, dep.version), dfn)((Map(
       "groupId" -> groupid.getOrElse(""),
       "artifactId" -> artifactId.getOrElse(""),
       "packaging" -> packaging.getOrElse(""),
-      "version" -> parentVersion.getOrElse("")).toSeq.map(t => (t._1, t._2, null)))
+      ) ++ vT).toSeq
+      .map(t => (t._1, t._2, null)))
+    pDep
   }
 
   def replaceProperty(props: Map[String, String], sloppy: Boolean = false)(input: String): String = {

@@ -325,11 +325,11 @@ object Starter extends LazyLogging {
       .filterNot(_.scope == "test")
       .map(_.simpleGav())
       .sortBy(_.toString).distinct.map(g => {
-      g.copy(groupId = rep(g.groupId), artifactId = rep(g.artifactId), version = rep(g.version))
+      g.copy(groupId = rep(g.groupId), artifactId = rep(g.artifactId), version = g.version.map(rep))
     })
-    val blankVersions = all.filter(_.version.blank())
-    val noBlankVersions = all.filterNot(_.version.blank()).map(_.copy(version = ""))
-    val remove = blankVersions.filter(bg => noBlankVersions.contains(bg.copy(version = "")))
+    val blankVersions = all.filter(e => e.version.isDefined && e.version.get.blank())
+    val noBlankVersions = all.filterNot(e => e.version.isDefined && e.version.get.blank()).map(_.copy(version = None))
+    val remove = blankVersions.filter(bg => noBlankVersions.contains(bg.copy(version = None)))
     all.filterNot(g => remove.contains(g)).filterNot(x => self.contains(x))
   }
 
@@ -439,7 +439,8 @@ object Starter extends LazyLogging {
       out.println("shopGASet newGroupIdAndArtifactId    => changes GroupId and ArtifactId exclusively for Shops")
       out.println("nothing-but-create-feature-branch    => creates a feature branch and changes pom.xmls")
       out.println("apidiff                              => compares two versions of this repo")
-      out.println("lint                                 => check project for release problems (read-only)")
+      out.println("lint                                 => check project for release problems (read-only),")
+      out.println("                                        reads environment variables CI_COMMIT_REF_NAME and CI_COMMIT_TAG")
       out.println("showSelf                             => a list of groupId:artifactId of current project")
       out.println("suggest-docker-tag                   => use with '--no-interactive', reads environment variables")
       out.println("                                        CI_COMMIT_REF_NAME and CI_COMMIT_TAG")

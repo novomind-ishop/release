@@ -15,11 +15,24 @@ import scala.collection.parallel.CollectionConverters._
 
 object Release extends LazyLogging {
 
+  def findDiff(releaseMajorVersion: String, coreVersions: Seq[(String, Dep)]) = {
+    val coreMajorVersions: Seq[(String, Dep)] = coreVersions
+      .map(in => (in._1.replaceAll("\\..*", "").replaceAll("\\D+", "").trim, in._2))
+      .distinct
+      .filter(_._1.nonEmpty)
+      .sortBy(_._1)
+
+    val value = coreMajorVersions.map(_._1).distinct
+    val sortedMajors = value.distinct.sortBy(Version.parse)
+    val hasMultiple = value.size > 1 && sortedMajors != Seq(Version.parseSloppy(releaseMajorVersion).major)
+    (sortedMajors, hasMultiple, coreMajorVersions)
+  }
+
   def formatVersionLinesGav(versionLines: Seq[Gav], color: Boolean = false): Seq[String] = {
     def gavLength(in: Gav) = Seq(in.groupId, in.artifactId).mkString(":").length
 
     val max = versionLines.map(gavLength).max
-    lazy val maxString = versionLines.map(_.version).groupBy { i =>
+    lazy val maxString = versionLines.map(_.version.get).groupBy { i =>
       if (i.contains(".")) {
         i.replaceFirst("\\..*", "")
       } else {
@@ -30,15 +43,15 @@ object Release extends LazyLogging {
       .reverse.sortBy(-_._2).drop(1).flatMap(_._3).distinct
 
     val lines = versionLines
-      .sortBy(gav => Version.parse(gav.version))
+      .sortBy(gav => Version.parse(gav.version.get))
       .map { in =>
         val baseLength = gavLength(in)
         val spaces = " " * (max - baseLength)
 
-        val v = if (color && maxString.contains(in.version)) {
-          "\u001B[31m" + in.version + "\u001B[0m"
+        val v = if (color && maxString.contains(in.version.get)) {
+          "\u001B[31m" + in.version.get + "\u001B[0m"
         } else {
-          in.version
+          in.version.get
         }
         "* " + Seq(in.groupId, in.artifactId, spaces).mkString(":") + "  " + v
       }
@@ -107,7 +120,8 @@ object Release extends LazyLogging {
     }
   }
 
-  case class CoreMajoResult(hasDifferentMajors: Boolean, sortedMajors: Seq[String], releaseMajorVersion: String, coreMajorVersions: Seq[(String, Dep)])
+  case class CoreMajoResult(hasDifferentMajors: Boolean, sortedMajors: Seq[String], releaseMajorVersion: String,
+                            coreMajorVersions: Seq[(String, Dep)])
 
   def coreMajorResultOf(mod: ProjectMod, release: Option[String]): CoreMajoResult = {
     val relevantDeps = if (mod.isNoShop) {
@@ -118,21 +132,26 @@ object Release extends LazyLogging {
         .filter(in => in.groupId.startsWith("com.novomind.ishop"))
         .filterNot(in => selfGavs.contains(in.gav()))
     }
+    coreMajorResultOf(relevantDeps, mod.isNoShop, release)
+  }
+
+  def coreMajorResultOf(relevantDeps: Seq[Dep], isNoShop: Boolean, release: Option[String]): CoreMajoResult = {
+
     if (relevantDeps.nonEmpty) {
-      val releaseMajorVersion = if (mod.isNoShop && release.isDefined) {
+      val releaseMajorVersion = if (isNoShop && release.isDefined) {
         release.get.replaceAll("\\..*", "")
       } else {
-        relevantDeps.map(_.version).maxBy(Version.parse).replaceAll("\\..*", "")
+        relevantDeps.filterNot(_.version.isEmpty).map(_.version.get).maxBy(Version.parse).replaceAll("\\..*", "")
       }
-      val relevantFilteredDeps = if (releaseMajorVersion.matches("[0-9]+")) {
+      val relevantFilteredDeps = (if (releaseMajorVersion.matches("[0-9]+")) {
         if (releaseMajorVersion.toInt > 36) {
           relevantDeps
             .filterNot(in => in.groupId == "com.novomind.ishop.shops" &&
               in.artifactId == "ishop-shop-parent" &&
-              in.version.startsWith("36")) // TODO improve to .toInt > 36 later
+              in.version.get.startsWith("36")) // TODO improve to .toInt > 36 later
             .filterNot(in => in.groupId == "com.novomind.ishop" &&
               in.artifactId == "ishop-meta-parent" &&
-              in.version.startsWith("36")) // TODO improve to .toInt > 36 later
+              in.version.get.startsWith("36")) // TODO improve to .toInt > 36 later
         } else if (releaseMajorVersion.toInt >= 32) {
           relevantDeps
         } else {
@@ -141,20 +160,15 @@ object Release extends LazyLogging {
         }
       } else {
         relevantDeps
-      }
+      }).filterNot(_.version.isEmpty)
       val coreVersions: Seq[(String, Dep)] = relevantFilteredDeps
-        .map(in => (in.version, in))
-        .distinct
-        .filter(_._1.nonEmpty)
-        .sortBy(_._1)
-      val coreMajorVersions: Seq[(String, Dep)] = coreVersions
-        .map(in => (in._1.replaceAll("\\..*", "").replaceAll("\\D+", "").trim, in._2))
+        .map(in => (in.version.get, in))
         .distinct
         .filter(_._1.nonEmpty)
         .sortBy(_._1)
 
-      val sortedMajors = coreMajorVersions.map(_._1).distinct.sortBy(Version.parse)
-      CoreMajoResult(coreMajorVersions != Nil && sortedMajors != Seq(releaseMajorVersion), sortedMajors, releaseMajorVersion, coreMajorVersions)
+      val (sortedMajors: Seq[String], hasDiff: Boolean, coreMajorVersions: Seq[(String, Dep)]) = Release.findDiff(releaseMajorVersion, coreVersions)
+      CoreMajoResult(hasDiff, sortedMajors, releaseMajorVersion, coreMajorVersions)
     } else {
       CoreMajoResult(false, Nil, "", Nil)
     }
@@ -599,14 +613,14 @@ object Release extends LazyLogging {
       .map(_.gav())
       .filterNot(noShops) ++ plugins.map(_.fakeDep().gav())
       .filter(_.version.contains("SNAPSHOT")) ++
-      boClientVersion.map(in => Gav("com.novomind.ishop.backoffice", "bo-client", in, "war"))
+      boClientVersion.map(in => Gav("com.novomind.ishop.backoffice", "bo-client", Some(in), "war"))
 
     val repoStateLine = StatusLine(snaps.size, shellWidth, System.out, enabled = true)
     val snapState: Seq[ReleaseInfo] = snaps
       .par
       .map(in => {
         repoStateLine.start()
-        val released = repo.existsGav(in.groupId, in.artifactId, in.version.replace("-SNAPSHOT", ""))
+        val released = repo.existsGav(in.groupId, in.artifactId, in.version.get.replace("-SNAPSHOT", ""))
         repoStateLine.end()
         ReleaseInfo(in.formatted, released)
       }).seq

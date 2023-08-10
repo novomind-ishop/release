@@ -4,7 +4,8 @@ version := "1.0"
 
 scalaVersion := "2.13.10"
 
-scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xfatal-warnings", "--release:11")
+scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xfatal-warnings", "--release:11",
+  "-feature", "-language:implicitConversions")
 
 logLevel := Level.Warn
 
@@ -45,7 +46,7 @@ libraryDependencies += "org.mockito" %% "mockito-scala" % "1.17.12" % "test"
 libraryDependencies += "com.novocode" % "junit-interface" % "0.11" % "test"
 
 assembly / assemblyMergeStrategy := {
-  case PathList("META-INF", _ @ _*) => MergeStrategy.discard
+  case PathList("META-INF", _@_*) => MergeStrategy.discard
   case x => MergeStrategy.first
 }
 

@@ -13,7 +13,7 @@ import java.time.{Duration, ZonedDateTime}
 import scala.collection.immutable.ListMap
 
 class ProjectModTest extends AssertionsForJUnit {
-
+  implicit def toOpt(in:String) = Option(in)
   @Test
   def testScalaDeps(): Unit = {
     val now = ZonedDateTime.now()
@@ -24,8 +24,8 @@ class ProjectModTest extends AssertionsForJUnit {
     val selfDepsMod: Seq[ProjectMod.Dep] = Nil
     val repo = mock[Repo]
     when(repo.getRelocationOf(anyString(), anyString(), anyString())).thenReturn(None)
-    when(repo.newerVersionsOf(scala.groupId, scala.artifactId, scala.version)).thenReturn(Seq(scala.version, "2.13.1"))
-    when(repo.depDate(scala.groupId, scala.artifactId, scala.version)).thenReturn(Some(now))
+    when(repo.newerVersionsOf(scala.groupId, scala.artifactId, scala.version.get)).thenReturn(Seq(scala.version.get, "2.13.1"))
+    when(repo.depDate(scala.groupId, scala.artifactId, scala.version.get)).thenReturn(Some(now))
     when(repo.depDate(scala.groupId, scala.artifactId, "2.13.1")).thenReturn(Some(now))
     when(repo.newerVersionsOf(scala.groupId, "scala3-library_3", "-1")).thenReturn(Seq("-1", "3.0.1"))
     when(repo.depDate(scala.groupId, "scala3-library_3", "-1")).thenReturn(None)
@@ -91,15 +91,16 @@ class ProjectModTest extends AssertionsForJUnit {
     val testee = new MockMod() {
 
       override val selfDepsMod: Seq[ProjectMod.Dep] = Seq(
-        Dep(SelfRef("ou"), "gg", "a", "v", "", "", "", ""),
+        Dep(SelfRef.parse("ou:x:x"), "gg", "a", "v", "", "", "", ""),
       )
       override val listDependencies: Seq[ProjectMod.Dep] = Seq(
         Dep(SelfRef.undef, "g", "a", "v", "", "", "", ""),
         Dep(SelfRef.undef, "g", "a", "v", "", "runtime", "", ""),
         Dep(SelfRef.undef, "g", "a", "v", "", "john", "", ""),
+        Dep(SelfRef.undef, "g", "a", None, "", "john", "", ""),
         Dep(SelfRef.undef, "g", "a", "v", "", "", "", ""),
-        Dep(SelfRef("bert"), "g", "a", "v", "", "", "", ""),
-        Dep(SelfRef("se"), "gg", "a", "v", "", "", "", ""),
+        Dep(SelfRef.parse("bert:x:x"), "g", "a", "v", "", "", "", ""),
+        Dep(SelfRef.parse("se:x:x"), "gg", "a", "v", "", "", "", ""),
       )
     }
     Assert.assertEquals(Seq(
@@ -107,7 +108,8 @@ class ProjectModTest extends AssertionsForJUnit {
     ), testee.listGavsForCheck())
 
     Assert.assertEquals(Seq(
-     Gav("g", "a", "v", scope = "john")
+     Gav("g", "a", "v", scope = "john"),
+      Gav("g", "a", None, scope = "john"),
     ), testee.listGavsWithUnusualScope())
   }
 

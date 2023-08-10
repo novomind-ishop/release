@@ -64,13 +64,13 @@ object PomChecker {
     val zg = ziped.groupBy(_._1).map(t => (t._1, t._2.map(_._2))).filterNot(_._2.size <= 1)
 
     val byRef = listDependecies
-      .filterNot(_.version.isBlank)
+      .filterNot(_.version.getOrElse("").isBlank)
 
       .groupBy(_.pomRef)
     val msgs = byRef.flatMap(deps => {
       val allGavs = deps._2.flatMap(d => Seq(d) ++ zg.getOrElse(d, Nil)).map(_.gav()).distinct
-      val withoutVersion = allGavs.map(_.copy(version = "")).groupBy(x => x).filter(_._2.size > 1).keySet
-      val diff = allGavs.filter(g => withoutVersion.contains(g.copy(version = "")))
+      val withoutVersion = allGavs.map(_.copy(version = None)).groupBy(x => x).filter(_._2.size > 1).keySet
+      val diff = allGavs.filter(g => withoutVersion.contains(g.copy(version = None)))
       if (diff.nonEmpty) {
         val msg = "found overlapping versions in\n" + deps._1.id + "\n" + diff.sortBy(_.toString).map(select => {
           val str = "  " + select.formatted
@@ -121,7 +121,7 @@ object PomChecker {
       DepProps(in.selfDep, in.parentDep, PomMod.createPropertyMap(in.document).view.filterKeys(key => !opts.skipProperties.contains(key)).toMap)
     })
 
-    def ga(gav: Gav): String = Gav.format(Seq(gav.groupId, gav.artifactId, gav.version))
+    def ga(gav: Gav): String = Gav.format(Seq(gav.groupId, gav.artifactId, gav.version.getOrElse("")))
 
     val depProps = Util.groupedFiltered(allP)
     val depPropsMod = depProps.toList.map(in => {

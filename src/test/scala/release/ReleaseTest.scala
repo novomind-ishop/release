@@ -6,7 +6,9 @@ import java.io.{BufferedReader, File, InputStreamReader, PrintStream}
 import java.util.regex.Pattern
 import org.junit.{Assert, Rule, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
-import release.Starter.{Opts}
+import release.ProjectMod.{Gav3, SelfRef}
+import release.Release.CoreMajoResult
+import release.Starter.Opts
 
 class ReleaseTest extends AssertionsForJUnit {
 
@@ -31,11 +33,11 @@ class ReleaseTest extends AssertionsForJUnit {
   def testFormatVersionLinesHighlight(): Unit = {
 
     val check = Release.formatVersionLinesGav(Seq(
-      ProjectMod.Gav("com.novomind.ishop.core", "ishop-core-projects", "29.6.4-SNAPSHOT"),
-      ProjectMod.Gav("com.novomind.ishop.core", "ishop-api", "1.0.2.1"),
-      ProjectMod.Gav("na", "na", "1.0.2.1"),
-      ProjectMod.Gav("any", "an", "2.2"),
-      ProjectMod.Gav("any", "any", "2")
+      ProjectMod.Gav("com.novomind.ishop.core", "ishop-core-projects", Some("29.6.4-SNAPSHOT")),
+      ProjectMod.Gav("com.novomind.ishop.core", "ishop-api", Some("1.0.2.1")),
+      ProjectMod.Gav("na", "na", Some("1.0.2.1")),
+      ProjectMod.Gav("any", "an", Some("2.2")),
+      ProjectMod.Gav("any", "any", Some("2"))
     ), color = true)
 
     Assert.assertEquals(Seq(
@@ -51,15 +53,15 @@ class ReleaseTest extends AssertionsForJUnit {
   def testFormatVersionLinesGav(): Unit = {
 
     val check = Release.formatVersionLinesGav(Seq(
-      ProjectMod.Gav("com.novomind.ishop.core", "ishop-core-projects", "29.6.4-SNAPSHOT"),
-      ProjectMod.Gav("com.novomind.ishop.core", "ishop-api", "1.0.2.1"),
-      ProjectMod.Gav("na", "na", "1.0.2.1"),
-      ProjectMod.Gav("any", "ax", "2.2.2"),
-      ProjectMod.Gav("any", "an", "2.2"),
-      ProjectMod.Gav("any", "any", "2"),
-      ProjectMod.Gav("", "any", "2"),
-      ProjectMod.Gav("", "other", "7.21"),
-      ProjectMod.Gav("", "", "2")
+      ProjectMod.Gav("com.novomind.ishop.core", "ishop-core-projects", Some("29.6.4-SNAPSHOT")),
+      ProjectMod.Gav("com.novomind.ishop.core", "ishop-api", Some("1.0.2.1")),
+      ProjectMod.Gav("na", "na", Some("1.0.2.1")),
+      ProjectMod.Gav("any", "ax", Some("2.2.2")),
+      ProjectMod.Gav("any", "an", Some("2.2")),
+      ProjectMod.Gav("any", "any", Some("2")),
+      ProjectMod.Gav("", "any", Some("2")),
+      ProjectMod.Gav("", "other", Some("7.21")),
+      ProjectMod.Gav("", "", Some("2"))
     ))
 
     Assert.assertEquals(Seq(
@@ -399,6 +401,113 @@ class ReleaseTest extends AssertionsForJUnit {
         ReleaseConfig.default(true), Repo.of(opts), opts)
 
     })
+  }
 
+  @Test
+  def testFindDiff_single(): Unit = {
+    val value = "50.1.2"
+    val d = ProjectMod.Dep(SelfRef.undef, "g", "a", Some(value), "", "", "", "")
+    val deps = Seq((value, d))
+    Assert.assertEquals((Seq("50"), false, Seq(("50", d))), Release.findDiff("50", deps))
+  }
+
+  @Test
+  def testFindDiff_single_2(): Unit = {
+    val value = "50.1.2"
+    val d = ProjectMod.Dep(SelfRef.undef, "g", "a", Some(value), "", "", "", "")
+    val deps = Seq((value, d), (value, d.copy(artifactId = "a2")))
+    Assert.assertEquals((Seq("50"), false, Seq(("50", d),("50", d.copy(artifactId = "a2")))), Release.findDiff("50", deps))
+  }
+
+  @Test
+  def testFindDiff_single_snpashot(): Unit = {
+    val value = "50.1.2-SNAPSHOT"
+    val d = ProjectMod.Dep(SelfRef.undef, "g", "a", Some(value), "", "", "", "")
+    val deps = Seq((value, d))
+    Assert.assertEquals((Seq("50"), false, Seq(("50", d))), Release.findDiff("50", deps))
+  }
+
+  @Test
+  def testFindDiff_single_snpashot_2(): Unit = {
+    val value = "50.1.2-SNAPSHOT"
+    val d = ProjectMod.Dep(SelfRef.undef, "g", "a", Some(value), "", "", "", "")
+    val deps = Seq((value, d),(value, d.copy(artifactId = "a2")))
+    Assert.assertEquals((Seq("50"), false, Seq(("50", d),("50", d.copy(artifactId = "a2")))), Release.findDiff("50", deps))
+  }
+
+  @Test
+  def testFindDiff_single_x_snpashot(): Unit = {
+    val value = "50x-SNAPSHOT"
+    val d = ProjectMod.Dep(SelfRef.undef, "g", "a", Some(value), "", "", "", "")
+    val deps = Seq((value, d))
+    Assert.assertEquals((Seq("50"), false, Seq(("50", d))), Release.findDiff("50", deps))
+  }
+
+  @Test
+  def testFindDiff_single_x_snpashot_2(): Unit = {
+    val value = "50x-SNAPSHOT"
+    val d = ProjectMod.Dep(SelfRef.undef, "g", "a", Some(value), "", "", "", "")
+    val deps = Seq((value, d), (value, d.copy(artifactId = "a2")))
+    Assert.assertEquals((Seq("50"), false, Seq(("50", d),("50", d.copy(artifactId = "a2")))), Release.findDiff(value, deps))
+  }
+
+  @Test
+  def testCoreMajorResult(): Unit = {
+    val result = Release.coreMajorResultOf(relevantDeps = Nil, isNoShop = true, release = None)
+    Assert.assertEquals(CoreMajoResult(false, Nil, "", Nil), result)
+  }
+
+  @Test
+  def testCoreMajorResult_Release(): Unit = {
+    val result = Release.coreMajorResultOf(relevantDeps = Nil, isNoShop = true, release = Some("1.2.3"))
+    Assert.assertEquals(CoreMajoResult(false, Nil, "", Nil), result)
+  }
+
+  @Test
+  def testCoreMajorResult_Release_deps(): Unit = {
+    val deps = Seq(Gav3("g", "a", Some("a")).toDep(SelfRef.undef))
+    val result = Release.coreMajorResultOf(relevantDeps = deps, isNoShop = true, release = Some("1.2.3"))
+    Assert.assertEquals(CoreMajoResult(false, Nil, "1", Nil), result)
+  }
+
+  @Test
+  def testCoreMajorResult_Release_deps_2(): Unit = {
+    val deps = Seq(
+      Gav3("g", "a", Some("1.2.3")),
+      Gav3("g", "aa", Some("1.2.3")),
+    ).map(_.toDep(SelfRef.undef))
+    val result = Release.coreMajorResultOf(relevantDeps = deps, isNoShop = true, release = Some("1.2.3"))
+    Assert.assertEquals(CoreMajoResult(false, Seq("1"), "1", Seq(
+      ("1", deps(0)),
+      ("1", deps(1)),
+    )), result)
+  }
+
+  @Test
+  def testCoreMajorResult_Release_deps_diff(): Unit = {
+    val deps = Seq(
+      Gav3("g", "a", Some("1.2.3")),
+      Gav3("g", "aa", Some("2.2.3")),
+      Gav3("g", "aaa", None),
+    ).map(_.toDep(SelfRef.undef))
+    val result = Release.coreMajorResultOf(relevantDeps = deps, isNoShop = true, release = Some("1.2.3"))
+    Assert.assertEquals(CoreMajoResult(true, Seq("1", "2"), "1", Seq(
+      ("1", deps(0)),
+      ("2", deps(1)),
+    )), result)
+  }
+
+  @Test
+  def testCoreMajorResult_Release_deps_diff_noShop(): Unit = {
+    val deps = Seq(
+      Gav3("g", "a", Some("1.2.3")),
+      Gav3("g", "aa", Some("2.2.3")),
+      Gav3("g", "aaa", None),
+    ).map(_.toDep(SelfRef.undef))
+    val result = Release.coreMajorResultOf(relevantDeps = deps, isNoShop = false, release = Some("1.2.3"))
+    Assert.assertEquals(CoreMajoResult(true, Seq("1", "2"), "2", Seq(
+      ("1", deps(0)),
+      ("2", deps(1)),
+    )), result)
   }
 }
