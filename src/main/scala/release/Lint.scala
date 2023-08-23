@@ -95,13 +95,15 @@ object Lint {
         val remoteHeadDefinition = sgit.remoteHead()
         if (remoteHeadDefinition.isDefined) {
           if (remoteHeadDefinition.exists(_.contains("(unknown)"))) {
-            out.println(warn(s" ${fiWarn} unknown remote HEAD found, corrupted clone/fetch -- repair please", color))
+            out.println(warn(s" ${fiWarn} unknown remote HEAD found, corrupted remote -- repair please", color))
+            out.println(warn(s" ${fiWarn} if you use gitlab try to", color))
+            out.println(warn(s" ${fiWarn} choose another default branch; save; use the original default branch", color))
             warnExit.set(true)
           }
           out.println(info(s"    ${remoteHeadDefinition.get}", color))
 
         } else {
-          out.println(warn(s" ${fiWarn} no remote HEAD found, corrupted clone/fetch -- repair please", color))
+          out.println(warn(s" ${fiWarn} no remote HEAD found, corrupted remote -- repair please", color))
           warnExit.set(true)
         }
         out.println(info("--- check clone config / no shallow clone @ git ---", color))

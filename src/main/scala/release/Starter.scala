@@ -480,7 +480,7 @@ object Starter extends LazyLogging {
       out.println("Usage: release apidiff [OPTION] [VERSION_A] [VERSION_B]")
       out.println()
       out.println("Possible options:")
-      out.println("--all                 => TODO")
+      out.println("--all                 => show unfiltered diff")
       out.println("--pom-only            => shows a diff only of direct dependencies")
       out.println("--help, -h            => shows this and exits")
       return 0
