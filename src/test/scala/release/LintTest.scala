@@ -79,6 +79,8 @@ class LintTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO] --- check clone config / remote @ git ---
+        |[INFO]     HEAD branch: master
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[WARNING]  shallow clone detected 😬
         |[WARNING]    % git rev-parse --is-shallow-repository # returns true
@@ -144,6 +146,8 @@ class LintTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO] --- check clone config / remote @ git ---
+        |[INFO]     HEAD branch: master
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -212,6 +216,9 @@ class LintTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO] --- check clone config / remote @ git ---
+        |[WARNING]  😬 unknown remote HEAD found, corrupted clone/fetch -- repair please
+        |[INFO]     HEAD branch: (unknown)
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -279,6 +286,8 @@ class LintTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO] --- check clone config / remote @ git ---
+        |[INFO]     HEAD branch: master
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -371,6 +380,8 @@ class LintTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO] --- check clone config / remote @ git ---
+        |[INFO]     HEAD branch: master
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -462,6 +473,8 @@ class LintTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO] --- check clone config / remote @ git ---
+        |[WARNING]  😬 no remote HEAD found, corrupted clone/fetch -- repair please
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -558,6 +571,8 @@ class LintTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO] --- check clone config / remote @ git ---
+        |[WARNING]  😬 no remote HEAD found, corrupted clone/fetch -- repair please
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -646,6 +661,8 @@ class LintTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO] --- check clone config / remote @ git ---
+        |[WARNING]  😬 no remote HEAD found, corrupted clone/fetch -- repair please
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -746,6 +763,8 @@ class LintTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO] --- check clone config / remote @ git ---
+        |[WARNING]  😬 no remote HEAD found, corrupted clone/fetch -- repair please
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -842,6 +861,8 @@ class LintTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO] --- check clone config / remote @ git ---
+        |[WARNING]  😬 no remote HEAD found, corrupted clone/fetch -- repair please
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -949,6 +970,8 @@ class LintTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO] --- check clone config / remote @ git ---
+        |[WARNING]  😬 no remote HEAD found, corrupted clone/fetch -- repair please
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -1002,6 +1025,8 @@ class LintTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO] --- check clone config / remote @ git ---
+        |[WARNING]  😬 no remote HEAD found, corrupted clone/fetch -- repair please
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---

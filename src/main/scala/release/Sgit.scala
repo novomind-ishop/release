@@ -262,6 +262,18 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
   def listBranchNamesRemoteShort(): Seq[String] = listBranchNamesRemote().map(_.replaceFirst("origin/", "")).sorted
 
+  def remoteHead(): Option[String] = {
+    try {
+      val value = gitNative(Seq("remote", "show", "origin"), showErrorsOnStdErr = false)
+        .filter(_.startsWith("  HEAD branch"))
+        .map(_.trim)
+
+      value.headOption
+    } catch {
+      case _: Throwable => None
+    }
+  }
+
   def listBranchNamesRemote(): Seq[String] = listBranchRemoteRaw().map(_.branchName).sorted
 
   def listBranchNamesAll(): Seq[String] = (listBranchNamesRemoteShort() ++ listBranchNamesLocal()).distinct.sorted
@@ -592,13 +604,13 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
   private[release] def gitNativeOpt(args: Seq[String]): Option[Seq[String]] = {
     try {
-      Some(gitNative(args, showErrors = false))
+      Some(gitNative(args, showErrorsOnStdErr = false))
     } catch {
       case t: Throwable => None
     }
   }
 
-  private[release] def gitNative(args: Seq[String], showErrors: Boolean = true, useWorkdir: Boolean = true,
+  private[release] def gitNative(args: Seq[String], showErrorsOnStdErr: Boolean = true, useWorkdir: Boolean = true,
                                  cmdFilter: String => Boolean = _ => false,
                                  errMapper: String => Option[String] = errLine => Some(errLine)): Seq[String] = {
     if (!gitRoot.isDirectory && checkExisting) {
@@ -612,7 +624,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     val gitCmdCall = Sgit.selectedGitCmd(err, gitBin) ++ workdir ++ Seq("--no-pager") ++ args
 
     val ff = Tracer.msgAround[String](gitCmdCall.mkString(" "), logger,
-      () => Sgit.native(gitCmdCall, syserrErrors = showErrors, cmdFilter, err, errMapper))
+      () => Sgit.native(gitCmdCall, syserrErrors = showErrorsOnStdErr, cmdFilter, err, errMapper))
     ff.linesIterator.toList.dropWhile(in => in.trim.isEmpty)
   }
 }

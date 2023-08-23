@@ -91,6 +91,19 @@ object Lint {
       } else {
         val sgit = Sgit(file, doVerify = false, out = out, err = err, checkExisting = true, gitBin = None, opts = Opts())
         out.println(info(s"    ${fiFine} git version: " + sgit.version(), color))
+        out.println(info("--- check clone config / remote @ git ---", color))
+        val remoteHeadDefinition = sgit.remoteHead()
+        if (remoteHeadDefinition.isDefined) {
+          if (remoteHeadDefinition.exists(_.contains("(unknown)"))) {
+            out.println(warn(s" ${fiWarn} unknown remote HEAD found, corrupted clone/fetch -- repair please", color))
+            warnExit.set(true)
+          }
+          out.println(info(s"    ${remoteHeadDefinition.get}", color))
+
+        } else {
+          out.println(warn(s" ${fiWarn} no remote HEAD found, corrupted clone/fetch -- repair please", color))
+          warnExit.set(true)
+        }
         out.println(info("--- check clone config / no shallow clone @ git ---", color))
         if (sgit.isShallowClone) {
           Term.wrap(out, Term.warn,
