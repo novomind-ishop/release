@@ -7,7 +7,7 @@ import org.junit.rules.TemporaryFolder
 import org.mockito.{ArgumentMatchers, Mockito}
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.Repo.ReachableResult
-import release.Starter.Opts
+import release.Starter.{LintOpts, Opts}
 
 import java.io.File
 
@@ -856,6 +856,7 @@ class LintTest extends AssertionsForJUnit {
     Util.write(notes,
       """
         |This is the documentation for 0.11-SNAPSHOT
+        |This is the documentation for 0.11-SNAPSHOT
         |""".stripMargin.linesIterator.toSeq)
     gitA.add(notes)
     gitA.commitAll("some")
@@ -874,9 +875,6 @@ class LintTest extends AssertionsForJUnit {
         |[WARNING]  NO remotes found 😬 RL1004
         |[WARNING]  % git remote -v # returns nothing
         |[INFO] --- -SNAPSHOTS in files @ maven ---
-        |[warning]   found snapshots: 😬 RL1012-63bb7557
-        |[warning]   found snapshot in: notes.md 😬 RL1012-eb0e9fd8
-        |              This is the documentation for 0.11-SNAPSHOT
         |[INFO]     WIP
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
@@ -916,7 +914,7 @@ class LintTest extends AssertionsForJUnit {
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
-      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1012-d3421ec9")))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
@@ -965,6 +963,7 @@ class LintTest extends AssertionsForJUnit {
     Util.write(notes,
       """
         |This is the documentation for 0.11-SNAPSHOT
+        |This is the documentation for 0.11-SNAPSHOT
         |""".stripMargin.linesIterator.toSeq)
     gitA.add(notes)
     gitA.commitAll("some")
@@ -983,9 +982,9 @@ class LintTest extends AssertionsForJUnit {
         |[WARNING]  NO remotes found 😬 RL1004
         |[WARNING]  % git remote -v # returns nothing
         |[INFO] --- -SNAPSHOTS in files @ maven ---
-        |[warning]   found snapshots: 😬 RL1012-63bb7557
-        |[warning]   found snapshot in: notes.md 😬 RL1012-eb0e9fd8
+        |[warning]   found snapshot in: notes.md 😬 RL1012-d143f8dc
         |              This is the documentation for 0.11-SNAPSHOT
+        |[warning]   found snapshots: 😬 RL1012-d3421ec9
         |[WARNING]     😬 No property replacement found in pom.xmls for: "${non-existing}" - define properties where they are required and not in parent pom.xml. Input is Nil.
         |[WARNING]     skipped because of previous problems - No property replacement found in pom.xmls for: "${non-existing}" - define properties where they are required and not in parent pom.xml. Input is Nil. 😬
         |[INFO] --- dep.tree @ maven ---
@@ -997,7 +996,7 @@ class LintTest extends AssertionsForJUnit {
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
-      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1012-637a4930")))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "202"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))

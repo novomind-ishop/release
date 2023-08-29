@@ -198,12 +198,19 @@ object Lint {
         if (snapshotsInFiles.nonEmpty) {
           val relFiles: Seq[(Int, String, Path)] = snapshotsInFiles
             .map(t => (t._1, t._2, file.toPath.relativize(t._3.normalize())))
-          out.println(warnSoft(s"  found snapshots: ${fiWarn} ${fiCodeSnapshotText(relFiles)}", color, limit = lineMax))
-          relFiles.foreach(f => {
-            out.println(warnSoft("  found snapshot in: " + f._3 +
-              s" ${fiWarn} ${fiCodeSnapshotText((f._2, f._3.getFileName))}\n" +
-              "              " + f._2, color, limit = lineMax))
-          })
+          if (!opts.lintOpts.skips.contains(fiCodeSnapshotText(relFiles))) {
+            relFiles
+              .filterNot(f => {
+                val code = fiCodeSnapshotText((f._1, f._2, f._3.getFileName))
+                opts.lintOpts.skips.contains(code)
+              })
+              .foreach(f => {
+                out.println(warnSoft("  found snapshot in: " + f._3 +
+                  s" ${fiWarn} ${fiCodeSnapshotText((f._1, f._2, f._3.getFileName))}\n" +
+                  "              " + f._2, color, limit = lineMax))
+              })
+            out.println(warnSoft(s"  found snapshots: ${fiWarn} ${fiCodeSnapshotText(relFiles)}", color, limit = lineMax))
+          }
         } else {
           out.println(info(s"    ${fiFine} NO SNAPSHOTS in other files found", color))
         }
@@ -326,7 +333,7 @@ object Lint {
         rootFolderFiles.sortBy(_.toString)
           .take(5).foreach(f => out.println(f.toPath.normalize().toAbsolutePath.toFile.getAbsolutePath))
         val timerResult = if (opts.lintOpts.showTimer) {
-          " - " + stopwatch.elapsed().toString
+          " - " + stopwatch.elapsed().toString // TODO timer score A - F
         } else {
           ""
         }

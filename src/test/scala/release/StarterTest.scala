@@ -12,7 +12,7 @@ import org.mockito.MockitoSugar
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.ProjectMod.Gav3
 import release.Sgit.GitRemote
-import release.Starter.{FutureEither, FutureError, Opts, OptsDepUp}
+import release.Starter.{FutureEither, FutureError, LintOpts, Opts, OptsDepUp}
 
 import java.io._
 import java.util.concurrent.{TimeUnit, TimeoutException}
@@ -289,6 +289,20 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
   }
 
   @Test
+  def testArgRead_lint(): Unit = {
+    assertArgs(Opts(lintOpts = LintOpts(doLint = true), showStartupDone = false),
+      Starter.argsRead(Seq("lint"), Opts()))
+    assertArgs(Opts(lintOpts = LintOpts(doLint = true, showHelp = true), showStartupDone = false),
+      Starter.argsRead(Seq("lint", "--help"), Opts()))
+    assertArgs(Opts(lintOpts = LintOpts(doLint = true, showHelp = true), showStartupDone = false),
+      Starter.argsRead(Seq("lint", "-h"), Opts()))
+    assertArgs(Opts(lintOpts = LintOpts(doLint = true, skips=Seq("RL1012-5a4ee54d", "a")), showStartupDone = false),
+      Starter.argsRead(Seq("lint", "--skip-RL1012-5a4ee54d", "--skip-a"), Opts()))
+    assertArgs(Opts(lintOpts = LintOpts(doLint = true, waringsToErrors = true), showStartupDone = false),
+      Starter.argsRead(Seq("lint", "--strict"), Opts()))
+  }
+
+  @Test
   def testArgRead_createFeature(): Unit = {
     Assert.assertEquals(Opts(createFeature = true), Starter.argsRead(Seq("nothing-but-create-feature-branch"), Opts()))
   }
@@ -303,6 +317,11 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
   def testArgRead_mixed(): Unit = {
     val opts = Opts(depUpOpts = OptsDepUp().copy(showDependencyUpdates = true, showHelp = true), useGerrit = false)
     Assert.assertEquals(opts, Starter.argsRead(Seq("--no-gerrit", "showDependencyUpdates", "--help", "", " ", "\t"), Opts()))
+  }
+
+  def assertArgs(expected:Opts, current:Opts): Unit = {
+    Assert.assertEquals(Util.show(expected), Util.show(current))
+    Assert.assertEquals(expected, current)
   }
 
   @Test

@@ -210,7 +210,24 @@ object Starter extends LazyLogging {
     }
   }
 
-  case class LintOpts(doLint: Boolean = false, showTimer: Boolean = true)
+  case class LintOpts(doLint: Boolean = false, showTimer: Boolean = true, showHelp: Boolean = false,
+                      skips: Seq[String] = Nil, waringsToErrors:Boolean = false, invalids: Seq[String] = Nil)
+
+  @tailrec
+  def argsLintRead(params: Seq[String], inOpt: Opts): Opts = {
+    params.filter(in => in.trim.nonEmpty) match {
+      case Nil => inOpt.copy(lintOpts = inOpt.lintOpts.copy(doLint = true), showStartupDone = false)
+      case "--help" :: tail => argsLintRead(tail, inOpt.copy(lintOpts = inOpt.lintOpts.copy(showHelp = true)))
+      case "-h" :: tail => argsLintRead(tail, inOpt.copy(lintOpts = inOpt.lintOpts.copy(showHelp = true)))
+      case "--strict" :: tail => argsLintRead(tail, inOpt.copy(lintOpts = inOpt.lintOpts.copy(waringsToErrors = true)))
+      case v :: tail if v.startsWith("--skip-") => argsLintRead(tail, inOpt.copy(lintOpts = {
+        inOpt.lintOpts.copy(skips = inOpt.lintOpts.skips :+ v.replaceFirst("^--skip-", ""))
+      }))
+      // --
+      case string :: Nil => argsLintRead(Nil, inOpt.copy(lintOpts = inOpt.lintOpts.copy(invalids = inOpt.lintOpts.invalids :+ string)))
+      case string :: tail => argsLintRead(tail, inOpt.copy(lintOpts = inOpt.lintOpts.copy(invalids = inOpt.lintOpts.invalids :+ string)))
+    }
+  }
 
   case class OptsDepUp(showDependencyUpdates: Boolean = false, showHelp: Boolean = false,
                        hideLatest: Boolean = true, versionRangeLimit: Integer = 3,
@@ -286,7 +303,7 @@ object Starter extends LazyLogging {
         case "--demo-chars" :: _ => showDemoChars(inOpt)
         case "--skip-property" :: value :: tail => argsRead(tail, inOpt.copy(skipProperties = inOpt.skipProperties ++ Seq(value)))
         // CMDs
-        case "lint" :: tail => argsRead(tail, inOpt.copy(lintOpts = inOpt.lintOpts.copy(doLint = true), showStartupDone = false))
+        case "lint" :: tail => argsLintRead(tail, inOpt)
         case "showSelf" :: tail => argsRead(tail, inOpt.copy(showSelfGa = true))
         case "apidiff" :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(showApiDiff = true)))
         case "suggest-docker-tag" :: tail => argsRead(tail, inOpt.copy(suggestDockerTag = true, showStartupDone = false))
