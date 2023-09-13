@@ -33,6 +33,11 @@ class RepoTest extends AssertionsForJUnit {
     // Assert.assertFalse(repo.existsGav("com.novomind.ishop.exi", "ext-b2c", "0.0.1-BERT"))
     println(repo.getRelocationOf("org.scala-lang", "scala-library", "-1"))
     println(repo.newerVersionsOf("org.scala-lang", "scala3-library_3", "-1"))
+    println(repo.latestGav("com.google.guava", "guava", "32.1.2-jre"))
+    println(repo.latestGav("com.google.guava", "guava", "1.1.2-jre"))
+    println(repo.latestGav("com.google.guava", "guava", "0.1.2-jre"))
+    println(repo.latestGav("com.google.guava", "guava", "32.1.2-jre-SNAPSHOT"))
+    println(repo.latestGav("com.google.guava", "guava", "1.0.0-SNAPSHOT"))
   }
 
   @Test

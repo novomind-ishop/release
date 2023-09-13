@@ -5,6 +5,7 @@ import org.junit.rules.TemporaryFolder
 import java.io.{BufferedReader, File, InputStreamReader, PrintStream}
 import java.util.regex.Pattern
 import org.junit.{Assert, Rule, Test}
+import org.mockito.{ArgumentMatchers, Mockito}
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.ProjectMod.{Gav3, SelfRef}
 import release.Release.CoreMajoResult
@@ -83,7 +84,6 @@ class ReleaseTest extends AssertionsForJUnit {
     } else {
       a.replaceFirst("\\s*$", "")
     }
-
   }
 
   @Test(timeout = 20_000)
@@ -416,7 +416,7 @@ class ReleaseTest extends AssertionsForJUnit {
     val value = "50.1.2"
     val d = ProjectMod.Dep(SelfRef.undef, "g", "a", Some(value), "", "", "", "")
     val deps = Seq((value, d), (value, d.copy(artifactId = "a2")))
-    Assert.assertEquals((Seq("50"), false, Seq(("50", d),("50", d.copy(artifactId = "a2")))), Release.findDiff("50", deps))
+    Assert.assertEquals((Seq("50"), false, Seq(("50", d), ("50", d.copy(artifactId = "a2")))), Release.findDiff("50", deps))
   }
 
   @Test
@@ -431,8 +431,8 @@ class ReleaseTest extends AssertionsForJUnit {
   def testFindDiff_single_snpashot_2(): Unit = {
     val value = "50.1.2-SNAPSHOT"
     val d = ProjectMod.Dep(SelfRef.undef, "g", "a", Some(value), "", "", "", "")
-    val deps = Seq((value, d),(value, d.copy(artifactId = "a2")))
-    Assert.assertEquals((Seq("50"), false, Seq(("50", d),("50", d.copy(artifactId = "a2")))), Release.findDiff("50", deps))
+    val deps = Seq((value, d), (value, d.copy(artifactId = "a2")))
+    Assert.assertEquals((Seq("50"), false, Seq(("50", d), ("50", d.copy(artifactId = "a2")))), Release.findDiff("50", deps))
   }
 
   @Test
@@ -448,7 +448,7 @@ class ReleaseTest extends AssertionsForJUnit {
     val value = "50x-SNAPSHOT"
     val d = ProjectMod.Dep(SelfRef.undef, "g", "a", Some(value), "", "", "", "")
     val deps = Seq((value, d), (value, d.copy(artifactId = "a2")))
-    Assert.assertEquals((Seq("50"), false, Seq(("50", d),("50", d.copy(artifactId = "a2")))), Release.findDiff(value, deps))
+    Assert.assertEquals((Seq("50"), false, Seq(("50", d), ("50", d.copy(artifactId = "a2")))), Release.findDiff(value, deps))
   }
 
   @Test
@@ -509,5 +509,49 @@ class ReleaseTest extends AssertionsForJUnit {
       ("1", deps(0)),
       ("2", deps(1)),
     )), result)
+  }
+
+  def progFilter(a: String): String = {
+    if (a.startsWith("Progress: (")) {
+      "Progress: (...)[                                                  ]" // because of parallel
+    } else {
+      a.replaceFirst("\\s*$", "")
+    }
+  }
+
+  @Test
+  def testOfferAutoFixForReleaseSnapshots(): Unit = {
+    val expected =
+      """
+        |Progress: (...)[                                                  ]
+        |Progress: (...)[                                                  ]
+        |Progress: (...)[                                                  ]
+        |Progress: (...)[                                                  ]
+        |Progress: (...)[                                                  ]
+        |
+        |Snapshots found for (please fix manually in pom.xml (remove -SNAPSHOT in most cases)):
+        |  No Release for    org.example:example:1.0.0-SNAPSHOT
+        |  No Release for    org.example:example2:1.0.0-SNAPSHOT maybe 0.99 is the latest one
+        |
+        |Try again? [y/n]: n""".stripMargin.trim
+    TermTest.testSys(Seq("n", ""), expected, "", expectedExitCode = 1,  outFn = progFilter)(sys => {
+      val opts = Opts(useJlineInput = false)
+      val testMod = new ProjectModTest.MockMod() {
+        override def listSnapshotDependenciesDistinct: Seq[ProjectMod.Dep] = {
+          Seq(
+            ProjectModTest.depOf("org.example", "example", "1.0.0-SNAPSHOT"),
+            ProjectModTest.depOf("org.example", "example2", "1.0.0-SNAPSHOT"),
+          )
+        }
+      }
+      val mockRepo = Mockito.mock(classOf[Repo])
+      Mockito.when(mockRepo.latestGav(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+        .thenReturn(None)
+      Mockito.when(mockRepo.latestGav("org.example", "example2", "1.0.0-SNAPSHOT"))
+        .thenReturn(Some(Gav3("org.example", "example2", Some("0.99"))))
+      Release.offerAutoFixForReleaseSnapshots(sys, mod = testMod, gitFiles = Nil, shellWidth = 72, mockRepo, opts)
+
+    })
+
   }
 }

@@ -24,7 +24,8 @@ class PomModTest extends AssertionsForJUnit {
 
   lazy val repo = Repo.of(Opts())
 
-  implicit def PomCheckertoOpt(in:String) = Option(in)
+  implicit def PomCheckertoOpt(in: String) = Option(in)
+
   @Test
   def testTeset(): Unit = {
     val srcPoms: File = pomTestFile(temp, document(
@@ -1631,6 +1632,16 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testIsMajor(): Unit = {
+    Assert.assertTrue(Version.parse("21.0.0").isMajor())
+    Assert.assertTrue(Version.parse("21.0.0-SNAPSHOT").isMajor())
+    Assert.assertTrue(Version.parse("21").isMajor())
+    Assert.assertTrue(Version.parse("21.0").isMajor())
+    Assert.assertFalse(Version.parse("21.2.3").isMajor())
+    Assert.assertFalse(Version.parse("alpha").isMajor())
+  }
+
+  @Test
   def testAbbreviate(): Unit = {
     Assert.assertEquals(Nil, PomMod.abbreviate(2)(Nil))
     Assert.assertEquals(Seq("a"), PomMod.abbreviate(2)(Seq("a")))
@@ -1650,7 +1661,6 @@ class PomModTest extends AssertionsForJUnit {
         Seq(Gav(groupId = "a.b", artifactId = "a", version = "1.0.0"))
       )
     )
-
 
     Assert.assertEquals(Nil, PomMod.unmanaged(Seq(Gav(groupId = "", artifactId = "", version = None)), Nil))
     Assert.assertEquals(Nil, PomMod.unmanaged(Seq(Gav.empty.copy(groupId = "a")), Seq(Gav.empty.copy(groupId = "a"))))

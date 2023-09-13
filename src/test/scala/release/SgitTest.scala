@@ -63,15 +63,17 @@ class SgitTest extends AssertionsForJUnit {
   @Test
   def testFindUpstream(): Unit = {
     // GIVEN
-    val status = SgitTest.workSgit()
-    val currentBranch = status.currentBranch
+    val testee = SgitTest.workSgit()
+    val currentBranch = testee.currentBranch
     Assume.assumeTrue("not master", currentBranch.contains("master"))
 
     // WHEN
-    val branch = status.findUpstreamBranch().getOrElse("other")
+    val branch = testee.findUpstreamBranch().getOrElse("other")
 
     // THEN
     Assert.assertEquals("master", branch)
+    Assert.assertEquals(Some("HEAD branch: master"), testee.remoteHead())
+    Assert.assertEquals(Some("origin/master"), testee.remoteHeadRaw())
   }
 
   @Test

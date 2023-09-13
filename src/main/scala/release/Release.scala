@@ -597,7 +597,7 @@ object Release extends LazyLogging {
     PomChecker.checkGavFormat(mod.listDeps(), sys.out)
     PomChecker.printSnapshotsInFiles(gitFiles, sys.out)
 
-    case class ReleaseInfo(gav: String, released: Boolean)
+    case class ReleaseInfo(gav: Gav, released: Boolean, suggested:Option[Gav])
 
     val noShops: (Gav => Boolean) = if (mod.isNoShop) {
       gav: Gav => gav.groupId.contains("com.novomind.ishop.shops")
@@ -615,14 +615,20 @@ object Release extends LazyLogging {
       .filter(_.version.contains("SNAPSHOT")) ++
       boClientVersion.map(in => Gav("com.novomind.ishop.backoffice", "bo-client", Some(in), "war"))
 
-    val repoStateLine = StatusLine(snaps.size, shellWidth, System.out, enabled = true)
+    val repoStateLine = StatusLine(snaps.size, shellWidth, sys.out, enabled = true)
     val snapState: Seq[ReleaseInfo] = snaps
       .par
       .map(in => {
         repoStateLine.start()
-        val released = repo.existsGav(in.groupId, in.artifactId, in.version.get.replace("-SNAPSHOT", ""))
+        val withoutSnapshot = in.version.get.replace("-SNAPSHOT", "")
+        val released = repo.existsGav(in.groupId, in.artifactId, withoutSnapshot)
+        val suggeted = if (!released) {
+          repo.latestGav(in.groupId, in.artifactId, in.version.get).map(_.toGav())
+        } else {
+          None
+        }
         repoStateLine.end()
-        ReleaseInfo(in.formatted, released)
+        ReleaseInfo(in, released, suggeted)
       }).seq
     repoStateLine.finish()
 
@@ -651,8 +657,8 @@ object Release extends LazyLogging {
 
       snapState
         .sortBy(_.toString)
-        .map(in => info(in.released) + in.gav)
-        .foreach(println)
+        .map(in => info(in.released) + in.gav.formatted + in.suggested.map(gav => s" maybe ${gav.version.get} is the latest one").getOrElse(""))
+        .foreach(sys.out.println)
       sys.out.println("")
 
       val again = Term.readFromOneOfYesNo(sys, "Try again?", opts)

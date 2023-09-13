@@ -12,37 +12,7 @@ import java.io.File
 import java.time.{Duration, ZonedDateTime}
 import scala.collection.immutable.ListMap
 
-class ProjectModTest extends AssertionsForJUnit {
-  implicit def toOpt(in:String) = Option(in)
-  @Test
-  def testScalaDeps(): Unit = {
-    val now = ZonedDateTime.now()
-    val scala = d("org.scala-lang", "scala-library", "2.13.0")
-
-    val term = Term.select("xterm", "os", simpleChars = false, isInteractice = false)
-    val rootDeps: Seq[ProjectMod.Dep] = Seq(scala)
-    val selfDepsMod: Seq[ProjectMod.Dep] = Nil
-    val repo = mock[Repo]
-    when(repo.getRelocationOf(anyString(), anyString(), anyString())).thenReturn(None)
-    when(repo.newerVersionsOf(scala.groupId, scala.artifactId, scala.version.get)).thenReturn(Seq(scala.version.get, "2.13.1"))
-    when(repo.depDate(scala.groupId, scala.artifactId, scala.version.get)).thenReturn(Some(now))
-    when(repo.depDate(scala.groupId, scala.artifactId, "2.13.1")).thenReturn(Some(now))
-    when(repo.newerVersionsOf(scala.groupId, "scala3-library_3", "-1")).thenReturn(Seq("-1", "3.0.1"))
-    when(repo.depDate(scala.groupId, "scala3-library_3", "-1")).thenReturn(None)
-    val result = TermTest.withOutErr[Unit]()(sys => {
-      val innerResult: Seq[(GavWithRef, (Seq[String], Duration))] = ProjectMod.showDependencyUpdates(100, term,
-        OptsDepUp().copy(showLibYears = true), rootDeps, selfDepsMod, Seq(repo), sys,
-        printProgress = true, checkOnline = false)
-
-      val sca1 = GavWithRef(SelfRef.undef, Gav("org.scala-lang", "scala-library", "2.13.0"))
-      val scala2 = (sca1, (Seq("2.13.1"), Duration.ZERO))
-      val sca2 = GavWithRef(SelfRef.undef, Gav("org.scala-lang", "scala3-library_3", "-1"))
-      val scala3 = (sca2, (Seq("3.0.1"), Duration.ofDays(-1)))
-      Assert.assertEquals(Seq(scala2, scala3), innerResult)
-    })
-    Assert.assertEquals("", result.err)
-  }
-
+object ProjectModTest {
   class MockMod extends ProjectMod {
 
     override val file: File = new File("")
@@ -80,15 +50,52 @@ class ProjectModTest extends AssertionsForJUnit {
     override def depTreeFilenameList(): Seq[String] = Nil
   }
 
+  def depOf(g: String, a: String, v: String, scope: String = ""): ProjectMod.Dep = {
+    Dep(SelfRef.undef, g, a, Some(v), "", scope, "", "")
+  }
+}
+
+class ProjectModTest extends AssertionsForJUnit {
+  implicit def toOpt(in: String) = Option(in)
+
+  @Test
+  def testScalaDeps(): Unit = {
+    val now = ZonedDateTime.now()
+    val scala = d("org.scala-lang", "scala-library", "2.13.0")
+
+    val term = Term.select("xterm", "os", simpleChars = false, isInteractice = false)
+    val rootDeps: Seq[ProjectMod.Dep] = Seq(scala)
+    val selfDepsMod: Seq[ProjectMod.Dep] = Nil
+    val repo = mock[Repo]
+    when(repo.getRelocationOf(anyString(), anyString(), anyString())).thenReturn(None)
+    when(repo.newerVersionsOf(scala.groupId, scala.artifactId, scala.version.get)).thenReturn(Seq(scala.version.get, "2.13.1"))
+    when(repo.depDate(scala.groupId, scala.artifactId, scala.version.get)).thenReturn(Some(now))
+    when(repo.depDate(scala.groupId, scala.artifactId, "2.13.1")).thenReturn(Some(now))
+    when(repo.newerVersionsOf(scala.groupId, "scala3-library_3", "-1")).thenReturn(Seq("-1", "3.0.1"))
+    when(repo.depDate(scala.groupId, "scala3-library_3", "-1")).thenReturn(None)
+    val result = TermTest.withOutErr[Unit]()(sys => {
+      val innerResult: Seq[(GavWithRef, (Seq[String], Duration))] = ProjectMod.showDependencyUpdates(100, term,
+        OptsDepUp().copy(showLibYears = true), rootDeps, selfDepsMod, Seq(repo), sys,
+        printProgress = true, checkOnline = false)
+
+      val sca1 = GavWithRef(SelfRef.undef, Gav("org.scala-lang", "scala-library", "2.13.0"))
+      val scala2 = (sca1, (Seq("2.13.1"), Duration.ZERO))
+      val sca2 = GavWithRef(SelfRef.undef, Gav("org.scala-lang", "scala3-library_3", "-1"))
+      val scala3 = (sca2, (Seq("3.0.1"), Duration.ofDays(-1)))
+      Assert.assertEquals(Seq(scala2, scala3), innerResult)
+    })
+    Assert.assertEquals("", result.err)
+  }
+
   @Test
   def testListDependeciesForCheck_empty(): Unit = {
-    val testee = new MockMod()
+    val testee = new ProjectModTest.MockMod()
     Assert.assertEquals(Nil, testee.listGavsForCheck())
   }
 
   @Test
   def testListDependenciesForCheck(): Unit = {
-    val testee = new MockMod() {
+    val testee = new ProjectModTest.MockMod() {
 
       override val selfDepsMod: Seq[ProjectMod.Dep] = Seq(
         Dep(SelfRef.parse("ou:x:x"), "gg", "a", "v", "", "", "", ""),
@@ -108,7 +115,7 @@ class ProjectModTest extends AssertionsForJUnit {
     ), testee.listGavsForCheck())
 
     Assert.assertEquals(Seq(
-     Gav("g", "a", "v", scope = "john"),
+      Gav("g", "a", "v", scope = "john"),
       Gav("g", "a", None, scope = "john"),
     ), testee.listGavsWithUnusualScope())
   }
@@ -135,7 +142,7 @@ class ProjectModTest extends AssertionsForJUnit {
 
   @Test
   def testFilter(): Unit = {
-    val in:  Map[Gav3, (Seq[String], Duration)] = ListMap(
+    val in: Map[Gav3, (Seq[String], Duration)] = ListMap(
       Gav3(groupId = "g", artifactId = "a", version = "1.0.0") -> (Nil, Duration.ZERO),
       Gav3(groupId = "g", artifactId = "a1", version = "1.0.0") -> (Seq("1.0.0"), Duration.ZERO),
       Gav3(groupId = "g", artifactId = "a2", version = "1.0.0-SNAPSHOT") -> (Seq("1.0.0"), Duration.ZERO),

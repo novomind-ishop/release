@@ -206,6 +206,8 @@ object ProjectMod extends LazyLogging {
   case class Gav3(groupId: String, artifactId: String, version: Option[String]) {
     def toDep(pomRef: SelfRef): Dep = Dep(pomRef, groupId, artifactId, version, "", "", "", "")
 
+    def toGav():Gav = Gav(groupId, artifactId, version)
+
     def formatted: String = Gav.format(Seq(groupId, artifactId, version.getOrElse("")))
 
     def slashedMeta: String = (groupId + '/' + artifactId).replace('.', '/') + "/maven-metadata.xml"
@@ -313,6 +315,10 @@ object ProjectMod extends LazyLogging {
 
     def formatShopAsSnapshot(): String = {
       formatShop() + "-SNAPSHOT"
+    }
+
+    def isMajor(): Boolean = {
+      minor == 0 && patch == 0
     }
   }
 

@@ -91,6 +91,19 @@ class Repo private(opts: Opts) extends LazyLogging {
     versions.nonEmpty
   }
 
+  def latestGav(groupID: String, artifactId: String, version: String): Option[Gav3] = {
+    val in = ProjectMod.Version.parseSloppy(version)
+    val start = if (in.isMajor()) {
+      in.major - 1
+    } else {
+      in.major
+    }
+    val versions = getVersionsOf(Seq(groupID, artifactId, "[" + start + "," + version + "]").mkString(":"))
+    versions
+      .filterNot(_.toString.endsWith("-SNAPSHOT"))
+      .lastOption.map(v => Gav3(groupID, artifactId, Option(v.toString)))
+  }
+
   def newerVersionsOf(groupID: String, artifactId: String, version: String): Seq[String] = {
     val request = Seq(groupID, artifactId, "[" + version + ",)").mkString(":")
     val result = getVersionsOf(request).map(_.toString)

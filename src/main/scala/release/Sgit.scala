@@ -1,5 +1,6 @@
 package release
 
+import com.google.common.base.Strings
 import com.typesafe.scalalogging.LazyLogging
 import release.Conf.Tracer
 import release.Sgit._
@@ -177,7 +178,8 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
         throw new Sgit.MissingCommitHookException(
           """
             |E: please download a commit-message hook and retry
-            |Hint: if this not a gerrit repo use '--no-gerrit'
+            |Hint: if this not a gerrit repo use '--no-gerrit' or
+            |      export RELEASE_NO_GERRIT=true
             |E: The hook should be at: %s
             |I: see %s/Documentation/user-changeid.html#creation
             |# scp -p -P %s $USERNAME@%s:hooks/commit-msg .git/hooks/
@@ -272,6 +274,10 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     } catch {
       case _: Throwable => None
     }
+  }
+
+  def remoteHeadRaw(): Option[String] = {
+    remoteHead().map(_.replaceFirst("HEAD branch: ", "origin/"))
   }
 
   def listBranchNamesRemote(): Seq[String] = listBranchRemoteRaw().map(_.branchName).sorted
@@ -481,13 +487,44 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     commitIdHead() + modStar
   }
 
-  def log(): String = {
-    try {
-      gitNative(Seq("log", "HEAD", "--no-color", "--branches", "--remotes", "--tags", "--"))
-        .map(_.trim).mkString("\n")
-    } catch {
-      case e: Exception => e.printStackTrace(); "no - log"
+  def logShortOpt(limit: Int = -1, path: String = ""): Option[String] = {
+    logTry(limit, path, Seq("--online")) match {
+      case Success(k) => k.headOption
+      case Failure(k) => {
+        None
+      }
     }
+  }
+
+  def logTry(limit: Int = -1, path: String = "", args:Seq[String] = Nil): Try[Seq[String]] = {
+    try {
+      val pElement = if (Strings.isNullOrEmpty(path)) {
+        "HEAD"
+      } else {
+        path
+      }
+      val limitElements: Seq[String] = if (limit > 0) {
+        Seq("-n", limit.toString)
+      } else {
+        Nil
+      }
+      val value = Seq("log", pElement) ++ limitElements ++ Seq("--no-color", "--branches", "--remotes", "--tags", "--")
+      Success(gitNative(value, showErrorsOnStdErr = false).map(_.trim))
+    } catch {
+      case e: Throwable => Failure(e)
+    }
+  }
+
+  def log(limit: Int = -1, path: String = ""): String = {
+    val result = logTry(limit, path)
+    result match {
+      case Success(k) => k.mkString("\n")
+      case Failure(k) => {
+        k.printStackTrace();
+        "no - log"
+      }
+    }
+
   }
 
   def logGraph(): String = {

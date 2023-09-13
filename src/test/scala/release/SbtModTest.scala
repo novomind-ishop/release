@@ -9,7 +9,7 @@ import release.SbtModTest.d
 
 object SbtModTest {
   def d(g: String, a: String, v: String, scope: String = "") =
-    Dep(SelfRef.undef, g, a, Some(v), "", scope, "", "")
+    ProjectModTest.depOf(g,a,v,scope)
 }
 
 class SbtModTest extends AssertionsForJUnit with MockitoSugar {

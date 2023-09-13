@@ -100,8 +100,9 @@ object Lint {
             out.println(warn(s" ${fiWarn} choose another default branch; save; use the original default branch", color))
             warnExit.set(true)
           }
-          out.println(info(s"    ${remoteHeadDefinition.get}", color))
-
+          val commitRef = sgit.logShortOpt(limit = 1, path = sgit.remoteHeadRaw().get)
+          val commitRefShort = commitRef.map(_.replaceFirst("^commit ", "")).getOrElse("n/a")
+          out.println(info(s"    ${remoteHeadDefinition.get} - ${commitRefShort}", color, limit = lineMax))
         } else {
           out.println(warn(s" ${fiWarn} no remote HEAD found, corrupted remote -- repair please", color))
           warnExit.set(true)
