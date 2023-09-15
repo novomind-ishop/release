@@ -477,6 +477,8 @@ class LintTest extends AssertionsForJUnit {
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
+        |[WARNING]  😬 if you use gitlab try to
+        |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -575,6 +577,8 @@ class LintTest extends AssertionsForJUnit {
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
+        |[WARNING]  😬 if you use gitlab try to
+        |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -665,6 +669,8 @@ class LintTest extends AssertionsForJUnit {
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
+        |[WARNING]  😬 if you use gitlab try to
+        |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -767,6 +773,8 @@ class LintTest extends AssertionsForJUnit {
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
+        |[WARNING]  😬 if you use gitlab try to
+        |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -866,6 +874,8 @@ class LintTest extends AssertionsForJUnit {
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
+        |[WARNING]  😬 if you use gitlab try to
+        |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -973,6 +983,8 @@ class LintTest extends AssertionsForJUnit {
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
+        |[WARNING]  😬 if you use gitlab try to
+        |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -1028,6 +1040,8 @@ class LintTest extends AssertionsForJUnit {
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
+        |[WARNING]  😬 if you use gitlab try to
+        |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
