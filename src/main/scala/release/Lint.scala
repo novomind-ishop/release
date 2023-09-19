@@ -152,7 +152,7 @@ object Lint {
         if (sgit.hasLocalChanges) {
           out.println(warn(s" Found local changes ${fiWarn} ${fiCodeGitLocalChanges}", color))
           sgit.localChanges()
-            .foreach(filename => out.println(warn(s" ${filename} ${fiWarn} ${fiCodeGitLocalChanges}", color)))
+            .foreach(filename => out.println(warn(s" ${filename} ${fiWarn} ${fiCodeGitLocalChanges}", color, limit = lineMax)))
           warnExit.set(true)
         }
         out.println(info("--- list-remotes @ git ---", color))
