@@ -151,6 +151,8 @@ object Lint {
         out.println(info("--- .gitignore @ git ---", color))
         if (sgit.hasLocalChanges) {
           out.println(warn(s" Found local changes ${fiWarn} ${fiCodeGitLocalChanges}", color))
+          sgit.localChanges()
+            .foreach(filename => out.println(warn(s" ${filename} ${fiWarn} ${fiCodeGitLocalChanges}", color)))
           warnExit.set(true)
         }
         out.println(info("--- list-remotes @ git ---", color))
@@ -167,8 +169,13 @@ object Lint {
         val ciCommitRefName = envs.get("CI_COMMIT_REF_NAME").orNull
         val ciCommitTag = envs.get("CI_COMMIT_TAG").orNull
         val rootFolderFiles = files.toSeq
-        val pompom = if (rootFolderFiles.exists(_.getName == "pom.xml")) {
+        val pompom:Option[Try[ProjectMod]] = if (rootFolderFiles.exists(_.getName == "pom.xml")) {
           Some(PomMod.withRepoTry(file, opts, repo))
+        } else {
+          None
+        }
+        val sbt:Option[Try[ProjectMod]] = if (rootFolderFiles.exists(_.getName == "build.sbt")) {
+          Some(Success(SbtMod.withRepo(file, opts, repo)))
         } else {
           None
         }
@@ -195,7 +202,7 @@ object Lint {
           }
 
         }
-        out.println(info("--- -SNAPSHOTS in files @ maven ---", color))
+        out.println(info("--- -SNAPSHOTS in files @ maven/sbt/gradle ---", color))
 
         val snapshotsInFiles = PomChecker.getSnapshotsInFiles(sgit.lsFilesAbsolute().map(_.getAbsolutePath))
         if (snapshotsInFiles.nonEmpty) {
@@ -218,21 +225,27 @@ object Lint {
           out.println(info(s"    ${fiFine} NO SNAPSHOTS in other files found", color))
         }
 
-        if (pompom.isDefined) {
-          val pomModTry = pompom.get
-          if (pomModTry.isSuccess) {
+        if (pompom.isDefined || sbt.isDefined) {
+          val modTry = if (pompom.isDefined) {
+            pompom.get
+          } else if (sbt.isDefined) {
+            sbt.get
+          } else {
+            throw new IllegalStateException("should not happen")
+          }
+          if (modTry.isSuccess) {
             out.println(info("    WIP", color))
           } else {
             warnExit.set(true)
-            out.println(warn(s"    ${fiWarn} ${pomModTry.failed.get.getMessage}", color, limit = lineMax))
+            out.println(warn(s"    ${fiWarn} ${modTry.failed.get.getMessage}", color, limit = lineMax))
           }
-          if (pomModTry.isSuccess) {
-            val pomMod = pomModTry.get
+          if (modTry.isSuccess) {
+            val mod = modTry.get
 
             out.println(info("--- .mvn @ maven ---", color))
             out.println(info("    WIP", color))
             out.println(info("--- check for snapshots @ maven ---", color))
-            val snaps = pomMod.listGavsForCheck()
+            val snaps = mod.listGavsForCheck()
               .filter(dep => ProjectMod.isUnwanted(dep.gav().simpleGav()))
               .filter(_.version.get.endsWith("-SNAPSHOT"))
             snaps
@@ -240,7 +253,7 @@ object Lint {
                 out.println(warnSoft("  found snapshot: " + dep.gav().formatted + s" ${fiWarn} ${fiCodeSnapshotGav.apply(dep.gav())}", color, limit = lineMax))
               })
             out.println(info("--- check for GAV format @ maven ---", color))
-            val unusualGavs = pomMod.listGavsWithUnusualScope()
+            val unusualGavs = mod.listGavsWithUnusualScope()
             if (unusualGavs.nonEmpty) {
               unusualGavs.foreach(found => {
                 out.println(warn(s"${found.formatted} uses unusual format, please repair ${fiWarn} ${fiCodeUnusualGav.apply(found)}", color, limit = lineMax))
@@ -251,7 +264,7 @@ object Lint {
               out.println(info(s"    ${fiFine} all GAVs scopes looks fine", color))
             }
             out.println(info("--- check for preview releases @ maven ---", color))
-            pomMod.listGavsForCheck()
+            mod.listGavsForCheck()
               .filter(dep => ProjectMod.isUnwanted(dep.gav().simpleGav()))
               .filterNot(_.version.get.endsWith("-SNAPSHOT"))
               .foreach(dep => {
@@ -259,7 +272,7 @@ object Lint {
               })
             out.println(info("    WIP", color))
             out.println(info("--- check major versions @ ishop ---", color))
-            val mrc = Release.coreMajorResultOf(pomMod, None)
+            val mrc = Release.coreMajorResultOf(mod, None)
             if (mrc.hasDifferentMajors) {
               warnExit.set(true)
               out.println(warn(s"    Found core ${mrc.sortedMajors.mkString(", ")} ${fiWarn} ${fiCodeCoreDiff.apply(mrc)}", color, limit = lineMax))
@@ -295,7 +308,7 @@ object Lint {
             }
 
             try {
-              val updateResult = pomMod.showDependencyUpdates(120, Term.select("dumb", "lint", opts.simpleChars, isInteractice = false), opts.depUpOpts,
+              val updateResult = mod.showDependencyUpdates(120, Term.select("dumb", "lint", opts.simpleChars, isInteractice = false), opts.depUpOpts,
                 new Sys(null, out, err), printProgress = false)
               val snapUpdates = updateResult.filter(e => snaps.map(_.gav()).contains(e._1.gav))
               val releaseOfSnapshotPresent = snapUpdates.map(e => (e._1.gav, e._2._1.contains(e._1.gav.version.get.replaceFirst("-SNAPSHOT", ""))))
@@ -322,12 +335,12 @@ object Lint {
 
             out.println(info("    WIP", color))
           } else {
-            out.println(warn(s"    skipped because of previous problems - ${pomModTry.failed.get.getMessage} ${fiWarn}", color, limit = lineMax))
+            out.println(warn(s"    skipped because of previous problems - ${modTry.failed.get.getMessage} ${fiWarn}", color, limit = lineMax))
           }
           out.println(info("--- dep.tree @ maven ---", color))
           out.println(info("    WIP", color))
         }
-        if (rootFolderFiles.exists(_.getName == "build.sbt")) {
+        if (sbt.isDefined) {
           out.println(info("--- ??? @ sbt ---", color))
           out.println(info("    WIP", color))
         }

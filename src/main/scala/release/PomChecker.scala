@@ -38,6 +38,7 @@ object PomChecker {
       .filterNot(in => in.endsWith(".jpg"))
       .filterNot(in => in.matches(".*[/\\\\]src[/\\\\]test[/\\\\]resources[/\\\\]app\\-manifest.*"))
       .filterNot(in => in.endsWith("pom.xml"))
+      .filterNot(in => in.endsWith("build.sbt"))
     val snapsF = relevant
       .flatMap(findBadLines(pattern))
       .seq
