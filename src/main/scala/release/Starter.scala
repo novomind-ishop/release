@@ -1,5 +1,6 @@
 package release
 
+import com.google.common.base.Strings
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClients
@@ -272,6 +273,10 @@ object Starter extends LazyLogging {
       case Nil => inOpt
       case ("RELEASE_NO_GERRIT", k) :: tail => envRead(tail, {
         inOpt.copy(useGerrit = k.toBooleanOption.forall(b => !b))
+      })
+      case ("RELEASE_LINT_SKIP", k) :: tail => envRead(tail, {
+        val skips = Strings.nullToEmpty(k).split(",").toSeq.map(_.trim).distinct.filterNot(_.isEmpty)
+        inOpt.copy(lintOpts = inOpt.lintOpts.copy(skips = inOpt.lintOpts.skips ++ skips))
       })
       case (_, _) :: tail => envRead(tail, inOpt)
     }

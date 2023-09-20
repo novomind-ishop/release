@@ -258,7 +258,10 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
   @Test
   def testArgRead_noGerrit_env_false(): Unit = {
     Assert.assertEquals(Opts(skipProperties = Seq("a", "b")),
-      Starter.argsRead(Seq("--skip-property", "a", "--skip-property", "b"), Opts(), Map("RELEASE_NO_GERRIT" -> "false")))
+      Starter.argsRead(Seq("--skip-property", "a", "--skip-property", "b"), Opts(),
+        Map(
+          "RELEASE_NO_GERRIT" -> "false",
+        )))
   }
 
   @Test
@@ -296,10 +299,14 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
       Starter.argsRead(Seq("lint", "--help"), Opts()))
     assertArgs(Opts(lintOpts = LintOpts(doLint = true, showHelp = true), showStartupDone = false),
       Starter.argsRead(Seq("lint", "-h"), Opts()))
-    assertArgs(Opts(lintOpts = LintOpts(doLint = true, skips=Seq("RL1012-5a4ee54d", "a")), showStartupDone = false),
-      Starter.argsRead(Seq("lint", "--skip-RL1012-5a4ee54d", "--skip-a"), Opts()))
+    assertArgs(Opts(lintOpts = LintOpts(doLint = true, skips = Seq( "c", "D", "RL1012-5a4ee54d", "a")), showStartupDone = false),
+      Starter.argsRead(Seq("lint", "--skip-RL1012-5a4ee54d", "--skip-a"), Opts(), envs = Map(
+        "RELEASE_LINT_SKIP" -> "c,D,, ,c,,,",
+      )))
     assertArgs(Opts(lintOpts = LintOpts(doLint = true, waringsToErrors = true), showStartupDone = false),
-      Starter.argsRead(Seq("lint", "--strict"), Opts()))
+      Starter.argsRead(Seq("lint", "--strict"), Opts(), envs = Map(
+        "RELEASE_LINT_SKIP" -> null,
+      )))
   }
 
   @Test
@@ -319,7 +326,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
     Assert.assertEquals(opts, Starter.argsRead(Seq("--no-gerrit", "showDependencyUpdates", "--help", "", " ", "\t"), Opts()))
   }
 
-  def assertArgs(expected:Opts, current:Opts): Unit = {
+  def assertArgs(expected: Opts, current: Opts): Unit = {
     Assert.assertEquals(Util.show(expected), Util.show(current))
     Assert.assertEquals(expected, current)
   }
