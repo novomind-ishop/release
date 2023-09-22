@@ -174,8 +174,11 @@ object Lint {
         val ciCommitRefName = envs.get("CI_COMMIT_REF_NAME").orNull
         val ciCommitTag = envs.get("CI_COMMIT_TAG").orNull
         val rootFolderFiles = files.toSeq
+        var pomFailures:Seq[Exception] = Nil
         val pompom: Option[Try[ProjectMod]] = if (rootFolderFiles.exists(_.getName == "pom.xml")) {
-          Some(PomMod.withRepoTry(file, opts, repo))
+          Some(PomMod.withRepoTry(file, opts, repo, failureCollector = Some(e => {
+            pomFailures = pomFailures :+ e
+          })))
         } else {
           None
         }
@@ -346,6 +349,11 @@ object Lint {
             out.println(info("    WIP", color))
           } else {
             out.println(warn(s"    skipped because of previous problems - ${modTry.failed.get.getMessage} ${fiWarn}", color, limit = lineMax))
+            warnExit.set(true)
+          }
+          if (pomFailures.nonEmpty) {
+            out.println(warn(s"   previous problems - ${pomFailures.mkString("\n")} ${fiWarn}", color, limit = lineMax))
+            warnExit.set(true)
           }
           out.println(info("--- dep.tree @ maven ---", color))
           out.println(info("    WIP", color))

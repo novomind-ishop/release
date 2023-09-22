@@ -36,7 +36,7 @@ object FeatureBranch {
     sgit.createBranch(featureBranchName)
     sgit.checkout(featureBranchName)
 
-    val mod = PomMod.of(workDirFile, opts)
+    val mod = PomMod.of(workDirFile, opts, failureCollector = None)
     mod.changeVersion(featureSnapshot)
     mod.writeTo(workDirFile)
     sys.out.print("Committing pom changes ..")

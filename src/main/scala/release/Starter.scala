@@ -543,7 +543,7 @@ object Starter extends LazyLogging {
     if (opts.suggestDockerTag) {
 
       val file: File = new File(".").getAbsoluteFile
-      val pomModTry = PomMod.withRepoTry(file, opts, Repo.of(opts))
+      val pomModTry = PomMod.withRepoTry(file, opts, Repo.of(opts), failureCollector = None)
       val selfV = pomModTry.map(pm => pm.selfVersion).toOption
       val result = SuggestDockerTag.suggest(System.getenv("CI_COMMIT_REF_NAME"), System.getenv("CI_COMMIT_TAG"), selfV)
       out.println(result._1)
@@ -554,7 +554,7 @@ object Starter extends LazyLogging {
     }
     if (opts.showSelfGa) {
       val file: File = new File(".").getAbsoluteFile
-      val pomModTry = PomMod.withRepoTry(file, opts, Repo.of(opts))
+      val pomModTry = PomMod.withRepoTry(file, opts, Repo.of(opts), failureCollector = None)
       pomModTry.get.selfDepsModGavs().foreach(gav => out.println(gav.formatted))
       return 0
     }
@@ -619,7 +619,7 @@ object Starter extends LazyLogging {
       Tracer.withFn(logger, () => "local branches: " + git.listBranchNamesLocal())
       if (versionSetMode) {
         Release.checkLocalChanges(git, startBranch)
-        val mod = PomMod.of(workDirFile, opts)
+        val mod = PomMod.of(workDirFile, opts, failureCollector = None)
         val version = opts.versionSet.get
         val versionWithoutSnapshot = Term.removeTrailingSnapshots(version)
         mod.changeVersion(versionWithoutSnapshot + "-SNAPSHOT")
@@ -631,7 +631,7 @@ object Starter extends LazyLogging {
         }
       } else if (shopGASetMode) {
         Release.checkLocalChanges(git, startBranch)
-        val mod = PomMod.of(workDirFile, opts)
+        val mod = PomMod.of(workDirFile, opts, failureCollector = None)
         val groupIdArtifactIdLine = opts.shopGA.get
         mod.changeShopGroupArtifact(groupIdArtifactIdLine)
         mod.writeTo(workDirFile)

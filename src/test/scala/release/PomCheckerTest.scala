@@ -4,9 +4,11 @@ import org.junit.rules.TemporaryFolder
 import org.junit.{Assert, Rule, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.PomChecker.ValidationException
-import release.PomModTest.{document, pomfile}
+import release.PomModTest.{document, pomTestFile, pomfile}
 import release.ProjectMod.{Dep, Gav, PluginDep, PluginExec, SelfRef}
 import release.Starter.Opts
+
+import java.io.File
 
 class PomCheckerTest extends AssertionsForJUnit {
 
@@ -266,6 +268,19 @@ class PomCheckerTest extends AssertionsForJUnit {
       classOf[ValidationException], () => {
         PomChecker.checkRootFirstChildPropertiesVar(Opts().copy(skipProperties = Seq("valid")), Seq(pomfile(root), pomfile(child)))
       })
+
+    val srcPoms: File = pomTestFile(temp,root).sub("a", child).create()
+    val msg = "unnecessary/multiple property definition (move property to parent pom or remove from sub poms):\n" +
+      "  (p -> 1), (valid -> 1)\n" +
+      "      -> very.long.groupid.any:a-parent:1.0.0-SNAPSHOT\n" +
+      "      -> any:a:1.0.0-SNAPSHOT"
+    TestHelper.assertException(msg,
+      classOf[ValidationException], () => {
+        PomModTest.withRepoForTests(srcPoms, Repo.of(Opts()))
+      })
+    var failures:Seq[Exception] = Nil
+    PomModTest.withRepoForTests(srcPoms, Repo.of(Opts()), failureCollector = Some(e => failures = failures :+ e))
+    Assert.assertEquals(Seq(msg), failures.map(_.getMessage))
   }
 
   @Test

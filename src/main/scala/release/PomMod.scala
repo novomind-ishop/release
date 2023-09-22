@@ -25,7 +25,8 @@ import scala.collection.parallel.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
 case class PomMod(file: File, repo: Repo, opts: Opts,
-                  skipPropertyReplacement: Boolean = false, withSubPoms: Boolean) extends ProjectMod with LazyLogging {
+                  skipPropertyReplacement: Boolean = false, withSubPoms: Boolean,
+                  failureCollector: Option[Exception => Unit]) extends ProjectMod with LazyLogging {
   logger.trace("init pomMod")
   private var depMap: Map[Dep, Node] = Map.empty
 
@@ -102,12 +103,17 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
     Xpath.onlyString(Xpath.documentOfFile(rootPom), PomMod.xPathToProjectVersion)
   }
 
-  private def checkRootFirstChildProperties(): Unit = {
-    PomChecker.checkRootFirstChildPropertiesVar(opts, raws)
-  }
-
   val listProperties: Map[String, String] = {
-    checkRootFirstChildProperties()
+    if (failureCollector.isDefined) {
+      try {
+        PomChecker.checkRootFirstChildPropertiesVar(opts, raws)
+      } catch {
+        case e: Exception => failureCollector.get.apply(e)
+      }
+    } else {
+      PomChecker.checkRootFirstChildPropertiesVar(opts, raws)
+    }
+
     val allPropsFromDocs = allPomsDocs.flatMap(PomMod.createPropertyMap)
     val result = allPropsFromDocs.foldLeft(Map.empty[String, String])(_ + _)
     val selfVersion = Util.only(listSelf.map(_.version).distinct, "version")
@@ -385,7 +391,7 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
     filtered.map(_.groupId).contains("com.novomind.ishop.shops")
   }
 
-  private def replacedVersionProperty(dep: PluginDep):PluginDep = {
+  private def replacedVersionProperty(dep: PluginDep): PluginDep = {
     dep.copy(version = dep.version.map(replacedPropertyOf(listProperties, skipPropertyReplacement)))
   }
 
@@ -520,23 +526,23 @@ object PomMod {
     in.matches("^\\$\\{.+\\}$")
   }
 
-  def of(file: File, opts: Opts): PomMod = {
+  def of(file: File, opts: Opts, failureCollector: Option[Exception => Unit]): PomMod = {
     lazy val repo = Repo.of(opts)
-    withRepo(file, opts, repo)
+    withRepo(file, opts, repo, failureCollector = failureCollector)
   }
 
   def withRepoTry(file: File, opts: Opts, repo: Repo, skipPropertyReplacement: Boolean = false,
-                  withSubPoms: Boolean = true): Try[PomMod] = {
+                  withSubPoms: Boolean = true, failureCollector: Option[Exception => Unit]): Try[PomMod] = {
     try {
-      Success(withRepo(file, opts, repo, skipPropertyReplacement, withSubPoms))
+      Success(withRepo(file, opts, repo, skipPropertyReplacement, withSubPoms, failureCollector))
     } catch {
       case e: Exception => Failure(e)
     }
   }
 
   def withRepo(file: File, opts: Opts, repo: Repo, skipPropertyReplacement: Boolean = false,
-               withSubPoms: Boolean = true): PomMod = {
-    PomMod(file, repo, opts, skipPropertyReplacement, withSubPoms)
+               withSubPoms: Boolean = true,failureCollector: Option[Exception => Unit]): PomMod = {
+    PomMod(file, repo, opts, skipPropertyReplacement, withSubPoms, failureCollector)
   }
 
   case class DepTree(content: String)
@@ -668,7 +674,7 @@ object PomMod {
       "groupId" -> groupid.getOrElse(""),
       "artifactId" -> artifactId.getOrElse(""),
       "packaging" -> packaging.getOrElse(""),
-      ) ++ vT).toSeq
+    ) ++ vT).toSeq
       .map(t => (t._1, t._2, null)))
     pDep
   }

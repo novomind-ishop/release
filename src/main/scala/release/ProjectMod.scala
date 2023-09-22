@@ -50,7 +50,7 @@ object ProjectMod extends LazyLogging {
       if (showRead) {
         sys.out.print("I: Reading pom.xmls ..")
       }
-      PomMod.withRepo(workDirFile, opts, repo)
+      PomMod.withRepo(workDirFile, opts, repo, failureCollector = None)
     } else if (SbtMod.buildSbt(workDirFile).canRead) {
       if (showRead) {
         sys.out.print("I: Reading build.sbt ..")

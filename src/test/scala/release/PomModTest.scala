@@ -1752,8 +1752,8 @@ class PomModTest extends AssertionsForJUnit {
 object PomModTest {
 
   def withRepoForTests(file: File, repo: Repo, skipPropertyReplacement: Boolean = false,
-                       withSubPoms: Boolean = true): PomMod = {
-    PomMod(file, repo, Opts(), skipPropertyReplacement, withSubPoms)
+                       withSubPoms: Boolean = true, failureCollector: Option[Exception => Unit] = None): PomMod = {
+    PomMod(file, repo, Opts(), skipPropertyReplacement, withSubPoms, failureCollector)
   }
 
   def pomTestFile(temp: TemporaryFolder, root: Document, treeFileContent: String = ""): TestFileBuilder = {

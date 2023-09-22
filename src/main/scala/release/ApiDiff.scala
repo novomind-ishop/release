@@ -26,7 +26,7 @@ object ApiDiff {
     val repo = Repo.of(inOpt)
     val workDirFile = new File(".").getAbsoluteFile // TODO get this from other location
 
-    val pommod = PomMod.withRepo(workDirFile, inOpt, repo)
+    val pommod = PomMod.withRepo(workDirFile, inOpt, repo, failureCollector = None)
     val gavs = pommod.listSelf.map(mo => mo.gav())
 
     val gas = gavs
@@ -127,10 +127,10 @@ object ApiDiff {
 
             val aPoms = extractPomFile(ar.get._1, Files.createTempDirectory("release-").toFile)
             val bPoms = extractPomFile(br.get._1, Files.createTempDirectory("release-").toFile)
-            val modA = PomMod.withRepo(aPoms, inOpt, repo, skipPropertyReplacement = true, withSubPoms = false)
+            val modA = PomMod.withRepo(aPoms, inOpt, repo, skipPropertyReplacement = true, withSubPoms = false, None)
             val aDeps = modA.listDependencies
             val selfA = modA.selfDepsMod.map(_.gav().simpleGav())
-            val modB = PomMod.withRepo(bPoms, inOpt, repo, skipPropertyReplacement = true, withSubPoms = false)
+            val modB = PomMod.withRepo(bPoms, inOpt, repo, skipPropertyReplacement = true, withSubPoms = false, None)
             val bDeps = modB.listDependencies
 
             val selfB = modB.selfDepsMod.map(_.gav().simpleGav())
