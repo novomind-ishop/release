@@ -219,7 +219,8 @@ object ProjectMod extends LazyLogging {
     def simpleGav() = Gav3(groupId, artifactId, version)
 
     def feelsUnusual(): Boolean = {
-      Gav.isUnusualElementValue(groupId) || Gav.isUnusualElementValue(artifactId) || (version.isDefined && Gav.isUnusualElementValue(version.get)) ||
+      Gav.isUnusualElementValue(groupId) || Gav.isUnusualElementValue(artifactId) ||
+        (version.isDefined && (Gav.isUnusualElementValue(version.get) || version.get == "RELEASE" || version.get == "LATEST")) ||
         Gav.isUnusualElementValue(packageing) || Gav.isUnusualElementValue(classifier) || Gav.isUnknownScope(scope)
     }
 
@@ -425,9 +426,10 @@ object ProjectMod extends LazyLogging {
         }
 
         val selectedVersions: Seq[String] = if (depUpOpts.filter.isDefined) {
-          newerVersions.map(v => dep.copy(version = Some(v)))
+          val value = newerVersions.map(v => dep.copy(version = Some(v)))
             .filter(gav => depUpOpts.filter.get.matches(gav.formatted))
             .map(_.version.get)
+          value
         } else if (depUpOpts.hideStageVersions) {
           ProjectMod.normalizeUnwantedVersions(dep, newerVersions)
         } else {

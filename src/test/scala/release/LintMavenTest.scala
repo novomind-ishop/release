@@ -78,6 +78,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
@@ -145,6 +146,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
@@ -215,6 +217,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
         |[WARNING]  😬 unknown remote HEAD found, corrupted remote -- repair please
@@ -287,6 +290,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
@@ -381,6 +385,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
@@ -401,7 +406,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
         |[INFO] --- check for preview releases @ maven ---
-        |[warning]   found preview: org.springframework:spring-context:1.0.0-M1 😬
+        |[WARNING]   found preview: org.springframework:spring-context:1.0.0-M1 😬
+        |[WARNING]        next    : org.springframework:spring-context:1.0.1
+        |[WARNING]        previous: org.springframework:spring-context:0.99.99
         |[INFO]     WIP
         |[INFO] --- check major versions @ ishop ---
         |[INFO]     ✅ no major version diff
@@ -474,6 +481,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
@@ -575,6 +583,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
@@ -668,6 +677,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
@@ -758,6 +768,21 @@ class LintMavenTest extends AssertionsForJUnit {
         |    </dependency>
         |    <dependency>
         |      <groupId>org.springframework</groupId>
+        |      <artifactId>spring-context-range</artifactId>
+        |      <version>(,1.0],[1.2,)</version>
+        |    </dependency>
+        |    <dependency>
+        |      <groupId>org.springframework</groupId>
+        |      <artifactId>spring-context-release</artifactId>
+        |      <version>RELEASE</version>
+        |    </dependency>
+        |    <dependency>
+        |      <groupId>org.springframework</groupId>
+        |      <artifactId>spring-context-latest</artifactId>
+        |      <version>LATEST</version>
+        |    </dependency>
+        |    <dependency>
+        |      <groupId>org.springframework</groupId>
         |      <artifactId>spring-context-empty</artifactId>
         |      <version></version>
         |    </dependency>
@@ -773,6 +798,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
@@ -795,7 +821,12 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for snapshots @ maven ---
         |[warning]   found snapshot: org.springframework:spring-context:1.0.1-SNAPSHOT 😬 RL1011-ea7ea019
         |[INFO] --- check for GAV format @ maven ---
-        |[INFO]     ✅ all GAVs scopes looks fine
+        |[WARNING] org.springframework:spring-context-range:(,1.0],[1.2,) uses unusual format, please repair 😬 RL1010-92f68063
+        |[WARNING] org.springframework:spring-context-release:RELEASE uses unusual format, please repair 😬 RL1010-d484eb4f
+        |[WARNING] org.springframework:spring-context-latest:LATEST uses unusual format, please repair 😬 RL1010-94d64e99
+        |[INFO] known scopes are: compile, import, provided, runtime, system, test
+        |[INFO] version ranges are not allowed
+        |[INFO] unstable marker like LATEST and RELEASE are not allowed
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
         |[INFO] --- check major versions @ ishop ---
@@ -805,7 +836,15 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     RELEASE_NEXUS_WORK_URL=null # (no ip)
         |I: checking dependecies against nexus - please wait
         |
-        |I: checked 1 dependecies in 999ms (2000-01-01)
+        |I: checked 4 dependecies in 999ms (2000-01-01)
+        |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
+        |╠═╦═ org.springframework:spring-context-latest:LATEST
+        |║ ╚═══ 1.0.0
+        |╠═╦═ org.springframework:spring-context-range:(,1.0],[1.2,)
+        |║ ╚═══ 1.0.0
+        |╠═╦═ org.springframework:spring-context-release:RELEASE
+        |║ ╚═══ 1.0.0
+        |║
         |[ERROR] invalid empty versions:
         |org.springframework:spring-context-empty
         |org.springframework:spring-context-blank 😬 RL1008
@@ -825,7 +864,7 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
-        .thenReturn(Seq("1.0.1-SNAPSHOT"))
+        .thenReturn(Seq("1.0.1-SNAPSHOT", "1.0.0"))
       System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, file))
     })
 
@@ -875,6 +914,9 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO] --- skip-conf / self ---
+        |[INFO]     skips: RL1012-d3421ec9
+        |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
@@ -899,6 +941,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for GAV format @ maven ---
         |[WARNING] org.springframework:spring-other:1.0.0-SNAPSHOT:bert uses unusual format, please repair 😬 RL1010-bd849fd4
         |[INFO] known scopes are: compile, import, provided, runtime, system, test
+        |[INFO] version ranges are not allowed
+        |[INFO] unstable marker like LATEST and RELEASE are not allowed
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
         |[INFO] --- check major versions @ ishop ---
@@ -985,6 +1029,9 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO] --- skip-conf / self ---
+        |[INFO]     skips: RL1012-637a4930
+        |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
@@ -1043,6 +1090,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please

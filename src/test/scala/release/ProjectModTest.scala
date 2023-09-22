@@ -121,6 +121,15 @@ class ProjectModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testGav(): Unit = {
+    Assert.assertTrue(Gav("g", "a", "v", scope = "john").feelsUnusual())
+    Assert.assertFalse(Gav("g", "a", "v").feelsUnusual())
+    Assert.assertTrue(Gav("g", "a", "()").feelsUnusual())
+    Assert.assertTrue(Gav("g", "a", "RELEASE").feelsUnusual())
+    Assert.assertTrue(Gav("g", "a", "LATEST").feelsUnusual())
+  }
+
+  @Test
   def testGroupSortReleases(): Unit = {
 
     val result = ProjectMod.groupSortReleases(Seq(

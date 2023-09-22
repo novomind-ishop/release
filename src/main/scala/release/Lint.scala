@@ -89,7 +89,12 @@ object Lint {
         out.println(error(center("[ end of lint ]"), color))
         return 1
       } else {
+        if (opts.lintOpts.skips.nonEmpty) {
+          out.println(info("--- skip-conf / self ---", color))
+          out.println(info(s"    skips: " + opts.lintOpts.skips.mkString(", "), color, limit = lineMax))
+        }
         val sgit = Sgit(file, doVerify = false, out = out, err = err, checkExisting = true, gitBin = None, opts = Opts())
+        out.println(info("--- version / git ---", color))
         out.println(info(s"    ${fiFine} git version: " + sgit.version(), color))
         out.println(info("--- check clone config / remote @ git ---", color))
         val remoteHeadDefinition = sgit.remoteHead()
@@ -169,12 +174,12 @@ object Lint {
         val ciCommitRefName = envs.get("CI_COMMIT_REF_NAME").orNull
         val ciCommitTag = envs.get("CI_COMMIT_TAG").orNull
         val rootFolderFiles = files.toSeq
-        val pompom:Option[Try[ProjectMod]] = if (rootFolderFiles.exists(_.getName == "pom.xml")) {
+        val pompom: Option[Try[ProjectMod]] = if (rootFolderFiles.exists(_.getName == "pom.xml")) {
           Some(PomMod.withRepoTry(file, opts, repo))
         } else {
           None
         }
-        val sbt:Option[Try[ProjectMod]] = if (rootFolderFiles.exists(_.getName == "build.sbt")) {
+        val sbt: Option[Try[ProjectMod]] = if (rootFolderFiles.exists(_.getName == "build.sbt")) {
           Some(Success(SbtMod.withRepo(file, opts, repo)))
         } else {
           None
@@ -259,6 +264,8 @@ object Lint {
                 out.println(warn(s"${found.formatted} uses unusual format, please repair ${fiWarn} ${fiCodeUnusualGav.apply(found)}", color, limit = lineMax))
               })
               out.println(info(s"known scopes are: ${ProjectMod.knownScopes.filterNot(_.isEmpty).toSeq.sorted.mkString(", ")}", color))
+              out.println(info(s"version ranges are not allowed", color))
+              out.println(info(s"unstable marker like LATEST and RELEASE are not allowed", color))
               warnExit.set(true)
             } else {
               out.println(info(s"    ${fiFine} all GAVs scopes looks fine", color))
@@ -268,7 +275,10 @@ object Lint {
               .filter(dep => ProjectMod.isUnwanted(dep.gav().simpleGav()))
               .filterNot(_.version.get.endsWith("-SNAPSHOT"))
               .foreach(dep => {
-                out.println(warnSoft("  found preview: " + dep.gav().formatted + s" ${fiWarn}", color, limit = lineMax))
+                out.println(warn("  found preview: " + dep.gav().formatted + s" ${fiWarn}", color, limit = lineMax))
+                // FIXME use update for next/previous later
+                out.println(warn("       next    : "+ dep.gav().copy(version = Some("1.0.1")).formatted, color, limit = lineMax))
+                out.println(warn("       previous: "+ dep.gav().copy(version = Some("0.99.99")).formatted, color, limit = lineMax))
               })
             out.println(info("    WIP", color))
             out.println(info("--- check major versions @ ishop ---", color))
