@@ -5,6 +5,7 @@ import org.mockito.ArgumentMatchers.anyString
 import org.mockito.MockitoSugar._
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.ProjectMod.{Dep, Gav, Gav3, GavWithRef, SelfRef}
+import release.ProjectModTest.MockMod
 import release.SbtModTest.d
 import release.Starter.OptsDepUp
 
@@ -16,8 +17,8 @@ object ProjectModTest {
   class MockMod extends ProjectMod {
 
     override val file: File = new File("")
-    override val repo: Repo = null
     override val opts: Starter.Opts = Starter.Opts()
+    override lazy val repo: Repo = throw new IllegalStateException("use a mock please")
     override val selfVersion: String = "???"
     override val listDependencies: Seq[ProjectMod.Dep] = Nil
     override val listPluginDependencies: Seq[ProjectMod.PluginDep] = Nil
@@ -65,17 +66,18 @@ class ProjectModTest extends AssertionsForJUnit {
 
     val term = Term.select("xterm", "os", simpleChars = false, isInteractice = false)
     val rootDeps: Seq[ProjectMod.Dep] = Seq(scala)
-    val selfDepsMod: Seq[ProjectMod.Dep] = Nil
-    val repo = mock[Repo]
-    when(repo.getRelocationOf(anyString(), anyString(), anyString())).thenReturn(None)
-    when(repo.newerVersionsOf(scala.groupId, scala.artifactId, scala.version.get)).thenReturn(Seq(scala.version.get, "2.13.1"))
-    when(repo.depDate(scala.groupId, scala.artifactId, scala.version.get)).thenReturn(Some(now))
-    when(repo.depDate(scala.groupId, scala.artifactId, "2.13.1")).thenReturn(Some(now))
-    when(repo.newerVersionsOf(scala.groupId, "scala3-library_3", "-1")).thenReturn(Seq("-1", "3.0.1"))
-    when(repo.depDate(scala.groupId, "scala3-library_3", "-1")).thenReturn(None)
+    val selfDepsModX: Seq[ProjectMod.Dep] = Nil
+    val repoMock = mock[Repo]
+    when(repoMock.getRelocationOf(anyString(), anyString(), anyString())).thenReturn(None)
+    when(repoMock.newerVersionsOf(scala.groupId, scala.artifactId, scala.version.get)).thenReturn(Seq(scala.version.get, "2.13.1"))
+    when(repoMock.depDate(scala.groupId, scala.artifactId, scala.version.get)).thenReturn(Some(now))
+    when(repoMock.depDate(scala.groupId, scala.artifactId, "2.13.1")).thenReturn(Some(now))
+    when(repoMock.newerVersionsOf(scala.groupId, "scala3-library_3", "-1")).thenReturn(Seq("-1", "3.0.1"))
+    when(repoMock.depDate(scala.groupId, "scala3-library_3", "-1")).thenReturn(None)
     val result = TermTest.withOutErr[Unit]()(sys => {
+      val opts = OptsDepUp().copy(showLibYears = true)
       val innerResult: Seq[(GavWithRef, (Seq[String], Duration))] = ProjectMod.showDependencyUpdates(100, term,
-        OptsDepUp().copy(showLibYears = true), rootDeps, selfDepsMod, Seq(repo), sys,
+        opts, rootDeps, selfDepsModX, Seq(repoMock), sys,
         printProgress = true, checkOnline = false)
 
       val sca1 = GavWithRef(SelfRef.undef, Gav("org.scala-lang", "scala-library", "2.13.0"))
@@ -83,6 +85,15 @@ class ProjectModTest extends AssertionsForJUnit {
       val sca2 = GavWithRef(SelfRef.undef, Gav("org.scala-lang", "scala3-library_3", "-1"))
       val scala3 = (sca2, (Seq("3.0.1"), Duration.ofDays(-1)))
       Assert.assertEquals(Seq(scala2, scala3), innerResult)
+      val resultMod = new MockMod {
+
+        override lazy val repo: Repo = repoMock
+
+        override private[release] def listGavsForCheck() = rootDeps
+
+        override val selfDepsMod: Seq[Dep] = selfDepsModX
+      }.showDependencyUpdates(100, term, opts, sys, printProgress = true, checkOn = false)
+      Assert.assertEquals(Seq(scala2, scala3), resultMod)
     })
     Assert.assertEquals("", result.err)
   }
@@ -182,11 +193,16 @@ class ProjectModTest extends AssertionsForJUnit {
     val term = Term.select("xterm", "os", simpleChars = false, isInteractice = false)
     val rootDeps: Seq[ProjectMod.Dep] = Nil
     val selfDepsMod: Seq[ProjectMod.Dep] = Nil
-    val repo = mock[Repo]
+    val repoMock = mock[Repo]
     val result = TermTest.withOutErr[Unit]()(sys => {
       val innerResult = ProjectMod.showDependencyUpdates(100, term,
-        OptsDepUp(), rootDeps, selfDepsMod, Seq(repo), sys, printProgress = true, checkOnline = false)
+        OptsDepUp(), rootDeps, selfDepsMod, Seq(repoMock), sys, printProgress = true, checkOnline = false)
+
       Assert.assertEquals(Nil, innerResult)
+      val resultMod = new MockMod() {
+        override lazy val repo: Repo = repoMock
+      }.showDependencyUpdates(100, term, OptsDepUp(), sys, printProgress = true, checkOn = false)
+      Assert.assertEquals(Nil, resultMod)
     })
     Assert.assertEquals("", result.err)
     val filteredOut = result.out
@@ -201,6 +217,9 @@ class ProjectModTest extends AssertionsForJUnit {
       .mkString("\n")
     Assert.assertEquals(
       """
+        |I: checking dependecies against nexus - please wait
+        |I: checked 0 dependecies in ...
+        |term: Term(xterm,os,false,false)
         |I: checking dependecies against nexus - please wait
         |I: checked 0 dependecies in ...
         |term: Term(xterm,os,false,false)

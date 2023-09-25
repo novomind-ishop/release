@@ -280,8 +280,8 @@ object Lint {
               .foreach(dep => {
                 out.println(warn("  found preview: " + dep.gav().formatted + s" ${fiWarn}", color, limit = lineMax))
                 // FIXME use update for next/previous later
-                out.println(warn("       next    : "+ dep.gav().copy(version = Some("1.0.1")).formatted, color, limit = lineMax))
-                out.println(warn("       previous: "+ dep.gav().copy(version = Some("0.99.99")).formatted, color, limit = lineMax))
+                out.println(warn("       next     WIP: "+ dep.gav().copy(version = Some("1.0.1")).formatted, color, limit = lineMax))
+                out.println(warn("       previous WIP: "+ dep.gav().copy(version = Some("0.99.99")).formatted, color, limit = lineMax))
               })
             out.println(info("    WIP", color))
             out.println(info("--- check major versions @ ishop ---", color))

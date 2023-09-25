@@ -3,13 +3,14 @@ package release
 import com.google.common.base.Stopwatch
 import com.typesafe.scalalogging.LazyLogging
 import release.PomMod.{abbreviate, selectFirstVersionFrom, selfDep, unmanaged}
-import release.ProjectMod.{Dep, Gav3, PluginDep}
+import release.ProjectMod.{Dep, Gav3, PluginDep, UpdatePrinter}
 import release.Starter.{Opts, OptsDepUp, PreconditionsException}
 
 import java.io.{File, PrintStream}
 import java.time.{Duration, LocalDate, Period}
 import java.util.concurrent.TimeUnit
 import scala.annotation.tailrec
+import scala.collection.immutable.Seq
 import scala.collection.parallel.CollectionConverters._
 
 object ProjectMod extends LazyLogging {
@@ -206,7 +207,7 @@ object ProjectMod extends LazyLogging {
   case class Gav3(groupId: String, artifactId: String, version: Option[String]) {
     def toDep(pomRef: SelfRef): Dep = Dep(pomRef, groupId, artifactId, version, "", "", "", "")
 
-    def toGav():Gav = Gav(groupId, artifactId, version)
+    def toGav(): Gav = Gav(groupId, artifactId, version)
 
     def formatted: String = Gav.format(Seq(groupId, artifactId, version.getOrElse("")))
 
@@ -463,9 +464,10 @@ object ProjectMod extends LazyLogging {
     updates
   }
 
-  def showDependencyUpdates(shellWidth: Int, termOs: Term, depUpOpts: OptsDepUp,
-                            rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], repos: Seq[Repo],
-                            sys: Term.Sys, printProgress: Boolean, checkOnline: Boolean): Seq[(GavWithRef, (Seq[String], Duration))] = {
+  class UpdatePrinter(val shellWidth: Int, val termOs: Term, val sys: Term.Sys, val printProgress: Boolean)
+
+  def collectDependencyUpdates(updatePrinter: UpdatePrinter, depUpOpts: OptsDepUp,
+                               rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], repos: Seq[Repo], checkOnline: Boolean): Seq[(GavWithRef, (Seq[String], Duration))] = {
     val repo = repos.head // TODO work with all repos
     if (checkOnline) {
       val reachableResult = repo.isReachable(false)
@@ -475,7 +477,7 @@ object ProjectMod extends LazyLogging {
     }
     val now = LocalDate.now()
     val stopw = Stopwatch.createStarted()
-    sys.out.println("I: checking dependecies against nexus - please wait")
+    updatePrinter.sys.out.println("I: checking dependecies against nexus - please wait")
 
     val selfSimple = selfDepsMod.map(_.gav().simpleGav()).distinct
     val relevant: Seq[Dep] = rootDeps
@@ -502,9 +504,9 @@ object ProjectMod extends LazyLogging {
 
     val value: Seq[Gav3] = prepared
       .flatMap(ProjectMod.relocateGavs(prepared, repo))
-    val updates = checkForUpdates(value, shellWidth, depUpOpts, repo, sys, printProgress)
+    val updates = checkForUpdates(value, updatePrinter.shellWidth, depUpOpts, repo, updatePrinter.sys, updatePrinter.printProgress)
 
-    sys.out.println(s"I: checked ${value.size} dependecies in ${stopw.elapsed(TimeUnit.MILLISECONDS)}ms (${now.toString})")
+    updatePrinter.sys.out.println(s"I: checked ${value.size} dependecies in ${stopw.elapsed(TimeUnit.MILLISECONDS)}ms (${now.toString})")
 
     // TODO move Version check to here
 
@@ -522,8 +524,8 @@ object ProjectMod extends LazyLogging {
       val ref: SelfRef = element._1
       val mods: Seq[(GavWithRef, (Seq[String], Duration))] = element._2
 
-      def ch(pretty: String, simple: String) = if (!termOs.isCygwin || termOs.isMinGw) {
-        if (termOs.simpleChars) {
+      def ch(pretty: String, simple: String) = if (!updatePrinter.termOs.isCygwin || updatePrinter.termOs.isMinGw) {
+        if (updatePrinter.termOs.simpleChars) {
           simple
         } else {
           pretty
@@ -532,7 +534,7 @@ object ProjectMod extends LazyLogging {
         simple
       }
 
-      sys.out.println(ch("║ ", "| ") + "Project GAV: " + ref.id)
+      updatePrinter.sys.out.println(ch("║ ", "| ") + "Project GAV: " + ref.id)
       mods.sortBy(_._1.toString).foreach((subElement: (GavWithRef, (Seq[String], Duration))) => {
 
         val o: Seq[String] = subElement._2._1
@@ -545,27 +547,27 @@ object ProjectMod extends LazyLogging {
           ""
         }
         if (majorVersions != Nil) {
-          sys.out.println(ch("╠═╦═ ", "+-+- ") + subElement._1.gav.formatted)
+          updatePrinter.sys.out.println(ch("╠═╦═ ", "+-+- ") + subElement._1.gav.formatted)
         } else {
-          sys.out.println(ch("╠═══ ", "+--- ") + subElement._1.gav.formatted)
+          updatePrinter.sys.out.println(ch("╠═══ ", "+--- ") + subElement._1.gav.formatted)
         }
 
         if (majorVersions.size == 1) {
-          sys.out.println(ch("║ ╚═══ ", "| +--- ") +
+          updatePrinter.sys.out.println(ch("║ ╚═══ ", "| +--- ") +
             abbreviate(depUpOpts.versionRangeLimit)(majorVersions.head._2).mkString(", ") + libyear)
         } else {
           if (majorVersions != Nil) {
             majorVersions.tail.reverse.foreach(el => {
-              sys.out.println(ch("║ ╠═══ ", "| +--- ") + "(" + el._1 + ") " +
+              updatePrinter.sys.out.println(ch("║ ╠═══ ", "| +--- ") + "(" + el._1 + ") " +
                 abbreviate(depUpOpts.versionRangeLimit)(el._2).mkString(", "))
             })
-            sys.out.println(ch("║ ╚═══ ", "| +--- ") + "(" + majorVersions.head._1 + ") " +
+            updatePrinter.sys.out.println(ch("║ ╚═══ ", "| +--- ") + "(" + majorVersions.head._1 + ") " +
               abbreviate(depUpOpts.versionRangeLimit)(majorVersions.head._2).mkString(", ") + libyear)
           }
         }
 
       })
-      sys.out.println(ch("║", "|"))
+      updatePrinter.sys.out.println(ch("║", "|"))
     })
 
     {
@@ -579,29 +581,29 @@ object ProjectMod extends LazyLogging {
         .filter(_._2._1 == Nil)
       if (versionNotFound.nonEmpty) {
         // TODO throw new PreconditionsException
-        sys.err.println("Non existing dependencies for:\n" +
+        updatePrinter.sys.err.println("Non existing dependencies for:\n" +
           versionNotFound.toList.map(in => in._1.formatted + "->" + (in._2._1 match {
             case Nil => "Nil"
             case e => e
           }) + "\n  " + repo.workNexusUrl() + in._1.slashedMeta).sorted.mkString("\n"))
-        sys.err.println()
+        updatePrinter.sys.err.println()
       }
     }
 
     {
       val unmangedVersions = unmanaged(emptyVersions, relevantGav)
       if (unmangedVersions != Nil) {
-        sys.err.println("Empty or managed versions found:")
-        unmangedVersions.map(_.simpleGav()).foreach(sys.err.println)
-        sys.err.println()
+        updatePrinter.sys.err.println("Empty or managed versions found:")
+        unmangedVersions.map(_.simpleGav()).foreach(updatePrinter.sys.err.println)
+        updatePrinter.sys.err.println()
       }
     }
 
-    sys.out.println("term: " + termOs)
+    updatePrinter.sys.out.println("term: " + updatePrinter.termOs)
     if (depUpOpts.showLibYears) {
       // https://libyear.com/
       // https://ericbouwers.github.io/papers/icse15.pdf
-      sys.out.println()
+      updatePrinter.sys.out.println()
       val durations = updates
         .filter(t => if (depUpOpts.filter.isEmpty) {
           true
@@ -612,14 +614,21 @@ object ProjectMod extends LazyLogging {
       val sum = durations.foldLeft(Duration.ZERO)((a, b) => a.plus(b))
       val period: Period = Period.between(now, now.plusDays(sum.toDays))
       if (durations.exists(_.isNegative)) {
-        sys.out.println("WARN: negative durations for:")
+        updatePrinter.sys.out.println("WARN: negative durations for:")
         updates
           .filter(_._2._2.isNegative)
           .foreach(e => println(s"${e._1} ${e._2._2.toString}"))
       }
-      sys.out.println(s"libyears: ${period.getYears}.${period.getMonths} (${sum.toDays} days)")
+      updatePrinter.sys.out.println(s"libyears: ${period.getYears}.${period.getMonths} (${sum.toDays} days)")
     }
     allWithUpdate
+  }
+
+
+  def showDependencyUpdates(shellWidth: Int, termOs: Term, depUpOpts: OptsDepUp,
+                            rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], repos: Seq[Repo],
+                            sys: Term.Sys, printProgress: Boolean, checkOnline: Boolean): Seq[(GavWithRef, (Seq[String], Duration))] = {
+    collectDependencyUpdates(new UpdatePrinter(shellWidth, termOs, sys, printProgress), depUpOpts, rootDeps, selfDepsMod, repos, checkOnline)
   }
 
 }
@@ -644,12 +653,14 @@ trait ProjectMod extends LazyLogging {
   val listProperties: Map[String, String]
   val skipPropertyReplacement: Boolean
 
+
   def showDependencyUpdates(shellWidth: Int, termOs: Term, depUpOpts: OptsDepUp,
-                            sys: Term.Sys, printProgress: Boolean): Seq[(ProjectMod.GavWithRef, (Seq[String], Duration))] = {
+                            sys: Term.Sys, printProgress: Boolean, checkOn:Boolean = true): Seq[(ProjectMod.GavWithRef, (Seq[String], Duration))] = {
     val depForCheck: Seq[Dep] = listGavsForCheck()
     val sdm = selfDepsMod
-    val result = ProjectMod.showDependencyUpdates(shellWidth, termOs, depUpOpts,
-      depForCheck, sdm, Seq(repo), sys, printProgress, checkOnline = true)
+    val result = ProjectMod.collectDependencyUpdates(updatePrinter =
+      new UpdatePrinter(shellWidth = shellWidth, termOs = termOs, sys = sys, printProgress = printProgress),
+      depUpOpts = depUpOpts, rootDeps = depForCheck, selfDepsMod = sdm, repos = Seq(repo), checkOnline = checkOn)
     if (depUpOpts.changeToLatest) {
       val localDepUpFile = new File(file, ".release-dependency-updates")
       val fn: (Gav3, Seq[String]) => String = if (localDepUpFile.canRead) {
