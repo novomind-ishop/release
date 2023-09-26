@@ -31,6 +31,9 @@ class RepoTest extends AssertionsForJUnit {
     // scalatest_2.13-3.2.3-javadoc.jar                  2020-11-07 10:27       189
     // Some(2020-08-21T13:40:36Z)
     // Assert.assertFalse(repo.existsGav("com.novomind.ishop.exi", "ext-b2c", "0.0.1-BERT"))
+    println(repo.newerAndPrevVersionsOf("com.google.guava", "guava", "32.1.2-jre"))
+    return
+    println(repo.newerAndPrevVersionsOf("org.scala-lang", "scala3-library_3", "3.0.1-RC1"))
     println(repo.getRelocationOf("org.scala-lang", "scala-library", "-1"))
     println(repo.newerVersionsOf("org.scala-lang", "scala3-library_3", "-1"))
     println(repo.latestGav("com.google.guava", "guava", "32.1.2-jre"))
@@ -38,6 +41,37 @@ class RepoTest extends AssertionsForJUnit {
     println(repo.latestGav("com.google.guava", "guava", "0.1.2-jre"))
     println(repo.latestGav("com.google.guava", "guava", "32.1.2-jre-SNAPSHOT"))
     println(repo.latestGav("com.google.guava", "guava", "1.0.0-SNAPSHOT"))
+  }
+
+  @Test
+  def testNewerAndPrevVersionsOf(): Unit = {
+    Assert.assertEquals(Seq("32.1.1-jre", "32.1.1-android", "32.1.2-jre", "32.1.2-android"),
+      Repo.convertNewerAndPrefVersions("com.google.guava", "guava", "32.1.2-jre",
+        k => Seq("31.0-android", "31.0-jre", "31.0.1-android", "31.0.1-jre", "31.1-android", "31.1-jre",
+          "32.0.0-android", "32.0.0-jre", "32.0.1-android", "32.0.1-jre", "32.1.0-android", "32.1.0-jre",
+          "32.1.1-android", "32.1.1-jre", "32.1.2-android", "32.1.2-jre")))
+  }
+
+  @Test
+  def testNewerAndPrevVersionsOf_latest(): Unit = {
+    Assert.assertEquals(Seq("32.1.2-jre", "32.1.2-android"),
+      Repo.convertNewerAndPrefVersions("com.google.guava", "guava", "LATEST",
+        k => Seq("31.0-android", "31.0-jre", "31.0.1-android", "31.0.1-jre", "31.1-android", "31.1-jre",
+          "32.0.0-android", "32.0.0-jre", "32.0.1-android", "32.0.1-jre", "32.1.0-android", "32.1.0-jre",
+          "32.1.1-android", "32.1.1-jre", "32.1.2-android", "32.1.2-jre")))
+  }
+
+  @Test
+  def testNewerAndPrevVersionsOf_simple(): Unit = {
+    Assert.assertEquals(Seq("0.9.9", "1.0.0-M1", "1.0.0"),
+      Repo.convertNewerAndPrefVersions("org.example", "example", "1.0.0-M1",
+        k => Seq("1.0.0-M1", "0.9.9", "1.0.0")))
+  }
+
+  @Test
+  def testNewerAndPrevVersionsOf_empty(): Unit = {
+    Assert.assertEquals(Nil,
+      Repo.convertNewerAndPrefVersions("com.google.guava", "guava", "LATEST", k => Nil))
   }
 
   @Test

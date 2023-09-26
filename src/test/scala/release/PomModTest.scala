@@ -306,6 +306,27 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testMavenUpdateFormat(): Unit = {
+    val mavenRuleset = <ruleset comparisonMethod="maven"
+                     xmlns="http://mojo.codehaus.org/versions-maven-plugin/rule/2.0.0"
+                     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                     xsi:schemaLocation="http://mojo.codehaus.org/versions-maven-plugin/rule/2.0.0
+        http://mojo.codehaus.org/versions-maven-plugin/xsd/rule-2.0.0.xsd">
+      <rules>
+        <ignoreVersions>
+          <ignoreVersion type="regex">.*-beta</ignoreVersion>
+        </ignoreVersions>
+        <rule groupId="com.mycompany.maven" comparisonMethod="maven">
+          <ignoreVersions>
+            <ignoreVersion type="regex">.*-RELEASE</ignoreVersion>
+            <ignoreVersion>2.1.0</ignoreVersion>
+          </ignoreVersions>
+        </rule>
+      </rules>
+    </ruleset>
+  }
+
+  @Test
   @Ignore
   def writeSelf(): Unit = {
     // GIVEN
@@ -1742,10 +1763,11 @@ class PomModTest extends AssertionsForJUnit {
 
   @Test
   def testNormalizeUnwanted(): Unit = {
-    val gav = Gav3("some.group", "artifcat", "version")
+    val gav = Gav3("some.group", "artifcat", "1.0.0-M1")
     val result = ProjectMod.normalizeUnwantedVersions(gav,
-      Seq("a", "beta", "3.0.2-rc", "2019-03-15T05-03-30-4d2c0d53", "2018-11-16T06-01-54-efdaa48-ignored-chars", "2018-06-04T04-23-07"))
-    Assert.assertEquals(Seq("a"), result)
+      Seq("a", "beta", "3.0.2-rc", "2019-03-15T05-03-30-4d2c0d53", "2018-11-16T06-01-54-efdaa48-ignored-chars", "2018-06-04T04-23-07",
+        "1.0.0-M1", "1.0.0-M2"))
+    Assert.assertEquals(Seq("1.0.0-M1", "a"), result)
   }
 }
 

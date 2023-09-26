@@ -8,14 +8,14 @@ import org.scalatestplus.junit.AssertionsForJUnit
 class StatusLineTest extends AssertionsForJUnit {
   var outContent: ByteArrayOutputStream = _
   var errContent: ByteArrayOutputStream = _
-  var outStream: PrintStream = _
+  var outStream: StatusPrinter = _
   var errStream: PrintStream = _
 
   @Before
   def setUpStreams(): Unit = {
     outContent = new ByteArrayOutputStream()
     errContent = new ByteArrayOutputStream()
-    outStream = new PrintStream(outContent)
+    outStream = StatusPrinter.ofPrintStream(new PrintStream(outContent))
     errStream = new PrintStream(errContent)
   }
 

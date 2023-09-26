@@ -1,6 +1,5 @@
 package release
 
-import com.google.googlejavaformat.java.Formatter
 import org.junit.rules.TemporaryFolder
 import org.junit.{Assert, Rule, Test}
 import org.mockito.{ArgumentMatchers, Mockito}
@@ -21,7 +20,6 @@ class LintSbtTest extends AssertionsForJUnit {
       .replaceAll("[a-f0-9]{40}$", "affe4533042ef887a5477d73d958814317675be1")
       .replaceAll("dependecies in [0-9]+ms \\([0-9]{4}-[0-9]{2}-[0-9]{2}\\)", "dependecies in 999ms (2000-01-01)")
   }
-
 
   @Test
   def testWorkUrl(): Unit = {
@@ -74,7 +72,6 @@ class LintSbtTest extends AssertionsForJUnit {
         |╠═╦═ org.scala-lang:scala3-library_3:-1
         |║ ╚═══ 1.0.0
         |║
-        |term: Term(dumb,lint,false,false)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -92,7 +89,7 @@ class LintSbtTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
-      Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(Seq("1.0.0"))
 
       System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, fileB))

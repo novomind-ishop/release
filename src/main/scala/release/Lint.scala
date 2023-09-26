@@ -4,7 +4,7 @@ import com.google.common.base.Stopwatch
 import com.google.common.hash.Hashing
 import com.google.common.io.{CharSink, CharSource}
 import com.google.googlejavaformat.java.Formatter
-import release.ProjectMod.Gav
+import release.ProjectMod.{Gav, Gav3, StaticPrinter, UpdatePrinter}
 import release.Starter.{Opts, PreconditionsException, init}
 import release.Term._
 
@@ -106,8 +106,13 @@ object Lint {
             warnExit.set(true)
           }
           val commitRef = sgit.logShortOpt(limit = 1, path = sgit.remoteHeadRaw().get)
-          val commitRefShort = commitRef.map(_.replaceFirst("^commit ", "")).getOrElse("n/a")
-          out.println(info(s"    ${remoteHeadDefinition.get} - ${commitRefShort}", color, limit = lineMax))
+          val commitOf = commitRef.map(_.replaceFirst("^commit ", ""))
+          if (commitOf.isDefined) {
+            out.println(info(s"    ${remoteHeadDefinition.get} - ${commitOf.get}", color, limit = lineMax))
+          } else {
+            out.println(warn(s" ${fiWarn} ${remoteHeadDefinition.get} - n/a", color, limit = lineMax))
+            warnExit.set(true)
+          }
         } else {
           out.println(warn(s" ${fiWarn} no remote HEAD found, corrupted remote -- repair please", color))
           out.println(warn(s" ${fiWarn} if you use gitlab try to", color))
@@ -174,7 +179,7 @@ object Lint {
         val ciCommitRefName = envs.get("CI_COMMIT_REF_NAME").orNull
         val ciCommitTag = envs.get("CI_COMMIT_TAG").orNull
         val rootFolderFiles = files.toSeq
-        var pomFailures:Seq[Exception] = Nil
+        var pomFailures: Seq[Exception] = Nil
         val pompom: Option[Try[ProjectMod]] = if (rootFolderFiles.exists(_.getName == "pom.xml")) {
           Some(PomMod.withRepoTry(file, opts, repo, failureCollector = Some(e => {
             pomFailures = pomFailures :+ e
@@ -274,14 +279,25 @@ object Lint {
               out.println(info(s"    ${fiFine} all GAVs scopes looks fine", color))
             }
             out.println(info("--- check for preview releases @ maven ---", color))
+            val updatePrinter = new StaticPrinter()
+            val updateOpts = opts.depUpOpts.copy(hideStageVersions = true)
+            val updateResultTry = mod.tryCollectDependencyUpdates(updateOpts, checkOn = true, updatePrinter)
+            val lookup: Map[Gav3, Seq[String]] = if (updateResultTry.isSuccess) {
+              updateResultTry.get.map(t => (t._1.gav.simpleGav(), t._2._1)).toMap
+            } else {
+              Map.empty
+            }
             mod.listGavsForCheck()
               .filter(dep => ProjectMod.isUnwanted(dep.gav().simpleGav()))
               .filterNot(_.version.get.endsWith("-SNAPSHOT"))
               .foreach(dep => {
                 out.println(warn("  found preview: " + dep.gav().formatted + s" ${fiWarn}", color, limit = lineMax))
-                // FIXME use update for next/previous later
-                out.println(warn("       next     WIP: "+ dep.gav().copy(version = Some("1.0.1")).formatted, color, limit = lineMax))
-                out.println(warn("       previous WIP: "+ dep.gav().copy(version = Some("0.99.99")).formatted, color, limit = lineMax))
+                if (updateResultTry.isSuccess) {
+                  // FIXME use update for next/previous later
+                  val versionRangeFor = lookup.get(dep.gav().simpleGav())
+                  out.println(warn("       next     WIP: " + dep.gav().copy(version = Some("1.0.1")).formatted, color, limit = lineMax))
+                  out.println(warn("       previous WIP: " + dep.gav().copy(version = Some("0.99.99")).formatted, color, limit = lineMax))
+                }
               })
             out.println(info("    WIP", color))
             out.println(info("--- check major versions @ ishop ---", color))
@@ -321,8 +337,8 @@ object Lint {
             }
 
             try {
-              val updateResult = mod.showDependencyUpdates(120, Term.select("dumb", "lint", opts.simpleChars, isInteractice = false), opts.depUpOpts,
-                new Sys(null, out, err), printProgress = false)
+              out.println(updatePrinter.result.toString.trim)
+              val updateResult = updateResultTry.get
               val snapUpdates = updateResult.filter(e => snaps.map(_.gav()).contains(e._1.gav))
               val releaseOfSnapshotPresent = snapUpdates.map(e => (e._1.gav, e._2._1.contains(e._1.gav.version.get.replaceFirst("-SNAPSHOT", ""))))
               if (releaseOfSnapshotPresent.nonEmpty) {

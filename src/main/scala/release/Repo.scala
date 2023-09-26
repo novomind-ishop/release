@@ -104,6 +104,10 @@ class Repo private(opts: Opts) extends LazyLogging {
       .lastOption.map(v => Gav3(groupID, artifactId, Option(v.toString)))
   }
 
+  def newerAndPrevVersionsOf(groupID: String, artifactId: String, version: String): Seq[String] = {
+    Repo.convertNewerAndPrefVersions(groupID, artifactId, version, request => getVersionsOf(request).map(_.toString))
+  }
+
   def newerVersionsOf(groupID: String, artifactId: String, version: String): Seq[String] = {
     val request = Seq(groupID, artifactId, "[" + version + ",)").mkString(":")
     val result = getVersionsOf(request).map(_.toString)
@@ -118,6 +122,19 @@ class Repo private(opts: Opts) extends LazyLogging {
 }
 
 object Repo extends LazyLogging {
+  def convertNewerAndPrefVersions(groupID: String, artifactId: String, version: String,
+                                  function: String => Seq[String]): Seq[String] = {
+    val innerV = ProjectMod.Version.parseSloppy(version)
+    val request = Seq(groupID, artifactId, "[" + (innerV.major - 1) + ",)").mkString(":")
+    val result = function.apply(request).map(ProjectMod.Version.parseSloppy).sorted
+
+    val dropped = result.dropWhile(v => {
+      v.primarys != innerV.primarys
+    })
+    val option = result.filterNot(dropped.contains).lastOption.map(_.primarys)
+    val value = (result.filter(pv => pv.primarysOpt == option) ++ dropped).sorted
+    value.map(_.orginal)
+  }
 
   def of(opts: Opts): Repo = new Repo(opts)
 

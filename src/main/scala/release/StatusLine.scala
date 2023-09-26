@@ -3,7 +3,23 @@ package release
 import java.io.PrintStream
 import java.util.concurrent.atomic.AtomicInteger
 
-case class StatusLine(rawSteps: Int, width: Int, out: PrintStream = System.out, enabled: Boolean) {
+trait StatusPrinter {
+  def print(string: String): Unit
+
+  def println(): Unit
+}
+
+object StatusPrinter {
+  def ofPrintStream(printStream: PrintStream): StatusPrinter = {
+    new StatusPrinter() {
+      override def print(string: String): Unit = printStream.print(string)
+
+      override def println(): Unit = printStream.println()
+    }
+  }
+}
+
+case class StatusLine(rawSteps: Int, width: Int, out: StatusPrinter = StatusPrinter.ofPrintStream(System.out), enabled: Boolean) {
   private val scaleLimit = if (width - 22 <= 0) {
     1
   } else {

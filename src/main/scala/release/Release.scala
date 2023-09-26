@@ -7,7 +7,7 @@ import java.time.LocalDate
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.regex.Pattern
 import com.typesafe.scalalogging.LazyLogging
-import release.ProjectMod.{Dep, Gav, Version}
+import release.ProjectMod.{Dep, Gav, UpdatePrinter, Version}
 import release.Starter.{Opts, PreconditionsException}
 
 import scala.annotation.tailrec
@@ -206,7 +206,8 @@ object Release extends LazyLogging {
 
     sys.out.println(". done (g)")
     if (opts.depUpOpts.showDependencyUpdates) {
-      mod.showDependencyUpdates(shellWidth, termOs, opts.depUpOpts, sys, printProgress = true)
+      val updatePrinter = new UpdatePrinter(shellWidth = shellWidth, termOs = termOs, sys = sys, printProgress = true)
+      mod.collectDependencyUpdates(opts.depUpOpts, checkOn = true, updatePrinter)
       System.exit(0)
     }
 
@@ -597,7 +598,7 @@ object Release extends LazyLogging {
     PomChecker.checkGavFormat(mod.listDeps(), sys.out)
     PomChecker.printSnapshotsInFiles(gitFiles, sys.out)
 
-    case class ReleaseInfo(gav: Gav, released: Boolean, suggested:Option[Gav])
+    case class ReleaseInfo(gav: Gav, released: Boolean, suggested: Option[Gav])
 
     val noShops: (Gav => Boolean) = if (mod.isNoShop) {
       gav: Gav => gav.groupId.contains("com.novomind.ishop.shops")
@@ -615,7 +616,7 @@ object Release extends LazyLogging {
       .filter(_.version.contains("SNAPSHOT")) ++
       boClientVersion.map(in => Gav("com.novomind.ishop.backoffice", "bo-client", Some(in), "war"))
 
-    val repoStateLine = StatusLine(snaps.size, shellWidth, sys.out, enabled = true)
+    val repoStateLine = StatusLine(snaps.size, shellWidth, StatusPrinter.ofPrintStream(sys.out), enabled = true)
     val snapState: Seq[ReleaseInfo] = snaps
       .par
       .map(in => {

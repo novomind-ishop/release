@@ -175,7 +175,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |I: checking dependecies against nexus - please wait
         |
         |I: checked 1 dependecies in 999ms (2000-01-01)
-        |term: Term(dumb,lint,false,false)
+        |Non existing dependencies for:
+        |org.springframework:spring-context:1.0.0->Nil
+        |  https://repo.example.orgorg/springframework/spring-context/maven-metadata.xml
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -184,12 +186,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
-    val expectedE =
-      """Non existing dependencies for:
-        |org.springframework:spring-context:1.0.0->Nil
-        |  https://repo.example.orgorg/springframework/spring-context/maven-metadata.xml
-        |""".stripMargin
-    TermTest.testSys(Nil, expected, expectedE, outFn = outT, expectedExitCode = 42)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org")
@@ -223,7 +220,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 unknown remote HEAD found, corrupted remote -- repair please
         |[WARNING]  😬 if you use gitlab try to
         |[WARNING]  😬 choose another default branch; save; use the original default branch
-        |[INFO]     HEAD branch: (unknown) - n/a
+        |[WARNING]  😬 HEAD branch: (unknown) - n/a
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -322,7 +319,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |╠═╦═ org.springframework:spring-context:1.0.0
         |║ ╚═══ 1.0.1, .., 1.2.8, 1.2.9
         |║
-        |term: Term(dumb,lint,false,false)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -338,9 +334,9 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       val mockUpdates = Seq(
-        "1.0.0", "1.0.1", "1.0.2", "1.2.8", "1.2.9",
+        "0.9", "1.0.0", "1.0.1", "1.0.2", "1.2.8", "1.2.9",
       )
-      Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(mockUpdates)
       System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, fileB))
     })
@@ -423,7 +419,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |╠═╦═ org.springframework:spring-vals:1.0.0-SNAPSHOT
         |║ ╚═══ 1.0.1, .., 1.2.8, 1.2.9
         |║
-        |term: Term(dumb,lint,false,false)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -438,13 +433,13 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
-      Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-vals"), ArgumentMatchers.anyString()))
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-vals"), ArgumentMatchers.anyString()))
         .thenReturn(Seq(
-          "1.0.1", "1.0.2", "1.2.8", "1.2.9",
+          "0.1", "1.0.1", "1.0.2", "1.2.8", "1.2.9"
         ))
-      Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-context"), ArgumentMatchers.anyString()))
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-context"), ArgumentMatchers.anyString()))
         .thenReturn(Seq(
-          "1.0.0", "1.0.1", "1.0.2", "1.2.8", "1.2.9",
+          "0.99.99", "1.0.0", "1.0.1", "1.0.2", "1.2.8", "1.2.9", "1.0.0-M1"
         ))
       System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, fileB))
     })
@@ -525,7 +520,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |╠═╦═ com.novomind.ishop.core.some:core-some-context:51.2.3
         |║ ╚═══ 51.2.5
         |║
-        |term: Term(dumb,lint,false,false)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -543,9 +537,10 @@ class LintMavenTest extends AssertionsForJUnit {
         .thenReturn(None)
       val mockUpdates = Seq(
         "51.0.0", "51.2.5",
-        "50.4.0", "50.2.3"
+        "50.4.0", "50.2.3",
+        "0.0.1"
       )
-      Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(mockUpdates)
       System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, file))
     })
@@ -624,7 +619,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |╠═╦═ com.novomind.ishop.core.some:core-some-context:50x-SNAPSHOT
         |║ ╚═══ 50.2.3, 50.4.0
         |║
-        |term: Term(dumb,lint,false,false)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -641,9 +635,9 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       val mockUpdates = Seq(
-        "50.4.0", "50.2.3"
+        "49.4.0","50.4.0", "50.2.3"
       )
-      Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(mockUpdates)
       System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, file))
     })
@@ -715,7 +709,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |║ ╠═══ (1) 1.0.1, .., 1.2.8, 1.2.9
         |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6
         |║
-        |term: Term(dumb,lint,false,false)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -732,10 +725,11 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       val mockUpdates = Seq(
+        "0.1",
         "1.0.1", "1.0.2", "1.2.8", "1.2.9",
         "2.0", "2.1.1", "2.5.5", "2.5.6",
       )
-      Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(mockUpdates)
       System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, file))
     })
@@ -839,11 +833,14 @@ class LintMavenTest extends AssertionsForJUnit {
         |I: checked 4 dependecies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
         |╠═╦═ org.springframework:spring-context-latest:LATEST
-        |║ ╚═══ 1.0.0
+        |║ ╠═══ (0) 0.0.1
+        |║ ╚═══ (1) 1.0.0
         |╠═╦═ org.springframework:spring-context-range:(,1.0],[1.2,)
-        |║ ╚═══ 1.0.0
+        |║ ╠═══ (0) 0.0.1
+        |║ ╚═══ (1) 1.0.0
         |╠═╦═ org.springframework:spring-context-release:RELEASE
-        |║ ╚═══ 1.0.0
+        |║ ╠═══ (0) 0.0.1
+        |║ ╚═══ (1) 1.0.0
         |║
         |[ERROR] invalid empty versions:
         |org.springframework:spring-context-empty
@@ -863,8 +860,8 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
-      Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
-        .thenReturn(Seq("1.0.1-SNAPSHOT", "1.0.0"))
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+        .thenReturn(Seq("0.0.1", "1.0.1-SNAPSHOT", "1.0.0"))
       System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, file))
     })
 
@@ -961,7 +958,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |║ ╠═══ (1) 1.0.1, .., 1.2.8, 1.2.9
         |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6
         |║
-        |term: Term(dumb,lint,false,false)
         |[WARNING] org.springframework:spring-context:1.0.1-SNAPSHOT is already released, remove '-SNAPSHOT' suffix 😬 RL1009-ea7ea019
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
@@ -980,14 +976,14 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
 
-      Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-other"), ArgumentMatchers.anyString()))
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-other"), ArgumentMatchers.anyString()))
         .thenReturn(Seq(
-          "1.0.1", "1.0.2", "1.2.8", "1.2.9",
+          "0.0.2", "1.0.1", "1.0.2", "1.2.8", "1.2.9",
           "2.0", "2.1.1", "2.5.5", "2.5.6",
         ))
-      Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-context"), ArgumentMatchers.anyString()))
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-context"), ArgumentMatchers.anyString()))
         .thenReturn(Seq(
-          "1.0.1", "1.0.2", "1.2.8", "1.2.9",
+          "0.0.2", "1.0.1", "1.0.2", "1.2.8", "1.2.9",
           "2.0", "2.1.1", "2.5.5", "2.5.6",
         ))
       System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, file))
@@ -1121,7 +1117,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)
         |I: checking dependecies against nexus - please wait
         |I: checked 0 dependecies in 999ms (2000-01-01)
-        |term: Term(dumb,lint,false,false)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
