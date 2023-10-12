@@ -192,7 +192,7 @@ object Lint {
         } else {
           None
         }
-        val tag = SuggestDockerTag.findTagname(ciCommitRefName, ciCommitTag, pompom.flatMap(_.toOption.map(_.selfVersion)))
+        val dockerTag = SuggestDockerTag.findTagname(ciCommitRefName, ciCommitTag, pompom.flatMap(_.toOption.map(_.selfVersion)))
         val defaultCiFilename = ".gitlab-ci.yml"
 
         if (ciconfigpath != null) {
@@ -205,11 +205,11 @@ object Lint {
             out.println(info("      ci path: " + ciconfigpath, color))
           }
 
-          if (tag.isSuccess) {
-            if (tag.get.isSuccess) {
-              out.println(info("      CI_COMMIT_TAG : " + tag.get.get, color))
+          if (dockerTag.isSuccess) {
+            if (dockerTag.get.isSuccess) {
+              out.println(info("      CI_COMMIT_TAG : " + dockerTag.get.get, color))
             } else {
-              Term.wrap(out, Term.warn, "   CI_COMMIT_TAG : " + tag.get.failed.get.getMessage + s" ${fiWarn} ${fiCodeGitlabCiTagname}", color)
+              Term.wrap(out, Term.warn, "   CI_COMMIT_TAG : " + dockerTag.get.failed.get.getMessage + s" ${fiWarn} ${fiCodeGitlabCiTagname}", color)
               warnExit.set(true)
             }
           }
@@ -256,7 +256,9 @@ object Lint {
             val mod = modTry.get
 
             out.println(info("--- .mvn @ maven ---", color))
-            out.println(info("    WIP", color))
+            out.println(info("    WIP", color)) // TODO check extentions present
+            out.println(info("--- project version @ maven ---", color))
+            out.println(info(s"    ${modTry.get.selfVersion}", color))
             out.println(info("--- check for snapshots @ maven ---", color))
             val snaps = mod.listGavsForCheck()
               .filter(dep => ProjectMod.isUnwanted(dep.gav().simpleGav()))

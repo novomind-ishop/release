@@ -162,6 +162,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
+        |[INFO] --- project version @ maven ---
+        |[INFO]     0.11-SNAPSHOT
         |[INFO] --- check for snapshots @ maven ---
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
@@ -303,6 +305,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
+        |[INFO] --- project version @ maven ---
+        |[INFO]     0.11-SNAPSHOT
         |[INFO] --- check for snapshots @ maven ---
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
@@ -397,6 +401,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
+        |[INFO] --- project version @ maven ---
+        |[INFO]     0.11-SNAPSHOT
         |[INFO] --- check for snapshots @ maven ---
         |[warning]   found snapshot: org.springframework:spring-vals:1.0.0-SNAPSHOT 😬 RL1011-eef87565
         |[INFO] --- check for GAV format @ maven ---
@@ -496,6 +502,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
+        |[INFO] --- project version @ maven ---
+        |[INFO]     0.11-SNAPSHOT
         |[INFO] --- check for snapshots @ maven ---
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
@@ -598,6 +606,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
+        |[INFO] --- project version @ maven ---
+        |[INFO]     0.11-SNAPSHOT
         |[INFO] --- check for snapshots @ maven ---
         |[warning]   found snapshot: com.novomind.ishop.core.other:other-context:50x-SNAPSHOT 😬 RL1011-08f0f8bf
         |[warning]   found snapshot: com.novomind.ishop.core.some:core-some-context:50x-SNAPSHOT 😬 RL1011-9f269959
@@ -657,7 +667,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |  <modelVersion>4.0.0</modelVersion>
         |  <groupId>com.novomind.ishop.any</groupId>
         |  <artifactId>any</artifactId>
-        |  <version>0.11-SNAPSHOT</version>
+        |  <version>0.14-SNAPSHOT</version>
         |  <dependencies>
         |    <dependency>
         |      <groupId>org.springframework</groupId>
@@ -691,6 +701,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
+        |[INFO] --- project version @ maven ---
+        |[INFO]     0.14-SNAPSHOT
         |[INFO] --- check for snapshots @ maven ---
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
@@ -704,7 +716,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |I: checking dependecies against nexus - please wait
         |
         |I: checked 1 dependecies in 999ms (2000-01-01)
-        |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
+        |║ Project GAV: com.novomind.ishop.any:any:0.14-SNAPSHOT
         |╠═╦═ org.springframework:spring-context:1
         |║ ╠═══ (1) 1.0.1, .., 1.2.8, 1.2.9
         |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6
@@ -812,6 +824,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
+        |[INFO] --- project version @ maven ---
+        |[INFO]     0.11-SNAPSHOT
         |[INFO] --- check for snapshots @ maven ---
         |[warning]   found snapshot: org.springframework:spring-context:1.0.1-SNAPSHOT 😬 RL1011-ea7ea019
         |[INFO] --- check for GAV format @ maven ---
@@ -932,6 +946,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
+        |[INFO] --- project version @ maven ---
+        |[INFO]     0.11-SNAPSHOT
         |[INFO] --- check for snapshots @ maven ---
         |[warning]   found snapshot: org.springframework:spring-context:1.0.1-SNAPSHOT 😬 RL1011-ea7ea019
         |[warning]   found snapshot: org.springframework:spring-other:1.0.0-SNAPSHOT:bert 😬 RL1011-bd849fd4
@@ -1106,6 +1122,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
+        |[INFO] --- project version @ maven ---
+        |[INFO]     0.11-SNAPSHOT
         |[INFO] --- check for snapshots @ maven ---
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
