@@ -138,7 +138,10 @@ object Lint {
         } else {
           out.println(info(s"    ${fiFine} NO shallow clone", color))
         }
-
+        val currentGitTags = sgit.currentTags
+        if (currentGitTags.isDefined) {
+          out.println(info("    current git tags: " + currentGitTags.map(_.mkString(", ")).getOrElse(""), color, limit = lineMax))
+        }
         if (false && envs.get("CI_CONFIG_PATH").orNull != null) {
           try {
             val allFiles = sgit.lsFilesAbsolute().par
@@ -179,7 +182,8 @@ object Lint {
         val ciCommitRefName = envs.get("CI_COMMIT_REF_NAME").orNull
         val ciTagEnv = envs.get("CI_COMMIT_TAG")
         val ciCommitTag = ciTagEnv.orNull
-        val isGitTag: Boolean = sgit.currentTags.isDefined || ciTagEnv.isDefined
+
+        val isGitTag: Boolean = currentGitTags.isDefined || ciTagEnv.isDefined
         val rootFolderFiles = files.toSeq
         var pomFailures: Seq[Exception] = Nil
         val pompom: Option[Try[ProjectMod]] = if (rootFolderFiles.exists(_.getName == "pom.xml")) {

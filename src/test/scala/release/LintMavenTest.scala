@@ -940,6 +940,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
+        |[INFO]     current git tags: v0.11
         |[INFO] --- .gitattributes @ git ---
         |[INFO] --- .gitignore @ git ---
         |[WARNING]  Found local changes 😬 RL1003
