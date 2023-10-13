@@ -19,6 +19,7 @@ class LintMavenTest extends AssertionsForJUnit {
   def outT(in: String): String = {
     in.replaceAll("- $", "-")
       .replaceAll("/junit[0-9]+/", "/junit-REPLACED/")
+      .replaceAll("^\\[..:..:..\\...Z\\] ", "[00:00:00.00Z] ")
       .replaceAll(": git version 2\\.[0-9]+\\.[0-9]+", ": git version 2.999.999")
       .replaceAll("[a-f0-9]{40}$", "affe4533042ef887a5477d73d958814317675be1")
       .replaceAll("dependecies in [0-9]+ms \\([0-9]{4}-[0-9]{2}-[0-9]{2}\\)", "dependecies in 999ms (2000-01-01)")
@@ -45,11 +46,11 @@ class LintMavenTest extends AssertionsForJUnit {
     val file = temp.newFolder("release-lint-empty")
     val expected =
       """
-        |[[34mINFO[0m] --------------------------------[ lint ]--------------------------------
-        |[[31mERROR[0m] E: NO FILES FOUND in /tmp/junit-REPLACED/release-lint-empty
-        |[[31mERROR[0m] ----------------------------[ end of lint ]----------------------------""".stripMargin
+        |[00:00:00.00Z] [[34mINFO[0m] --------------------------------[ lint ]--------------------------------
+        |[00:00:00.00Z] [[31mERROR[0m] E: NO FILES FOUND in /tmp/junit-REPLACED/release-lint-empty
+        |[00:00:00.00Z] [[31mERROR[0m] ----------------------------[ end of lint ]----------------------------""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT)(sys => {
-      val opts = Opts()
+      val opts = Opts().copy(lintOpts = Opts().lintOpts.copy(showTimer = true, showTimeStamps = true))
       Assert.assertEquals(1, Lint.run(sys.out, sys.err, opts, Repo.of(opts), Map.empty, file))
     })
 

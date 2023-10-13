@@ -391,6 +391,7 @@ class SgitTest extends AssertionsForJUnit {
 
     // WHEN
     val gitA = Sgit.init(testRepoA, SgitTest.hasCommitMsg)
+    Assert.assertEquals(None, gitA.currentTags)
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
 
@@ -596,6 +597,7 @@ class SgitTest extends AssertionsForJUnit {
     gitB.pushFor("master", "master")
     Assert.assertEquals(Nil, gitA.listTags())
     Assert.assertEquals(Nil, gitB.listTags())
+    Assert.assertEquals(None, gitB.currentTags)
     gitB.doTag("0.0.10")
     val beforeBranch = gitB.currentBranch
     gitB.checkout("v0.0.10")

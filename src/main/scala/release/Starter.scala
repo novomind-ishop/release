@@ -211,8 +211,8 @@ object Starter extends LazyLogging {
     }
   }
 
-  case class LintOpts(doLint: Boolean = false, showTimer: Boolean = true, showHelp: Boolean = false,
-                      skips: Seq[String] = Nil, waringsToErrors:Boolean = false, invalids: Seq[String] = Nil)
+  case class LintOpts(doLint: Boolean = false, showTimer: Boolean = true, showTimeStamps: Boolean = false, showHelp: Boolean = false,
+                      skips: Seq[String] = Nil, waringsToErrors: Boolean = false, invalids: Seq[String] = Nil)
 
   @tailrec
   def argsLintRead(params: Seq[String], inOpt: Opts): Opts = {

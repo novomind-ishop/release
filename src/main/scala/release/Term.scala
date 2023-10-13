@@ -8,6 +8,8 @@ import org.jline.reader._
 import org.jline.terminal.TerminalBuilder
 import release.Starter.Opts
 
+import java.time.{ZoneOffset, ZonedDateTime}
+import java.time.format.DateTimeFormatter
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 import scala.annotation.{nowarn, tailrec}
 
@@ -166,12 +168,19 @@ object Term {
   }
 
   case class ColoredLiner(defaultLimit: Int, fn: (String, Boolean, Int) => String) {
-    def ex(text: String, useColor: Boolean): String = {
-      ex(text, useColor, defaultLimit)
+    def ex(text: String, opts: Opts): String = {
+      ex(text, opts, defaultLimit)
     }
 
-    def ex(text: String, useColor: Boolean, limit: Int): String = {
-      fn.apply(text, useColor, limit)
+    def ex(text: String, opts: Opts, limit: Int): String = {
+      val timestamp = if (opts.lintOpts.showTimeStamps) {
+        val time = ZonedDateTime.now(ZoneOffset.UTC)
+        DateTimeFormatter.ofPattern("'['HH:mm:ss.SSX'] '").format(time)
+      } else {
+        ""
+      }
+
+      timestamp + fn.apply(text, opts.colors, limit)
     }
   }
 
@@ -184,9 +193,9 @@ object Term {
   val error = ColoredLiner(82 - 5, (text, useColor, limit) =>
     colorB(31, "ERROR", useColor) + checkedLength(limit)(text))
 
-  def wrap(out: PrintStream, coloredLiner: ColoredLiner, text: String, useColor: Boolean): Unit = {
+  def wrap(out: PrintStream, coloredLiner: ColoredLiner, text: String, opts: Opts): Unit = {
     wrapText(text, coloredLiner.defaultLimit)
-      .foreach(line => out.println(coloredLiner.ex(line, useColor)))
+      .foreach(line => out.println(coloredLiner.ex(line, opts)))
 
   }
 
@@ -228,13 +237,13 @@ object Term {
     l
   }
 
-  def info(text: String, useColor: Boolean, limit: Int = info.defaultLimit): String = info.ex(text, useColor, limit)
+  def info(text: String, opts: Opts, limit: Int = info.defaultLimit): String = info.ex(text, opts, limit)
 
-  def warnSoft(text: String, useColor: Boolean, limit: Int = warnSoft.defaultLimit): String = warnSoft.ex(text, useColor, limit)
+  def warnSoft(text: String, opts: Opts, limit: Int = warnSoft.defaultLimit): String = warnSoft.ex(text, opts, limit)
 
-  def warn(text: String, useColor: Boolean, limit: Int = warn.defaultLimit): String = warn.ex(text, useColor, limit)
+  def warn(text: String, opts: Opts, limit: Int = warn.defaultLimit): String = warn.ex(text, opts, limit)
 
-  def error(text: String, useColor: Boolean, limit: Int = error.defaultLimit): String = error.ex(text, useColor, limit)
+  def error(text: String, opts: Opts, limit: Int = error.defaultLimit): String = error.ex(text, opts, limit)
 
   def center(text: String): String = {
     val lenght = 72

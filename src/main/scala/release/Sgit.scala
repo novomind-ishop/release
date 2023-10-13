@@ -216,7 +216,11 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
   def currentTags: Option[Seq[String]] = {
     if (currentBranchOpt == Some("HEAD")) {
-      Some(gitNative(Seq("describe", "--tags")))
+      try {
+        Some(gitNative(Seq("describe", "--tags"), showErrorsOnStdErr = false))
+      } catch {
+        case _:Throwable => None
+      }
     } else {
       None
     }
