@@ -20,11 +20,11 @@ object SuggestDockerTag {
       } else {
         tag
       }
-      if (suggested.matches(ProjectMod.Version.semverDockertagPattern.regex)) {
+      if (suggested.matches(ProjectMod.Version.semverGitTagForDockerTagPattern.regex)) {
         Success(Success(tag))
       } else {
-        Success(Failure(new IllegalStateException(s"»\u00A0${suggested}\u00A0« is no valid tag name. This could lead to build problems later. " +
-          s"A tag must match the pattern »\u00A0${ProjectMod.Version.semverDockertagPattern.regex}\u00A0«")))
+        Success(Failure(new IllegalStateException(s"»\u00A0${suggested}\u00A0« is no valid git tag name. This could lead to build problems later. " +
+          s"A git tag must match the pattern »\u00A0${ProjectMod.Version.semverGitTagForDockerTagPattern.regex}\u00A0«")))
       }
 
     } else {
@@ -49,7 +49,7 @@ object SuggestDockerTag {
       case "master" => ("latest", 0)
       case fe if fe.startsWith("feature/") => suggestInner(fe.replaceFirst("^feature/v?", ""), org, tagName, projectVersion)
       case fe if fe.startsWith("release/") => suggestInner(fe.replaceFirst("^release/v?", ""), org, tagName, projectVersion)
-      case fe if fe.matches(ProjectMod.Version.semverDockertagPattern.regex) => {
+      case fe if fe.matches(ProjectMod.Version.semverGitTagForDockerTagPattern.regex) => {
 
         val withoutLeadingV = fe.substring(1)
         if (projectVersion.isDefined && withoutLeadingV != projectVersion.get) {

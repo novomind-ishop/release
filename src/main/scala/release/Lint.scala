@@ -177,7 +177,9 @@ object Lint {
 
         val ciconfigpath = envs.get("CI_CONFIG_PATH").orNull
         val ciCommitRefName = envs.get("CI_COMMIT_REF_NAME").orNull
-        val ciCommitTag = envs.get("CI_COMMIT_TAG").orNull
+        val ciTagEnv = envs.get("CI_COMMIT_TAG")
+        val ciCommitTag = ciTagEnv.orNull
+        val isGitTag: Boolean = sgit.currentTags.isDefined || ciTagEnv.isDefined
         val rootFolderFiles = files.toSeq
         var pomFailures: Seq[Exception] = Nil
         val pompom: Option[Try[ProjectMod]] = if (rootFolderFiles.exists(_.getName == "pom.xml")) {
@@ -205,11 +207,13 @@ object Lint {
             out.println(info("      ci path: " + ciconfigpath, color))
           }
 
+          out.println(info("      CI_COMMIT_TAG : " + ciCommitTag, color))
+          out.println(info("      CI_COMMIT_REF_NAME : " + ciCommitRefName, color))
           if (dockerTag.isSuccess) {
             if (dockerTag.get.isSuccess) {
-              out.println(info("      CI_COMMIT_TAG : " + dockerTag.get.get, color))
+              out.println(info("      docker tag : " + dockerTag.get.get, color))
             } else {
-              Term.wrap(out, Term.warn, "   CI_COMMIT_TAG : " + dockerTag.get.failed.get.getMessage + s" ${fiWarn} ${fiCodeGitlabCiTagname}", color)
+              Term.wrap(out, Term.warn, "   docker tag : " + dockerTag.get.failed.get.getMessage + s" ${fiWarn} ${fiCodeGitlabCiTagname}", color)
               warnExit.set(true)
             }
           }
@@ -228,11 +232,25 @@ object Lint {
                 opts.lintOpts.skips.contains(code)
               })
               .foreach(f => {
-                out.println(warnSoft("  found snapshot in: " + f._3 +
+                val snapMsg = "  found snapshot in: " + f._3 +
                   s" ${fiWarn} ${fiCodeSnapshotText((f._1, f._2, f._3.getFileName))}\n" +
-                  "              " + f._2, color, limit = lineMax))
+                  "              " + f._2
+                if (isGitTag) {
+                  out.println(warn(snapMsg, color, limit = lineMax))
+                  warnExit.set(true)
+                } else {
+                  out.println(warnSoft(snapMsg, color, limit = lineMax))
+                }
+
               })
-            out.println(warnSoft(s"  found snapshots: ${fiWarn} ${fiCodeSnapshotText(relFiles)}", color, limit = lineMax))
+            val snapshotSumMsg = s"  found snapshots: ${fiWarn} ${fiCodeSnapshotText(relFiles)}"
+            if (isGitTag) {
+              out.println(warn(snapshotSumMsg, color, limit = lineMax))
+              warnExit.set(true)
+            } else {
+              out.println(warnSoft(snapshotSumMsg, color, limit = lineMax))
+            }
+
           }
         } else {
           out.println(info(s"    ${fiFine} NO SNAPSHOTS in other files found", color))
@@ -265,7 +283,14 @@ object Lint {
               .filter(_.version.get.endsWith("-SNAPSHOT"))
             snaps
               .foreach(dep => {
-                out.println(warnSoft("  found snapshot: " + dep.gav().formatted + s" ${fiWarn} ${fiCodeSnapshotGav.apply(dep.gav())}", color, limit = lineMax))
+                val snapFound = "  found snapshot: " + dep.gav().formatted + s" ${fiWarn} ${fiCodeSnapshotGav.apply(dep.gav())}"
+                if (isGitTag) {
+                  out.println(warn(snapFound, color, limit = lineMax))
+                  warnExit.set(true)
+                } else {
+                  out.println(warnSoft(snapFound, color, limit = lineMax))
+
+                }
               })
             out.println(info("--- check for GAV format @ maven ---", color))
             val unusualGavs = mod.listGavsWithUnusualScope()

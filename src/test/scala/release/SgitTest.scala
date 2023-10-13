@@ -597,6 +597,12 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(Nil, gitA.listTags())
     Assert.assertEquals(Nil, gitB.listTags())
     gitB.doTag("0.0.10")
+    val beforeBranch = gitB.currentBranch
+    gitB.checkout("v0.0.10")
+    Assert.assertEquals("HEAD", gitB.currentBranch)
+    Assert.assertEquals(Some(Seq("v0.0.10")), gitB.currentTags)
+    gitB.checkout(beforeBranch)
+    Assert.assertEquals(None, gitB.currentTags)
     gitA.doTag("0.0.10")
     Term.Os.getCurrent match {
       case Term.Os.Darwin => {

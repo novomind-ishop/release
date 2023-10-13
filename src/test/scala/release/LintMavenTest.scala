@@ -233,8 +233,10 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- gitlabci.yml @ gitlab ---
         |[WARNING]    ci path: a
         |[WARNING]    use .gitlab-ci.yml 😬 RL1005
-        |[WARNING]    CI_COMMIT_TAG : » u « is no valid tag name. This could lead to build
-        |[WARNING]      problems later. A tag must match the pattern
+        |[INFO]       CI_COMMIT_TAG : u
+        |[INFO]       CI_COMMIT_REF_NAME : u
+        |[WARNING]    docker tag : » u « is no valid git tag name. This could lead to build
+        |[WARNING]      problems later. A git tag must match the pattern
         |[WARNING]      » ^v[0-9]+\.[0-9]+\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ « 😬 RL1006
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
         |[INFO]     ✅ NO SNAPSHOTS in other files found
@@ -922,6 +924,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |""".stripMargin.linesIterator.toSeq)
     gitA.add(notes)
     gitA.commitAll("some")
+    gitA.doTag("0.11")
+    gitA.checkout("v0.11")
+    Assert.assertTrue(gitA.currentTags.isDefined)
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
@@ -949,8 +954,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- project version @ maven ---
         |[INFO]     0.11-SNAPSHOT
         |[INFO] --- check for snapshots @ maven ---
-        |[warning]   found snapshot: org.springframework:spring-context:1.0.1-SNAPSHOT 😬 RL1011-ea7ea019
-        |[warning]   found snapshot: org.springframework:spring-other:1.0.0-SNAPSHOT:bert 😬 RL1011-bd849fd4
+        |[WARNING]   found snapshot: org.springframework:spring-context:1.0.1-SNAPSHOT 😬 RL1011-ea7ea019
+        |[WARNING]   found snapshot: org.springframework:spring-other:1.0.0-SNAPSHOT:bert 😬 RL1011-bd849fd4
         |[INFO] --- check for GAV format @ maven ---
         |[WARNING] org.springframework:spring-other:1.0.0-SNAPSHOT:bert uses unusual format, please repair 😬 RL1010-bd849fd4
         |[INFO] known scopes are: compile, import, provided, runtime, system, test

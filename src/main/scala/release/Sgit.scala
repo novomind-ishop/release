@@ -204,7 +204,23 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     verify()
   }
 
-  def currentBranch: String = Util.only(gitNative(Seq("rev-parse", "--abbrev-ref", "HEAD")), "only one branch expected")
+  def currentBranch: String = Util.only(gitNative(Seq("rev-parse", "--abbrev-ref", "HEAD"), showErrorsOnStdErr = false), "only one branch expected")
+
+  def currentBranchOpt: Option[String] = {
+    try {
+      Some(currentBranch)
+    } catch {
+      case _: Throwable => None
+    }
+  }
+
+  def currentTags: Option[Seq[String]] = {
+    if (currentBranchOpt == Some("HEAD")) {
+      Some(gitNative(Seq("describe", "--tags")))
+    } else {
+      None
+    }
+  }
 
   def lsFiles(): Seq[String] = gitNative(Seq("ls-files")).map(_.trim).map(in => if (in.startsWith("\"") && in.endsWith("\"")) {
     Sgit.unescape(in.substring(1).dropRight(1))
@@ -496,7 +512,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     }
   }
 
-  def logTry(limit: Int = -1, path: String = "", args:Seq[String] = Nil): Try[Seq[String]] = {
+  def logTry(limit: Int = -1, path: String = "", args: Seq[String] = Nil): Try[Seq[String]] = {
     try {
       val pElement = if (Strings.isNullOrEmpty(path)) {
         "HEAD"
