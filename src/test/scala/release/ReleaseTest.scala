@@ -529,6 +529,9 @@ class ReleaseTest extends AssertionsForJUnit {
         |Progress: (...)[                                                  ]
         |Progress: (...)[                                                  ]
         |
+        |Other snapshot found for (please fix manually (remove -SNAPSHOT in most cases)):
+        |  : Gav(org.example,plugin,Some(1.0.0-SNAPSHOT),,,)
+        |
         |Snapshots found for (please fix manually in pom.xml (remove -SNAPSHOT in most cases)):
         |  No Release for    org.example:example:1.0.0-SNAPSHOT
         |  No Release for    org.example:example2:1.0.0-SNAPSHOT maybe 0.99 is the latest one
@@ -541,6 +544,21 @@ class ReleaseTest extends AssertionsForJUnit {
           Seq(
             ProjectModTest.depOf("org.example", "example", "1.0.0-SNAPSHOT"),
             ProjectModTest.depOf("org.example", "example2", "1.0.0-SNAPSHOT"),
+          )
+        }
+
+        override private[release] def listDeps() = {
+          Seq(
+            ProjectModTest.depOf("org.example", "example3", "3.0.0"),
+            ProjectModTest.depOf("org.example", "example", "1.0.0-SNAPSHOT"),
+            ProjectModTest.depOf("org.example", "self", "1.0.0-SNAPSHOT"),
+            ProjectModTest.depOf("org.example", "plugin", "1.0.0-SNAPSHOT"),
+          )
+        }
+
+        override def getSelfDepsMod: Seq[ProjectMod.Dep] = {
+          Seq(
+            ProjectModTest.depOf("org.example", "self", "1.0.0-SNAPSHOT"),
           )
         }
       }

@@ -789,6 +789,7 @@ trait ProjectMod extends LazyLogging {
   }
 
   val selfDepsMod: Seq[Dep]
+  def getSelfDepsMod: Seq[Dep] = selfDepsMod
 
   def suggestReleaseVersion(branchNames: Seq[String] = Nil, tagNames: Seq[String] = Nil, increment: Option[Increment] = None): Seq[String]
 

@@ -637,11 +637,22 @@ object Release extends LazyLogging {
       .filter(_._2.contains("-SNAPSHOT"))
       .filterNot(_._1 == "project.version")
 
+    val selfGav = mod.getSelfDepsMod.map(_.gav().simpleGav())
+    val selecteded = mod.listGavs()
+      .filter(_.version.getOrElse("").contains("-SNAPSHOT"))
+      .filterNot(gav => selfGav.contains(gav.simpleGav()))
+      .filterNot(gav => snapState.exists(ri => ri.gav == gav))
+    if (selecteded.nonEmpty) {
+      sys.out.println("")
+      sys.out.println("Other snapshot found for (please fix manually (remove -SNAPSHOT in most cases)):")
+      selecteded.toList.map(in => "  : " + in).foreach(sys.out.println)
+    }
+
     if (snapState.nonEmpty || snapshotProperties.nonEmpty) {
       if (snapshotProperties.nonEmpty) {
         sys.out.println("")
         sys.out.println("Snapshot properties found for (please fix manually in pom.xml (remove -SNAPSHOT in most cases)):")
-        snapshotProperties.toList.map(in => "Property: " + in).foreach(println)
+        snapshotProperties.toList.map(in => "Property: " + in).foreach(sys.out.println)
       }
       if (snapState.nonEmpty) {
         sys.out.println("")
