@@ -234,10 +234,11 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- gitlabci.yml @ gitlab ---
         |[WARNING]    ci path: a
         |[WARNING]    use .gitlab-ci.yml 😬 RL1005
-        |[INFO]       CI_COMMIT_TAG : u
-        |[INFO]       CI_COMMIT_REF_NAME : u
-        |[WARNING]    docker tag : » u « is no valid git tag name. This could lead to build
-        |[WARNING]      problems later. A git tag must match the pattern
+        |[INFO]       CI_COMMIT_TAG : vU
+        |[INFO]       CI_COMMIT_REF_NAME : vU
+        |[WARNING]    an invalid branch/tag: ciRef: vU, ciTag: vU, gitTags: , gitBranch:
+        |[WARNING]    docker tag : » vU « is no valid git tag name. This could lead to
+        |[WARNING]      build problems later. A git tag must match the pattern
         |[WARNING]      » ^v[0-9]+\.[0-9]+\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ « 😬 RL1006
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
         |[INFO]     ✅ NO SNAPSHOTS in other files found
@@ -251,8 +252,8 @@ class LintMavenTest extends AssertionsForJUnit {
 
       val value = Map(
         "CI_CONFIG_PATH" -> "a",
-        "CI_COMMIT_REF_NAME" -> "u",
-        "CI_COMMIT_TAG" -> "u",
+        "CI_COMMIT_REF_NAME" -> "vU",
+        "CI_COMMIT_TAG" -> "vU",
       )
       System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, value, fileB))
     })
@@ -648,7 +649,7 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       val mockUpdates = Seq(
-        "49.4.0","50.4.0", "50.2.3"
+        "49.4.0", "50.4.0", "50.2.3"
       )
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(mockUpdates)
@@ -897,7 +898,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |  <modelVersion>4.0.0</modelVersion>
         |  <groupId>com.novomind.ishop.any</groupId>
         |  <artifactId>any</artifactId>
-        |  <version>0.11-SNAPSHOT</version>
+        |  <version>0.11.0</version>
         |  <dependencies>
         |    <dependency>
         |      <groupId>org.springframework</groupId>
@@ -925,8 +926,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |""".stripMargin.linesIterator.toSeq)
     gitA.add(notes)
     gitA.commitAll("some")
-    gitA.doTag("0.11")
-    gitA.checkout("v0.11")
+    gitA.doTag("0.11.0")
+    gitA.checkout("v0.11.0")
     Assert.assertTrue(gitA.currentTags.isDefined)
     val expected =
       """
@@ -941,7 +942,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
-        |[INFO]     current git tags: v0.11
+        |[INFO]     current git tags: v0.11.0
         |[INFO] --- .gitattributes @ git ---
         |[INFO] --- .gitignore @ git ---
         |[WARNING]  Found local changes 😬 RL1003
@@ -949,12 +950,18 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- list-remotes @ git ---
         |[WARNING]  NO remotes found 😬 RL1004
         |[WARNING]  % git remote -v # returns nothing
+        |[INFO] --- gitlabci.yml @ gitlab ---
+        |[INFO]       ci path: .gitlab-ci.yml
+        |[INFO]       CI_COMMIT_TAG : v0.11.0
+        |[INFO]       CI_COMMIT_REF_NAME : v0.11.0
+        |[INFO]       a valid tag : v0.11.0
+        |[INFO]       docker tag : v0.11.0
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
         |[INFO]     WIP
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
-        |[INFO]     0.11-SNAPSHOT
+        |[INFO]     0.11.0
         |[INFO] --- check for snapshots @ maven ---
         |[WARNING]   found snapshot: org.springframework:spring-context:1.0.1-SNAPSHOT 😬 RL1011-ea7ea019
         |[WARNING]   found snapshot: org.springframework:spring-other:1.0.0-SNAPSHOT:bert 😬 RL1011-bd849fd4
@@ -973,7 +980,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |I: checking dependecies against nexus - please wait
         |
         |I: checked 2 dependecies in 999ms (2000-01-01)
-        |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
+        |║ Project GAV: com.novomind.ishop.any:any:0.11.0
         |╠═╦═ org.springframework:spring-context:1.0.1-SNAPSHOT
         |║ ╠═══ (1) 1.0.1, .., 1.2.8, 1.2.9
         |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6
@@ -1009,7 +1016,12 @@ class LintMavenTest extends AssertionsForJUnit {
           "0.0.2", "1.0.1", "1.0.2", "1.2.8", "1.2.9",
           "2.0", "2.1.1", "2.5.5", "2.5.6",
         ))
-      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, file))
+      val value = Map(
+        "CI_CONFIG_PATH" -> ".gitlab-ci.yml",
+        "CI_COMMIT_REF_NAME" -> "v0.11.0",
+        "CI_COMMIT_TAG" -> "v0.11.0",
+      )
+      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, value, file))
     })
 
   }
@@ -1043,7 +1055,15 @@ class LintMavenTest extends AssertionsForJUnit {
         |This is the documentation for 0.11-SNAPSHOT
         |This is the documentation for 0.11-SNAPSHOT
         |""".stripMargin.linesIterator.toSeq)
+    val dotMvnFolder = new File(file, ".mvn")
+    dotMvnFolder.mkdir()
+    val extension = new File(dotMvnFolder, "extensions.xml")
+    Util.write(extension,
+      """<version>0.11-SNAPSHOT</version>
+        |""".stripMargin
+    )
     gitA.add(notes)
+    gitA.add(extension)
     gitA.commitAll("some")
     val expected =
       """
@@ -1075,6 +1095,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple-fail/.git
+        |/tmp/junit-REPLACED/release-lint-mvn-simple-fail/.mvn
         |/tmp/junit-REPLACED/release-lint-mvn-simple-fail/notes.md
         |/tmp/junit-REPLACED/release-lint-mvn-simple-fail/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
@@ -1088,6 +1109,42 @@ class LintMavenTest extends AssertionsForJUnit {
       System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, file))
 
     })
+  }
+
+  @Test
+  def testValidBranch(): Unit = {
+    val file = temp.newFolder("release-lint-mvn-valid-branch")
+    val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
+    gitA.configSetLocal("user.email", "you@example.com")
+    gitA.configSetLocal("user.name", "Your Name")
+    val work = new File(file, "pom.xml")
+    Util.write(work,
+      """<?xml version="1.0" encoding="UTF-8"?>
+        |""".stripMargin.linesIterator.toSeq)
+    gitA.add(work)
+    gitA.commitAll("test")
+    gitA.createBranch("work")
+    gitA.checkout("work")
+    Assert.assertTrue(Lint.isValidBranch("work", null, gitA))
+    Assert.assertFalse(Lint.isValidTag("work", null, gitA))
+  }
+
+  @Test
+  def testValidTag(): Unit = {
+    val file = temp.newFolder("release-lint-mvn-valid-tag")
+    val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
+    gitA.configSetLocal("user.email", "you@example.com")
+    gitA.configSetLocal("user.name", "Your Name")
+    val work = new File(file, "pom.xml")
+    Util.write(work,
+      """<?xml version="1.0" encoding="UTF-8"?>
+        |""".stripMargin.linesIterator.toSeq)
+    gitA.add(work)
+    gitA.commitAll("test")
+    gitA.doTag("1.0.0")
+    gitA.checkout("v1.0.0")
+    Assert.assertTrue(Lint.isValidTag("v1.0.0", "v1.0.0", gitA))
+    Assert.assertFalse(Lint.isValidBranch("v1.0.0", "v1.0.0", gitA))
   }
 
   @Test
@@ -1106,50 +1163,66 @@ class LintMavenTest extends AssertionsForJUnit {
         |  <version>0.11-SNAPSHOT</version>
         |</project>
         |""".stripMargin.linesIterator.toSeq)
+    val dotMvnFolder = new File(file, ".mvn")
+    dotMvnFolder.mkdir()
+    Util.write(new File(dotMvnFolder, "extensions.xml"),
+      """<version>0.11-SNAPSHOT</version>
+        |""".stripMargin
+    )
+    val branchName = "feature/bre"
+    // gitA.createBranch(branchName)
+    //gitA.checkout(branchName)
     val expected =
-      """
-        |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- version / git ---
-        |[INFO]     ✅ git version: git version 2.999.999
-        |[INFO] --- check clone config / remote @ git ---
-        |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
-        |[WARNING]  😬 if you use gitlab try to
-        |[WARNING]  😬 choose another default branch; save; use the original default branch
-        |[INFO] --- check clone config / no shallow clone @ git ---
-        |[INFO]     ✅ NO shallow clone
-        |[INFO] --- .gitattributes @ git ---
-        |[INFO] --- .gitignore @ git ---
-        |[WARNING]  Found local changes 😬 RL1003
-        |[WARNING]  ?? pom.xml 😬 RL1003
-        |[INFO] --- list-remotes @ git ---
-        |[WARNING]  NO remotes found 😬 RL1004
-        |[WARNING]  % git remote -v # returns nothing
-        |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
-        |[INFO]     ✅ NO SNAPSHOTS in other files found
-        |[INFO]     WIP
-        |[INFO] --- .mvn @ maven ---
-        |[INFO]     WIP
-        |[INFO] --- project version @ maven ---
-        |[INFO]     0.11-SNAPSHOT
-        |[INFO] --- check for snapshots @ maven ---
-        |[INFO] --- check for GAV format @ maven ---
-        |[INFO]     ✅ all GAVs scopes looks fine
-        |[INFO] --- check for preview releases @ maven ---
-        |[INFO]     WIP
-        |[INFO] --- check major versions @ ishop ---
-        |[INFO]     ✅ no major version diff
-        |[INFO] --- suggest dependency updates / configurable @ maven ---
-        |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)
-        |I: checking dependecies against nexus - please wait
-        |I: checked 0 dependecies in 999ms (2000-01-01)
-        |[INFO]     WIP
-        |[INFO] --- dep.tree @ maven ---
-        |[INFO]     WIP
-        |
-        |/tmp/junit-REPLACED/release-lint-mvn-deploy-none/.git
-        |/tmp/junit-REPLACED/release-lint-mvn-deploy-none/pom.xml
-        |[INFO] ----------------------------[ end of lint ]----------------------------
-        |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
+    """
+      |[INFO] --------------------------------[ lint ]--------------------------------
+      |[INFO] --- version / git ---
+      |[INFO]     ✅ git version: git version 2.999.999
+      |[INFO] --- check clone config / remote @ git ---
+      |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
+      |[WARNING]  😬 if you use gitlab try to
+      |[WARNING]  😬 choose another default branch; save; use the original default branch
+      |[INFO] --- check clone config / no shallow clone @ git ---
+      |[INFO]     ✅ NO shallow clone
+      |[INFO] --- .gitattributes @ git ---
+      |[INFO] --- .gitignore @ git ---
+      |[WARNING]  Found local changes 😬 RL1003
+      |[WARNING]  ?? .mvn/ 😬 RL1003
+      |[WARNING]  ?? pom.xml 😬 RL1003
+      |[INFO] --- list-remotes @ git ---
+      |[WARNING]  NO remotes found 😬 RL1004
+      |[WARNING]  % git remote -v # returns nothing
+      |[INFO] --- gitlabci.yml @ gitlab ---
+      |[INFO]       ci path: .gitlab-ci.yml
+      |[INFO]       CI_COMMIT_TAG :
+      |[INFO]       CI_COMMIT_REF_NAME : feature/bre
+      |[WARNING]    an invalid branch/tag: ciRef: feature/bre, ciTag: , gitTags: , gitBranch:
+      |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
+      |[INFO]     ✅ NO SNAPSHOTS in other files found
+      |[INFO]     WIP
+      |[INFO] --- .mvn @ maven ---
+      |[INFO]     WIP
+      |[INFO] --- project version @ maven ---
+      |[INFO]     0.11-SNAPSHOT
+      |[INFO] --- check for snapshots @ maven ---
+      |[INFO] --- check for GAV format @ maven ---
+      |[INFO]     ✅ all GAVs scopes looks fine
+      |[INFO] --- check for preview releases @ maven ---
+      |[INFO]     WIP
+      |[INFO] --- check major versions @ ishop ---
+      |[INFO]     ✅ no major version diff
+      |[INFO] --- suggest dependency updates / configurable @ maven ---
+      |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)
+      |I: checking dependecies against nexus - please wait
+      |I: checked 0 dependecies in 999ms (2000-01-01)
+      |[INFO]     WIP
+      |[INFO] --- dep.tree @ maven ---
+      |[INFO]     WIP
+      |
+      |/tmp/junit-REPLACED/release-lint-mvn-deploy-none/.git
+      |/tmp/junit-REPLACED/release-lint-mvn-deploy-none/.mvn
+      |/tmp/junit-REPLACED/release-lint-mvn-deploy-none/pom.xml
+      |[INFO] ----------------------------[ end of lint ]----------------------------
+      |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
@@ -1157,7 +1230,10 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "202"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
-      val env = Map("CI_COMMIT_REF_NAME" -> "feature/bre", "CI_COMMIT_TAG" -> "")
+      val env = Map(
+        "CI_CONFIG_PATH" -> ".gitlab-ci.yml",
+        "CI_COMMIT_REF_NAME" -> "feature/bre",
+        "CI_COMMIT_TAG" -> "")
       System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, env, file))
 
     })

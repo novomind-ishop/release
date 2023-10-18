@@ -180,7 +180,7 @@ object Term {
         ""
       }
 
-      timestamp + fn.apply(text, opts.colors, limit)
+      timestamp + fn.apply(text.stripTrailing(), opts.colors, limit)
     }
   }
 

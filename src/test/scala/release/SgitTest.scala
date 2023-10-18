@@ -578,6 +578,11 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(Seq("master"), gitB.listBranchNamesRemoteShort())
     Assert.assertEquals(Seq("master"), gitB.listBranchNamesAll())
     Assert.assertEquals("master", gitB.currentBranch)
+    Assert.assertEquals(None, gitB.currentTags)
+    gitB.doTag("Work-no-tag")
+    Assert.assertEquals(None, gitB.currentTags)
+    gitB.deleteTag("Work-no-tag")
+    Assert.assertEquals(None, gitB.currentTags)
     Assert.assertEquals("master", gitB.findUpstreamBranch().get)
     Assert.assertFalse(gitB.hasChangesToPush)
 

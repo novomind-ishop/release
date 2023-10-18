@@ -17,6 +17,13 @@ import scala.util.{Failure, Success, Try}
 import scala.collection.parallel.CollectionConverters._
 
 object Lint {
+  def isValidBranch(ciCommitRefName: String, ciCommitTag: String, sgit: Sgit): Boolean = {
+    ciCommitTag == null && sgit.currentBranch == ciCommitRefName
+  }
+
+  def isValidTag(ciCommitRefName: String, ciCommitTag: String, sgit: Sgit): Boolean = {
+    ciCommitRefName == ciCommitTag && sgit.currentTags.getOrElse(Nil).contains(ciCommitTag)
+  }
 
   type UniqCode = String
   var codes = Set.empty[UniqCode]
@@ -174,7 +181,7 @@ object Lint {
           out.println(warn(" % git remote -v # returns nothing", opts))
           warnExit.set(true)
         } else {
-          remotes.foreach(r => out.println(info("      remote: " + r,  opts, limit = lineMax)))
+          remotes.foreach(r => out.println(info("      remote: " + r, opts, limit = lineMax)))
         }
 
         val ciconfigpath = envs.get("CI_CONFIG_PATH").orNull
@@ -212,6 +219,19 @@ object Lint {
 
           out.println(info("      CI_COMMIT_TAG : " + ciCommitTag, opts))
           out.println(info("      CI_COMMIT_REF_NAME : " + ciCommitRefName, opts))
+
+          if (Lint.isValidTag(ciCommitRefName, ciCommitTag, sgit)) {
+            out.println(info("      a valid tag : " + ciCommitRefName, opts))
+          } else if (Lint.isValidBranch(ciCommitRefName, ciCommitTag, sgit)) {
+            out.println(info("      a valid branch : " + ciCommitRefName, opts))
+          } else {
+            out.println(warn(s"   an invalid branch/tag: " +
+              s"ciRef: ${ciCommitRefName}, " +
+              s"ciTag: ${ciCommitTag}, " +
+              s"gitTags: ${sgit.currentTags.getOrElse(Nil).mkString(",")}, " +
+              s"gitBranch: ${sgit.currentBranchOpt.getOrElse("")}", opts, limit = lineMax))
+            warnExit.set(true)
+          }
           if (dockerTag.isSuccess) {
             if (dockerTag.get.isSuccess) {
               out.println(info("      docker tag : " + dockerTag.get.get, opts))
