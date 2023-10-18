@@ -289,6 +289,11 @@ object Starter extends LazyLogging {
         case Nil => inOpt
         case "--simple-chars" :: tail => argsRead(tail, inOpt.copy(simpleChars = true))
         case "--help" :: tail => argsRead(tail, inOpt.copy(showHelp = true))
+        case "--check-git" :: tail => {
+          Sgit.checkVersion(Sgit.versionOnly(), System.out, System.err, None)
+          System.exit(0)
+          null
+        }
         case "-h" :: tail => argsRead(tail, inOpt.copy(showHelp = true))
         case "--replace" :: tail => argsRead(tail, inOpt) // handled by shell
         case "--show-update-cmd" :: tail => argsRead(tail, inOpt.copy(showUpdateCmd = true, showStartupDone = false))

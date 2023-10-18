@@ -8,5 +8,7 @@ RUN apt-get update && apt-get install -y git tzdata bash
 RUN git config --global core.autocrlf input
 COPY release /root/release
 COPY release.jar /root/release.jar
+ENV RELEASE_DOCKER=true
 RUN chmod +x /root/release
 RUN TERM=dumb /root/release --help
+RUN TERM=dumb /root/release --check-git

@@ -12,6 +12,11 @@ import java.nio.file.{Files, StandardCopyOption}
 class SgitTest extends AssertionsForJUnit {
 
   @Test
+  def testVersionOnly: Unit = {
+    println(Sgit.versionOnly().version())
+  }
+
+  @Test
   def testSplitLineOnWhitespace: Unit = {
     Assert.assertEquals(Seq("a", "b"), Sgit.splitLineOnWhitespace("a b"))
   }

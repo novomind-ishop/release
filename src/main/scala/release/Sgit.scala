@@ -17,10 +17,19 @@ import scala.sys.process.ProcessLogger
 import scala.util.parsing.combinator.RegexParsers
 import scala.util.{Failure, Success, Try}
 
-case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStream,
-                checkExisting: Boolean = true, gitBin: Option[String], opts: Starter.Opts) extends LazyLogging {
+trait SgitVersion {
+  def version(): String
+}
 
-  private val gitRoot = Sgit.findGit(file.getAbsoluteFile, checkExisting)
+case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStream,
+                checkExisting: Boolean = true, checkGitRoot: Boolean = true,
+                gitBin: Option[String], opts: Starter.Opts) extends LazyLogging with SgitVersion {
+
+  private val gitRoot: File = if (checkGitRoot) {
+    Sgit.findGit(file.getAbsoluteFile, checkExisting)
+  } else {
+    null
+  }
 
   private val dotGit = new File(gitRoot, ".git")
 
@@ -219,7 +228,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
       try {
         Some(gitNative(Seq("describe", "--tags"), showErrorsOnStdErr = false))
       } catch {
-        case _:Throwable => None
+        case _: Throwable => None
       }
     } else {
       None
@@ -670,7 +679,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   private[release] def gitNative(args: Seq[String], showErrorsOnStdErr: Boolean = true, useWorkdir: Boolean = true,
                                  cmdFilter: String => Boolean = _ => false,
                                  errMapper: String => Option[String] = errLine => Some(errLine)): Seq[String] = {
-    if (!gitRoot.isDirectory && checkExisting) {
+    if (checkExisting && !gitRoot.isDirectory) {
       throw new IllegalStateException("invalid git dir: " + gitRoot.getAbsolutePath)
     }
     val workdir = if (useWorkdir) {
@@ -687,6 +696,12 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 }
 
 object Sgit {
+
+  def versionOnly(): SgitVersion = {
+    Sgit(null, doVerify = false, System.out, System.err,
+      checkExisting = false, checkGitRoot = false,
+      gitBin = None, opts = Opts())
+  }
 
   private[release] def splitLineOnWhitespace(in: String): Seq[String] = in.replaceFirst("^\\*", "")
     .trim.split("[ \t]+").toIndexedSeq
@@ -734,13 +749,13 @@ object Sgit {
 
   private var gits = Map.empty[Seq[String], Unit]
 
-  private[release] def checkVersion(sgit: Sgit, out: PrintStream, err: PrintStream, gitBin: Option[String]): Unit = synchronized {
+  private[release] def checkVersion(sgitVersion: SgitVersion, out: PrintStream, err: PrintStream, gitBin: Option[String]): Unit = synchronized {
     val cmd: Seq[String] = selectedGitCmd(err, gitBin)
     val cmdLine = cmd.mkString(" ")
     val git = gits.get(cmd)
     if (git.isEmpty) {
 
-      val result: Unit = sgit.version() match {
+      val result: Unit = sgitVersion.version() match {
         case v: String if v.startsWith("git version 1") => // (2014-12-17) - (tag: v1.9.5)
           throw new YourGitInstallationIsToOldException("1.9.5", "2016-01-01", "n/a", "", cmdLine)
         case v: String if v.startsWith("git version 2.0.") =>
@@ -838,9 +853,15 @@ object Sgit {
             ended = "2023-01-03", announced = "2022-06-29", announcedEnd = "2022-08-01",
             msg = "", gitPath = cmdLine)
         case v: String if v.startsWith("git version 2.34.") => // do nothing (2021-11-14) (tag: v2.34.0)
-          throw new YourGitInstallationIsToOldException(version = "2.34",
-            ended = "2023-01-03", announced = "2022-06-29", announcedEnd = "2022-08-01",
-            msg = "", gitPath = cmdLine)
+          if (ReleaseConfig.isDocker()) {
+            List.tabulate(3)(_ =>
+              err.println("W: please update your git version, \"" + v + "\" support endet at 2023-01-03")
+            )
+          } else {
+            throw new YourGitInstallationIsToOldException(version = "2.34",
+              ended = "2023-01-03", announced = "2022-06-29", announcedEnd = "2022-08-01",
+              msg = "", gitPath = cmdLine)
+          }
         case v: String if v.startsWith("git version 2.35.") => // do nothing (2022-01-24) (tag: v2.35.0)
           throw new YourGitInstallationIsToOldException(version = "2.35",
             ended = "2023-01-03", announced = "2022-06-29", announcedEnd = "2022-08-01",
@@ -853,7 +874,14 @@ object Sgit {
           err.println("W: please update your git version, \"" + v + "\" support ends at 2023-09-01")
         case v: String if v.startsWith("git version 2.38.") =>
           // do nothing (2022-10-02) (tag: v2.38.0)
-          err.println("W: please update your git version, \"" + v + "\" support ends at 2023-09-01")
+          if (ReleaseConfig.isDocker()) {
+            List.tabulate(3)(_ =>
+              err.println("W: please update your git version, \"" + v + "\" support ends at 2023-09-01")
+            )
+          } else {
+            err.println("W: please update your git version, \"" + v + "\" support ends at 2023-09-01")
+          }
+
         case v: String if v.startsWith("git version 2.39.") =>
         // do nothing (2022-12-13) (tag: v2.39.1)
         case v: String if v.startsWith("git version 2.40.") => // do nothing (2023-04-17) (tag: v2.40.1)
@@ -1087,19 +1115,19 @@ object Sgit {
   }
 
   private[release] def doCloneRemote(src: String, dest: File, verify: Boolean = true, depth: Int = 0): Sgit = {
-    val o = Sgit(dest, doVerify = verify, out = System.out, err = System.err, checkExisting = false, None, Opts())
+    val o = Sgit(dest, doVerify = verify, out = System.out, err = System.err, checkExisting = false, gitBin = None, opts = Opts())
     o.cloneRemote(src, dest, depth)
     o.copy(doVerify = false, checkExisting = true)
   }
 
   private[release] def doClone(src: File, dest: File, verify: Boolean = true): Sgit = {
-    val o = Sgit(dest, doVerify = verify, out = System.out, err = System.err, checkExisting = false, None, Opts())
+    val o = Sgit(dest, doVerify = verify, out = System.out, err = System.err, checkExisting = false, gitBin = None, opts = Opts())
     o.clone(src, dest)
     o.copy(doVerify = false, checkExisting = true)
   }
 
   private[release] def init(f: File, verify: Boolean = true): Sgit = {
-    val sgit = Sgit(f, doVerify = verify, out = System.out, err = System.err, checkExisting = false, None, Opts())
+    val sgit = Sgit(f, doVerify = verify, out = System.out, err = System.err, checkExisting = false, gitBin = None, opts = Opts())
     sgit.init()
     sgit
   }

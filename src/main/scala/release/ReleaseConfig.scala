@@ -244,6 +244,10 @@ object ReleaseConfig extends LazyLogging {
     scala.util.Properties.envOrNone("JENKINS_AGENT_WORKDIR").isDefined
   }
 
+  def isDocker(): Boolean = {
+    scala.util.Properties.envOrNone("RELEASE_DOCKER").isDefined
+  }
+
   def isTravisCi(): Boolean = {
     scala.util.Properties.envOrNone("TRAVIS").exists(_.toBoolean)
   }
