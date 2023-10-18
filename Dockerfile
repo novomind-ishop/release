@@ -1,11 +1,10 @@
-FROM eclipse-temurin:17.0.6_10-jre-alpine
+FROM eclipse-temurin:17.0.8.1_1-jre-jammy
 # https://hub.docker.com/_/eclipse-temurin/tags
 LABEL maintainer="ishop-dev-infra@novomind.com" \
       novomind.deko.color="ec601a" \
-      novomind.deko.linux.distribution="alpine/3.10"
+      novomind.deko.linux.distribution="ubuntu/22.04 Jammy Jellyfish"
 
-RUN apk update && apk add git tzdata bash && cp /usr/share/zoneinfo/Europe/Berlin /etc/localtime && echo "Europe/Berlin" > /etc/timezone && apk del tzdata \
-    && echo -e "#!/bin/sh\nntpd -d -q -n -p pool.ntp.org" > /etc/periodic/daily/do-ntpd && chmod +x /etc/periodic/daily/do-ntpd
+RUN apt-get update && apt-get install -y git tzdata bash
 RUN git config --global core.autocrlf input
 COPY release /root/release
 COPY release.jar /root/release.jar
