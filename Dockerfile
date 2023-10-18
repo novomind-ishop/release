@@ -9,4 +9,4 @@ RUN git config --global core.autocrlf input
 COPY release /root/release
 COPY release.jar /root/release.jar
 RUN chmod +x /root/release
-RUN /root/release --help
+RUN TERM=dumb /root/release --help
