@@ -1,6 +1,6 @@
 package release
 
-import com.google.common.base.Stopwatch
+import com.google.common.base.{Stopwatch, Strings}
 import com.google.common.hash.Hashing
 import com.google.common.io.{CharSink, CharSource}
 import com.google.googlejavaformat.java.Formatter
@@ -17,12 +17,19 @@ import scala.util.{Failure, Success, Try}
 import scala.collection.parallel.CollectionConverters._
 
 object Lint {
-  def isValidBranch(ciCommitRefName: String, ciCommitTag: String, sgit: Sgit): Boolean = {
-    ciCommitTag == null && sgit.currentBranch == ciCommitRefName
+  def isValidMergeRequest(ciCommitRefName: String, ciCommitTag: String, sgit: Sgit, ciCommitBranch: String): Boolean = {
+    Strings.emptyToNull(ciCommitTag) == null && Strings.emptyToNull(ciCommitBranch) == null &&
+      Strings.emptyToNull(ciCommitRefName) != null
   }
 
-  def isValidTag(ciCommitRefName: String, ciCommitTag: String, sgit: Sgit): Boolean = {
-    ciCommitRefName == ciCommitTag && sgit.currentTags.getOrElse(Nil).contains(ciCommitTag)
+  def isValidBranch(ciCommitRefName: String, ciCommitTag: String, sgit: Sgit, ciCommitBranch: String): Boolean = {
+    Strings.emptyToNull(ciCommitTag) == null &&
+      (sgit.currentBranchOpt.getOrElse("") == ciCommitRefName || ciCommitRefName == ciCommitBranch)
+  }
+
+  def isValidTag(ciCommitRefName: String, ciCommitTag: String, sgit: Sgit, ciCommitBranch: String): Boolean = {
+    ciCommitRefName == ciCommitTag && sgit.currentTags.getOrElse(Nil).contains(ciCommitTag) &&
+      Strings.emptyToNull(ciCommitBranch) == null
   }
 
   type UniqCode = String
@@ -188,8 +195,10 @@ object Lint {
         val ciCommitRefName = envs.get("CI_COMMIT_REF_NAME").orNull
         val ciTagEnv = envs.get("CI_COMMIT_TAG")
         val ciCommitTag = ciTagEnv.orNull
+        val ciCommitBranchEnv = envs.get("CI_COMMIT_BRANCH") // not present on gitlab merge requests
+        val ciCommitBranch = ciCommitBranchEnv.getOrElse("")
 
-        val isGitTag: Boolean = currentGitTags.isDefined || ciTagEnv.isDefined
+        val isGitOrCiTag: Boolean = Lint.isValidTag(ciCommitRefName, ciCommitTag, sgit, ciCommitBranch)
         val rootFolderFiles = files.toSeq
         var pomFailures: Seq[Exception] = Nil
         val pompom: Option[Try[ProjectMod]] = if (rootFolderFiles.exists(_.getName == "pom.xml")) {
@@ -219,15 +228,19 @@ object Lint {
 
           out.println(info("      CI_COMMIT_TAG : " + ciCommitTag, opts))
           out.println(info("      CI_COMMIT_REF_NAME : " + ciCommitRefName, opts))
+          out.println(info("      CI_COMMIT_BRANCH : " + ciCommitBranch, opts))
 
-          if (Lint.isValidTag(ciCommitRefName, ciCommitTag, sgit)) {
+          if (Lint.isValidTag(ciCommitRefName, ciCommitTag, sgit, ciCommitBranch)) {
             out.println(info("      a valid tag : " + ciCommitRefName, opts))
-          } else if (Lint.isValidBranch(ciCommitRefName, ciCommitTag, sgit)) {
+          } else if (Lint.isValidBranch(ciCommitRefName, ciCommitTag, sgit, ciCommitBranch)) {
             out.println(info("      a valid branch : " + ciCommitRefName, opts))
+          } else if (Lint.isValidMergeRequest(ciCommitRefName, ciCommitTag, sgit, ciCommitBranch)) {
+            out.println(info("      a valid merge request : " + ciCommitRefName, opts))
           } else {
             out.println(warn(s"   an invalid branch/tag: " +
               s"ciRef: ${ciCommitRefName}, " +
               s"ciTag: ${ciCommitTag}, " +
+              s"ciBranch: ${ciCommitBranch}, " +
               s"gitTags: ${sgit.currentTags.getOrElse(Nil).mkString(",")}, " +
               s"gitBranch: ${sgit.currentBranchOpt.getOrElse("")}", opts, limit = lineMax))
             warnExit.set(true)
@@ -258,7 +271,7 @@ object Lint {
                 val snapMsg = "  found snapshot in: " + f._3 +
                   s" ${fiWarn} ${fiCodeSnapshotText((f._1, f._2, f._3.getFileName))}\n" +
                   "              " + f._2
-                if (isGitTag) {
+                if (isGitOrCiTag) {
                   out.println(warn(snapMsg, opts, limit = lineMax))
                   warnExit.set(true)
                 } else {
@@ -267,7 +280,7 @@ object Lint {
 
               })
             val snapshotSumMsg = s"  found snapshots: ${fiWarn} ${fiCodeSnapshotText(relFiles)}"
-            if (isGitTag) {
+            if (isGitOrCiTag) {
               out.println(warn(snapshotSumMsg, opts, limit = lineMax))
               warnExit.set(true)
             } else {
@@ -307,7 +320,7 @@ object Lint {
             snaps
               .foreach(dep => {
                 val snapFound = "  found snapshot: " + dep.gav().formatted + s" ${fiWarn} ${fiCodeSnapshotGav.apply(dep.gav())}"
-                if (isGitTag) {
+                if (isGitOrCiTag) {
                   out.println(warn(snapFound, opts, limit = lineMax))
                   warnExit.set(true)
                 } else {

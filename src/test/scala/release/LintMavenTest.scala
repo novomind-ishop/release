@@ -236,7 +236,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]    use .gitlab-ci.yml 😬 RL1005
         |[INFO]       CI_COMMIT_TAG : vU
         |[INFO]       CI_COMMIT_REF_NAME : vU
-        |[WARNING]    an invalid branch/tag: ciRef: vU, ciTag: vU, gitTags: , gitBranch:
+        |[INFO]       CI_COMMIT_BRANCH :
+        |[WARNING]    an invalid branch/tag: ciRef: vU, ciTag: vU, ciBranch: , gitTags: , gitBranch:
         |[WARNING]    docker tag : » vU « is no valid git tag name. This could lead to
         |[WARNING]      build problems later. A git tag must match the pattern
         |[WARNING]      » ^v[0-9]+\.[0-9]+\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ « 😬 RL1006
@@ -954,6 +955,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]       ci path: .gitlab-ci.yml
         |[INFO]       CI_COMMIT_TAG : v0.11.0
         |[INFO]       CI_COMMIT_REF_NAME : v0.11.0
+        |[INFO]       CI_COMMIT_BRANCH :
         |[INFO]       a valid tag : v0.11.0
         |[INFO]       docker tag : v0.11.0
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
@@ -1112,9 +1114,11 @@ class LintMavenTest extends AssertionsForJUnit {
   }
 
   @Test
-  def testValidBranch(): Unit = {
+  def testValidMergeRequest(): Unit = {
     val file = temp.newFolder("release-lint-mvn-valid-branch")
     val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
+    Assert.assertTrue(Lint.isValidMergeRequest("work", null, gitA, null))
+    Assert.assertTrue(Lint.isValidMergeRequest("work", "", gitA, ""))
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
     val work = new File(file, "pom.xml")
@@ -1125,8 +1129,34 @@ class LintMavenTest extends AssertionsForJUnit {
     gitA.commitAll("test")
     gitA.createBranch("work")
     gitA.checkout("work")
-    Assert.assertTrue(Lint.isValidBranch("work", null, gitA))
-    Assert.assertFalse(Lint.isValidTag("work", null, gitA))
+    Assert.assertTrue(Lint.isValidMergeRequest("work", null, gitA, null))
+    Assert.assertTrue(Lint.isValidMergeRequest("work", "", gitA, ""))
+
+    Assert.assertFalse(Lint.isValidTag("work", null, gitA, null))
+    Assert.assertFalse(Lint.isValidTag("work", "", gitA, ""))
+  }
+
+  @Test
+  def testValidBranch(): Unit = {
+    val file = temp.newFolder("release-lint-mvn-valid-branch")
+    val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
+    Assert.assertTrue(Lint.isValidBranch("work", null, gitA, "work"))
+    Assert.assertTrue(Lint.isValidBranch("work", "", gitA, "work"))
+    gitA.configSetLocal("user.email", "you@example.com")
+    gitA.configSetLocal("user.name", "Your Name")
+    val work = new File(file, "pom.xml")
+    Util.write(work,
+      """<?xml version="1.0" encoding="UTF-8"?>
+        |""".stripMargin.linesIterator.toSeq)
+    gitA.add(work)
+    gitA.commitAll("test")
+    gitA.createBranch("work")
+    gitA.checkout("work")
+    Assert.assertTrue(Lint.isValidBranch("work", null, gitA, "work"))
+    Assert.assertTrue(Lint.isValidBranch("work", "", gitA, "work"))
+
+    Assert.assertFalse(Lint.isValidTag("work", null, gitA, "work"))
+    Assert.assertFalse(Lint.isValidTag("work", "", gitA, "work"))
   }
 
   @Test
@@ -1143,8 +1173,8 @@ class LintMavenTest extends AssertionsForJUnit {
     gitA.commitAll("test")
     gitA.doTag("1.0.0")
     gitA.checkout("v1.0.0")
-    Assert.assertTrue(Lint.isValidTag("v1.0.0", "v1.0.0", gitA))
-    Assert.assertFalse(Lint.isValidBranch("v1.0.0", "v1.0.0", gitA))
+    Assert.assertTrue(Lint.isValidTag("v1.0.0", "v1.0.0", gitA, null))
+    Assert.assertFalse(Lint.isValidBranch("v1.0.0", "v1.0.0", gitA, null))
   }
 
   @Test
@@ -1195,7 +1225,8 @@ class LintMavenTest extends AssertionsForJUnit {
       |[INFO]       ci path: .gitlab-ci.yml
       |[INFO]       CI_COMMIT_TAG :
       |[INFO]       CI_COMMIT_REF_NAME : feature/bre
-      |[WARNING]    an invalid branch/tag: ciRef: feature/bre, ciTag: , gitTags: , gitBranch:
+      |[INFO]       CI_COMMIT_BRANCH :
+      |[INFO]       a valid merge request : feature/bre
       |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
       |[INFO]     ✅ NO SNAPSHOTS in other files found
       |[INFO]     WIP
