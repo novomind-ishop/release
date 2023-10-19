@@ -494,6 +494,18 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
   }
 
   @Test
+  def testEnvRead_showTimeStamps(): Unit = {
+    val result = Starter.envRead(Seq(("RELEASE_LINT_TIMESTAMPS", "true")), Opts())
+    Assert.assertEquals(Opts(lintOpts = LintOpts(showTimeStamps = true)), result)
+  }
+
+  @Test
+  def testEnvRead_showTimeStamps_fail(): Unit = {
+    val result = Starter.envRead(Seq(("RELEASE_LINT_TIMESTAMPS", "some")), Opts())
+    Assert.assertEquals(Opts(lintOpts = LintOpts(showTimeStamps = false)), result)
+  }
+
+  @Test
   def testFutures(): Unit = {
     implicit val global = ExecutionContext.global
 

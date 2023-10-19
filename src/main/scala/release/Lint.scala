@@ -61,7 +61,7 @@ object Lint {
 
   val fiCodeNexusUrlSlash = uniqCode(1001)(())
   val fiCodeNexusCentral = uniqCode(1002)(())
-  val fiCodeGitLocalChanges = uniqCode(1003)(())
+  val fiCodeGitLocalChanges = uniqCode(1003)
   val fiCodeGitNoRemotes = uniqCode(1004)(())
   val fiCodeGitlabCiFilename = uniqCode(1005)(())
   val fiCodeGitlabCiTagname = uniqCode(1006)(())
@@ -176,10 +176,15 @@ object Lint {
         out.println(info("--- .gitattributes @ git ---", opts))
         out.println(info("--- .gitignore @ git ---", opts))
         if (sgit.hasLocalChanges) {
-          out.println(warn(s" Found local changes ${fiWarn} ${fiCodeGitLocalChanges}", opts))
-          sgit.localChanges()
-            .foreach(filename => out.println(warn(s" ${filename} ${fiWarn} ${fiCodeGitLocalChanges}", opts, limit = lineMax)))
-          warnExit.set(true)
+          val names = sgit.localChanges()
+            .filterNot(name => opts.lintOpts.skips.contains(fiCodeGitLocalChanges(name)))
+          val mainSkip = fiCodeGitLocalChanges(names)
+          if (!opts.lintOpts.skips.contains(mainSkip) && names.nonEmpty) {
+            out.println(warn(s" Found local changes ${fiWarn} $mainSkip", opts))
+            names
+              .foreach(filename => out.println(warn(s" ${filename} ${fiWarn} ${fiCodeGitLocalChanges(filename)}", opts, limit = lineMax)))
+            warnExit.set(true)
+          }
         }
         out.println(info("--- list-remotes @ git ---", opts))
         val remotes = sgit.listRemotes()

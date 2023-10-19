@@ -497,8 +497,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
         |[INFO] --- .gitignore @ git ---
-        |[WARNING]  Found local changes 😬 RL1003
-        |[WARNING]  ?? pom.xml 😬 RL1003
+        |[WARNING]  Found local changes 😬 RL1003-3b946499
+        |[WARNING]  ?? pom.xml 😬 RL1003-467ad8bc
         |[INFO] --- list-remotes @ git ---
         |[WARNING]  NO remotes found 😬 RL1004
         |[WARNING]  % git remote -v # returns nothing
@@ -601,8 +601,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
         |[INFO] --- .gitignore @ git ---
-        |[WARNING]  Found local changes 😬 RL1003
-        |[WARNING]  ?? pom.xml 😬 RL1003
+        |[WARNING]  Found local changes 😬 RL1003-3b946499
+        |[WARNING]  ?? pom.xml 😬 RL1003-467ad8bc
         |[INFO] --- list-remotes @ git ---
         |[WARNING]  NO remotes found 😬 RL1004
         |[WARNING]  % git remote -v # returns nothing
@@ -686,6 +686,8 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO] --- skip-conf / self ---
+        |[INFO]     skips: RL1003-467ad8bc
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
@@ -696,8 +698,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
         |[INFO] --- .gitignore @ git ---
-        |[WARNING]  Found local changes 😬 RL1003
-        |[WARNING]  ?? pom.xml 😬 RL1003
         |[INFO] --- list-remotes @ git ---
         |[WARNING]  NO remotes found 😬 RL1004
         |[WARNING]  % git remote -v # returns nothing
@@ -735,7 +735,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
-      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1003-467ad8bc")))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
@@ -819,8 +819,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
         |[INFO] --- .gitignore @ git ---
-        |[WARNING]  Found local changes 😬 RL1003
-        |[WARNING]  ?? pom.xml 😬 RL1003
+        |[WARNING]  Found local changes 😬 RL1003-3b946499
+        |[WARNING]  ?? pom.xml 😬 RL1003-467ad8bc
         |[INFO] --- list-remotes @ git ---
         |[WARNING]  NO remotes found 😬 RL1004
         |[WARNING]  % git remote -v # returns nothing
@@ -946,8 +946,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     current git tags: v0.11.0
         |[INFO] --- .gitattributes @ git ---
         |[INFO] --- .gitignore @ git ---
-        |[WARNING]  Found local changes 😬 RL1003
-        |[WARNING]  ?? pom.xml 😬 RL1003
+        |[WARNING]  Found local changes 😬 RL1003-3b946499
+        |[WARNING]  ?? pom.xml 😬 RL1003-467ad8bc
         |[INFO] --- list-remotes @ git ---
         |[WARNING]  NO remotes found 😬 RL1004
         |[WARNING]  % git remote -v # returns nothing
@@ -1064,6 +1064,10 @@ class LintMavenTest extends AssertionsForJUnit {
       """<version>0.11-SNAPSHOT</version>
         |""".stripMargin
     )
+    Util.write(new File(file, "README.md"),
+      """hello
+        |""".stripMargin
+    )
     gitA.add(notes)
     gitA.add(extension)
     gitA.commitAll("some")
@@ -1071,7 +1075,7 @@ class LintMavenTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self ---
-        |[INFO]     skips: RL1012-637a4930
+        |[INFO]     skips: RL1012-637a4930, RL1003-b4b0c08b
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
@@ -1082,8 +1086,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
         |[INFO] --- .gitignore @ git ---
-        |[WARNING]  Found local changes 😬 RL1003
-        |[WARNING]  ?? pom.xml 😬 RL1003
+        |[WARNING]  Found local changes 😬 RL1003-3b946499
+        |[WARNING]  ?? pom.xml 😬 RL1003-467ad8bc
         |[INFO] --- list-remotes @ git ---
         |[WARNING]  NO remotes found 😬 RL1004
         |[WARNING]  % git remote -v # returns nothing
@@ -1098,12 +1102,13 @@ class LintMavenTest extends AssertionsForJUnit {
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple-fail/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple-fail/.mvn
+        |/tmp/junit-REPLACED/release-lint-mvn-simple-fail/README.md
         |/tmp/junit-REPLACED/release-lint-mvn-simple-fail/notes.md
         |/tmp/junit-REPLACED/release-lint-mvn-simple-fail/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
-      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1012-637a4930")))
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1012-637a4930", "RL1003-b4b0c08b")))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "202"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
@@ -1205,6 +1210,8 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
     """
       |[INFO] --------------------------------[ lint ]--------------------------------
+      |[INFO] --- skip-conf / self ---
+      |[INFO]     skips: RL1003-21ee7891
       |[INFO] --- version / git ---
       |[INFO]     ✅ git version: git version 2.999.999
       |[INFO] --- check clone config / remote @ git ---
@@ -1215,9 +1222,6 @@ class LintMavenTest extends AssertionsForJUnit {
       |[INFO]     ✅ NO shallow clone
       |[INFO] --- .gitattributes @ git ---
       |[INFO] --- .gitignore @ git ---
-      |[WARNING]  Found local changes 😬 RL1003
-      |[WARNING]  ?? .mvn/ 😬 RL1003
-      |[WARNING]  ?? pom.xml 😬 RL1003
       |[INFO] --- list-remotes @ git ---
       |[WARNING]  NO remotes found 😬 RL1004
       |[WARNING]  % git remote -v # returns nothing
@@ -1255,7 +1259,7 @@ class LintMavenTest extends AssertionsForJUnit {
       |[INFO] ----------------------------[ end of lint ]----------------------------
       |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
-      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1003-21ee7891")))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org/")
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "202"))

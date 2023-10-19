@@ -278,6 +278,9 @@ object Starter extends LazyLogging {
         val skips = Strings.nullToEmpty(k).split(",").toSeq.map(_.trim).distinct.filterNot(_.isEmpty)
         inOpt.copy(lintOpts = inOpt.lintOpts.copy(skips = inOpt.lintOpts.skips ++ skips))
       })
+      case ("RELEASE_LINT_TIMESTAMPS", k) :: tail => envRead(tail, {
+        inOpt.copy(lintOpts = inOpt.lintOpts.copy(showTimeStamps = Strings.nullToEmpty(k).toBooleanOption.getOrElse(false)))
+      })
       case (_, _) :: tail => envRead(tail, inOpt)
     }
   }
