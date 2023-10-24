@@ -10,5 +10,5 @@ COPY release /root/release
 COPY release.jar /root/release.jar
 ENV RELEASE_DOCKER=true
 RUN chmod +x /root/release
-RUN TERM=dumb /root/release --help
-RUN TERM=dumb /root/release --check-git
+RUN /root/release --help
+RUN /root/release --check-git
