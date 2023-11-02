@@ -925,16 +925,24 @@ class LintMavenTest extends AssertionsForJUnit {
         |This is the documentation for 0.11-SNAPSHOT
         |This is the documentation for 0.11-SNAPSHOT
         |""".stripMargin.linesIterator.toSeq)
+    val folder1 = new File(file, "folder1")
+    folder1.mkdir()
+    val file1 = new File(folder1, "test.txt")
+    Util.write(file1, Seq("content"))
     gitA.add(notes)
+    gitA.add(file1)
     gitA.commitAll("some")
     gitA.doTag("0.11.0")
     gitA.checkout("v0.11.0")
+    Util.write(file1, Seq("content1"))
+    val file2 = new File(folder1, "test2.txt")
+    Util.write(file2, Seq("content1"))
     Assert.assertTrue(gitA.currentTags.isDefined)
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self ---
-        |[INFO]     skips: RL1012-d3421ec9
+        |[INFO]     skips: RL1012-d3421ec9, RL1003-8a73d4ae
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
@@ -946,7 +954,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     current git tags: v0.11.0
         |[INFO] --- .gitattributes @ git ---
         |[INFO] --- .gitignore @ git ---
-        |[WARNING]  Found local changes 😬 RL1003-3b946499
+        |[WARNING]  Found local changes 😬 RL1003-8acb7584
+        |[WARNING]  ?? folder1/ 😬 RL1003-9fe48cca
+        |[WARNING]  ?? folder1/test2.txt 😬 RL1003-ac1cfa8d
         |[WARNING]  ?? pom.xml 😬 RL1003-467ad8bc
         |[INFO] --- list-remotes @ git ---
         |[WARNING]  NO remotes found 😬 RL1004
@@ -996,12 +1006,13 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
+        |/tmp/junit-REPLACED/release-lint-mvn-simple/folder1
         |/tmp/junit-REPLACED/release-lint-mvn-simple/notes.md
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
-      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1012-d3421ec9")))
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1012-d3421ec9", "RL1003-8a73d4ae")))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))

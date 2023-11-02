@@ -176,12 +176,31 @@ object Lint {
         out.println(info("--- .gitattributes @ git ---", opts))
         out.println(info("--- .gitignore @ git ---", opts))
         if (sgit.hasLocalChanges) {
+          var folderMods = Seq.empty[String]
           val names = sgit.localChanges()
-            .filterNot(name => opts.lintOpts.skips.contains(fiCodeGitLocalChanges(name)))
-          val mainSkip = fiCodeGitLocalChanges(names)
-          if (!opts.lintOpts.skips.contains(mainSkip) && names.nonEmpty) {
+            .flatMap(line => {
+              val folder = line.replaceAll("/[^/]+$", "/")
+              Seq(line, folder)
+            })
+            .sorted
+            .distinct
+            .filterNot(name => {
+
+              val code = fiCodeGitLocalChanges(name)
+              val bool = opts.lintOpts.skips.contains(code)
+              if (name.endsWith("/") && bool) {
+                folderMods = folderMods :+ name
+              }
+              bool
+            })
+          val namesParents = names.filterNot(name => {
+            folderMods.exists(prefix => name.startsWith(prefix))
+          })
+
+          val mainSkip = fiCodeGitLocalChanges(namesParents)
+          if (!opts.lintOpts.skips.contains(mainSkip) && namesParents.nonEmpty) {
             out.println(warn(s" Found local changes ${fiWarn} $mainSkip", opts))
-            names
+            namesParents
               .foreach(filename => out.println(warn(s" ${filename} ${fiWarn} ${fiCodeGitLocalChanges(filename)}", opts, limit = lineMax)))
             warnExit.set(true)
           }
