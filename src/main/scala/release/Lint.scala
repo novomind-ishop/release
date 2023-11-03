@@ -422,6 +422,12 @@ object Lint {
               out.println(warn(s" nexus work url must end with a '/' - ${repo.workNexusUrl()} ${fiWarn} ${fiCodeNexusUrlSlash}", opts, limit = lineMax))
               warnExit.set(true)
             }
+            val settingsNexusMirrors = mod.listRemoteRepoUrls()
+            if (settingsNexusMirrors != Nil) {
+              settingsNexusMirrors.foreach(url => {
+                out.println(info(s"    settings.xml nexus mirror=${url} # (${Util.ipFromUrl(url).getOrElse("no ip")})", opts, limit = lineMax))
+              })
+            }
 
             try {
               out.println(updatePrinter.result.toString.trim)

@@ -49,6 +49,8 @@ object ProjectModTest {
     }
 
     override def depTreeFilenameList(): Seq[String] = Nil
+
+    override def listRemoteRepoUrls(): Seq[String] = Nil
   }
 
   def depOf(g: String, a: String, v: String, scope: String = ""): ProjectMod.Dep = {

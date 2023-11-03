@@ -719,6 +719,8 @@ object Increment {
 }
 
 trait ProjectMod extends LazyLogging {
+  def listRemoteRepoUrls():Seq[String]
+
   val file: File
   val repo: Repo
   val opts: Opts
@@ -742,7 +744,7 @@ trait ProjectMod extends LazyLogging {
     val depForCheck: Seq[Dep] = listGavsForCheck()
     val sdm = selfDepsMod
     val result = ProjectMod.collectDependencyUpdates(updatePrinter = updatePrinter,
-      depUpOpts = depUpOpts, rootDeps = depForCheck, selfDepsMod = sdm, repos = Seq(repo), checkOnline = checkOn)
+      depUpOpts = depUpOpts, rootDeps = depForCheck, selfDepsMod = sdm, repos = Seq(repo) ++ listRemoteRepoUrls().map(Repo.ofUrl), checkOnline = checkOn)
     if (depUpOpts.changeToLatest) {
       val localDepUpFile = new File(file, ".release-dependency-updates")
       val fn: (Gav3, Seq[String]) => String = if (localDepUpFile.canRead) {

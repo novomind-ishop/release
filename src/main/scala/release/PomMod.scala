@@ -395,6 +395,17 @@ case class PomMod(file: File, repo: Repo, opts: Opts,
     dep.copy(version = dep.version.map(replacedPropertyOf(listProperties, skipPropertyReplacement)))
   }
 
+  def listRemoteRepoUrls(): Seq[String] = {
+    // TODO cat ~/.m2/settings.xml
+    val localSettingsXml = new File("settings.xml")
+    if (localSettingsXml.canRead) {
+      PomMod.extractUrlsFromSettings(localSettingsXml)
+    } else {
+      Nil
+
+    }
+  }
+
   def listSnapshotDependenciesDistinct: Seq[Dep] = {
     Util.distinctOn[Dep, Dep](listSnapshotDependencies, _.copy(pomRef = SelfRef.undef))
   }
@@ -476,6 +487,35 @@ case class RawPomFile(pomFile: File, document: Document, file: File) {
 }
 
 object PomMod {
+  def extractUrlsFromSettings(settingsXml: File): Seq[String] = {
+    extractUrlsFromSettings(Util.read(settingsXml))
+  }
+
+  def extractUrlsFromSettings(settingsXmlContent: String): Seq[String] = {
+    try {
+      val doc = Xpath.newDocument(settingsXmlContent)
+
+      val mirrors = Xpath.toSeq(doc, "/settings/mirrors/mirror")
+      val mirrorUrls = mirrors.flatMap(node => Xpath.nodeElementValue(node, "url"))
+
+      val profiles = Xpath.toSeq(doc, "/settings/profiles/profile")
+      val profileUrls = profiles.flatMap(node => {
+        val repositories = Xpath.nodeElements(node, "repositories/repository")
+
+        val plugins = Xpath.nodeElements(node, "pluginRepositories/pluginRepository")
+
+        repositories.flatMap(node => Xpath.nodeElementValue(node, "url")) ++
+          plugins.flatMap(node => Xpath.nodeElementValue(node, "url"))
+      })
+
+      (mirrorUrls ++ profileUrls).filterNot(_ == "http://0.0.0.0/").distinct
+    } catch {
+      case e: Exception => {
+        Nil
+      }
+    }
+
+  }
 
   private[release] def replacedPropertyOf(listProperties: Map[String, String], skipPropertyReplacement: Boolean)(string: String) = {
     PomMod.replaceProperty(listProperties, skipPropertyReplacement)(string)
@@ -541,7 +581,7 @@ object PomMod {
   }
 
   def withRepo(file: File, opts: Opts, repo: Repo, skipPropertyReplacement: Boolean = false,
-               withSubPoms: Boolean = true,failureCollector: Option[Exception => Unit]): PomMod = {
+               withSubPoms: Boolean = true, failureCollector: Option[Exception => Unit]): PomMod = {
     PomMod(file, repo, opts, skipPropertyReplacement, withSubPoms, failureCollector)
   }
 

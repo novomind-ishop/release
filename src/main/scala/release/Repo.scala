@@ -37,13 +37,13 @@ import java.util.concurrent.ConcurrentHashMap
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
-class Repo private(opts: Opts) extends LazyLogging {
+class Repo private(_mirrorNexus: RemoteRepository, _workNexus: RemoteRepository) extends LazyLogging {
 
   private lazy val newRepositoriesCentral: RemoteRepository = Repo.newDefaultRepository(Repo.centralUrl)
 
-  private lazy val mirrorNexus: RemoteRepository = Repo.newDefaultRepository(ReleaseConfig.default(opts.useDefaults).mirrorNexusUrl())
+  private lazy val mirrorNexus: RemoteRepository = _mirrorNexus
 
-  private lazy val workNexus: RemoteRepository = Repo.newDefaultRepository(ReleaseConfig.default(opts.useDefaults).workNexusUrl())
+  private lazy val workNexus: RemoteRepository = _workNexus
 
   def workNexusUrl(): String = workNexus.getUrl
 
@@ -136,7 +136,18 @@ object Repo extends LazyLogging {
     value.map(_.orginal)
   }
 
-  def of(opts: Opts): Repo = new Repo(opts)
+  def ofUrl(url: String): Repo = {
+    val repositorySystem: RemoteRepository = Repo.newDefaultRepository(url)
+    new Repo(_mirrorNexus = repositorySystem, _workNexus = repositorySystem)
+  }
+
+  def of(opts: Opts): Repo = {
+
+    val mirrorNexus: RemoteRepository = Repo.newDefaultRepository(ReleaseConfig.default(opts.useDefaults).mirrorNexusUrl())
+
+    val workNexus: RemoteRepository = Repo.newDefaultRepository(ReleaseConfig.default(opts.useDefaults).workNexusUrl())
+    new Repo(_mirrorNexus = mirrorNexus, _workNexus = workNexus)
+  }
 
   case class ReachableResult(online: Boolean, msg: String)
 

@@ -1769,6 +1769,66 @@ class PomModTest extends AssertionsForJUnit {
         "1.0.0-M1", "1.0.0-M2"))
     Assert.assertEquals(Seq("1.0.0-M1", "a"), result)
   }
+
+  @Test
+  def testUrlsFromSettingsXml_null(): Unit = {
+    val urls = PomMod.extractUrlsFromSettings(null: String)
+    Assert.assertEquals(Nil, urls)
+  }
+
+  @Test
+  def testUrlsFromSettingsXml_invalid(): Unit = {
+    val urls = PomMod.extractUrlsFromSettings("invalid")
+    Assert.assertEquals(Nil, urls)
+  }
+
+  @Test
+  def testUrlsFromSettingsXml(): Unit = {
+    val urls = PomMod.extractUrlsFromSettings(
+      """<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+        |  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        |  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+        |  <profiles>
+        |    <profile>
+        |      <repositories>
+        |        <repository>
+        |          <url>https://nexus1.example.org/content/repositories/public/</url>
+        |        </repository>
+        |        <repository>
+        |          <url>http://central1</url>
+        |        </repository>
+        |      </repositories>
+        |      <pluginRepositories>
+        |        <pluginRepository>
+        |          <url>https://nexus2.example.org/content/repositories/public/</url>
+        |        </pluginRepository>
+        |        <pluginRepository>
+        |          <url>http://central2</url>
+        |        </pluginRepository>
+        |        <pluginRepository>
+        |          <url>http://central2</url>
+        |        </pluginRepository>
+        |      </pluginRepositories>
+        |    </profile>
+        |  </profiles>
+        |  <mirrors>
+        |    <mirror>
+        |      <url>http://0.0.0.0/</url>
+        |    </mirror>
+        |    <mirror>
+        |      <url>https://nexus3.example.org/content/repositories/public/</url>
+        |    </mirror>
+        |  </mirrors>
+        |</settings>
+        |""".stripMargin)
+    Assert.assertEquals(Seq(
+      "https://nexus3.example.org/content/repositories/public/",
+      "https://nexus1.example.org/content/repositories/public/",
+      "http://central1",
+      "https://nexus2.example.org/content/repositories/public/",
+      "http://central2",
+    ), urls)
+  }
 }
 
 object PomModTest {

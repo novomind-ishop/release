@@ -31,6 +31,10 @@ case class SbtMod(file: File, repo: Repo, opts: Opts) extends ProjectMod {
 
   val listProperties: Map[String, String] = Map("value-for-check" -> "TODO") // TODO
 
+  def listRemoteRepoUrls(): Seq[String] = {
+    // TODO cat ~/.sbt/repositories
+    Nil
+  }
   val skipPropertyReplacement: Boolean = false
 
   def isShop: Boolean = false
