@@ -2,6 +2,7 @@ package release
 
 import com.google.common.base.Strings
 import com.google.common.hash.Hashing
+import release.ProjectMod.Version
 
 import java.nio.charset.StandardCharsets
 import scala.util.Failure
@@ -43,28 +44,32 @@ object SuggestDockerTag {
   }
 
   def suggestInner(inn: String, org: String, tagName: String, projectVersion: Option[String]): (String, Int) = {
-    Strings.nullToEmpty(inn).trim match {
+
+    def fallback(innn:String):(String, Int) = {
+      val suffix = "_" + Hashing.murmur3_32_fixed().hashString(org, StandardCharsets.UTF_8) + "_TEMP"
+      (innn.toLowerCase().replaceAll("[\\:/]+", "-")
+        .replaceAll("^[-]+", "")
+        .replaceAll("[-]+$", "") + suffix, 0)
+    }
+
+    val trimmed = Strings.nullToEmpty(inn).trim
+    trimmed match {
       case "" => ("latest", 0)
       case "main" => ("latest", 0)
       case "master" => ("latest", 0)
+      case fe if Version.shopBranchPattern.matches(fe) =>
+        (Version.parse(fe.replaceFirst("^release/", "")).formatShop(), 0)
       case fe if fe.startsWith("feature/") => suggestInner(fe.replaceFirst("^feature/v?", ""), org, tagName, projectVersion)
       case fe if fe.startsWith("release/") => suggestInner(fe.replaceFirst("^release/v?", ""), org, tagName, projectVersion)
       case fe if fe.matches(ProjectMod.Version.semverGitTagForDockerTagPattern.regex) => {
-
         val withoutLeadingV = fe.substring(1)
         if (projectVersion.isDefined && withoutLeadingV != projectVersion.get) {
           (withoutLeadingV + "_aka_" + akaVersion(projectVersion.get), 0)
         } else {
           (withoutLeadingV, 0)
         }
-
       }
-      case fe => {
-        val suffix = "_" + Hashing.murmur3_32_fixed().hashString(org, StandardCharsets.UTF_8) + "_TEMP"
-        (fe.toLowerCase().replaceAll("[\\:/]+", "-")
-          .replaceAll("^[-]+", "")
-          .replaceAll("[-]+$", "") + suffix, 0)
-      }
+      case fe => fallback(fe)
     }
   }
 

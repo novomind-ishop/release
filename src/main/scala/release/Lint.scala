@@ -378,12 +378,12 @@ object Lint {
               .filter(dep => ProjectMod.isUnwanted(dep.gav().simpleGav()))
               .filterNot(_.version.get.endsWith("-SNAPSHOT"))
               .foreach(dep => {
-                out.println(warn("  found preview: " + dep.gav().formatted + s" ${fiWarn}", opts, limit = lineMax))
+                out.println(warnSoft("  found preview: " + dep.gav().formatted + s" ${fiWarn}", opts, limit = lineMax))
                 if (updateResultTry.isSuccess) {
                   // FIXME use update for next/previous later
                   val versionRangeFor = lookup.get(dep.gav().simpleGav())
-                  out.println(warn("       next     WIP: " + dep.gav().copy(version = Some("1.0.1")).formatted, opts, limit = lineMax))
-                  out.println(warn("       previous WIP: " + dep.gav().copy(version = Some("0.99.99")).formatted, opts, limit = lineMax))
+                  out.println(warnSoft("       next     WIP: " + dep.gav().copy(version = Some("1.0.1")).formatted, opts, limit = lineMax))
+                  out.println(warnSoft("       previous WIP: " + dep.gav().copy(version = Some("0.99.99")).formatted, opts, limit = lineMax))
                 }
               })
             out.println(info("    WIP", opts))

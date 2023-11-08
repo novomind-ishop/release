@@ -112,6 +112,20 @@ class SuggestDockerTagTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testSuggest_release_v(): Unit = {
+    val tuple = SuggestDockerTag.suggest("release/vRC-2023.44", null, None)
+    Assert.assertEquals("rc-2023.44_25a8ed0f_TEMP", tuple._1)
+    Assert.assertEquals(0, tuple._2)
+  }
+
+  @Test
+  def testSuggest_release_rc(): Unit = {
+    val tuple = SuggestDockerTag.suggest("release/RC-2023.44", null, None)
+    Assert.assertEquals("RC-2023.44", tuple._1)
+    Assert.assertEquals(0, tuple._2)
+  }
+
+  @Test
   def testSuggest_some(): Unit = {
     val tuple = SuggestDockerTag.suggest(":some/v1.2.3-Ber::-", "", None)
     Assert.assertEquals("some-v1.2.3-ber_3416b6f8_TEMP", tuple._1)
