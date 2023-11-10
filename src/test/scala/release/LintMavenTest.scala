@@ -1222,7 +1222,7 @@ class LintMavenTest extends AssertionsForJUnit {
     """
       |[INFO] --------------------------------[ lint ]--------------------------------
       |[INFO] --- skip-conf / self ---
-      |[INFO]     skips: RL1003-21ee7891
+      |[INFO]     skips: RL1003-21ee7891, RL1003-aaaaaaa
       |[INFO] --- version / git ---
       |[INFO]     ✅ git version: git version 2.999.999
       |[INFO] --- check clone config / remote @ git ---
@@ -1263,6 +1263,8 @@ class LintMavenTest extends AssertionsForJUnit {
       |[INFO]     WIP
       |[INFO] --- dep.tree @ maven ---
       |[INFO]     WIP
+      |[WARNING] --- skip-conf / self / end ---
+      |[WARNING]     found unused skips, please remove from your config: RL1003-aaaaaaa
       |
       |/tmp/junit-REPLACED/release-lint-mvn-deploy-none/.git
       |/tmp/junit-REPLACED/release-lint-mvn-deploy-none/.mvn
@@ -1270,7 +1272,7 @@ class LintMavenTest extends AssertionsForJUnit {
       |[INFO] ----------------------------[ end of lint ]----------------------------
       |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
-      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1003-21ee7891")))
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1003-21ee7891", "RL1003-aaaaaaa")))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org/")
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "202"))

@@ -97,6 +97,7 @@ object Lint {
       val warnExit = new AtomicBoolean(false)
       val failExit = new AtomicBoolean(false)
       val files = file.listFiles()
+      var usedSkips = Seq.empty[String]
       if (files == null || files.isEmpty) {
         out.println(error(s"E: NO FILES FOUND in ${file.getAbsolutePath}", opts))
         out.println(error(center("[ end of lint ]"), opts))
@@ -188,6 +189,9 @@ object Lint {
 
               val code = fiCodeGitLocalChanges(name)
               val bool = opts.lintOpts.skips.contains(code)
+              if (bool) {
+                usedSkips = usedSkips :+ code
+              }
               if (name.endsWith("/") && bool) {
                 folderMods = folderMods :+ name
               }
@@ -203,6 +207,8 @@ object Lint {
             namesParents
               .foreach(filename => out.println(warn(s" ${filename} ${fiWarn} ${fiCodeGitLocalChanges(filename)}", opts, limit = lineMax)))
             warnExit.set(true)
+          } else {
+            usedSkips = usedSkips :+ mainSkip
           }
         }
         out.println(info("--- list-remotes @ git ---", opts))
@@ -285,11 +291,16 @@ object Lint {
         if (snapshotsInFiles.nonEmpty) {
           val relFiles: Seq[(Int, String, Path)] = snapshotsInFiles
             .map(t => (t._1, t._2, file.toPath.relativize(t._3.normalize())))
-          if (!opts.lintOpts.skips.contains(fiCodeSnapshotText(relFiles))) {
+          val code1 = fiCodeSnapshotText(relFiles)
+          if (!opts.lintOpts.skips.contains(code1)) {
             relFiles
               .filterNot(f => {
                 val code = fiCodeSnapshotText((f._1, f._2, f._3.getFileName))
-                opts.lintOpts.skips.contains(code)
+                val bool = opts.lintOpts.skips.contains(code)
+                if (bool) {
+                  usedSkips = usedSkips :+ code
+                }
+                bool
               })
               .foreach(f => {
                 val snapMsg = "  found snapshot in: " + f._3 +
@@ -303,14 +314,15 @@ object Lint {
                 }
 
               })
-            val snapshotSumMsg = s"  found snapshots: ${fiWarn} ${fiCodeSnapshotText(relFiles)}"
+            val snapshotSumMsg = s"  found snapshots: ${fiWarn} $code1"
             if (isGitOrCiTag) {
               out.println(warn(snapshotSumMsg, opts, limit = lineMax))
               warnExit.set(true)
             } else {
               out.println(warnSoft(snapshotSumMsg, opts, limit = lineMax))
             }
-
+          } else {
+            usedSkips = usedSkips :+ code1
           }
         } else {
           out.println(info(s"    ${fiFine} NO SNAPSHOTS in other files found", opts))
@@ -470,6 +482,14 @@ object Lint {
         if (sbt.isDefined) {
           out.println(info("--- ??? @ sbt ---", opts))
           out.println(info("    WIP", opts))
+        }
+        if (opts.lintOpts.skips.nonEmpty) {
+          val unusedSkips = opts.lintOpts.skips.diff(usedSkips)
+          if (unusedSkips.nonEmpty) {
+            out.println(warn("--- skip-conf / self / end ---", opts))
+            out.println(warn(s"    found unused skips, please remove from your config: " + unusedSkips.mkString(", "), opts, limit = lineMax))
+            warnExit.set(true)
+          }
         }
 
         out.println()
