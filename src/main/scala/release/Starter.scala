@@ -563,7 +563,7 @@ object Starter extends LazyLogging {
       return result._2
     }
     if (opts.lintOpts.doLint) {
-      if (opts.isInteractive) {
+      if (false) {
         println()
         println(s"is int: ${opts.isInteractive}")
         println()
