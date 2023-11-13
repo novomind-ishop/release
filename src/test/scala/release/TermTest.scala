@@ -266,10 +266,11 @@ object TermTest extends LazyLogging {
       try {
         fn.apply(new Term.Sys(in, out, err) {
           override lazy val inReader = new BufferedReader(new InputStreamReader(inS)) {
+            val innerOut = new PrintStream(outS)
             override def readLine(): String = {
               val line = super.readLine()
               if (line != null) {
-                out.println(line)
+                innerOut.println(line)
               }
               line
             }

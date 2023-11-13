@@ -210,46 +210,56 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
 
   @Test
   def testArgRead_none(): Unit = {
-    Assert.assertEquals(Opts(), Starter.argsRead(Nil, Opts()))
+    Assert.assertEquals(Opts(), Starter.argsAndEnvRead(Nil, Opts(), Map.empty))
   }
 
   @Test
   def testArgRead_invalids(): Unit = {
-    Assert.assertEquals(Opts(invalids = Seq("--bert")), Starter.argsRead(Seq("--bert"), Opts()))
-    Assert.assertEquals(Opts(showHelp = true, invalids = Seq("some")), Starter.argsRead(Seq("--help", "some"), Opts()))
-    Assert.assertEquals(Opts(showHelp = true, invalids = Seq("some")), Starter.argsRead(Seq("some", "--help"), Opts()))
+    Assert.assertEquals(Opts(invalids = Seq("--bert")), Starter.argsAndEnvRead(Seq("--bert"), Opts(), Map.empty))
+    Assert.assertEquals(Opts(showHelp = true, invalids = Seq("some")), Starter.argsAndEnvRead(Seq("--help", "some"), Opts(), Map.empty))
+    Assert.assertEquals(Opts(showHelp = true, invalids = Seq("some")), Starter.argsAndEnvRead(Seq("some", "--help"), Opts(), Map.empty))
   }
 
   @Test
   def testArgRead_simpleChars(): Unit = {
-    Assert.assertEquals(Opts(simpleChars = true), Starter.argsRead(Seq("--simple-chars"), Opts()))
+    Assert.assertEquals(Opts(simpleChars = true), Starter.argsAndEnvRead(Seq("--simple-chars"), Opts(), Map.empty))
   }
 
   @Test
   def testArgRead_help(): Unit = {
-    Assert.assertEquals(Opts(showHelp = true), Starter.argsRead(Seq("-h"), Opts()))
-    Assert.assertEquals(Opts(showHelp = true), Starter.argsRead(Seq("--help"), Opts()))
+    Assert.assertEquals(Opts(showHelp = true), Starter.argsAndEnvRead(Seq("-h"), Opts(), Map.empty))
+    Assert.assertEquals(Opts(showHelp = true), Starter.argsAndEnvRead(Seq("--help"), Opts(), Map.empty))
   }
 
   @Test
   def testArgRead_updateCmd(): Unit = {
-    Assert.assertEquals(Opts(showUpdateCmd = true, showStartupDone = false), Starter.argsRead(Seq("--show-update-cmd"), Opts()))
+    Assert.assertEquals(Opts(showUpdateCmd = true, showStartupDone = false), Starter.argsAndEnvRead(Seq("--show-update-cmd"), Opts(), Map.empty))
   }
 
   @Test
   def testArgRead_noGerrit(): Unit = {
-    Assert.assertEquals(Opts(useGerrit = false), Starter.argsRead(Seq("--no-gerrit"), Opts()))
+    Assert.assertEquals(Opts(useGerrit = false), Starter.argsAndEnvRead(Seq("--no-gerrit"), Opts(), Map.empty))
   }
 
   @Test
   def testArgRead_noGerrit_skip_property(): Unit = {
     Assert.assertEquals(Opts(useGerrit = false, skipProperties = Seq("a", "b")),
-      Starter.argsRead(Seq("--no-gerrit", "--skip-property", "a", "--skip-property", "b"), Opts()))
+      Starter.argsAndEnvRead(Seq("--no-gerrit", "--skip-property", "a", "--skip-property", "b"), Opts(), Map.empty))
+  }
+
+  @Test
+  def testArgRead_skip_env(): Unit = {
+    Assert.assertEquals(Opts(lintOpts = LintOpts(skips = Seq("a"))),
+      Starter.argsAndEnvRead(Seq(), Opts(), envs = Map(
+        "RELEASE_ANY0" -> "a",
+        "RELEASE_LINT_SKIP" -> "a",
+        "RELEASE_ANY1" -> "a",
+      )))
   }
 
   @Test
   def testArgRead_noGerrit_env(): Unit = {
-    val read = Starter.argsRead(Seq("--skip-property", "a", "--skip-property", "b"), Opts(), Map("RELEASE_NO_GERRIT" -> "true"))
+    val read = Starter.argsAndEnvRead(Seq("--skip-property", "a", "--skip-property", "b"), Opts(), Map("RELEASE_NO_GERRIT" -> "true"))
     val expected = Opts(useGerrit = false, skipProperties = Seq("a", "b"))
     Assert.assertEquals(Util.show(expected), Util.show(read))
     Assert.assertEquals(expected, read)
@@ -258,7 +268,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
   @Test
   def testArgRead_noGerrit_env_false(): Unit = {
     Assert.assertEquals(Opts(skipProperties = Seq("a", "b")),
-      Starter.argsRead(Seq("--skip-property", "a", "--skip-property", "b"), Opts(),
+      Starter.argsAndEnvRead(Seq("--skip-property", "a", "--skip-property", "b"), Opts(),
         Map(
           "RELEASE_NO_GERRIT" -> "false",
         )))
@@ -266,64 +276,64 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
 
   @Test
   def testArgRead_noJline(): Unit = {
-    Assert.assertEquals(Opts(useJlineInput = false), Starter.argsRead(Seq("--no-jline"), Opts()))
+    Assert.assertEquals(Opts(useJlineInput = false), Starter.argsAndEnvRead(Seq("--no-jline"), Opts(), Map.empty))
   }
 
   @Test
   def testArgRead_replace(): Unit = {
-    Assert.assertEquals(Opts(), Starter.argsRead(Seq("--replace"), Opts()))
+    Assert.assertEquals(Opts(), Starter.argsAndEnvRead(Seq("--replace"), Opts(), Map.empty))
   }
 
   @Test
   def testArgRead_noUpdate(): Unit = {
-    Assert.assertEquals(Opts(doUpdate = false), Starter.argsRead(Seq("--no-update"), Opts()))
+    Assert.assertEquals(Opts(doUpdate = false), Starter.argsAndEnvRead(Seq("--no-update"), Opts(), Map.empty))
   }
 
   @Test
   def testArgRead_versionSet(): Unit = {
-    Assert.assertEquals(Opts(invalids = Seq("versionSet")), Starter.argsRead(Seq("versionSet"), Opts()))
-    Assert.assertEquals(Opts(versionSet = Some("3")), Starter.argsRead(Seq("versionSet", "3"), Opts()))
+    Assert.assertEquals(Opts(invalids = Seq("versionSet")), Starter.argsAndEnvRead(Seq("versionSet"), Opts(), Map.empty))
+    Assert.assertEquals(Opts(versionSet = Some("3")), Starter.argsAndEnvRead(Seq("versionSet", "3"), Opts(), Map.empty))
   }
 
   @Test
   def testArgRead_shopGaSet(): Unit = {
-    Assert.assertEquals(Opts(invalids = Seq("shopGASet")), Starter.argsRead(Seq("shopGASet"), Opts()))
-    Assert.assertEquals(Opts(shopGA = Some("some")), Starter.argsRead(Seq("shopGASet", "some"), Opts()))
+    Assert.assertEquals(Opts(invalids = Seq("shopGASet")), Starter.argsAndEnvRead(Seq("shopGASet"), Opts(), Map.empty))
+    Assert.assertEquals(Opts(shopGA = Some("some")), Starter.argsAndEnvRead(Seq("shopGASet", "some"), Opts(), Map.empty))
   }
 
   @Test
   def testArgRead_lint(): Unit = {
     assertArgs(Opts(lintOpts = LintOpts(doLint = true), showStartupDone = false),
-      Starter.argsRead(Seq("lint"), Opts()))
+      Starter.argsAndEnvRead(Seq("lint"), Opts(), Map.empty))
     assertArgs(Opts(lintOpts = LintOpts(doLint = true, showHelp = true), showStartupDone = false),
-      Starter.argsRead(Seq("lint", "--help"), Opts()))
+      Starter.argsAndEnvRead(Seq("lint", "--help"), Opts(), Map.empty))
     assertArgs(Opts(lintOpts = LintOpts(doLint = true, showHelp = true), showStartupDone = false),
-      Starter.argsRead(Seq("lint", "-h"), Opts()))
-    assertArgs(Opts(lintOpts = LintOpts(doLint = true, skips = Seq( "c", "D", "RL1012-5a4ee54d", "a")), showStartupDone = false),
-      Starter.argsRead(Seq("lint", "--skip-RL1012-5a4ee54d", "--skip-a"), Opts(), envs = Map(
+      Starter.argsAndEnvRead(Seq("lint", "-h"), Opts(), Map.empty))
+    assertArgs(Opts(lintOpts = LintOpts(doLint = true, skips = Seq("c", "D", "RL1012-5a4ee54d", "a")), showStartupDone = false),
+      Starter.argsAndEnvRead(Seq("lint", "--skip-RL1012-5a4ee54d", "--skip-a"), Opts(), envs = Map(
         "RELEASE_LINT_SKIP" -> "c,D,, ,c,,,",
       )))
     assertArgs(Opts(lintOpts = LintOpts(doLint = true, waringsToErrors = true), showStartupDone = false),
-      Starter.argsRead(Seq("lint", "--strict"), Opts(), envs = Map(
+      Starter.argsAndEnvRead(Seq("lint", "--strict"), Opts(), envs = Map(
         "RELEASE_LINT_SKIP" -> null,
       )))
   }
 
   @Test
   def testArgRead_createFeature(): Unit = {
-    Assert.assertEquals(Opts(createFeature = true), Starter.argsRead(Seq("nothing-but-create-feature-branch"), Opts()))
+    Assert.assertEquals(Opts(createFeature = true), Starter.argsAndEnvRead(Seq("nothing-but-create-feature-branch"), Opts(), Map.empty))
   }
 
   @Test
   def testArgRead_showDependencyUpdates(): Unit = {
     Assert.assertEquals(Opts(depUpOpts = OptsDepUp().copy(showDependencyUpdates = true)),
-      Starter.argsRead(Seq("showDependencyUpdates"), Opts()))
+      Starter.argsAndEnvRead(Seq("showDependencyUpdates"), Opts(), Map.empty))
   }
 
   @Test
   def testArgRead_mixed(): Unit = {
     val opts = Opts(depUpOpts = OptsDepUp().copy(showDependencyUpdates = true, showHelp = true), useGerrit = false)
-    Assert.assertEquals(opts, Starter.argsRead(Seq("--no-gerrit", "showDependencyUpdates", "--help", "", " ", "\t"), Opts()))
+    Assert.assertEquals(opts, Starter.argsAndEnvRead(Seq("--no-gerrit", "showDependencyUpdates", "--help", "", " ", "\t"), Opts(), Map.empty))
   }
 
   def assertArgs(expected: Opts, current: Opts): Unit = {
@@ -503,6 +513,17 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
   def testEnvRead_showTimeStamps_fail(): Unit = {
     val result = Starter.envRead(Seq(("RELEASE_LINT_TIMESTAMPS", "some")), Opts())
     Assert.assertEquals(Opts(lintOpts = LintOpts(showTimeStamps = false)), result)
+  }
+
+  @Test
+  def testEnvRead_release_lint(): Unit = {
+    val tuples = Seq(
+      ("RELEASE_ANY0", "a"),
+      ("RELEASE_LINT_SKIP", "a"),
+      ("RELEASE_ANY1", "a"),
+    )
+    val result = Starter.envRead(tuples, Opts())
+    Assert.assertEquals(Opts(lintOpts = LintOpts(skips = Seq("a"))), result)
   }
 
   @Test

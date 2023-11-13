@@ -24,7 +24,7 @@ class PomModTest extends AssertionsForJUnit {
 
   lazy val repo = Repo.of(Opts())
 
-  implicit def PomCheckertoOpt(in: String) = Option(in)
+  implicit def PomCheckertoOpt(in: String): Option[String] = Option(in)
 
   @Test
   def testTeset(): Unit = {

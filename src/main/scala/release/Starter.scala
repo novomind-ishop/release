@@ -13,7 +13,7 @@ import java.awt.Desktop
 import java.io.{File, PrintStream}
 import java.net.URI
 import java.util.concurrent.TimeoutException
-import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 import scala.annotation.tailrec
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -268,6 +268,51 @@ object Starter extends LazyLogging {
                  )
 
   @tailrec
+  def argsRead(params: Seq[String], inOpt: Opts): Opts = {
+    params.filter(in => in.trim.nonEmpty) match {
+      case Nil => inOpt
+      case "--simple-chars" :: tail => argsRead(tail, inOpt.copy(simpleChars = true))
+      case "--help" :: tail => argsRead(tail, inOpt.copy(showHelp = true))
+      case "--check-git" :: tail => {
+        Sgit.checkVersion(Sgit.versionOnly(), System.out, System.err, None)
+        System.exit(0)
+        null
+      }
+      case "-h" :: tail => argsRead(tail, inOpt.copy(showHelp = true))
+      case "--replace" :: tail => argsRead(tail, inOpt) // handled by shell
+      case "--show-update-cmd" :: tail => argsRead(tail, inOpt.copy(showUpdateCmd = true, showStartupDone = false))
+      case "--no-gerrit" :: tail => argsRead(tail, inOpt.copy(useGerrit = false))
+      case "--no-update" :: tail => argsRead(tail, inOpt.copy(doUpdate = false))
+      case "--no-interactive" :: tail => argsRead(tail, inOpt.copy(isInteractive = false))
+      case "--defaults" :: tail => argsRead(tail, inOpt.copy(useDefaults = true))
+      case "--no-jline" :: tail => argsRead(tail, inOpt.copy(useJlineInput = false))
+      case "--no-color" :: tail => argsRead(tail, inOpt.copy(colors = false))
+      case "--show-opts" :: tail => argsRead(tail, inOpt.copy(showOpts = true))
+      case "--no-check-overlap" :: tail => argsRead(tail, inOpt.copy(checkOverlapping = false))
+      case "--no-check-project-vars" :: tail => argsRead(tail, inOpt.copy(checkProjectDeps = false))
+      // TODO no color env property
+      case "--100" :: tail => argsRead(tail, inOpt.copy(versionIncrement = Increment.major))
+      case "--010" :: tail => argsRead(tail, inOpt.copy(versionIncrement = Increment.minor))
+      case "--001" :: tail => argsRead(tail, inOpt.copy(versionIncrement = Increment.patch))
+      case "--demo-chars" :: _ => showDemoChars(inOpt)
+      case "--skip-property" :: value :: tail => argsRead(tail, inOpt.copy(skipProperties = inOpt.skipProperties ++ Seq(value)))
+      // CMDs
+      case "lint" :: tail => argsLintRead(tail, inOpt)
+      case "showSelf" :: tail => argsRead(tail, inOpt.copy(showSelfGa = true))
+      case "apidiff" :: tail => argsRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(showApiDiff = true)))
+      case "suggest-docker-tag" :: tail => argsRead(tail, inOpt.copy(suggestDockerTag = true, showStartupDone = false))
+      case "versionSet" :: value :: _ => argsRead(Nil, inOpt.copy(versionSet = Some(value)))
+      case "shopGASet" :: value :: _ => argsRead(Nil, inOpt.copy(shopGA = Some(value)))
+      case "nothing-but-create-feature-branch" :: _ => argsRead(Nil, inOpt.copy(createFeature = true))
+      case "showDependencyUpdates" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(showDependencyUpdates = true)))
+
+      // --
+      case string :: Nil => argsRead(Nil, inOpt.copy(invalids = inOpt.invalids :+ string))
+      case string :: tail => argsRead(tail, inOpt.copy(invalids = inOpt.invalids :+ string))
+    }
+  }
+
+  @tailrec
   def envRead(envs: Seq[(String, String)], inOpt: Opts): Opts = {
     envs match {
       case Nil => inOpt
@@ -286,53 +331,12 @@ object Starter extends LazyLogging {
   }
 
   @tailrec
-  def argsRead(params: Seq[String], inOpt: Opts, envs: Map[String, String] = Util.systemEnvs()): Opts = {
+  def argsAndEnvRead(params: Seq[String], inOpt: Opts, envs: Map[String, String]): Opts = {
     if (envs.isEmpty) {
-      params.filter(in => in.trim.nonEmpty) match {
-        case Nil => inOpt
-        case "--simple-chars" :: tail => argsRead(tail, inOpt.copy(simpleChars = true))
-        case "--help" :: tail => argsRead(tail, inOpt.copy(showHelp = true))
-        case "--check-git" :: tail => {
-          Sgit.checkVersion(Sgit.versionOnly(), System.out, System.err, None)
-          System.exit(0)
-          null
-        }
-        case "-h" :: tail => argsRead(tail, inOpt.copy(showHelp = true))
-        case "--replace" :: tail => argsRead(tail, inOpt) // handled by shell
-        case "--show-update-cmd" :: tail => argsRead(tail, inOpt.copy(showUpdateCmd = true, showStartupDone = false))
-        case "--no-gerrit" :: tail => argsRead(tail, inOpt.copy(useGerrit = false))
-        case "--no-update" :: tail => argsRead(tail, inOpt.copy(doUpdate = false))
-        case "--no-interactive" :: tail => argsRead(tail, inOpt.copy(isInteractive = false))
-        case "--defaults" :: tail => argsRead(tail, inOpt.copy(useDefaults = true))
-        case "--no-jline" :: tail => argsRead(tail, inOpt.copy(useJlineInput = false))
-        case "--no-color" :: tail => argsRead(tail, inOpt.copy(colors = false))
-        case "--show-opts" :: tail => argsRead(tail, inOpt.copy(showOpts = true))
-        case "--no-check-overlap" :: tail => argsRead(tail, inOpt.copy(checkOverlapping = false))
-        case "--no-check-project-vars" :: tail => argsRead(tail, inOpt.copy(checkProjectDeps = false))
-        // TODO no color env property
-        case "--100" :: tail => argsRead(tail, inOpt.copy(versionIncrement = Increment.major))
-        case "--010" :: tail => argsRead(tail, inOpt.copy(versionIncrement = Increment.minor))
-        case "--001" :: tail => argsRead(tail, inOpt.copy(versionIncrement = Increment.patch))
-        case "--demo-chars" :: _ => showDemoChars(inOpt)
-        case "--skip-property" :: value :: tail => argsRead(tail, inOpt.copy(skipProperties = inOpt.skipProperties ++ Seq(value)))
-        // CMDs
-        case "lint" :: tail => argsLintRead(tail, inOpt)
-        case "showSelf" :: tail => argsRead(tail, inOpt.copy(showSelfGa = true))
-        case "apidiff" :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(showApiDiff = true)))
-        case "suggest-docker-tag" :: tail => argsRead(tail, inOpt.copy(suggestDockerTag = true, showStartupDone = false))
-        case "versionSet" :: value :: _ => argsRead(Nil, inOpt.copy(versionSet = Some(value)))
-        case "shopGASet" :: value :: _ => argsRead(Nil, inOpt.copy(shopGA = Some(value)))
-        case "nothing-but-create-feature-branch" :: _ => argsRead(Nil, inOpt.copy(createFeature = true))
-        case "showDependencyUpdates" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(showDependencyUpdates = true)))
-
-        // --
-        case string :: Nil => argsRead(Nil, inOpt.copy(invalids = inOpt.invalids :+ string))
-        case string :: tail => argsRead(tail, inOpt.copy(invalids = inOpt.invalids :+ string))
-      }
+      argsRead(params, inOpt)
     } else {
-      argsRead(params, envRead(envs.toSeq, inOpt), Map.empty)
+      argsAndEnvRead(params, envRead(envs.toSeq, inOpt), Map.empty)
     }
-
   }
 
   def connectLeftRight(in: (Seq[ProjectMod.Gav3], Seq[ProjectMod.Gav3])): Seq[(Seq[ProjectMod.Gav3], Seq[ProjectMod.Gav3])] = {
@@ -423,7 +427,8 @@ object Starter extends LazyLogging {
     val shellWidth = argSeq(4).toInt
 
     val otherArgs = argSeq.drop(7).filter(_ != null).map(_.trim).toList
-    val opts = argsRead(otherArgs, Opts())
+
+    val opts = argsAndEnvRead(otherArgs, Opts(), Util.systemEnvs())
     if (opts.showOpts) {
       out.println(Util.show(opts))
     }

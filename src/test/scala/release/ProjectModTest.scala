@@ -59,7 +59,7 @@ object ProjectModTest {
 }
 
 class ProjectModTest extends AssertionsForJUnit {
-  implicit def toOpt(in: String) = Option(in)
+  implicit def toOpt(in: String): Option[String] = Option(in)
 
   @Test
   def testScalaDeps(): Unit = {

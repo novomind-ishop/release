@@ -15,6 +15,7 @@ import org.eclipse.aether.repository.{LocalRepository, RemoteRepository}
 import org.eclipse.aether.resolution.{ArtifactRequest, MetadataRequest, VersionRangeRequest, VersionRangeResolutionException}
 import org.eclipse.aether.spi.connector.RepositoryConnectorFactory
 import org.eclipse.aether.spi.connector.transport.TransporterFactory
+import org.eclipse.aether.supplier.RepositorySystemSupplier
 import org.eclipse.aether.transfer._
 import org.eclipse.aether.transport.file.FileTransporterFactory
 import org.eclipse.aether.transport.http.HttpTransporterFactory
@@ -336,20 +337,7 @@ object Repo extends LazyLogging {
 
   private object ManualRepositorySystemFactory {
     def newRepositorySystem: RepositorySystem = {
-      val locator = MavenRepositorySystemUtils.newServiceLocator
-      locator.addService(classOf[RepositoryConnectorFactory], classOf[BasicRepositoryConnectorFactory])
-      locator.addService(classOf[TransporterFactory], classOf[FileTransporterFactory])
-      locator.addService(classOf[TransporterFactory], classOf[HttpTransporterFactory])
-      locator.setErrorHandler(new DefaultServiceLocator.ErrorHandler() {
-        override def serviceCreationFailed(`type`: Class[_], impl: Class[_], exception: Throwable): Unit = {
-          if (exception.isInstanceOf[ArtifactNotFoundException]) {
-            System.err.println(classOf[ManualRepositorySystemFactory].getCanonicalName + " -> " + exception.getMessage)
-          } else {
-            exception.printStackTrace()
-          }
-        }
-      })
-      locator.getService(classOf[RepositorySystem])
+      new RepositorySystemSupplier().get()
     }
   }
 
