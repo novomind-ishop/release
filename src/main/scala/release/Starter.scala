@@ -259,7 +259,7 @@ object Starter extends LazyLogging {
                   showUpdateCmd: Boolean = false, versionSet: Option[String] = None, shopGA: Option[String] = None,
                   createFeature: Boolean = false, useGerrit: Boolean = true, doUpdate: Boolean = true,
                   depUpOpts: OptsDepUp = OptsDepUp(), apiDiff: OptsApidiff = OptsApidiff(),
-                  useJlineInput: Boolean = true, skipProperties: Seq[String] = Nil,
+                  useJlineInput: Boolean = false, skipProperties: Seq[String] = Nil,
                   colors: Boolean = true, useDefaults: Boolean = false, versionIncrement: Option[Increment] = None,
                   lintOpts: LintOpts = LintOpts(), checkOverlapping: Boolean = true,
                   checkProjectDeps: Boolean = true,
@@ -563,6 +563,12 @@ object Starter extends LazyLogging {
       return result._2
     }
     if (opts.lintOpts.doLint) {
+      if (opts.isInteractive) {
+        println()
+        println(s"is int: ${opts.isInteractive}")
+        println()
+        Term.readFrom(Term.Sys.default, "press enter", "enter", opts)
+      }
       return Lint.run(out, err, opts, Repo.of(opts), Util.systemEnvs())
     }
     if (opts.showSelfGa) {

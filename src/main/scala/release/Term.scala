@@ -292,7 +292,6 @@ object Term {
       val sys: Boolean = inS == System.in && out == System.out
       val terminal = TerminalBuilder.builder()
         .system(sys)
-        .dumb(true)
         .streams(inS, out)
         .build()
       LineReaderBuilder.builder()
