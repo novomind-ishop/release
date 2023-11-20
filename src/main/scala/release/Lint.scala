@@ -132,7 +132,8 @@ object Lint {
           out.println(warn(s" ${fiWarn} if you use gitlab try to", opts))
           out.println(warn(s" ${fiWarn} choose another default branch; save; use the original default branch", opts))
           if (remoteHeadDefinition.isFailure) {
-            out.println(warn(s" ${fiWarn} failure message: ${remoteHeadDefinition.failed.get.getMessage}", opts))
+            val exception = remoteHeadDefinition.failed.get
+            out.println(warn(s" ${fiWarn} remote call exception: ${exception.getClass.getName} message: ${exception.getMessage}", opts))
           }
           warnExit.set(true)
         }

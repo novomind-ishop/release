@@ -326,6 +326,9 @@ object Starter extends LazyLogging {
       case ("RELEASE_LINT_TIMESTAMPS", k) :: tail => envRead(tail, {
         inOpt.copy(lintOpts = inOpt.lintOpts.copy(showTimeStamps = Strings.nullToEmpty(k).toBooleanOption.getOrElse(false)))
       })
+      case ("RELEASE_SHOW_OPTS", k) :: tail => envRead(tail, {
+        inOpt.copy(showOpts = Strings.nullToEmpty(k).toBooleanOption.getOrElse(false))
+      })
       case (_, _) :: tail => envRead(tail, inOpt)
     }
   }
