@@ -112,25 +112,28 @@ object Lint {
         out.println(info(s"    ${fiFine} git version: " + sgit.version(), opts))
         out.println(info("--- check clone config / remote @ git ---", opts))
         val remoteHeadDefinition = sgit.remoteHead()
-        if (remoteHeadDefinition.isDefined) {
-          if (remoteHeadDefinition.exists(_.contains("(unknown)"))) {
+        if (remoteHeadDefinition.isSuccess && remoteHeadDefinition.get.isDefined) {
+          if (remoteHeadDefinition.get.exists(_.contains("(unknown)"))) {
             out.println(warn(s" ${fiWarn} unknown remote HEAD found, corrupted remote -- repair please", opts))
             out.println(warn(s" ${fiWarn} if you use gitlab try to", opts))
             out.println(warn(s" ${fiWarn} choose another default branch; save; use the original default branch", opts))
             warnExit.set(true)
           }
-          val commitRef = sgit.logShortOpt(limit = 1, path = sgit.remoteHeadRaw().get)
+          val commitRef = sgit.logShortOpt(limit = 1, path = Sgit.toRawRemoteHead(remoteHeadDefinition).get.get)
           val commitOf = commitRef.map(_.replaceFirst("^commit ", ""))
           if (commitOf.isDefined) {
-            out.println(info(s"    ${remoteHeadDefinition.get} - ${commitOf.get}", opts, limit = lineMax))
+            out.println(info(s"    ${remoteHeadDefinition.get.get} - ${commitOf.get}", opts, limit = lineMax))
           } else {
-            out.println(warn(s" ${fiWarn} ${remoteHeadDefinition.get} - n/a", opts, limit = lineMax))
+            out.println(warn(s" ${fiWarn} ${remoteHeadDefinition.get.get} - n/a", opts, limit = lineMax))
             warnExit.set(true)
           }
         } else {
           out.println(warn(s" ${fiWarn} no remote HEAD found, corrupted remote -- repair please", opts))
           out.println(warn(s" ${fiWarn} if you use gitlab try to", opts))
           out.println(warn(s" ${fiWarn} choose another default branch; save; use the original default branch", opts))
+          if (remoteHeadDefinition.isFailure) {
+            out.println(warn(s" ${fiWarn} failure message: ${remoteHeadDefinition.failed.get.getMessage}", opts))
+          }
           warnExit.set(true)
         }
         out.println(info("--- check clone config / no shallow clone @ git ---", opts))

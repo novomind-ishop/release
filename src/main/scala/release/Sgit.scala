@@ -11,7 +11,10 @@ import java.math.BigInteger
 import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.time.ZonedDateTime
+import java.util.concurrent.{Callable, Executors, TimeUnit}
 import scala.annotation.tailrec
+import scala.concurrent.TimeoutException
+import scala.concurrent.duration.Duration
 import scala.io.Source
 import scala.sys.process.ProcessLogger
 import scala.util.parsing.combinator.RegexParsers
@@ -293,20 +296,37 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
   def listBranchNamesRemoteShort(): Seq[String] = listBranchNamesRemote().map(_.replaceFirst("origin/", "")).sorted
 
-  def remoteHead(): Option[String] = {
-    try {
-      val value = gitNative(Seq("remote", "show", "origin"), showErrorsOnStdErr = false)
-        .filter(_.startsWith("  HEAD branch"))
-        .map(_.trim)
+  def remoteHead(timeout: Duration = Duration(10, TimeUnit.SECONDS)): Try[Option[String]] = {
+    val executor = Executors.newSingleThreadExecutor() // TODO reuse executor later
+    val call = new Callable[Option[String]] {
+      override def call(): Option[String] = {
+        try {
+          val value = gitNative(Seq("remote", "show", "origin"), showErrorsOnStdErr = false)
+            .filter(_.startsWith("  HEAD branch"))
+            .map(_.trim)
 
-      value.headOption
-    } catch {
-      case _: Throwable => None
+          value.headOption
+        } catch {
+          case _: Throwable => None
+        }
+      }
     }
+    val future = executor.submit(call)
+    val result: Option[String] = try {
+      future.get(timeout._1, timeout._2)
+    } catch {
+      case te: TimeoutException => {
+        future.cancel(true)
+        return Failure(te)
+      }
+    } finally {
+      executor.shutdownNow();
+    }
+    Success(result)
   }
 
-  def remoteHeadRaw(): Option[String] = {
-    remoteHead().map(_.replaceFirst("HEAD branch: ", "origin/"))
+  def remoteHeadRaw():  Try[Option[String]] = {
+    Sgit.toRawRemoteHead(remoteHead())
   }
 
   def listBranchNamesRemote(): Seq[String] = listBranchRemoteRaw().map(_.branchName).sorted
@@ -696,6 +716,9 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 }
 
 object Sgit {
+  def toRawRemoteHead(remoteHead: Try[Option[String]]): Try[Option[String]] = {
+    remoteHead.map(_.map(_.replaceFirst("HEAD branch: ", "origin/")))
+  }
 
   def versionOnly(): SgitVersion = {
     Sgit(null, doVerify = false, System.out, System.err,
