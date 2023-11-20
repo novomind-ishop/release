@@ -17,19 +17,43 @@ import scala.util.{Failure, Success, Try}
 import scala.collection.parallel.CollectionConverters._
 
 object Lint {
-  def isValidMergeRequest(ciCommitRefName: String, ciCommitTag: String, sgit: Sgit, ciCommitBranch: String): Boolean = {
-    Strings.emptyToNull(ciCommitTag) == null && Strings.emptyToNull(ciCommitBranch) == null &&
-      Strings.emptyToNull(ciCommitRefName) != null
+  def noVersionMatches(selfVersion: String, tagBranchInfo: Option[BranchTagMerge]): Boolean = {
+    true
   }
 
-  def isValidBranch(ciCommitRefName: String, ciCommitTag: String, sgit: Sgit, ciCommitBranch: String): Boolean = {
-    Strings.emptyToNull(ciCommitTag) == null &&
-      (sgit.currentBranchOpt.getOrElse("") == ciCommitRefName || ciCommitRefName == ciCommitBranch)
+  private val MERGE_REQUEST = "MERGE_REQUEST"
+
+  case class BranchTagMerge(tagName: Option[String], branchName: Option[String], info: String = "") {
+    val isMergeRequest = info == MERGE_REQUEST
   }
 
-  def isValidTag(ciCommitRefName: String, ciCommitTag: String, sgit: Sgit, ciCommitBranch: String): Boolean = {
-    ciCommitRefName == ciCommitTag && sgit.currentTags.getOrElse(Nil).contains(ciCommitTag) &&
-      Strings.emptyToNull(ciCommitBranch) == null
+  private val merge = Some(BranchTagMerge(tagName = None, branchName = None, info = MERGE_REQUEST))
+
+  def toBranchTag(ciCommitRefName: String, ciCommitTag: String, sgit: Sgit, ciCommitBranch: String): Option[BranchTagMerge] = {
+    if (ciCommitRefName == ciCommitTag && sgit != null && sgit.currentTags.getOrElse(Nil).contains(ciCommitTag) &&
+      Strings.emptyToNull(ciCommitBranch) == null) {
+      Some(BranchTagMerge(tagName = Some(ciCommitTag), branchName = None))
+    } else if (Strings.emptyToNull(ciCommitTag) == null &&
+      (sgit != null && sgit.currentBranchOpt.getOrElse("") == ciCommitRefName || ciCommitRefName == ciCommitBranch)) {
+      Some(BranchTagMerge(tagName = None, branchName = Some(ciCommitRefName)))
+    } else if (Strings.emptyToNull(ciCommitTag) == null && Strings.emptyToNull(ciCommitBranch) == null &&
+      Strings.emptyToNull(ciCommitRefName) != null) {
+      merge
+    } else {
+      None
+    }
+  }
+
+  def isValidMergeRequest(maybeMerge: Option[BranchTagMerge]): Boolean = {
+    maybeMerge.isDefined && maybeMerge.get.isMergeRequest
+  }
+
+  def isValidBranch(maybeBranch:Option[BranchTagMerge]): Boolean = {
+    maybeBranch.isDefined && maybeBranch.get.branchName.isDefined
+  }
+
+  def isValidTag(maybeTag:Option[BranchTagMerge]): Boolean = {
+    maybeTag.isDefined && maybeTag.get.tagName.isDefined
   }
 
   type UniqCode = String
@@ -133,7 +157,8 @@ object Lint {
           out.println(warn(s" ${fiWarn} choose another default branch; save; use the original default branch", opts))
           if (remoteHeadDefinition.isFailure) {
             val exception = remoteHeadDefinition.failed.get
-            out.println(warn(s" ${fiWarn} remote call exception: ${exception.getClass.getName} message: ${exception.getMessage}", opts))
+            out.println(warn(s" ${fiWarn} remote call exception: ${exception.getClass.getName} message: ${exception.getMessage}",
+              opts, limit = lineMax))
           }
           warnExit.set(true)
         }
@@ -231,8 +256,8 @@ object Lint {
         val ciCommitTag = ciTagEnv.orNull
         val ciCommitBranchEnv = envs.get("CI_COMMIT_BRANCH") // not present on gitlab merge requests
         val ciCommitBranch = ciCommitBranchEnv.getOrElse("")
-
-        val isGitOrCiTag: Boolean = Lint.isValidTag(ciCommitRefName, ciCommitTag, sgit, ciCommitBranch)
+        val tagBranchInfo = Lint.toBranchTag(ciCommitRefName, ciCommitTag, sgit, ciCommitBranch)
+        val isGitOrCiTag: Boolean = Lint.isValidTag(tagBranchInfo)
         val rootFolderFiles = files.toSeq
         var pomFailures: Seq[Exception] = Nil
         val pompom: Option[Try[ProjectMod]] = if (rootFolderFiles.exists(_.getName == "pom.xml")) {
@@ -264,11 +289,13 @@ object Lint {
           out.println(info("      CI_COMMIT_REF_NAME : " + ciCommitRefName, opts))
           out.println(info("      CI_COMMIT_BRANCH : " + ciCommitBranch, opts))
 
-          if (Lint.isValidTag(ciCommitRefName, ciCommitTag, sgit, ciCommitBranch)) {
+
+
+          if (Lint.isValidTag(tagBranchInfo)) {
             out.println(info("      a valid tag : " + ciCommitRefName, opts))
-          } else if (Lint.isValidBranch(ciCommitRefName, ciCommitTag, sgit, ciCommitBranch)) {
+          } else if (Lint.isValidBranch(tagBranchInfo)) {
             out.println(info("      a valid branch : " + ciCommitRefName, opts))
-          } else if (Lint.isValidMergeRequest(ciCommitRefName, ciCommitTag, sgit, ciCommitBranch)) {
+          } else if (Lint.isValidMergeRequest(tagBranchInfo)) {
             out.println(info("      a valid merge request : " + ciCommitRefName, opts))
           } else {
             out.println(warn(s"   an invalid branch/tag: " +
@@ -353,6 +380,10 @@ object Lint {
             out.println(info("    WIP", opts)) // TODO check extentions present
             out.println(info("--- project version @ maven ---", opts))
             out.println(info(s"    ${modTry.get.selfVersion}", opts))
+            if (Lint.noVersionMatches(modTry.get.selfVersion, tagBranchInfo)) {
+              out.println(warnSoft(s" ${modTry.get.selfVersion} != ${Util.show(tagBranchInfo)}", opts, limit = lineMax))
+              // TODO enable warn
+            }
             out.println(info("--- check for snapshots @ maven ---", opts))
             val snaps = mod.listGavsForCheck()
               .filter(dep => ProjectMod.isUnwanted(dep.gav().simpleGav()))

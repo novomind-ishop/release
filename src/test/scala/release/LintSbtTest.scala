@@ -58,6 +58,7 @@ class LintSbtTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
         |[INFO]     n/a
+        |[warning]  n/a != None()
         |[INFO] --- check for snapshots @ maven ---
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine

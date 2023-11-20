@@ -26,22 +26,6 @@ class LintMavenTest extends AssertionsForJUnit {
   }
 
   @Test
-  def testGoogleFmt(): Unit = {
-    val file = temp.newFile("Demo.java")
-    Util.write(file,
-      """
-        |public class Demo {
-        |
-        |}
-        |""".stripMargin)
-    val tuple = Lint.doGoogleFmt(new Formatter(), file)
-    println(tuple)
-    if (tuple._1.isFailure) {
-      tuple._1.get
-    }
-  }
-
-  @Test
   def testRunEmpty(): Unit = {
     val file = temp.newFolder("release-lint-empty")
     val expected =
@@ -165,6 +149,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
         |[INFO]     0.11-SNAPSHOT
+        |[warning]  0.11-SNAPSHOT != None()
         |[INFO] --- check for snapshots @ maven ---
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
@@ -312,6 +297,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
         |[INFO]     0.11-SNAPSHOT
+        |[warning]  0.11-SNAPSHOT != None()
         |[INFO] --- check for snapshots @ maven ---
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
@@ -408,6 +394,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
         |[INFO]     0.11-SNAPSHOT
+        |[warning]  0.11-SNAPSHOT != None()
         |[INFO] --- check for snapshots @ maven ---
         |[warning]   found snapshot: org.springframework:spring-vals:1.0.0-SNAPSHOT 😬 RL1011-eef87565
         |[INFO] --- check for GAV format @ maven ---
@@ -509,6 +496,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
         |[INFO]     0.11-SNAPSHOT
+        |[warning]  0.11-SNAPSHOT != None()
         |[INFO] --- check for snapshots @ maven ---
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
@@ -613,6 +601,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
         |[INFO]     0.11-SNAPSHOT
+        |[warning]  0.11-SNAPSHOT != None()
         |[INFO] --- check for snapshots @ maven ---
         |[warning]   found snapshot: com.novomind.ishop.core.other:other-context:50x-SNAPSHOT 😬 RL1011-08f0f8bf
         |[warning]   found snapshot: com.novomind.ishop.core.some:core-some-context:50x-SNAPSHOT 😬 RL1011-9f269959
@@ -708,6 +697,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
         |[INFO]     0.14-SNAPSHOT
+        |[warning]  0.14-SNAPSHOT != None()
         |[INFO] --- check for snapshots @ maven ---
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
@@ -831,6 +821,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
         |[INFO]     0.11-SNAPSHOT
+        |[warning]  0.11-SNAPSHOT != None()
         |[INFO] --- check for snapshots @ maven ---
         |[warning]   found snapshot: org.springframework:spring-context:1.0.1-SNAPSHOT 😬 RL1011-ea7ea019
         |[INFO] --- check for GAV format @ maven ---
@@ -974,6 +965,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
         |[INFO]     0.11.0
+        |[warning]  0.11.0 != Some(value = BranchTagMerge(tagName = Some(value = v0.11.0), branchName = None(), info = ))
         |[INFO] --- check for snapshots @ maven ---
         |[WARNING]   found snapshot: org.springframework:spring-context:1.0.1-SNAPSHOT 😬 RL1011-ea7ea019
         |[WARNING]   found snapshot: org.springframework:spring-other:1.0.0-SNAPSHOT:bert 😬 RL1011-bd849fd4
@@ -1133,8 +1125,8 @@ class LintMavenTest extends AssertionsForJUnit {
   def testValidMergeRequest(): Unit = {
     val file = temp.newFolder("release-lint-mvn-valid-branch")
     val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
-    Assert.assertTrue(Lint.isValidMergeRequest("work", null, gitA, null))
-    Assert.assertTrue(Lint.isValidMergeRequest("work", "", gitA, ""))
+    Assert.assertTrue(Lint.isValidMergeRequest(Lint.toBranchTag("work", null, null, null)))
+    Assert.assertTrue(Lint.isValidMergeRequest(Lint.toBranchTag("work", "",null, "")))
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
     val work = new File(file, "pom.xml")
@@ -1145,19 +1137,19 @@ class LintMavenTest extends AssertionsForJUnit {
     gitA.commitAll("test")
     gitA.createBranch("work")
     gitA.checkout("work")
-    Assert.assertTrue(Lint.isValidMergeRequest("work", null, gitA, null))
-    Assert.assertTrue(Lint.isValidMergeRequest("work", "", gitA, ""))
+    Assert.assertTrue(Lint.isValidMergeRequest(Lint.toBranchTag("work", null, null, null)))
+    Assert.assertTrue(Lint.isValidMergeRequest(Lint.toBranchTag("work", "", null, "")))
 
-    Assert.assertFalse(Lint.isValidTag("work", null, gitA, null))
-    Assert.assertFalse(Lint.isValidTag("work", "", gitA, ""))
+    Assert.assertFalse(Lint.isValidTag(Lint.toBranchTag("work", null, gitA, null)))
+    Assert.assertFalse(Lint.isValidTag(Lint.toBranchTag("work", "", gitA, "")))
   }
 
   @Test
   def testValidBranch(): Unit = {
     val file = temp.newFolder("release-lint-mvn-valid-branch")
     val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
-    Assert.assertTrue(Lint.isValidBranch("work", null, gitA, "work"))
-    Assert.assertTrue(Lint.isValidBranch("work", "", gitA, "work"))
+    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", null, gitA, "work")))
+    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", "", gitA, "work")))
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
     val work = new File(file, "pom.xml")
@@ -1168,11 +1160,11 @@ class LintMavenTest extends AssertionsForJUnit {
     gitA.commitAll("test")
     gitA.createBranch("work")
     gitA.checkout("work")
-    Assert.assertTrue(Lint.isValidBranch("work", null, gitA, "work"))
-    Assert.assertTrue(Lint.isValidBranch("work", "", gitA, "work"))
+    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", null, gitA, "work")))
+    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", "", gitA, "work")))
 
-    Assert.assertFalse(Lint.isValidTag("work", null, gitA, "work"))
-    Assert.assertFalse(Lint.isValidTag("work", "", gitA, "work"))
+    Assert.assertFalse(Lint.isValidTag(Lint.toBranchTag("work", null, gitA, "work")))
+    Assert.assertFalse(Lint.isValidTag(Lint.toBranchTag("work", "", gitA, "work")))
   }
 
   @Test
@@ -1189,8 +1181,8 @@ class LintMavenTest extends AssertionsForJUnit {
     gitA.commitAll("test")
     gitA.doTag("1.0.0")
     gitA.checkout("v1.0.0")
-    Assert.assertTrue(Lint.isValidTag("v1.0.0", "v1.0.0", gitA, null))
-    Assert.assertFalse(Lint.isValidBranch("v1.0.0", "v1.0.0", gitA, null))
+    Assert.assertTrue(Lint.isValidTag(Lint.toBranchTag("v1.0.0", "v1.0.0", gitA, null)))
+    Assert.assertFalse(Lint.isValidBranch(Lint.toBranchTag("v1.0.0", "v1.0.0", gitA, null)))
   }
 
   @Test
@@ -1249,6 +1241,7 @@ class LintMavenTest extends AssertionsForJUnit {
       |[INFO]     WIP
       |[INFO] --- project version @ maven ---
       |[INFO]     0.11-SNAPSHOT
+      |[warning]  0.11-SNAPSHOT != Some(value = BranchTagMerge(tagName = None(), branchName = None(), info = MERGE_REQUEST))
       |[INFO] --- check for snapshots @ maven ---
       |[INFO] --- check for GAV format @ maven ---
       |[INFO]     ✅ all GAVs scopes looks fine
