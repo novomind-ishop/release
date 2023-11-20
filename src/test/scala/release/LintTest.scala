@@ -16,9 +16,21 @@ class LintTest extends AssertionsForJUnit {
 
   @Rule def temp = _temporarayFolder
 
+  def br(branchName:String) = Some(BranchTagMerge(tagName = None, branchName = Some(branchName)))
+  def tag(tagName:String) = Some(BranchTagMerge(tagName = Some(tagName), branchName = None))
+
   @Test
   def testVersionMatches(): Unit = {
-    Assert.assertTrue(Lint.noVersionMatches("", Some(BranchTagMerge(tagName = None, branchName = None))))
+    Assert.assertTrue(Lint.versionMissmatches("master-SNAPSHOT", None))
+    Assert.assertTrue(Lint.versionMissmatches("", Some(BranchTagMerge(tagName = None, branchName = None))))
+    Assert.assertFalse(Lint.versionMissmatches("1.1.1-SNAPSHOT", br("main")))
+    Assert.assertFalse(Lint.versionMissmatches("3.2.1-SNAPSHOT", br("master")))
+    Assert.assertFalse(Lint.versionMissmatches("master-SNAPSHOT", br("master")))
+    Assert.assertTrue(Lint.versionMissmatches("main-SNAPSHOT", br("master")))
+
+    Assert.assertTrue(Lint.versionMissmatches("main-SNAPSHOT", tag("master")))
+    Assert.assertFalse(Lint.versionMissmatches("1.2.3", tag("v1.2.3")))
+    Assert.assertFalse(Lint.versionMissmatches("main", tag("vmain")))
   }
 
   @Test

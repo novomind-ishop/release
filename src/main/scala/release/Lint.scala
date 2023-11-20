@@ -4,7 +4,7 @@ import com.google.common.base.{Stopwatch, Strings}
 import com.google.common.hash.Hashing
 import com.google.common.io.{CharSink, CharSource}
 import com.google.googlejavaformat.java.Formatter
-import release.ProjectMod.{Gav, Gav3, StaticPrinter, UpdatePrinter}
+import release.ProjectMod.{Gav, Gav3, StaticPrinter, UpdatePrinter, Version}
 import release.Starter.{Opts, PreconditionsException, init}
 import release.Term._
 
@@ -17,8 +17,29 @@ import scala.util.{Failure, Success, Try}
 import scala.collection.parallel.CollectionConverters._
 
 object Lint {
-  def noVersionMatches(selfVersion: String, tagBranchInfo: Option[BranchTagMerge]): Boolean = {
-    true
+  def versionMissmatches(selfVersion: String, tagBranchInfo: Option[BranchTagMerge]): Boolean = {
+    val defaultBranchnames = Set("main", "master")
+    if (tagBranchInfo.isDefined) {
+      if (tagBranchInfo.get.branchName.isDefined) {
+        if (defaultBranchnames.contains(tagBranchInfo.get.branchName.get)) {
+          val selfVersionParsed = Version.parseSloppy(selfVersion)
+          if (selfVersionParsed.isOrdinal) {
+            false
+          } else {
+            val str = tagBranchInfo.get.branchName.get + "-SNAPSHOT"
+            selfVersionParsed.orginal != str
+          }
+        } else {
+          true
+        }
+      } else if (tagBranchInfo.get.tagName.isDefined) {
+        tagBranchInfo.get.tagName.get.replaceFirst("^v", "") != selfVersion
+      } else {
+        true
+      }
+    } else {
+      true
+    }
   }
 
   private val MERGE_REQUEST = "MERGE_REQUEST"
@@ -48,11 +69,11 @@ object Lint {
     maybeMerge.isDefined && maybeMerge.get.isMergeRequest
   }
 
-  def isValidBranch(maybeBranch:Option[BranchTagMerge]): Boolean = {
+  def isValidBranch(maybeBranch: Option[BranchTagMerge]): Boolean = {
     maybeBranch.isDefined && maybeBranch.get.branchName.isDefined
   }
 
-  def isValidTag(maybeTag:Option[BranchTagMerge]): Boolean = {
+  def isValidTag(maybeTag: Option[BranchTagMerge]): Boolean = {
     maybeTag.isDefined && maybeTag.get.tagName.isDefined
   }
 
@@ -289,8 +310,6 @@ object Lint {
           out.println(info("      CI_COMMIT_REF_NAME : " + ciCommitRefName, opts))
           out.println(info("      CI_COMMIT_BRANCH : " + ciCommitBranch, opts))
 
-
-
           if (Lint.isValidTag(tagBranchInfo)) {
             out.println(info("      a valid tag : " + ciCommitRefName, opts))
           } else if (Lint.isValidBranch(tagBranchInfo)) {
@@ -380,7 +399,7 @@ object Lint {
             out.println(info("    WIP", opts)) // TODO check extentions present
             out.println(info("--- project version @ maven ---", opts))
             out.println(info(s"    ${modTry.get.selfVersion}", opts))
-            if (Lint.noVersionMatches(modTry.get.selfVersion, tagBranchInfo)) {
+            if (Lint.versionMissmatches(modTry.get.selfVersion, tagBranchInfo)) {
               out.println(warnSoft(s" ${modTry.get.selfVersion} != ${Util.show(tagBranchInfo)}", opts, limit = lineMax))
               // TODO enable warn
             }

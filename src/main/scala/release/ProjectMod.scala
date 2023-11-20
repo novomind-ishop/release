@@ -274,6 +274,10 @@ object ProjectMod extends LazyLogging {
 
     lazy val primarys: (Int, Int, Int) = (major, minor, patch)
     lazy val primarysOpt: Option[(Int, Int, Int)] = Some(primarys)
+    lazy val isOrdinal = {
+      val x = primarysOpt.getOrElse((-1, -1, -1))
+      x._1 >= 0 && x._2 >= 0 && x._3 >= 0
+    }
 
     private val lowF = if (Util.isNullOrEmpty(low)) {
       ""
@@ -720,7 +724,7 @@ object Increment {
 }
 
 trait ProjectMod extends LazyLogging {
-  def listRemoteRepoUrls():Seq[String]
+  def listRemoteRepoUrls(): Seq[String]
 
   val file: File
   val repo: Repo
@@ -792,6 +796,7 @@ trait ProjectMod extends LazyLogging {
   }
 
   val selfDepsMod: Seq[Dep]
+
   def getSelfDepsMod: Seq[Dep] = selfDepsMod
 
   def suggestReleaseVersion(branchNames: Seq[String] = Nil, tagNames: Seq[String] = Nil, increment: Option[Increment] = None): Seq[String]

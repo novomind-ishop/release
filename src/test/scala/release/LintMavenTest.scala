@@ -965,7 +965,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
         |[INFO]     0.11.0
-        |[warning]  0.11.0 != Some(value = BranchTagMerge(tagName = Some(value = v0.11.0), branchName = None(), info = ))
         |[INFO] --- check for snapshots @ maven ---
         |[WARNING]   found snapshot: org.springframework:spring-context:1.0.1-SNAPSHOT 😬 RL1011-ea7ea019
         |[WARNING]   found snapshot: org.springframework:spring-other:1.0.0-SNAPSHOT:bert 😬 RL1011-bd849fd4

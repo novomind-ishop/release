@@ -1663,6 +1663,13 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testIsOrdinal(): Unit = {
+    Assert.assertTrue(Version.parse("21.0.0").isOrdinal)
+    Assert.assertTrue(Version.parse("21.0.0-SNAPSHOT").isOrdinal)
+    Assert.assertFalse(Version.parse("alpha").isOrdinal)
+  }
+
+  @Test
   def testAbbreviate(): Unit = {
     Assert.assertEquals(Nil, PomMod.abbreviate(2)(Nil))
     Assert.assertEquals(Seq("a"), PomMod.abbreviate(2)(Seq("a")))
