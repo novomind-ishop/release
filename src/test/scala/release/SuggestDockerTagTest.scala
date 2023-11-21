@@ -164,7 +164,7 @@ class SuggestDockerTagTest extends AssertionsForJUnit {
 
   @Test
   def testSuggest_external(): Unit = {
-    TestHelper.assertException(expectedMsg = "invalid docker tag »44x\u001B[5«; " +
+    TestHelper.assertException(expectedMsg = "invalid docker tag »44x�[5«; " +
       "docker tags must match pattern »[a-zA-Z0-9][a-zA-Z0-9_\\-\\.]{0,127}«." +
       " This will lead to »Error response from daemon: invalid reference format« from docker",
       classOf[IllegalArgumentException], () => {
