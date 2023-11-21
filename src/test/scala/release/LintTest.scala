@@ -21,6 +21,7 @@ class LintTest extends AssertionsForJUnit {
 
   @Test
   def testVersionMatches(): Unit = {
+    Assert.assertFalse(Lint.versionMissmatches("45x-SNAPSHOT", br("feature/45x")))
     Assert.assertFalse(Lint.versionMissmatches("0.0.8-SNAPSHOT", br("feature/0x")))
     Assert.assertFalse(Lint.versionMissmatches("0.0.8-SNAPSHOT", br("feature/0.0x")))
     Assert.assertTrue(Lint.versionMissmatches("1.0.0-M1-SNAPSHOT", br("feature/0x")))
@@ -32,6 +33,7 @@ class LintTest extends AssertionsForJUnit {
     Assert.assertFalse(Lint.versionMissmatches("master-SNAPSHOT", br("master")))
     Assert.assertTrue(Lint.versionMissmatches("main-SNAPSHOT", br("master")))
     Assert.assertTrue(Lint.versionMissmatches("1.0.0-M1", br("feature/0x")))
+
 
     Assert.assertTrue(Lint.versionMissmatches("main-SNAPSHOT", tag("master")))
     Assert.assertFalse(Lint.versionMissmatches("1.2.3", tag("v1.2.3")))

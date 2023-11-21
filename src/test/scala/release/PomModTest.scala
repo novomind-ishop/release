@@ -1671,6 +1671,8 @@ class PomModTest extends AssertionsForJUnit {
 
   @Test
   def testSame(): Unit = {
+    Assert.assertTrue(Version.parseSloppy("21x-SNAPSHOT").same(21))
+    Assert.assertTrue(Version.parseSloppy("21x-SNAPSHOT").same(Seq(21)))
     Assert.assertTrue(Version.parse("21.0.0").same(21))
     Assert.assertFalse(Version.parse("21.0.0").same(2))
 

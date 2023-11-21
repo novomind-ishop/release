@@ -3,6 +3,7 @@ package release
 import com.google.common.base.Strings
 import com.google.common.hash.Hashing
 import release.ProjectMod.Version
+import release.Starter.ExitCode
 
 import java.nio.charset.StandardCharsets
 import java.text.Normalizer
@@ -41,12 +42,15 @@ object SuggestDockerTag {
     }
   }
 
-  def suggest(commitRef: String, tagName: String, projectVersion: Option[String], externalTag: String = ""): (String, Int) = {
+  def suggest(commitRef: String, tagName: String, projectVersion: Option[String], externalTag: String = ""): (String, ExitCode) = {
     if (!Strings.nullToEmpty(externalTag).isBlank) {
       if (masterPattern.matches(externalTag)) {
         (externalTag, 0)
       } else {
-        throw new IllegalArgumentException(s"invalid docker tag »\u00A0${externalTag}\u00A0«; docker tags must match pattern ${masterPattern.regex}")
+        val msg = s"invalid docker tag »${externalTag}«; " +
+          s"docker tags must match pattern »${masterPattern.regex}«. This will lead " +
+          s"to »Error response from daemon: invalid reference format« from docker"
+        throw new IllegalArgumentException(msg)
       }
     } else {
       suggestInner(commitRef, commitRef, tagName, projectVersion)
@@ -58,7 +62,7 @@ object SuggestDockerTag {
       .replaceFirst("^_", "").replaceFirst("_$", "")
   }
 
-  def suggestInner(inn: String, org: String, tagName: String, projectVersion: Option[String]): (String, Int) = {
+  def suggestInner(inn: String, org: String, tagName: String, projectVersion: Option[String]): (String, ExitCode) = {
 
     def fallback(innn: String): (String, Int) = {
       val suffix = "_" + Hashing.murmur3_32_fixed().hashString(org, StandardCharsets.UTF_8) + "_TEMP"

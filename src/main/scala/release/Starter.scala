@@ -414,7 +414,9 @@ object Starter extends LazyLogging {
 
   }
 
-  def init(argSeq: Seq[String], sys: Term.Sys): Int = {
+  type ExitCode = Int
+
+  def init(argSeq: Seq[String], sys: Term.Sys): ExitCode = {
 
     val err = sys.err
     val out = sys.out

@@ -33,8 +33,13 @@ object Lint {
         } else {
           if (selfVersionParsed.isSnapshot) {
             if (selfVersionParsed.isOrdinal) {
-              val digitsOnly = branchName.replaceAll("[^0-9]+", "")
-              !selfVersionParsed.same(digitsOnly.toSeq.map(_.asDigit))
+              val digitsOnly = branchName
+                .replaceAll("[^0-9]+", "|").split("[|]+")
+                .toSeq
+
+              val value = digitsOnly.flatMap(_.toIntOption)
+              val bool = selfVersionParsed.same(value)
+              !bool
             } else {
               false
             }
