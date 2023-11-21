@@ -564,7 +564,7 @@ object Starter extends LazyLogging {
       val refName = System.getenv("CI_COMMIT_REF_NAME")
       val ciTag = System.getenv("CI_COMMIT_TAG")
       val externalTag = System.getenv("RELEASE_SUGGEST_TAG")
-      val result = SuggestDockerTag.suggest(refName, ciTag, selfV)
+      val result = SuggestDockerTag.suggest(refName, ciTag, selfV, externalTag)
       out.println(result._1)
       return result._2
     }
