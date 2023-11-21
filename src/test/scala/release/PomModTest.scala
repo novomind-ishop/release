@@ -1670,6 +1670,22 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testSame(): Unit = {
+    Assert.assertTrue(Version.parse("21.0.0").same(21))
+    Assert.assertFalse(Version.parse("21.0.0").same(2))
+
+    Assert.assertTrue(Version.parse("21.0.0").same(21, 0))
+    Assert.assertFalse(Version.parse("21.0.0").same(21, 1))
+
+    Assert.assertTrue(Version.parse("21.0.0").same(21, 0, 0))
+    Assert.assertFalse(Version.parse("21.0.0").same(21, 0, 1))
+    Assert.assertTrue(Version.parse("21.0.0").same(Seq(21, 0, 0)))
+    Assert.assertFalse(Version.parse("21.0.0").same(Seq(21, 0, 1)))
+    Assert.assertFalse(Version.parse("21.0.0").same(Nil))
+    Assert.assertFalse(Version.parse("21.0.0").same(Seq(21, 0, 0, 0)))
+  }
+
+  @Test
   def testAbbreviate(): Unit = {
     Assert.assertEquals(Nil, PomMod.abbreviate(2)(Nil))
     Assert.assertEquals(Seq("a"), PomMod.abbreviate(2)(Seq("a")))

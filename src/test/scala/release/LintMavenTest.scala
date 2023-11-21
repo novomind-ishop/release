@@ -1240,7 +1240,6 @@ class LintMavenTest extends AssertionsForJUnit {
       |[INFO]     WIP
       |[INFO] --- project version @ maven ---
       |[INFO]     0.11-SNAPSHOT
-      |[warning]  0.11-SNAPSHOT != Some(value = BranchTagMerge(tagName = None(), branchName = None(), info = MERGE_REQUEST))
       |[INFO] --- check for snapshots @ maven ---
       |[INFO] --- check for GAV format @ maven ---
       |[INFO]     ✅ all GAVs scopes looks fine

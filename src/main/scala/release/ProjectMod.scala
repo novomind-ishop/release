@@ -25,8 +25,8 @@ object ProjectMod extends LazyLogging {
           val current = Version.parseSloppy(gavAndVersion._1.version.get)
           (versionLiterals
             .filter(v => Version.ordering.gteq(v, current))
-            .filter(_.orginal != gavAndVersion._1.version.get)
-            .map(_.orginal), gavAndVersion._2._2)
+            .filter(_.rawInput != gavAndVersion._1.version.get)
+            .map(_.rawInput), gavAndVersion._2._2)
         })
       }
     })
@@ -66,7 +66,7 @@ object ProjectMod extends LazyLogging {
   def groupSortReleases(o: Seq[String]): Seq[(String, Seq[String])] = {
     o.map(vs => Version.parseSloppy(vs)).groupBy(_.major).toSeq
       .sortBy(_._1)
-      .map(e => e.copy(_1 = e._1.toString, _2 = e._2.sorted.map(_.orginal)))
+      .map(e => e.copy(_1 = e._1.toString, _2 = e._2.sorted.map(_.rawInput)))
       .reverse
   }
 
@@ -270,13 +270,36 @@ object ProjectMod extends LazyLogging {
     }
   }
 
-  case class Version(pre: String, major: Int, minor: Int, patch: Int, low: String, orginal: String) {
+  case class Version(pre: String, major: Int, minor: Int, patch: Int, low: String, rawInput: String) {
 
     lazy val primarys: (Int, Int, Int) = (major, minor, patch)
     lazy val primarysOpt: Option[(Int, Int, Int)] = Some(primarys)
     lazy val isOrdinal = {
       val x = primarysOpt.getOrElse((-1, -1, -1))
       x._1 >= 0 && x._2 >= 0 && x._3 >= 0
+    }
+    lazy val isSnapshot: Boolean = rawInput.endsWith("-SNAPSHOT")
+
+    def same(major: Int): Boolean = {
+      this.major == major
+    }
+
+    def same(major: Int, minor: Int): Boolean = {
+      same(major) && this.minor == minor
+    }
+
+    def same(major: Int, minor: Int, patch: Int): Boolean = {
+      same(major, minor) && this.patch == patch
+    }
+
+    def same(v: Seq[Int]): Boolean = {
+      v.size match  {
+        case 3 => same(v(0), v(1), v(2))
+        case 2 => same(v(0), v(1))
+        case 1 => same(v(0))
+        case _ => false
+      }
+
     }
 
     private val lowF = if (Util.isNullOrEmpty(low)) {
@@ -399,10 +422,10 @@ object ProjectMod extends LazyLogging {
           case number2(major, minor, low) => Version.fromString("", major, minor, "", low, versionText)
           case number(major, low) => Version.fromString("", major, "", "", low, versionText)
 
-          case any => undef.copy(orginal = any)
+          case any => undef.copy(rawInput = any)
         }
       } catch {
-        case e: Exception => e.printStackTrace(); undef.copy(orginal = versionText)
+        case e: Exception => e.printStackTrace(); undef.copy(rawInput = versionText)
       }
     }
 

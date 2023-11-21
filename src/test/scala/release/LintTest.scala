@@ -21,16 +21,23 @@ class LintTest extends AssertionsForJUnit {
 
   @Test
   def testVersionMatches(): Unit = {
+    Assert.assertFalse(Lint.versionMissmatches("0.0.8-SNAPSHOT", br("feature/0x")))
+    Assert.assertFalse(Lint.versionMissmatches("0.0.8-SNAPSHOT", br("feature/0.0x")))
+    Assert.assertTrue(Lint.versionMissmatches("1.0.0-M1-SNAPSHOT", br("feature/0x")))
+    Assert.assertTrue(Lint.versionMissmatches("1.0.0-M1-SNAPSHOT", br("feature/1.1x")))
     Assert.assertTrue(Lint.versionMissmatches("master-SNAPSHOT", None))
     Assert.assertTrue(Lint.versionMissmatches("", Some(BranchTagMerge(tagName = None, branchName = None))))
     Assert.assertFalse(Lint.versionMissmatches("1.1.1-SNAPSHOT", br("main")))
     Assert.assertFalse(Lint.versionMissmatches("3.2.1-SNAPSHOT", br("master")))
     Assert.assertFalse(Lint.versionMissmatches("master-SNAPSHOT", br("master")))
     Assert.assertTrue(Lint.versionMissmatches("main-SNAPSHOT", br("master")))
+    Assert.assertTrue(Lint.versionMissmatches("1.0.0-M1", br("feature/0x")))
 
     Assert.assertTrue(Lint.versionMissmatches("main-SNAPSHOT", tag("master")))
     Assert.assertFalse(Lint.versionMissmatches("1.2.3", tag("v1.2.3")))
     Assert.assertFalse(Lint.versionMissmatches("main", tag("vmain")))
+    Assert.assertFalse(Lint.versionMissmatches("main", BranchTagMerge.merge))
+
   }
 
   @Test

@@ -134,7 +134,7 @@ object Repo extends LazyLogging {
     })
     val option = result.filterNot(dropped.contains).lastOption.map(_.primarys)
     val value = (result.filter(pv => pv.primarysOpt == option) ++ dropped).sorted
-    value.map(_.orginal)
+    value.map(_.rawInput)
   }
 
   def ofUrl(url: String): Repo = {

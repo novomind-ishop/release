@@ -21,19 +21,31 @@ object Lint {
     val defaultBranchnames = Set("main", "master")
     if (tagBranchInfo.isDefined) {
       if (tagBranchInfo.get.branchName.isDefined) {
-        if (defaultBranchnames.contains(tagBranchInfo.get.branchName.get)) {
-          val selfVersionParsed = Version.parseSloppy(selfVersion)
+        val selfVersionParsed = Version.parseSloppy(selfVersion)
+        val branchName = tagBranchInfo.get.branchName.get
+        if (defaultBranchnames.contains(branchName)) {
           if (selfVersionParsed.isOrdinal) {
             false
           } else {
-            val str = tagBranchInfo.get.branchName.get + "-SNAPSHOT"
-            selfVersionParsed.orginal != str
+            val str = branchName + "-SNAPSHOT"
+            selfVersionParsed.rawInput != str
           }
         } else {
-          true
+          if (selfVersionParsed.isSnapshot) {
+            if (selfVersionParsed.isOrdinal) {
+              val digitsOnly = branchName.replaceAll("[^0-9]+", "")
+              !selfVersionParsed.same(digitsOnly.toSeq.map(_.asDigit))
+            } else {
+              false
+            }
+          } else {
+            true
+          }
         }
       } else if (tagBranchInfo.get.tagName.isDefined) {
         tagBranchInfo.get.tagName.get.replaceFirst("^v", "") != selfVersion
+      } else if (tagBranchInfo.get.isMergeRequest) {
+        false
       } else {
         true
       }
@@ -48,7 +60,9 @@ object Lint {
     val isMergeRequest = info == MERGE_REQUEST
   }
 
-  private val merge = Some(BranchTagMerge(tagName = None, branchName = None, info = MERGE_REQUEST))
+  object BranchTagMerge {
+    val merge = Some(BranchTagMerge(tagName = None, branchName = None, info = MERGE_REQUEST))
+  }
 
   def toBranchTag(ciCommitRefName: String, ciCommitTag: String, sgit: Sgit, ciCommitBranch: String): Option[BranchTagMerge] = {
     if (ciCommitRefName == ciCommitTag && sgit != null && sgit.currentTags.getOrElse(Nil).contains(ciCommitTag) &&
@@ -59,7 +73,7 @@ object Lint {
       Some(BranchTagMerge(tagName = None, branchName = Some(ciCommitRefName)))
     } else if (Strings.emptyToNull(ciCommitTag) == null && Strings.emptyToNull(ciCommitBranch) == null &&
       Strings.emptyToNull(ciCommitRefName) != null) {
-      merge
+      BranchTagMerge.merge
     } else {
       None
     }
