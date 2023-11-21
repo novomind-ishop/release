@@ -561,7 +561,10 @@ object Starter extends LazyLogging {
       val file: File = new File(".").getAbsoluteFile
       val pomModTry = PomMod.withRepoTry(file, opts, Repo.of(opts), failureCollector = None)
       val selfV = pomModTry.map(pm => pm.selfVersion).toOption
-      val result = SuggestDockerTag.suggest(System.getenv("CI_COMMIT_REF_NAME"), System.getenv("CI_COMMIT_TAG"), selfV)
+      val refName = System.getenv("CI_COMMIT_REF_NAME")
+      val ciTag = System.getenv("CI_COMMIT_TAG")
+      val externalTag = System.getenv("RELEASE_SUGGEST_TAG")
+      val result = SuggestDockerTag.suggest(refName, ciTag, selfV)
       out.println(result._1)
       return result._2
     }

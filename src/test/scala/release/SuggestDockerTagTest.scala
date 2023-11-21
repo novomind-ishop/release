@@ -109,6 +109,7 @@ class SuggestDockerTagTest extends AssertionsForJUnit {
   def testSuggest_minus(): Unit = {
     Assert.assertEquals("1f5345f9_TEMP", SuggestDockerTag.suggest("-", null, None)._1)
   }
+
   @Test
   def testSuggest_long(): Unit = {
     // he tag must be valid ASCII and can contain lowercase and uppercase letters, digits, underscores, periods, and hyphens.
@@ -159,6 +160,13 @@ class SuggestDockerTagTest extends AssertionsForJUnit {
     val tuple = SuggestDockerTag.suggest(":some/v1.2.3-Ber::-", "", None)
     Assert.assertEquals("some-v1.2.3-ber_3416b6f8_TEMP", tuple._1)
     Assert.assertEquals(0, tuple._2)
+  }
+
+  @Test
+  def testSuggest_external(): Unit = {
+    TestHelper.assertException(expectedMsg = "invalid docker tag » 44x\u001B[5 «; docker tags must match pattern [a-zA-Z0-9][a-zA-Z0-9_\\-\\.]{0,127}", classOf[IllegalArgumentException], () => {
+      SuggestDockerTag.suggest("any", "any", None, "44x\u001B[5")
+    })
   }
 
   @Test

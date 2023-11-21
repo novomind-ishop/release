@@ -12,6 +12,7 @@ import scala.util.Try
 
 object SuggestDockerTag {
   val masterPattern = "[a-zA-Z0-9][a-zA-Z0-9_\\-\\.]{0,127}".r
+
   def normlize(input: String): String = Normalizer
     .normalize(input, Normalizer.Form.NFD)
     .replaceAll("[^\\p{ASCII}]", "")
@@ -40,8 +41,16 @@ object SuggestDockerTag {
     }
   }
 
-  def suggest(commitRef: String, tagName: String, projectVersion: Option[String]): (String, Int) = {
-    suggestInner(commitRef, commitRef, tagName, projectVersion)
+  def suggest(commitRef: String, tagName: String, projectVersion: Option[String], externalTag: String = ""): (String, Int) = {
+    if (!Strings.nullToEmpty(externalTag).isBlank) {
+      if (masterPattern.matches(externalTag)) {
+        (externalTag, 0)
+      } else {
+        throw new IllegalArgumentException(s"invalid docker tag »\u00A0${externalTag}\u00A0«; docker tags must match pattern ${masterPattern.regex}")
+      }
+    } else {
+      suggestInner(commitRef, commitRef, tagName, projectVersion)
+    }
   }
 
   def akaVersion(in: String): String = {
@@ -50,7 +59,6 @@ object SuggestDockerTag {
   }
 
   def suggestInner(inn: String, org: String, tagName: String, projectVersion: Option[String]): (String, Int) = {
-
 
     def fallback(innn: String): (String, Int) = {
       val suffix = "_" + Hashing.murmur3_32_fixed().hashString(org, StandardCharsets.UTF_8) + "_TEMP"
