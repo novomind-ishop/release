@@ -355,7 +355,7 @@ object Lint {
             if (dockerTag.get.isSuccess) {
               out.println(info("      docker tag : " + dockerTag.get.get, opts))
             } else {
-              Term.wrap(out, Term.warn, "   docker tag : " + dockerTag.get.failed.get.getMessage + s" ${fiWarn} ${fiCodeGitlabCiTagname}", opts)
+              Term.wrap(out, Term.warn, "   docker tag : " + dockerTag.get.failed.get.getMessage + s" ${fiWarn}\u0A00${fiCodeGitlabCiTagname}", opts)
               warnExit.set(true)
             }
           }

@@ -93,6 +93,12 @@ object SuggestDockerTag {
               (withoutLeadingV, 0)
             }
           }
+          case fe if tagName != null && fe.matches(ProjectMod.Version.shopPattern.regex) => {
+            (fe + "_TEMP", 0)
+          }
+          case fe if tagName != null &&  fe.matches(ProjectMod.Version.betaTagPattern.regex) => {
+            (fe.replaceFirst("BETA-","") + "_TEMP", 0)
+          }
           case fe => fallback(fe)
         }
       }

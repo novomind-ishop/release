@@ -91,6 +91,38 @@ class SuggestDockerTagTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testSuggest_noV_tag_beta(): Unit = {
+    val value = "BETA-example.org-2"
+    val tuple = SuggestDockerTag.suggest(value, value, None)
+    Assert.assertEquals("example.org-2_TEMP", tuple._1)
+    Assert.assertEquals(0, tuple._2)
+  }
+
+  @Test
+  def testSuggest_noV_tag_beta2(): Unit = {
+    val value = s"BETA-example.org-and-a-${List.fill(2)("very-").mkString("")}long-end-2"
+    val tuple = SuggestDockerTag.suggest(value, value, None)
+    Assert.assertEquals("example.org-and-a-very-very-long-end-2_TEMP", tuple._1)
+    Assert.assertEquals(0, tuple._2)
+  }
+
+  @Test
+  def testSuggest_noV_tag_rc(): Unit = {
+    val value = "RC-2023.01"
+    val tuple = SuggestDockerTag.suggest(value, value, None)
+    Assert.assertEquals("RC-2023.01_TEMP", tuple._1)
+    Assert.assertEquals(0, tuple._2)
+  }
+
+  @Test
+  def testSuggest_noV_tag_rc1(): Unit = {
+    val value = "RC-2023.01_1"
+    val tuple = SuggestDockerTag.suggest(value, value, None)
+    Assert.assertEquals("RC-2023.01_1_TEMP", tuple._1)
+    Assert.assertEquals(0, tuple._2)
+  }
+
+  @Test
   def testSuggest_symbols_release(): Unit = {
     Assert.assertEquals("3f546f27_TEMP", SuggestDockerTag.suggest("release/v+", null, None)._1)
   }

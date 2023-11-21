@@ -224,7 +224,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]    an invalid branch/tag: ciRef: vU, ciTag: vU, ciBranch: , gitTags: , gitBranch:
         |[WARNING]    docker tag : » vU « is no valid git tag name. This could lead to
         |[WARNING]      build problems later. A git tag must match the pattern
-        |[WARNING]      » ^v[0-9]+\.[0-9]+\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ « 😬 RL1006
+        |[WARNING]      » ^v[0-9]+\.[0-9]+\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ « 😬਀RL1006
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
         |[INFO]     ✅ NO SNAPSHOTS in other files found
         |
