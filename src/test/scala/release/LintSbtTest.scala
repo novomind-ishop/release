@@ -32,6 +32,8 @@ class LintSbtTest extends AssertionsForJUnit {
     val sbtFile = new File(remote, "build.sbt")
     Util.write(sbtFile,
       """scalaVersion := "2.13.10"
+        |
+        |version := "1.0-SNAPSHOT"
         |""".stripMargin.linesIterator.toSeq)
     gitA.add(sbtFile)
     gitA.commitAll("bla")
@@ -57,8 +59,7 @@ class LintSbtTest extends AssertionsForJUnit {
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
-        |[INFO]     n/a
-        |[warning]  n/a != None()
+        |[INFO]     1.0-SNAPSHOT
         |[INFO] --- check for snapshots @ maven ---
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine

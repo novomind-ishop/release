@@ -2,6 +2,7 @@ package release
 
 import com.typesafe.scalalogging.LazyLogging
 import release.ProjectMod.{Gav3, SelfRef}
+import release.SbtMod.SbtModel
 import release.SbtMod.SloppyParser.rep
 import release.Starter.Opts
 
@@ -14,18 +15,31 @@ import scala.util.parsing.combinator.RegexParsers
 
 case class SbtMod(file: File, repo: Repo, opts: Opts) extends ProjectMod {
 
-  val selfVersion: String = "n/a" // TODO
+  private val value: SbtModel = {
+
+    def read(f: File) = Files.readAllLines(f.toPath, StandardCharsets.UTF_8)
+      .asScala.mkString("\n")
+
+    val allFiles = sbtFile(file)
+      .map(read)
+    val main = read(file)
+    val mainModel = SbtMod.SloppyParser.doParse()(main)
+
+    val otherDeps = allFiles
+      .map(SbtMod.SloppyParser.doParse()).flatMap(_.deps)
+    mainModel.copy(deps = mainModel.deps ++ otherDeps)
+  }
+  val listDependencies: Seq[ProjectMod.Dep] = value.deps
+
+  val selfVersion: String = {
+    value.selfVersion.getOrElse("n/a")
+  }
 
   def sbtFile(file: File): Seq[File] = {
     val props = new File(new File(file.getParentFile, "project"), "build.properties")
     val plugins = new File(new File(file.getParentFile, "project"), "plugins.sbt")
     Seq(props, plugins).filter(_.exists())
   }
-
-  val listDependencies: Seq[ProjectMod.Dep] = (Seq(file) ++ sbtFile(file))
-    .map(f => Files.readAllLines(f.toPath, StandardCharsets.UTF_8)
-      .asScala.mkString("\n"))
-    .flatMap(SbtMod.SloppyParser.doParse())
 
   val listPluginDependencies: Seq[ProjectMod.PluginDep] = Nil // TODO
 
@@ -35,13 +49,14 @@ case class SbtMod(file: File, repo: Repo, opts: Opts) extends ProjectMod {
     // TODO cat ~/.sbt/repositories
     Nil
   }
+
   val skipPropertyReplacement: Boolean = false
 
   def isShop: Boolean = false
 
   val selfDepsMod: Seq[ProjectMod.Dep] = Nil // TODO
 
-  def suggestReleaseVersion(branchNames: Seq[String], tagNames: Seq[String], increment:Option[Increment] = None): Seq[String] = throw new UnsupportedOperationException()
+  def suggestReleaseVersion(branchNames: Seq[String], tagNames: Seq[String], increment: Option[Increment] = None): Seq[String] = throw new UnsupportedOperationException()
 
   def suggestNextRelease(releaseVersion: String): String = throw new UnsupportedOperationException()
 
@@ -58,6 +73,8 @@ case class SbtMod(file: File, repo: Repo, opts: Opts) extends ProjectMod {
 
 object SbtMod {
 
+  case class SelfVersion(version: Option[String])
+
   case class SbtVersion(version: Option[String])
 
   case class ScalaVersion(version: Option[String])
@@ -72,6 +89,8 @@ object SbtMod {
                  scope: String, packaging: String, classifier: String) {
   }
 
+  case class SbtModel(deps: Seq[ProjectMod.Dep], selfVersion: Option[String])
+
   def buildSbt(file: File): File = {
     new File(file, "build.sbt")
   }
@@ -83,11 +102,11 @@ object SbtMod {
   object SloppyParser extends RegexParsers with LazyLogging {
     override val skipWhitespace = false
 
-    def doParse(strict: Boolean = false)(in: String): Seq[ProjectMod.Dep] = {
+    def doParse(strict: Boolean = false)(in: String): SbtModel = {
 
       def nl = "\n" ^^ (term => "NL")
 
-      def predfined = "(^[ ]*(version := |//|publish|scalacOptions|name|logLevel|assembly).*)".r <~ nl ^^ (term => Predefined(term))
+      def predfined = "(^[ ]*(//|publish|scalacOptions|name|logLevel|assembly).*)".r <~ nl ^^ (term => Predefined(term))
 
       def valP = "(^val[ ]+)".r ~> word ~ " = " ~ word <~ nl ^^ (term => ValDef(term._1._1, term._2))
 
@@ -124,7 +143,13 @@ object SbtMod {
       def test: Parser[(PredefWord, None.type)] = "[ ]+".r ~> "Test".r ^^ (term => (PredefWord(term), None))
 
       var sVersion: Option[String] = None
+      var selfVersionL: Option[String] = None
       var sbtVersionL: Option[String] = None
+
+      def selfVersion = "version := " ~> quotedWord ^^ (term => {
+        selfVersionL = Some(term._1.value) // XXX side effect
+        SelfVersion(selfVersionL)
+      })
 
       def scalaVersion = "scalaVersion := " ~> quotedWord ^^ (term => {
         sVersion = Some(term._1.value) // XXX side effect
@@ -164,7 +189,6 @@ object SbtMod {
 
       def dep = "libraryDependencies += " ~> rep(test | quotedWord | word3) <~ opt("[ ]+//.*".r) ~ nl ^^ (term => {
 
-
         if (term.size >= 3) {
           val addVersion = term.find(_._2.isDefined)
             .map(_ => {
@@ -174,7 +198,6 @@ object SbtMod {
               }
               "_" + suf
             })
-
 
           SbtMod.Dep(
             groupId = toE(term(0)._1),
@@ -192,7 +215,7 @@ object SbtMod {
 
       })
 
-      val p = rep(pluginDep | sbtVersion | scalaVersion | dep | valP | predfined | ignore)
+      val p = rep(pluginDep | sbtVersion | scalaVersion | selfVersion | dep | valP | predfined | ignore)
 
       val str = "\n" + in.linesIterator.map(_.trim).mkString("\n") + "\n"
       parseAll(p, str) match {
@@ -240,6 +263,7 @@ object SbtMod {
                   case str1: String if str1.isEmpty => // skip
                   case _: ScalaVersion => // skip
                   case _: SbtVersion => // skip
+                  case _: SelfVersion => // skip
                   case _: Predefined => // skip
                   case _: ValDef => // skip
                   case in =>
@@ -263,16 +287,16 @@ object SbtMod {
               artifactId = eval(allVals)(d.artifactId),
               version = Some(eval(allVals)(d.version)),
               "", "", "", ""))
-          sbt ++ scala ++ result
+          SbtModel(deps = sbt ++ scala ++ result, selfVersion = selfVersionL)
         }
         case f: Failure => {
           logger.warn("", new IllegalStateException("failure: " + f.toString() + " >" + in + "<"))
-          Nil
+          SbtModel(deps = Nil, selfVersion = None)
 
         }
         case Error(msg, next) => {
           logger.warn("", new IllegalStateException("Syntax error - " + msg + " >" + in + "<"))
-          Nil
+          SbtModel(deps = Nil, selfVersion = None)
 
         }
       }

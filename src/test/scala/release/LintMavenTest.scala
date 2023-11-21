@@ -149,7 +149,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
         |[INFO]     0.11-SNAPSHOT
-        |[warning]  0.11-SNAPSHOT != None()
         |[INFO] --- check for snapshots @ maven ---
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
@@ -297,7 +296,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
         |[INFO]     0.11-SNAPSHOT
-        |[warning]  0.11-SNAPSHOT != None()
         |[INFO] --- check for snapshots @ maven ---
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
@@ -394,7 +392,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
         |[INFO]     0.11-SNAPSHOT
-        |[warning]  0.11-SNAPSHOT != None()
         |[INFO] --- check for snapshots @ maven ---
         |[warning]   found snapshot: org.springframework:spring-vals:1.0.0-SNAPSHOT 😬 RL1011-eef87565
         |[INFO] --- check for GAV format @ maven ---
@@ -496,7 +493,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
         |[INFO]     0.11-SNAPSHOT
-        |[warning]  0.11-SNAPSHOT != None()
+        |[WARNING]  0.11-SNAPSHOT != None() 😬 RL1014
         |[INFO] --- check for snapshots @ maven ---
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
@@ -601,7 +598,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
         |[INFO]     0.11-SNAPSHOT
-        |[warning]  0.11-SNAPSHOT != None()
+        |[WARNING]  0.11-SNAPSHOT != None() 😬 RL1014
         |[INFO] --- check for snapshots @ maven ---
         |[warning]   found snapshot: com.novomind.ishop.core.other:other-context:50x-SNAPSHOT 😬 RL1011-08f0f8bf
         |[warning]   found snapshot: com.novomind.ishop.core.some:core-some-context:50x-SNAPSHOT 😬 RL1011-9f269959
@@ -697,7 +694,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
         |[INFO]     0.14-SNAPSHOT
-        |[warning]  0.14-SNAPSHOT != None()
+        |[WARNING]  0.14-SNAPSHOT != None() 😬 RL1014
         |[INFO] --- check for snapshots @ maven ---
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
@@ -821,7 +818,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
         |[INFO]     0.11-SNAPSHOT
-        |[warning]  0.11-SNAPSHOT != None()
+        |[WARNING]  0.11-SNAPSHOT != None() 😬 RL1014
         |[INFO] --- check for snapshots @ maven ---
         |[warning]   found snapshot: org.springframework:spring-context:1.0.1-SNAPSHOT 😬 RL1011-ea7ea019
         |[INFO] --- check for GAV format @ maven ---

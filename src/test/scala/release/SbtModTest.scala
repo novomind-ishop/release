@@ -68,7 +68,7 @@ class SbtModTest extends AssertionsForJUnit with MockitoSugar {
   def testDoParse(): Unit = {
     val value = SbtMod.SloppyParser.doParse(strict = true)(
       """
-        |version := "1.0"
+        |version := "1.0-SNAPSHOT"
         |
         |scalaVersion := "2.13.0"
         |
@@ -93,7 +93,8 @@ class SbtModTest extends AssertionsForJUnit with MockitoSugar {
       d("org.scalatestplus", "junit-4-12_2.13", "3.1.2.1"),
       d("org.typelevel", "cats-effect_2.13.0-M5", "1.4.0"),
 
-    ), value)
+    ), value.deps)
+    Assert.assertEquals(Some("1.0-SNAPSHOT"), value.selfVersion)
   }
 
   @Test
@@ -112,7 +113,7 @@ class SbtModTest extends AssertionsForJUnit with MockitoSugar {
       d("org.scala-lang", "scala3-library_3", "3.0.1"),
       d("org.scalatestplus", "junit-4-12_3", "3.1.2.1"),
 
-    ), value)
+    ), value.deps)
   }
 
   @Test
@@ -145,7 +146,7 @@ class SbtModTest extends AssertionsForJUnit with MockitoSugar {
       d("org.scala-lang", "scala3-library_3", "3.0.1"),
       d("org.scalatestplus", "junit-4-12_3", "a.b.c"),
 
-    ), value)
+    ), value.deps)
   }
 
   @Test
@@ -158,7 +159,7 @@ class SbtModTest extends AssertionsForJUnit with MockitoSugar {
 
     Assert.assertEquals(Seq(
       d("org.scala-sbt", "sbt", "1.5.5"),
-    ), value)
+    ), value.deps)
   }
 
   @Test
@@ -174,7 +175,7 @@ class SbtModTest extends AssertionsForJUnit with MockitoSugar {
     Assert.assertEquals(Seq(
       d("com.eed3si9n", "sbt-assembly", "1.0.0"),
       d("org.scoverage", "sbt-scoverage", "1.6.1"),
-    ), value)
+    ), value.deps)
   }
 
 }

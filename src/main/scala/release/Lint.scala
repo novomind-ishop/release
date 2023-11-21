@@ -65,15 +65,21 @@ object Lint {
   }
 
   def toBranchTag(ciCommitRefName: String, ciCommitTag: String, sgit: Sgit, ciCommitBranch: String): Option[BranchTagMerge] = {
-    if (ciCommitRefName == ciCommitTag && sgit != null && sgit.currentTags.getOrElse(Nil).contains(ciCommitTag) &&
-      Strings.emptyToNull(ciCommitBranch) == null) {
+    if (Strings.emptyToNull(ciCommitTag) == null && Strings.emptyToNull(ciCommitBranch) == null &&
+      Strings.emptyToNull(ciCommitRefName) != null) {
+      return BranchTagMerge.merge
+    }
+    val currentBranchOpt = sgit.currentBranchOpt
+    val currentTags = sgit.currentTags.getOrElse(Nil)
+    if (ciCommitRefName == ciCommitTag && currentTags.contains(ciCommitTag) && Strings.emptyToNull(ciCommitBranch) == null) {
       Some(BranchTagMerge(tagName = Some(ciCommitTag), branchName = None))
     } else if (Strings.emptyToNull(ciCommitTag) == null &&
-      (sgit != null && sgit.currentBranchOpt.getOrElse("") == ciCommitRefName || ciCommitRefName == ciCommitBranch)) {
+      (currentBranchOpt.getOrElse("") == ciCommitRefName || ciCommitRefName == ciCommitBranch)) {
       Some(BranchTagMerge(tagName = None, branchName = Some(ciCommitRefName)))
-    } else if (Strings.emptyToNull(ciCommitTag) == null && Strings.emptyToNull(ciCommitBranch) == null &&
-      Strings.emptyToNull(ciCommitRefName) != null) {
-      BranchTagMerge.merge
+    } else if (currentBranchOpt.isDefined) {
+      Some(BranchTagMerge(tagName = None, branchName = Some(currentBranchOpt.get)))
+    } else if (currentTags.nonEmpty) {
+      Some(BranchTagMerge(tagName = Some(currentTags.head), branchName = None)) // XXX multiple tags
     } else {
       None
     }
@@ -131,6 +137,7 @@ object Lint {
   val fiCodeSnapshotGav = uniqCode(1011)
   val fiCodeSnapshotText = uniqCode(1012)
   val fiCodeCoreDiff = uniqCode(1013)
+  val fiCodeVersionMissmatch = uniqCode(1014)(())
   val fiWarn = "\uD83D\uDE2C"
   val fiError = "❌"
 
@@ -414,8 +421,15 @@ object Lint {
             out.println(info("--- project version @ maven ---", opts))
             out.println(info(s"    ${modTry.get.selfVersion}", opts))
             if (Lint.versionMissmatches(modTry.get.selfVersion, tagBranchInfo)) {
-              out.println(warnSoft(s" ${modTry.get.selfVersion} != ${Util.show(tagBranchInfo)}", opts, limit = lineMax))
-              // TODO enable warn
+              val msg = s" ${modTry.get.selfVersion} != ${Util.show(tagBranchInfo)} ${fiWarn} ${fiCodeVersionMissmatch}"
+              val bool = opts.lintOpts.skips.contains(fiCodeVersionMissmatch)
+              if (bool) {
+                usedSkips = usedSkips :+ fiCodeVersionMissmatch
+                out.println(warnSoft(msg, opts, limit = lineMax))
+              } else {
+                out.println(warn(msg, opts, limit = lineMax))
+                warnExit.set(true)
+              }
             }
             out.println(info("--- check for snapshots @ maven ---", opts))
             val snaps = mod.listGavsForCheck()
