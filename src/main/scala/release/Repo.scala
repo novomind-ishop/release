@@ -25,6 +25,7 @@ import release.ProjectMod.Gav3
 import release.Starter.Opts
 
 import java.io.{File, IOException, PrintStream}
+import java.net.URI
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{FileVisitResult, FileVisitor, Files, Path}
 import java.text.{DecimalFormat, DecimalFormatSymbols}
@@ -40,17 +41,31 @@ import scala.util.{Failure, Success, Try}
 
 trait RepoZ {
   def getRelocationOf(groupID: String, artifactId: String, version: String): Option[Gav3]
+
   def newerAndPrevVersionsOf(groupID: String, artifactId: String, version: String): Seq[String]
+
   def depDate(groupId: String, artifactId: String, version: String): Option[ZonedDateTime]
 }
-class RepoProxy(repos:Seq[Repo]) extends RepoZ {
+
+class RepoProxy(_repos: Seq[Repo]) extends RepoZ {
+  val repos = {
+    val t = _repos.filter(r => {
+      Util.ipFromUrl(r.workNexusUrl()).isDefined
+    })
+    if (t.isEmpty) {
+      _repos
+    } else {
+      t
+    }
+  }
+
   override def getRelocationOf(groupID: String, artifactId: String, version: String): Option[Gav3] = {
     repos.flatMap(_.getRelocationOf(groupID, artifactId, version)).headOption
   }
 
-    override def newerAndPrevVersionsOf(groupID: String, artifactId: String, version: String): Seq[String] = {
-      repos.flatMap(_.newerAndPrevVersionsOf(groupID, artifactId, version))
-    }
+  override def newerAndPrevVersionsOf(groupID: String, artifactId: String, version: String): Seq[String] = {
+    repos.flatMap(_.newerAndPrevVersionsOf(groupID, artifactId, version))
+  }
 
   override def depDate(groupId: String, artifactId: String, version: String): Option[ZonedDateTime] = {
     repos.flatMap(_.depDate(groupId, artifactId, version)).headOption
@@ -60,6 +75,7 @@ class RepoProxy(repos:Seq[Repo]) extends RepoZ {
     s"RepoProxy: ${repos.map(_.workNexusUrl()).mkString(", ")}"
   }
 }
+
 class Repo private(_mirrorNexus: RemoteRepository, _workNexus: RemoteRepository) extends RepoZ with LazyLogging {
 
   private lazy val newRepositoriesCentral: RemoteRepository = Repo.newDefaultRepository(Repo.centralUrl)
@@ -138,7 +154,7 @@ class Repo private(_mirrorNexus: RemoteRepository, _workNexus: RemoteRepository)
   }
 
   def getRelocationOf(groupID: String, artifactId: String, version: String): Option[Gav3] = {
-  // TODO https://maven.apache.org/guides/mini/guide-relocation.html
+    // TODO https://maven.apache.org/guides/mini/guide-relocation.html
     None
   }
 

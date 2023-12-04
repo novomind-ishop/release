@@ -62,6 +62,12 @@ class ProjectModTest extends AssertionsForJUnit {
   implicit def toOpt(in: String): Option[String] = Option(in)
 
   @Test
+  def testFilterCentral(): Unit = {
+    val repo = Repo.ofUrl("http://localhost")
+    Assert.assertEquals(Seq(repo), new RepoProxy(Seq(Repo.ofUrl("http://central"), Repo.ofUrl(":"), repo)).repos)
+  }
+
+  @Test
   def testUnwantedLiteral(): Unit = {
     Assert.assertFalse(ProjectMod.isUnwanted(Gav3(groupId = "???", artifactId = "???", version = "1.0.0")))
 
