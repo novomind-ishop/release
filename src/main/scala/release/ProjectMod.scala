@@ -593,7 +593,7 @@ object ProjectMod extends LazyLogging {
                                rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], repos: Seq[Repo], checkOnline: Boolean): Seq[(GavWithRef, (Seq[String], Duration))] = {
     val repoDelegator = new RepoProxy(repos)
     if (checkOnline) {
-      repos.foreach(repo => {
+      repoDelegator.repos.foreach(repo => {
         val reachableResult = repo.isReachable(false)
         if (!reachableResult.online) {
           throw new PreconditionsException(repo.workNexusUrl() + " - repo feels offline - " + reachableResult.msg)
