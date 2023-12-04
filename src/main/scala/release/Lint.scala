@@ -161,12 +161,12 @@ object Lint {
       // https://polaris.docs.fairwinds.com/infrastructure-as-code/
 
       val warnExitCode = 42
-      val failExitCode = 2
+      val errorExitCode = 2
       val lineMax = 100_000
       // TODO print $HOME
       println(info("    " + file.getAbsolutePath, opts, lineMax))
       val warnExit = new AtomicBoolean(false)
-      val failExit = new AtomicBoolean(false)
+      val errorExit = new AtomicBoolean(false)
       val files = file.listFiles()
       var usedSkips = Seq.empty[String]
       if (files == null || files.isEmpty) {
@@ -355,8 +355,18 @@ object Lint {
             if (dockerTag.get.isSuccess) {
               out.println(info("      docker tag : " + dockerTag.get.get, opts))
             } else {
-              Term.wrap(out, Term.warn, "   docker tag : " + dockerTag.get.failed.get.getMessage + s" ${fiWarn}\u0A00${fiCodeGitlabCiTagname}", opts)
-              warnExit.set(true)
+              val bool = opts.lintOpts.skips.contains(fiCodeGitlabCiTagname)
+              if (bool) {
+                usedSkips = usedSkips :+ fiCodeGitlabCiTagname
+              }
+              if (bool) {
+                Term.wrap(out, Term.warn, "  docker tag : " + dockerTag.get.failed.get.getMessage + s" ${fiWarn}\u00A0${fiCodeGitlabCiTagname}", opts)
+                warnExit.set(true)
+              } else {
+                Term.wrap(out, Term.error, "     docker tag : " + dockerTag.get.failed.get.getMessage + s" ${fiError}\u00A0${fiCodeGitlabCiTagname}", opts)
+                errorExit.set(true)
+              }
+
             }
           }
 
@@ -550,7 +560,7 @@ object Lint {
               }
               case pce: Exception => {
                 out.println(error(pce.getMessage + s" ${fiWarn} ${fiCodePomModException}", opts, limit = lineMax))
-                failExit.set(true)
+                errorExit.set(true)
               }
             }
 
@@ -589,11 +599,11 @@ object Lint {
         }
 
         out.println(info(center("[ end of lint" + timerResult + " ]"), opts))
-        if (failExit.get()) {
-          out.println(error(s"exit ${failExitCode} - because lint found errors, see above ${fiError}", opts))
-          return failExitCode
+        if (errorExit.get()) {
+          out.println(error(s"exit ${errorExitCode} - because lint found errors, see above ${fiError}", opts))
+          return errorExitCode
         } else if (warnExit.get()) {
-          out.println(warn(s"exit ${warnExitCode} - because lint found warnings, see above ${fiError}", opts))
+          out.println(warn(s"exit ${warnExitCode} - because lint found warnings, see above ${fiWarn}", opts))
           return warnExitCode
         } else {
           return 0

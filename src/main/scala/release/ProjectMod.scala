@@ -70,7 +70,7 @@ object ProjectMod extends LazyLogging {
       .reverse
   }
 
-  def relocatedDeps(relevant: Seq[Dep], repo: Repo): Seq[Dep] = {
+  def relocatedDeps(relevant: Seq[Dep], repo: RepoZ): Seq[Dep] = {
     relevant.flatMap(dep => {
       val gav = dep.gav().simpleGav()
       val others = relocateGavs(Seq(gav), repo)(gav).filterNot(x => x == gav)
@@ -82,7 +82,7 @@ object ProjectMod extends LazyLogging {
     })
   }
 
-  def relocateGavs(gavs: Seq[Gav3], repo: Repo)(gav: Gav3): Seq[Gav3] = {
+  def relocateGavs(gavs: Seq[Gav3], repo: RepoZ)(gav: Gav3): Seq[Gav3] = {
     // TODO plugins.sbt - name ?
     val maybeGav = repo.getRelocationOf(gav.groupId, gav.artifactId, gav.version.get)
     if (maybeGav.isDefined) {
@@ -119,10 +119,10 @@ object ProjectMod extends LazyLogging {
   }
 
   def isUnwanted(gav: Gav3): Boolean = {
-    isUnwantedLiteral(gav.version.get)
+    isUnwantedLiteral(gav.toGav2())(gav.version.get)
   }
 
-  def isUnwantedLiteral(versionLiteral: String): Boolean = {
+  def isUnwantedLiteral(gav: Gav2)(versionLiteral: String): Boolean = {
     versionLiteral.endsWith("-SNAPSHOT") ||
       versionLiteral.contains("patch") ||
       versionLiteral.matches(".*[Mm][0-9]+$") ||
@@ -164,7 +164,8 @@ object ProjectMod extends LazyLogging {
       versionLiteral.endsWith("does-not-exist") || // commons-logging:commons-logging:99.0-does-not-exist
       versionLiteral.endsWith("-PUBLISHED-BY-MISTAKE") ||
       versionLiteral.endsWith("230521-nf-execution") || // com.graphql-java:graphql-java
-      versionLiteral.matches("^[1-9][0-9]{3}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}.*$") // com.graphql-java:graphql-java
+      versionLiteral.matches("^[1-9][0-9]{3}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}.*$") || // com.graphql-java:graphql-java
+      (versionLiteral.contains("android") && gav == Gav2(groupId = "com.google.guava", artifactId = "guava"))
 
   }
 
@@ -173,7 +174,7 @@ object ProjectMod extends LazyLogging {
       Nil
     } else {
       val out: Seq[String] = versionsToNormalize
-        .filterNot(isUnwantedLiteral)
+        .filterNot(isUnwantedLiteral(gav.toGav2()))
 
       val result = if (versionsToNormalize.contains(gav.version.get)) {
         (Seq(gav.version.get) ++ out).distinct
@@ -203,6 +204,8 @@ object ProjectMod extends LazyLogging {
     def simpleGav() = Gav3(groupId, artifactId, version)
   }
 
+  case class Gav2(groupId: String, artifactId: String)
+
   object Gav3 {
     def opt(groupId: Option[String], artifactId: Option[String], version: Option[String]): Gav3 = {
       Gav3(groupId.getOrElse(""), artifactId.getOrElse(""), version) // XXX blank feels strange
@@ -213,6 +216,8 @@ object ProjectMod extends LazyLogging {
     def toDep(pomRef: SelfRef): Dep = Dep(pomRef, groupId, artifactId, version, "", "", "", "")
 
     def toGav(): Gav = Gav(groupId, artifactId, version)
+
+    def toGav2(): Gav2 = Gav2(groupId, artifactId)
 
     def formatted: String = Gav.format(Seq(groupId, artifactId, version.getOrElse("")))
 
@@ -293,7 +298,7 @@ object ProjectMod extends LazyLogging {
     }
 
     def same(v: Seq[Int]): Boolean = {
-      v.size match  {
+      v.size match {
         case 3 => same(v(0), v(1), v(2))
         case 2 => same(v(0), v(1))
         case 1 => same(v(0))
@@ -370,7 +375,7 @@ object ProjectMod extends LazyLogging {
     private[release] val semverPatternLetterEnd = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)-([0-9a-zA-Z\\.]+)$".r
     private[release] val stableShop = "^([0-9]+x)-stable.*$".r
     private[release] val shopPattern = "^(RC-)([1-9][0-9]{3})\\.([0-9][0-9])?(?:\\.([1-9]+[0-9]*))?(?:_([1-9]+[0-9]*))?$".r
-    private[release] val betaTagPattern ="^(BETA-)(.+)$".r
+    private[release] val betaTagPattern = "^(BETA-)(.+)$".r
     val shopBranchPattern = ("^release/" + shopPattern.regex.substring(1)).r
     private[release] val shopPatternSloppy = "^([Rr][Cc][-\\._])([0-9]{4})[_\\.-]([0-9][0-9]?)?(?:[_\\.-]([0-9]+[0-9]*))?(?:[-_\\.]([0-9]+[0-9]*))?$".r
     private[release] val number = "^([0-9]+)(.*)".r
@@ -450,7 +455,7 @@ object ProjectMod extends LazyLogging {
     }
   }
 
-  def checkForUpdates(in: Seq[Gav3], depUpOpts: OptsDepUp, repo: Repo, updatePrinter: UpdateCon): Map[Gav3, (Seq[String], Duration)] = {
+  def checkForUpdates(in: Seq[Gav3], depUpOpts: OptsDepUp, repo: RepoZ, updatePrinter: UpdateCon): Map[Gav3, (Seq[String], Duration)] = {
 
     val statusLine = StatusLine(in.size, updatePrinter.shellWidth, new StatusPrinter() {
       override def print(string: String): Unit = updatePrinter.println(string)
@@ -586,12 +591,15 @@ object ProjectMod extends LazyLogging {
 
   def collectDependencyUpdates(updatePrinter: UpdateCon, depUpOpts: OptsDepUp,
                                rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], repos: Seq[Repo], checkOnline: Boolean): Seq[(GavWithRef, (Seq[String], Duration))] = {
-    val repo = repos.head // TODO work with all repos
+    val repoDelegator = new RepoProxy(repos)
     if (checkOnline) {
-      val reachableResult = repo.isReachable(false)
-      if (!reachableResult.online) {
-        throw new PreconditionsException(repo.workNexusUrl() + " - repo feels offline - " + reachableResult.msg)
-      }
+      repos.foreach(repo => {
+        val reachableResult = repo.isReachable(false)
+        if (!reachableResult.online) {
+          throw new PreconditionsException(repo.workNexusUrl() + " - repo feels offline - " + reachableResult.msg)
+        }
+      })
+
     }
     val now = LocalDate.now()
     val stopw = Stopwatch.createStarted()
@@ -621,8 +629,8 @@ object ProjectMod extends LazyLogging {
       })
 
     val value: Seq[Gav3] = prepared
-      .flatMap(ProjectMod.relocateGavs(prepared, repo))
-    val updates = checkForUpdates(value, depUpOpts, repo, updatePrinter)
+      .flatMap(ProjectMod.relocateGavs(prepared, repoDelegator))
+    val updates = checkForUpdates(value, depUpOpts, repoDelegator, updatePrinter)
 
     updatePrinter.println(s"I: checked ${value.size} dependecies in ${stopw.elapsed(TimeUnit.MILLISECONDS)}ms (${now.toString})")
 
@@ -630,7 +638,7 @@ object ProjectMod extends LazyLogging {
 
     val checkedUpdates: Map[Gav3, (Seq[String], Duration)] = ProjectMod.reduceIn(updates)
 
-    val allWithUpdate: Seq[(GavWithRef, (Seq[String], Duration))] = (relevant ++ ProjectMod.relocatedDeps(relevant, repo)).distinct
+    val allWithUpdate: Seq[(GavWithRef, (Seq[String], Duration))] = (relevant ++ ProjectMod.relocatedDeps(relevant, repoDelegator)).distinct
       .map(in => {
         val ref = GavWithRef(in.pomRef, in.gav())
         val a: (Seq[String], Duration) = checkedUpdates.getOrElse(in.gav().simpleGav(), (Nil, Duration.ZERO))
@@ -699,7 +707,7 @@ object ProjectMod extends LazyLogging {
           versionNotFound.toList.map(in => in._1.formatted + "->" + (in._2._1 match {
             case Nil => "Nil"
             case e => e
-          }) + "\n  " + repo.workNexusUrl() + in._1.slashedMeta).sorted.mkString("\n"))
+          }) + "\n  " + repoDelegator.toString + in._1.slashedMeta).sorted.mkString("\n"))
         updatePrinter.printlnErr()
       }
     }

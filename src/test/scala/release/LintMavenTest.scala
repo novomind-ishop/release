@@ -90,7 +90,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/any.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
-        |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
+        |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       Assert.assertEquals(42, Lint.run(sys.out, sys.err, opts, Repo.of(opts), Map.empty, fileB))
@@ -164,7 +164,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |I: checked 1 dependecies in 999ms (2000-01-01)
         |Non existing dependencies for:
         |org.springframework:spring-context:1.0.0->Nil
-        |  https://repo.example.orgorg/springframework/spring-context/maven-metadata.xml
+        |  RepoProxy: https://repo.example.orgorg/springframework/spring-context/maven-metadata.xml
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -172,7 +172,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
-        |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
+        |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
@@ -180,7 +180,7 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
-      Mockito.when(mockRepo.newerVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(Nil)
 
       System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, fileB))
@@ -222,16 +222,16 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]       CI_COMMIT_REF_NAME : vU
         |[INFO]       CI_COMMIT_BRANCH :
         |[WARNING]    an invalid branch/tag: ciRef: vU, ciTag: vU, ciBranch: , gitTags: , gitBranch:
-        |[WARNING]    docker tag : » vU « is no valid git tag name. This could lead to
-        |[WARNING]      build problems later. A git tag must match the pattern
-        |[WARNING]      » ^v[0-9]+\.[0-9]+\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ « 😬਀RL1006
+        |[ERROR]      docker tag : » vU « is no valid git tag name. This could lead to
+        |[ERROR]        build problems later. A git tag must match the pattern
+        |[ERROR]        » ^v[0-9]+\.[0-9]+\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ « ❌ RL1006
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
         |[INFO]     ✅ NO SNAPSHOTS in other files found
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |[INFO] ----------------------------[ end of lint ]----------------------------
-        |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
-    TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
+        |[ERROR] exit 2 - because lint found errors, see above ❌""".stripMargin
+    TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 2)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
 
@@ -525,7 +525,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
-        |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
+        |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
@@ -627,7 +627,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
-        |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
+        |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
@@ -720,7 +720,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
-        |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
+        |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1003-467ad8bc")))
       val mockRepo = Mockito.mock(classOf[Repo])
@@ -998,7 +998,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/notes.md
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
-        |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
+        |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1012-d3421ec9", "RL1003-8a73d4ae")))
       val mockRepo = Mockito.mock(classOf[Repo])
@@ -1105,7 +1105,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple-fail/notes.md
         |/tmp/junit-REPLACED/release-lint-mvn-simple-fail/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
-        |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
+        |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1012-637a4930", "RL1003-b4b0c08b")))
       val mockRepo = Mockito.mock(classOf[Repo])
@@ -1258,7 +1258,7 @@ class LintMavenTest extends AssertionsForJUnit {
       |/tmp/junit-REPLACED/release-lint-mvn-deploy-none/.mvn
       |/tmp/junit-REPLACED/release-lint-mvn-deploy-none/pom.xml
       |[INFO] ----------------------------[ end of lint ]----------------------------
-      |[WARNING] exit 42 - because lint found warnings, see above ❌""".stripMargin
+      |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1003-21ee7891", "RL1003-aaaaaaa")))
       val mockRepo = Mockito.mock(classOf[Repo])

@@ -38,7 +38,29 @@ import java.util.concurrent.ConcurrentHashMap
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
-class Repo private(_mirrorNexus: RemoteRepository, _workNexus: RemoteRepository) extends LazyLogging {
+trait RepoZ {
+  def getRelocationOf(groupID: String, artifactId: String, version: String): Option[Gav3]
+  def newerAndPrevVersionsOf(groupID: String, artifactId: String, version: String): Seq[String]
+  def depDate(groupId: String, artifactId: String, version: String): Option[ZonedDateTime]
+}
+class RepoProxy(repos:Seq[Repo]) extends RepoZ {
+  override def getRelocationOf(groupID: String, artifactId: String, version: String): Option[Gav3] = {
+    repos.flatMap(_.getRelocationOf(groupID, artifactId, version)).headOption
+  }
+
+    override def newerAndPrevVersionsOf(groupID: String, artifactId: String, version: String): Seq[String] = {
+      repos.flatMap(_.newerAndPrevVersionsOf(groupID, artifactId, version))
+    }
+
+  override def depDate(groupId: String, artifactId: String, version: String): Option[ZonedDateTime] = {
+    repos.flatMap(_.depDate(groupId, artifactId, version)).headOption
+  }
+
+  override def toString: String = {
+    s"RepoProxy: ${repos.map(_.workNexusUrl()).mkString(", ")}"
+  }
+}
+class Repo private(_mirrorNexus: RemoteRepository, _workNexus: RemoteRepository) extends RepoZ with LazyLogging {
 
   private lazy val newRepositoriesCentral: RemoteRepository = Repo.newDefaultRepository(Repo.centralUrl)
 
@@ -52,7 +74,7 @@ class Repo private(_mirrorNexus: RemoteRepository, _workNexus: RemoteRepository)
 
   private def getVersionsOf(req: String) = Repo.getVersions(workNexus)(req)
 
-  def depDate(groupId: String, artifactId: String, version: String) =
+  def depDate(groupId: String, artifactId: String, version: String): Option[ZonedDateTime] =
     Repo.depDate(workNexus)(groupId, artifactId, version)
 
   private[release] def isReachable(showTrace: Boolean = true): Repo.ReachableResult = {
@@ -115,8 +137,8 @@ class Repo private(_mirrorNexus: RemoteRepository, _workNexus: RemoteRepository)
     result
   }
 
-  // https://maven.apache.org/guides/mini/guide-relocation.html
   def getRelocationOf(groupID: String, artifactId: String, version: String): Option[Gav3] = {
+  // TODO https://maven.apache.org/guides/mini/guide-relocation.html
     None
   }
 

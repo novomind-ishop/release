@@ -77,8 +77,8 @@ class SgitTest extends AssertionsForJUnit {
 
     // THEN
     Assert.assertEquals("master", branch)
-    Assert.assertEquals(Some("HEAD branch: master"), testee.remoteHead())
-    Assert.assertEquals(Some("origin/master"), testee.remoteHeadRaw())
+    Assert.assertEquals(Some("HEAD branch: master"), testee.remoteHead().get)
+    Assert.assertEquals(Some("origin/master"), testee.remoteHeadRaw().get)
   }
 
   @Test

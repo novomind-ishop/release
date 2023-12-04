@@ -62,6 +62,52 @@ class ProjectModTest extends AssertionsForJUnit {
   implicit def toOpt(in: String): Option[String] = Option(in)
 
   @Test
+  def testUnwantedLiteral(): Unit = {
+    Assert.assertFalse(ProjectMod.isUnwanted(Gav3(groupId = "???", artifactId = "???", version = "1.0.0")))
+
+    Assert.assertFalse(ProjectMod.isUnwanted(Gav3(groupId = "???", artifactId = "???", version = "1.0.0-android")))
+    Assert.assertTrue(ProjectMod.isUnwanted(Gav3(groupId = "com.google.guava", artifactId = "guava", version = "1.0.0-android")))
+  }
+
+  @Test
+  def testDepUpdateTwo(): Unit = {
+    val now = ZonedDateTime.now()
+    val anyDep = d("org.example", "any-library", "1.0.0")
+
+    val term = Term.select("xterm", "os", simpleChars = false, isInteractice = false)
+    val rootDeps: Seq[ProjectMod.Dep] = Seq(anyDep)
+    val selfDepsModX: Seq[ProjectMod.Dep] = Nil
+
+    val repoMock1 = mock[Repo]
+    when(repoMock1.getRelocationOf(anyString(), anyString(), anyString())).thenReturn(None)
+    when(repoMock1.newerAndPrevVersionsOf(anyDep.groupId, anyDep.artifactId, anyDep.version.get)).thenReturn(Seq(anyDep.version.get, "2.13.1"))
+    when(repoMock1.depDate(anyDep.groupId, anyDep.artifactId, anyDep.version.get)).thenReturn(Some(now))
+    when(repoMock1.depDate(anyDep.groupId, anyDep.artifactId, "2.13.1")).thenReturn(Some(now))
+    when(repoMock1.depDate(anyDep.groupId, anyDep.artifactId, "2.13.2")).thenReturn(None)
+
+    val repoMock2 = mock[Repo]
+    when(repoMock2.getRelocationOf(anyString(), anyString(), anyString())).thenReturn(None)
+    when(repoMock2.newerAndPrevVersionsOf(anyDep.groupId, anyDep.artifactId, anyDep.version.get)).thenReturn(Seq(anyDep.version.get, "2.13.2"))
+    when(repoMock2.depDate(anyDep.groupId, anyDep.artifactId, anyDep.version.get)).thenReturn(Some(now))
+    when(repoMock2.depDate(anyDep.groupId, anyDep.artifactId, "2.13.1")).thenReturn(None)
+    when(repoMock2.depDate(anyDep.groupId, anyDep.artifactId, "2.13.2")).thenReturn(Some(now))
+
+    val result = TermTest.withOutErr[Unit]()(sys => {
+      val opts = OptsDepUp().copy(showLibYears = true)
+
+      val innerResult: Seq[(GavWithRef, (Seq[String], Duration))] = ProjectMod.collectDependencyUpdates(
+        new UpdatePrinter(100, term, sys, printProgress = true), opts,
+        rootDeps, selfDepsModX, Seq(repoMock1, repoMock2), checkOnline = false)
+
+      val sca1 = GavWithRef(SelfRef.undef, anyDep.gav())
+      val scala2 = (sca1, (Seq("2.13.1", "2.13.2"), Duration.ZERO))
+
+      Assert.assertEquals(Seq(scala2), innerResult)
+    })
+    Assert.assertEquals("", result.err)
+  }
+
+  @Test
   def testScalaDeps(): Unit = {
     val now = ZonedDateTime.now()
     val scala = d("org.scala-lang", "scala-library", "2.13.0")
@@ -76,6 +122,7 @@ class ProjectModTest extends AssertionsForJUnit {
     when(repoMock.depDate(scala.groupId, scala.artifactId, "2.13.1")).thenReturn(Some(now))
     when(repoMock.newerAndPrevVersionsOf(scala.groupId, "scala3-library_3", "-1")).thenReturn(Seq("-1", "3.0.1"))
     when(repoMock.depDate(scala.groupId, "scala3-library_3", "-1")).thenReturn(None)
+    when(repoMock.depDate(scala.groupId, "scala3-library_3", "3.0.1")).thenReturn(None)
     val result = TermTest.withOutErr[Unit]()(sys => {
       val opts = OptsDepUp().copy(showLibYears = true)
 
