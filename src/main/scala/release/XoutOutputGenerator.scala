@@ -19,7 +19,7 @@ class XoutOutputGenerator(options: Options, jApiClasses: util.List[JApiClass]) e
     val outputFilter: OutputFilter = new OutputFilter(options)
     outputFilter.filter(jApiClasses)
     val sb = new StringBuilder()
-    sb.append(options.getDifferenceDescription).append('\n')
+    sb.append(options.getDifferenceDescription.trim).append('\n')
     if (jApiClasses.size > 0) {
       for (jApiClass <- jApiClasses.asScala) {
         processClass(sb, jApiClass)

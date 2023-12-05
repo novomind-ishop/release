@@ -23,7 +23,7 @@ object ApiDiff {
   def apidiff(inOpt: Opts, left: String, right: String): Opts = {
     println("")
     // TODO load api diff definition from file
-    val repo = Repo.of(inOpt)
+    val repo = inOpt.newRepo
     val workDirFile = new File(".").getAbsoluteFile // TODO get this from other location
 
     val pommod = PomMod.withRepo(workDirFile, inOpt, repo, failureCollector = None)
@@ -40,8 +40,8 @@ object ApiDiff {
         println(s"download artifacts for diff of: ${groupId}:${artifactId}:(${left}..${right})")
 
         val ty = s":${ga._3}:"
-        val ar = Repo.tryResolveReqWorkNexus(repo)(groupId + ":" + artifactId + ty + left).map(t => (t._1, t._2, ga._3))
-        val br = Repo.tryResolveReqWorkNexus(repo)(groupId + ":" + artifactId + ty + right).map(t => (t._1, t._2, ga._3))
+        val ar = repo.tryResolveReqWorkNexus(groupId + ":" + artifactId + ty + left).map(t => (t._1, t._2, ga._3))
+        val br = repo.tryResolveReqWorkNexus(groupId + ":" + artifactId + ty + right).map(t => (t._1, t._2, ga._3))
         (ar, br)
       }).seq
     if (inOpt.apiDiff.pomOnly) {

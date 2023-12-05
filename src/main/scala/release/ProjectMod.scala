@@ -47,7 +47,7 @@ object ProjectMod extends LazyLogging {
 
   case class GavWithRef(pomRef: SelfRef, gav: Gav)
 
-  def read(workDirFile: File, sys: Term.Sys, opts: Opts, repo: Repo, showRead: Boolean = true): ProjectMod = {
+  def read(workDirFile: File, sys: Term.Sys, opts: Opts, repo: RepoZ, showRead: Boolean = true): ProjectMod = {
     if (PomMod.rootPom(workDirFile).canRead) {
       if (showRead) {
         sys.out.print("I: Reading pom.xmls ..")
@@ -284,8 +284,8 @@ object ProjectMod extends LazyLogging {
       x._1 >= 0 && x._2 >= 0 && x._3 >= 0
     }
     lazy val isOrdinalOnly: Boolean = {
-      isOrdinal && lowF.replaceFirst("_-SNAPSHOT", "" ) == "" && pre == "" && patchF == ""
-     }
+      isOrdinal && lowF.replaceFirst("_-SNAPSHOT", "") == "" && pre == "" && patchF == ""
+    }
     lazy val isSnapshot: Boolean = rawInput.endsWith("-SNAPSHOT")
 
     def same(major: Int): Boolean = {
@@ -593,8 +593,7 @@ object ProjectMod extends LazyLogging {
   }
 
   def collectDependencyUpdates(updatePrinter: UpdateCon, depUpOpts: OptsDepUp,
-                               rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], repos: Seq[Repo], checkOnline: Boolean): Seq[(GavWithRef, (Seq[String], Duration))] = {
-    val repoDelegator = new RepoProxy(repos)
+                               rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], repoDelegator: RepoProxy, checkOnline: Boolean): Seq[(GavWithRef, (Seq[String], Duration))] = {
     if (checkOnline) {
       repoDelegator.repos.foreach(repo => {
         val reachableResult = repo.isReachable(false)
@@ -710,7 +709,7 @@ object ProjectMod extends LazyLogging {
           versionNotFound.toList.map(in => in._1.formatted + "->" + (in._2._1 match {
             case Nil => "Nil"
             case e => e
-          }) + "\n  " + repoDelegator.toString + in._1.slashedMeta).sorted.mkString("\n"))
+          }) + "\n  " + repoDelegator.workNexusUrl() + in._1.slashedMeta).sorted.mkString("\n"))
         updatePrinter.printlnErr()
       }
     }
@@ -762,7 +761,7 @@ trait ProjectMod extends LazyLogging {
   def listRemoteRepoUrls(): Seq[String]
 
   val file: File
-  val repo: Repo
+  val repo: RepoZ
   val opts: Opts
   val selfVersion: String
 
@@ -783,8 +782,10 @@ trait ProjectMod extends LazyLogging {
   def collectDependencyUpdates(depUpOpts: OptsDepUp, checkOn: Boolean = true, updatePrinter: UpdateCon): Seq[(ProjectMod.GavWithRef, (Seq[String], Duration))] = {
     val depForCheck: Seq[Dep] = listGavsForCheck()
     val sdm = selfDepsMod
+    val allUrls: Seq[String] = repo.allRepoUrls() ++ listRemoteRepoUrls()
+    val proxy = new RepoProxy(repo.createAll(allUrls))
     val result = ProjectMod.collectDependencyUpdates(updatePrinter = updatePrinter,
-      depUpOpts = depUpOpts, rootDeps = depForCheck, selfDepsMod = sdm, repos = Seq(repo) ++ listRemoteRepoUrls().map(Repo.ofUrl), checkOnline = checkOn)
+      depUpOpts = depUpOpts, rootDeps = depForCheck, selfDepsMod = sdm, repoDelegator = proxy, checkOnline = checkOn)
     if (depUpOpts.changeToLatest) {
       val localDepUpFile = new File(file, ".release-dependency-updates")
       val fn: (Gav3, Seq[String]) => String = if (localDepUpFile.canRead) {

@@ -35,7 +35,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[00:00:00.00Z] [[31mERROR[0m] ----------------------------[ end of lint ]----------------------------""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT)(sys => {
       val opts = Opts().copy(lintOpts = Opts().lintOpts.copy(showTimer = true, showTimeStamps = true))
-      Assert.assertEquals(1, Lint.run(sys.out, sys.err, opts, Repo.of(opts), Map.empty, file))
+      Assert.assertEquals(1, Lint.run(sys.out, sys.err, opts, Map.empty, file))
     })
 
   }
@@ -93,7 +93,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
-      Assert.assertEquals(42, Lint.run(sys.out, sys.err, opts, Repo.of(opts), Map.empty, fileB))
+      Assert.assertEquals(42, Lint.run(sys.out, sys.err, opts, Map.empty, fileB))
     })
 
   }
@@ -177,13 +177,15 @@ class LintMavenTest extends AssertionsForJUnit {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org")
+      Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
+      Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(Nil)
 
-      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, fileB))
+      System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, fileB))
     })
 
   }
@@ -240,7 +242,7 @@ class LintMavenTest extends AssertionsForJUnit {
         "CI_COMMIT_REF_NAME" -> "vU",
         "CI_COMMIT_TAG" -> "vU",
       )
-      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, value, fileB))
+      System.exit(Lint.run(sys.out, sys.err, opts, value, fileB))
     })
 
   }
@@ -320,9 +322,12 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 0)(sys => {
-      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+      val opts1 = Opts().lintOpts.copy(showTimer = false)
+      val opts = Opts(colors = false, lintOpts = opts1)
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org/")
+      Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
+      Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
@@ -331,7 +336,7 @@ class LintMavenTest extends AssertionsForJUnit {
       )
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(mockUpdates)
-      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, fileB))
+      System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, fileB))
     })
 
   }
@@ -426,19 +431,31 @@ class LintMavenTest extends AssertionsForJUnit {
     TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 0)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL10015-aa71e948")))
       val mockRepo = Mockito.mock(classOf[Repo])
+      val mockRepo2 = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org/")
+      Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
+      Mockito.when(mockRepo2.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
+      Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo, mockRepo2))
+      Mockito.when(mockRepo2.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo, mockRepo2))
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
+      Mockito.when(mockRepo2.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
+      Mockito.when(mockRepo2.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+        .thenReturn(None)
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+        .thenReturn(Nil)
+      Mockito.when(mockRepo2.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+        .thenReturn(Nil)
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-vals"), ArgumentMatchers.anyString()))
         .thenReturn(Seq(
           "0.1", "1.0.1", "1.0.2", "1.2.8", "1.2.9"
         ))
-      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-context"), ArgumentMatchers.anyString()))
+      Mockito.when(mockRepo2.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-context"), ArgumentMatchers.anyString()))
         .thenReturn(Seq(
           "0.99.99", "1.0.0", "1.0.1", "1.0.2", "1.2.8", "1.2.9", "1.0.0-M1"
         ))
-      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, fileB))
+      System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, fileB))
     })
   }
 
@@ -532,6 +549,8 @@ class LintMavenTest extends AssertionsForJUnit {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
+      Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq(Repo.centralUrl))
+      Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
@@ -542,7 +561,7 @@ class LintMavenTest extends AssertionsForJUnit {
       )
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(mockUpdates)
-      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, file))
+      System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file))
     })
 
   }
@@ -634,6 +653,8 @@ class LintMavenTest extends AssertionsForJUnit {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
+      Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
+      Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
@@ -642,7 +663,7 @@ class LintMavenTest extends AssertionsForJUnit {
       )
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(mockUpdates)
-      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, file))
+      System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file))
     })
 
   }
@@ -727,6 +748,8 @@ class LintMavenTest extends AssertionsForJUnit {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1003-467ad8bc")))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
+      Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq(Repo.centralUrl))
+      Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
@@ -737,7 +760,7 @@ class LintMavenTest extends AssertionsForJUnit {
       )
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(mockUpdates)
-      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, file))
+      System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file))
     })
 
   }
@@ -866,12 +889,14 @@ class LintMavenTest extends AssertionsForJUnit {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
+      Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq(Repo.centralUrl))
+      Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(Seq("0.0.1", "1.0.1-SNAPSHOT", "1.0.0"))
-      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, file))
+      System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file))
     })
 
   }
@@ -1006,6 +1031,8 @@ class LintMavenTest extends AssertionsForJUnit {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1012-d3421ec9", "RL1003-8a73d4ae")))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
+      Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq(Repo.centralUrl))
+      Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
@@ -1025,7 +1052,7 @@ class LintMavenTest extends AssertionsForJUnit {
         "CI_COMMIT_REF_NAME" -> "v0.11.0",
         "CI_COMMIT_TAG" -> "v0.11.0",
       )
-      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, value, file))
+      System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), value, file))
     })
 
   }
@@ -1115,7 +1142,7 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "202"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
-      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, Map.empty, file))
+      System.exit(Lint.run(sys.out, sys.err, opts, Map.empty, file))
 
     })
   }
@@ -1266,6 +1293,8 @@ class LintMavenTest extends AssertionsForJUnit {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1003-21ee7891", "RL1003-aaaaaaa")))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org/")
+      Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
+      Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "202"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
@@ -1273,7 +1302,7 @@ class LintMavenTest extends AssertionsForJUnit {
         "CI_CONFIG_PATH" -> ".gitlab-ci.yml",
         "CI_COMMIT_REF_NAME" -> "feature/bre",
         "CI_COMMIT_TAG" -> "")
-      System.exit(Lint.run(sys.out, sys.err, opts, mockRepo, env, file))
+      System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), env, file))
 
     })
   }

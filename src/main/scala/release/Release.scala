@@ -33,12 +33,12 @@ object Release extends LazyLogging {
 
     val max = versionLines.map(gavLength).max
     lazy val maxString = versionLines.map(_.version.get).groupBy { i =>
-      if (i.contains(".")) {
-        i.replaceFirst("\\..*", "")
-      } else {
-        i
-      }
-    }.toList.map(in => (in._1, in._2.size, in._2))
+        if (i.contains(".")) {
+          i.replaceFirst("\\..*", "")
+        } else {
+          i
+        }
+      }.toList.map(in => (in._1, in._2.size, in._2))
       .sortBy(_._1)
       .reverse.sortBy(-_._2).drop(1).flatMap(_._3).distinct
 
@@ -175,10 +175,26 @@ object Release extends LazyLogging {
 
   }
 
+  def suggestPushCmd(changedVersion: Boolean, sgit: SgitDiff with SgitDetached, opts: Opts, branch: String, selectedBranch: String,
+                     uName: () => String = () => System.getProperty("user.name")): String = {
+    if (changedVersion && sgit.isNotDetached) {
+      if (opts.useGerrit) {
+        s"git push origin ${branch}:refs/for/${selectedBranch};"
+      } else {
+        val username = Option(uName.apply()).filterNot(_.isBlank).getOrElse("nouser")
+        val id = Starter.signShort(sgit)
+        val remoteBranch = s"${username}-${selectedBranch.replace("-", "+")}-patch-${id}"
+        s"git push origin ${branch}:${remoteBranch};"
+      }
+    } else {
+      ""
+    }
+  }
+
   // TODO @tailrec
   def work(workDirFile: File, sys: Term.Sys, rebaseFn: () => Unit, branch: String, sgit: Sgit,
            termOs: Term, shellWidth: Int, releaseToolGitSha1: () => String, config: ReleaseConfig,
-           repo: Repo, opts: Opts): Seq[Unit] = {
+           repo: RepoZ, opts: Opts): Seq[Unit] = {
     if (sgit.hasLocalChanges) {
       val message = localChangeMessage(sgit)
       sys.out.println(message)
@@ -398,24 +414,13 @@ object Release extends LazyLogging {
     } else {
 
       sys.out.print("Committing pom changes ..")
-      if (opts.useGerrit) {
-        sgit.doCommitPomXmlsAnd(
-          """[%s] prepare for next iteration - %s
-            |%s
-            |Signed-off-by: %s
-            |Releasetool-sign: %s
-            |Releasetool-sha1: %s""".stripMargin.format(config.releasPrefix(), nextReleaseWithoutSnapshot,
-            msgs, config.signedOfBy(), Starter.sign(sgit), releaseToolSelfGitSha1),
-          releaseMod.depTreeFilenameList())
-      } else {
-        sgit.doCommitPomXmlsAnd(
-          """[%s] prepare for next iteration - %s
-            |%s
-            |Releasetool-sign: %s
-            |Releasetool-sha1: %s""".stripMargin.format(config.releasPrefix(), nextReleaseWithoutSnapshot,
-            msgs, Starter.sign(sgit), releaseToolSelfGitSha1),
-          releaseMod.depTreeFilenameList())
-      }
+      sgit.doCommitPomXmlsAnd(
+        s"""[${config.releasPrefix()}] prepare for next iteration - ${nextReleaseWithoutSnapshot}
+           |${msgs}
+           |Signed-off-by: ${config.signedOfBy()}
+           |Releasetool-sign: ${Starter.sign(sgit)}
+           |Releasetool-sha1: ${releaseToolSelfGitSha1}""".stripMargin,
+        releaseMod.depTreeFilenameList())
 
       sys.out.println(". done (f)")
       true
@@ -481,11 +486,7 @@ object Release extends LazyLogging {
         ""
       }
 
-      val pushCmd = if (changedVersion && sgit.isNotDetached) {
-        s"git push origin ${branch}:refs/for/${selectedBranch};"
-      } else {
-        ""
-      }
+      val pushCmd = suggestPushCmd(changedVersion, sgit, opts, branch, selectedBranch)
 
       val gerritHint = if (opts.useGerrit) {
         """
@@ -589,7 +590,7 @@ object Release extends LazyLogging {
 
   // TODO @tailrec
   def offerAutoFixForReleaseSnapshots(sys: Term.Sys, mod: ProjectMod, gitFiles: Seq[String], shellWidth: Int,
-                                      repo: Repo, opts: Opts): ProjectMod = {
+                                      repo: RepoZ, opts: Opts): ProjectMod = {
     val plugins = mod.listPluginDependencies
     if (mod.isShop) {
       // TODO check if core needs this checks too
@@ -614,7 +615,7 @@ object Release extends LazyLogging {
       .map(_.gav())
       .filterNot(noShops) ++ plugins.map(_.fakeDep().gav())
       .filter(_.version.contains("SNAPSHOT")) ++
-      boClientVersion.map(in => Gav("com.novomind.ishop.backoffice", "bo-client", Some(in), "war"))
+      boClientVersion.map(in => Gav("com.novomind.ishop.backoffice", "bo-client", Some(in), "war")) // FIXME move to lint
 
     val repoStateLine = StatusLine(snaps.size, shellWidth, StatusPrinter.ofPrintStream(sys.out), enabled = true)
     val snapState: Seq[ReleaseInfo] = snaps

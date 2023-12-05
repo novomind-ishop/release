@@ -12,7 +12,7 @@ import org.mockito.MockitoSugar
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.ProjectMod.Gav3
 import release.Sgit.GitRemote
-import release.Starter.{FutureEither, FutureError, LintOpts, Opts, OptsDepUp}
+import release.Starter.{FutureEither, FutureError, LintOpts, Opts, OptsApidiff, OptsDepUp}
 
 import java.io._
 import java.util.concurrent.{TimeUnit, TimeoutException}
@@ -299,6 +299,14 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
   def testArgRead_shopGaSet(): Unit = {
     Assert.assertEquals(Opts(invalids = Seq("shopGASet")), Starter.argsAndEnvRead(Seq("shopGASet"), Opts(), Map.empty))
     Assert.assertEquals(Opts(shopGA = Some("some")), Starter.argsAndEnvRead(Seq("shopGASet", "some"), Opts(), Map.empty))
+  }
+
+  @Test
+  def testArgRead_apidiff(): Unit = {
+    assertArgs(Opts(apiDiff = OptsApidiff(showApiDiff = true)),
+      Starter.argsAndEnvRead(Seq("apidiff"), Opts(), Map.empty))
+    assertArgs(Opts(apiDiff = OptsApidiff(showApiDiff = true, left = "a", right = "b")),
+      Starter.argsAndEnvRead(Seq("apidiff", "a", "b"), Opts(), Map.empty))
   }
 
   @Test

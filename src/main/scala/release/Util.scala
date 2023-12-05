@@ -1,6 +1,7 @@
 package release
 
 import com.google.common.base.Strings
+import com.google.common.hash.Hashing
 import com.google.common.net.InetAddresses
 
 import java.io.{File, IOException}
@@ -213,6 +214,10 @@ object Util {
   }
 
   def hashMd5Random(): String = Util.hashMd5(Random.nextLong().toString)
+
+  def hashMurmur3_32_fixed(in:String):String = {
+    Hashing.murmur3_32_fixed().hashString(in, StandardCharsets.UTF_8).toString
+  }
 
   def hashSha1(in: String): String = {
     hashBy(MessageDigest.getInstance("SHA1"), in)

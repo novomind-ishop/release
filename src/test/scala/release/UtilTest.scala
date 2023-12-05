@@ -102,6 +102,13 @@ class UtilTest extends AssertionsForJUnit {
   @Test
   def testSha1(): Unit = {
     Assert.assertEquals("7b964cd933b2cc9106deabd4641111826cfbc094", Util.hashSha1("bert"))
+    Assert.assertEquals("da39a3ee5e6b4b0d3255bfef95601890afd80709", Util.hashSha1(""))
+  }
+
+  @Test
+  def testHashMurmur3_32_fixed(): Unit = {
+    Assert.assertEquals("e397ece2", Util.hashMurmur3_32_fixed("bert"))
+    Assert.assertEquals("00000000", Util.hashMurmur3_32_fixed(""))
   }
 
   @Test

@@ -18,6 +18,32 @@ class ReleaseTest extends AssertionsForJUnit {
   @Rule def temp = _temporarayFolder
 
   @Test
+  def testSuggestPushCmd_gerrit(): Unit = {
+    val sgit = new SgitDiff with SgitDetached {
+      override def diffSafe(): Seq[String] = Seq("a")
+
+      override def isDetached: Boolean = false
+    }
+    val result = Release.suggestPushCmd(true, sgit,
+      Opts(), "main", "new-main",
+      () => "peter")
+    Assert.assertEquals("git push origin main:refs/for/new-main;", result)
+  }
+
+  @Test
+  def testSuggestPushCmd_gitlab(): Unit = {
+    val sgit = new SgitDiff with SgitDetached {
+      override def diffSafe(): Seq[String] = Seq("a")
+
+      override def isDetached: Boolean = false
+    }
+    val result = Release.suggestPushCmd(true, sgit,
+      Opts().copy(useGerrit = false), "main", "new-main",
+      () => "peter")
+    Assert.assertEquals("git push origin main:peter-new+main-patch-b269253c;", result)
+  }
+
+  @Test
   def testLines(): Unit = {
     val testFile = new File(Util.localWork, "target/grep1.txt")
     if (testFile.isFile) {
@@ -144,7 +170,7 @@ class ReleaseTest extends AssertionsForJUnit {
         rebaseFn = () => {
 
         }, branch = "master", gitLocal, term, 72, () => "abc",
-        ReleaseConfig.default(true), Repo.of(opts), opts)
+        ReleaseConfig.default(true), opts.newRepo, opts)
 
     })
     Assert.assertEquals(Seq("Releasetool-sha1: abc"), gitRemote.log().linesIterator.filter(_.startsWith("Releasetool-sha1")).toSeq)
@@ -212,7 +238,7 @@ class ReleaseTest extends AssertionsForJUnit {
         rebaseFn = () => {
 
         }, branch = "master", gitLocal, term, 72, () => "abc",
-        ReleaseConfig.default(true), Repo.of(opts), opts)
+        ReleaseConfig.default(true), opts.newRepo, opts)
 
     })
 
@@ -274,7 +300,7 @@ class ReleaseTest extends AssertionsForJUnit {
         rebaseFn = () => {
 
         }, branch = "master", gitLocal, term, 72, () => "abc",
-        ReleaseConfig.default(true), Repo.of(opts), opts)
+        ReleaseConfig.default(true), opts.newRepo, opts)
 
     })
 
@@ -336,7 +362,7 @@ class ReleaseTest extends AssertionsForJUnit {
         rebaseFn = () => {
 
         }, branch = "master", gitLocal, term, 72, () => "abc",
-        ReleaseConfig.default(true), Repo.of(opts), opts)
+        ReleaseConfig.default(true), opts.newRepo, opts)
 
     })
 
@@ -398,7 +424,7 @@ class ReleaseTest extends AssertionsForJUnit {
         rebaseFn = () => {
 
         }, branch = "master", gitLocal, term, 72, () => "abc",
-        ReleaseConfig.default(true), Repo.of(opts), opts)
+        ReleaseConfig.default(true), opts.newRepo, opts)
 
     })
   }
@@ -537,7 +563,7 @@ class ReleaseTest extends AssertionsForJUnit {
         |  No Release for    org.example:example2:1.0.0-SNAPSHOT maybe 0.99 is the latest one
         |
         |Try again? [y/n]: n""".stripMargin.trim
-    TermTest.testSys(Seq("n", ""), expected, "", expectedExitCode = 1,  outFn = progFilter)(sys => {
+    TermTest.testSys(Seq("n", ""), expected, "", expectedExitCode = 1, outFn = progFilter)(sys => {
       val opts = Opts(useJlineInput = false)
       val testMod = new ProjectModTest.MockMod() {
         override def listSnapshotDependenciesDistinct: Seq[ProjectMod.Dep] = {

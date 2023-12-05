@@ -12,7 +12,7 @@ class RepoTest extends AssertionsForJUnit {
 
   @Test
   def testExistsGav(): Unit = {
-    val repo = Repo.of(Opts(useDefaults = true))
+    val repo = Opts(useDefaults = true).newRepo
 
     Assume.assumeTrue(repo.isReachable(false).online)
     val g = "javax.servlet.jsp"
@@ -35,7 +35,7 @@ class RepoTest extends AssertionsForJUnit {
     return
     println(repo.newerAndPrevVersionsOf("org.scala-lang", "scala3-library_3", "3.0.1-RC1"))
     println(repo.getRelocationOf("org.scala-lang", "scala-library", "-1"))
-    println(repo.newerVersionsOf("org.scala-lang", "scala3-library_3", "-1"))
+    println(repo.newerAndPrevVersionsOf("org.scala-lang", "scala3-library_3", "-1"))
     println(repo.latestGav("com.google.guava", "guava", "32.1.2-jre"))
     println(repo.latestGav("com.google.guava", "guava", "1.1.2-jre"))
     println(repo.latestGav("com.google.guava", "guava", "0.1.2-jre"))

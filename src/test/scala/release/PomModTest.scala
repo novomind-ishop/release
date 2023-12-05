@@ -22,7 +22,7 @@ class PomModTest extends AssertionsForJUnit {
 
   @Rule def temp = _temporarayFolder
 
-  lazy val repo = Repo.of(Opts())
+  lazy val repo = Opts().newRepo
 
   implicit def PomCheckertoOpt(in: String): Option[String] = Option(in)
 
@@ -1867,7 +1867,7 @@ class PomModTest extends AssertionsForJUnit {
 
 object PomModTest {
 
-  def withRepoForTests(file: File, repo: Repo, skipPropertyReplacement: Boolean = false,
+  def withRepoForTests(file: File, repo: RepoZ, skipPropertyReplacement: Boolean = false,
                        withSubPoms: Boolean = true, failureCollector: Option[Exception => Unit] = None): PomMod = {
     PomMod(file, repo, Opts(), skipPropertyReplacement, withSubPoms, failureCollector)
   }

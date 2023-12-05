@@ -2,6 +2,7 @@ package release
 
 import org.junit.{Assert, Test}
 import org.mockito.ArgumentMatchers.anyString
+import org.mockito.{ArgumentMatchers, Mockito}
 import org.mockito.MockitoSugar._
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.ProjectMod.{Dep, Gav, Gav3, GavWithRef, SelfRef, UpdatePrinter}
@@ -103,7 +104,7 @@ class ProjectModTest extends AssertionsForJUnit {
 
       val innerResult: Seq[(GavWithRef, (Seq[String], Duration))] = ProjectMod.collectDependencyUpdates(
         new UpdatePrinter(100, term, sys, printProgress = true), opts,
-        rootDeps, selfDepsModX, Seq(repoMock1, repoMock2), checkOnline = false)
+        rootDeps, selfDepsModX,new RepoProxy( Seq(repoMock1, repoMock2)), checkOnline = false)
 
       val sca1 = GavWithRef(SelfRef.undef, anyDep.gav())
       val scala2 = (sca1, (Seq("2.13.1", "2.13.2"), Duration.ZERO))
@@ -122,6 +123,8 @@ class ProjectModTest extends AssertionsForJUnit {
     val rootDeps: Seq[ProjectMod.Dep] = Seq(scala)
     val selfDepsModX: Seq[ProjectMod.Dep] = Nil
     val repoMock = mock[Repo]
+    when(repoMock.allRepoUrls()).thenReturn(Nil)
+    Mockito.when(repoMock.createAll(ArgumentMatchers.any())).thenReturn(Seq(repoMock))
     when(repoMock.getRelocationOf(anyString(), anyString(), anyString())).thenReturn(None)
     when(repoMock.newerAndPrevVersionsOf(scala.groupId, scala.artifactId, scala.version.get)).thenReturn(Seq("2.12.0", scala.version.get, "2.13.1"))
     when(repoMock.depDate(scala.groupId, scala.artifactId, scala.version.get)).thenReturn(Some(now))
@@ -134,7 +137,7 @@ class ProjectModTest extends AssertionsForJUnit {
 
       val innerResult: Seq[(GavWithRef, (Seq[String], Duration))] = ProjectMod.collectDependencyUpdates(
         new UpdatePrinter(100, term, sys, printProgress = true), opts,
-        rootDeps, selfDepsModX, Seq(repoMock), checkOnline = false)
+        rootDeps, selfDepsModX, new RepoProxy(Seq(repoMock)), checkOnline = false)
 
       val sca1 = GavWithRef(SelfRef.undef, Gav("org.scala-lang", "scala-library", "2.13.0"))
       val scala2 = (sca1, (Seq("2.13.1"), Duration.ZERO))
@@ -253,10 +256,12 @@ class ProjectModTest extends AssertionsForJUnit {
     val rootDeps: Seq[ProjectMod.Dep] = Nil
     val selfDepsMod: Seq[ProjectMod.Dep] = Nil
     val repoMock = mock[Repo]
+    when(repoMock.allRepoUrls()).thenReturn(Nil)
+    Mockito.when(repoMock.createAll(ArgumentMatchers.any())).thenReturn(Seq(repoMock))
     val result = TermTest.withOutErr[Unit]()(sys => {
       val innerResult: Seq[(GavWithRef, (Seq[String], Duration))] = ProjectMod.collectDependencyUpdates(
         new UpdatePrinter(100, term, sys, printProgress = true), OptsDepUp(),
-        rootDeps, selfDepsMod, Seq(repoMock), checkOnline = false)
+        rootDeps, selfDepsMod, new RepoProxy(Seq(repoMock)), checkOnline = false)
       Assert.assertEquals(Nil, innerResult)
       val updatePrinter = new UpdatePrinter(shellWidth = 100,
         termOs = term,

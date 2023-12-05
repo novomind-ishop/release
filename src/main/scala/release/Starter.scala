@@ -1,9 +1,12 @@
 package release
 
 import com.google.common.base.Strings
+import com.google.common.hash.Hashing
 import com.typesafe.scalalogging.LazyLogging
+import org.apache.commons.codec.digest
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClients
+import org.eclipse.aether.repository.RemoteRepository
 import release.Conf.Tracer
 import release.Sgit.GitRemote
 import release.Util.pluralize
@@ -12,11 +15,13 @@ import release.Xpath.InvalidPomXmlException
 import java.awt.Desktop
 import java.io.{File, PrintStream}
 import java.net.URI
+import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 import scala.annotation.tailrec
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.util.hashing.MurmurHash3
 import scala.util.matching.Regex
 
 object Starter extends LazyLogging {
@@ -254,6 +259,15 @@ object Starter extends LazyLogging {
       case string :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(invalids = inOpt.depUpOpts.invalids :+ string)))
     }
   }
+object Opts {
+  def newRepoZ(opts:Opts): RepoZ = {
+
+    val mirrorNexus: RemoteRepository = Repo.newDefaultRepository(ReleaseConfig.default(opts.useDefaults).mirrorNexusUrl())
+
+    val workNexus: RemoteRepository = Repo.newDefaultRepository(ReleaseConfig.default(opts.useDefaults).workNexusUrl())
+    new Repo(_mirrorNexus = mirrorNexus, _workNexus = workNexus)
+  }
+}
 
   case class Opts(simpleChars: Boolean = false, invalids: Seq[String] = Nil, showHelp: Boolean = false,
                   showUpdateCmd: Boolean = false, versionSet: Option[String] = None, shopGA: Option[String] = None,
@@ -264,8 +278,12 @@ object Starter extends LazyLogging {
                   lintOpts: LintOpts = LintOpts(), checkOverlapping: Boolean = true,
                   checkProjectDeps: Boolean = true,
                   showSelfGa: Boolean = false, showStartupDone: Boolean = true, suggestDockerTag: Boolean = false,
-                  isInteractive: Boolean = true, showOpts: Boolean = false
-                 )
+                  isInteractive: Boolean = true, showOpts: Boolean = false, repoSupplier:Opts => RepoZ = Opts.newRepoZ
+                 ) {
+    def newRepo: RepoZ = {
+      repoSupplier.apply(this)
+    }
+  }
 
   @tailrec
   def argsRead(params: Seq[String], inOpt: Opts): Opts = {
@@ -299,7 +317,7 @@ object Starter extends LazyLogging {
       // CMDs
       case "lint" :: tail => argsLintRead(tail, inOpt)
       case "showSelf" :: tail => argsRead(tail, inOpt.copy(showSelfGa = true))
-      case "apidiff" :: tail => argsRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(showApiDiff = true)))
+      case "apidiff" :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(showApiDiff = true)))
       case "suggest-docker-tag" :: tail => argsRead(tail, inOpt.copy(suggestDockerTag = true, showStartupDone = false))
       case "versionSet" :: value :: _ => argsRead(Nil, inOpt.copy(versionSet = Some(value)))
       case "shopGASet" :: value :: _ => argsRead(Nil, inOpt.copy(shopGA = Some(value)))
@@ -561,7 +579,7 @@ object Starter extends LazyLogging {
     if (opts.suggestDockerTag) {
 
       val file: File = new File(".").getAbsoluteFile
-      val pomModTry = PomMod.withRepoTry(file, opts, Repo.of(opts), failureCollector = None)
+      val pomModTry = PomMod.withRepoTry(file, opts, opts.newRepo, failureCollector = None)
       val selfV = pomModTry.map(pm => pm.selfVersion).toOption
       val refName = System.getenv("CI_COMMIT_REF_NAME")
       val ciTag = System.getenv("CI_COMMIT_TAG")
@@ -577,11 +595,11 @@ object Starter extends LazyLogging {
         println()
         Term.readFrom(Term.Sys.default, "press enter", "enter", opts)
       }
-      return Lint.run(out, err, opts, Repo.of(opts), Util.systemEnvs())
+      return Lint.run(out, err, opts, Util.systemEnvs())
     }
     if (opts.showSelfGa) {
       val file: File = new File(".").getAbsoluteFile
-      val pomModTry = PomMod.withRepoTry(file, opts, Repo.of(opts), failureCollector = None)
+      val pomModTry = PomMod.withRepoTry(file, opts, opts.newRepo, failureCollector = None)
       pomModTry.get.selfDepsModGavs().foreach(gav => out.println(gav.formatted))
       return 0
     }
@@ -666,7 +684,7 @@ object Starter extends LazyLogging {
       } else if (createFeatureBranch) {
         FeatureBranch.work(workDirFile, sys, git, startBranch, askForRebase, releaseToolGit.headStatusValue(), config, opts)
       } else {
-        lazy val repo = Repo.of(opts)
+        lazy val repo = opts.newRepo
         Release.work(workDirFile, sys, askForRebase, startBranch,
           git, termOs, shellWidth, () => releaseToolGit.headStatusValue(), config, repo, opts)
       }
@@ -776,8 +794,12 @@ object Starter extends LazyLogging {
     }
   }
 
-  def sign(sgit: Sgit): String = {
+  def sign(sgit: SgitDiff): String = {
     Util.hashSha1(sgit.diffSafe().mkString("\n"))
+  }
+
+  def signShort(sgit: SgitDiff): String = {
+   Util.hashMurmur3_32_fixed(sgit.diffSafe().mkString("\n"))
   }
 
   def addExitFn(msg: String, fn: () => Unit): Unit = {

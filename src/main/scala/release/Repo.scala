@@ -40,14 +40,30 @@ import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
 trait RepoZ {
+  def createAll(allUrls: Seq[String]): Seq[RepoZ] = {
+    allUrls.map(Repo.ofUrl) // TODO cache?
+  }
+
+  def tryResolveReqWorkNexus(request: String): Try[(File, String)]
+
   def getRelocationOf(groupID: String, artifactId: String, version: String): Option[Gav3]
 
   def newerAndPrevVersionsOf(groupID: String, artifactId: String, version: String): Seq[String]
 
   def depDate(groupId: String, artifactId: String, version: String): Option[ZonedDateTime]
+
+  def workNexusUrl(): String
+
+  def allRepoUrls(): Seq[String]
+
+  def isReachable(showTrace: Boolean = true): Repo.ReachableResult
+
+  def existsGav(groupID: String, artifactId: String, version: String): Boolean
+
+  def latestGav(groupID: String, artifactId: String, version: String): Option[Gav3]
 }
 
-class RepoProxy(_repos: Seq[Repo]) extends RepoZ {
+class RepoProxy(_repos: Seq[RepoZ]) extends RepoZ {
   val repos = {
     val t = _repos.filter(r => {
       Util.ipFromUrl(r.workNexusUrl()).isDefined
@@ -58,7 +74,9 @@ class RepoProxy(_repos: Seq[Repo]) extends RepoZ {
       t
     }
   }
-
+  override def allRepoUrls(): Seq[String] = {
+    repos.flatMap(_.allRepoUrls())
+  }
   override def getRelocationOf(groupID: String, artifactId: String, version: String): Option[Gav3] = {
     repos.flatMap(_.getRelocationOf(groupID, artifactId, version)).headOption
   }
@@ -71,29 +89,49 @@ class RepoProxy(_repos: Seq[Repo]) extends RepoZ {
     repos.flatMap(_.depDate(groupId, artifactId, version)).headOption
   }
 
-  override def toString: String = {
+  override def workNexusUrl(): String = {
     s"RepoProxy: ${repos.map(_.workNexusUrl()).mkString(", ")}"
   }
+
+  override def isReachable(showTrace: Boolean): Repo.ReachableResult = {
+    Util.only(repos.map(_.isReachable(showTrace)).distinct, "mutliple results")
+  }
+
+  override def existsGav(groupID: String, artifactId: String, version: String): Boolean = {
+    ???
+  }
+
+  override def latestGav(groupID: String, artifactId: String, version: String): Option[Gav3] = {
+    ???
+  }
+
+  override def tryResolveReqWorkNexus(request: String): Try[(File, String)] = {
+    repos.map(_.tryResolveReqWorkNexus(request)).headOption.getOrElse(Failure(new IllegalStateException("nothing found")))
+  }
+
+
 }
 
-class Repo private(_mirrorNexus: RemoteRepository, _workNexus: RemoteRepository) extends RepoZ with LazyLogging {
+class Repo(_mirrorNexus: RemoteRepository, _workNexus: RemoteRepository) extends RepoZ with LazyLogging {
 
   private lazy val newRepositoriesCentral: RemoteRepository = Repo.newDefaultRepository(Repo.centralUrl)
 
-  private lazy val mirrorNexus: RemoteRepository = _mirrorNexus
+  private val mirrorNexus: RemoteRepository = _mirrorNexus
 
-  private lazy val workNexus: RemoteRepository = _workNexus
+  private val workNexus: RemoteRepository = _workNexus
 
   def workNexusUrl(): String = workNexus.getUrl
 
-  private lazy val allRepos: Seq[RemoteRepository] = Seq(workNexus, mirrorNexus)
+  private val allRepos: Seq[RemoteRepository] = Seq(workNexus, mirrorNexus)
+
+  override def allRepoUrls(): Seq[String] = allRepos.map(_.getUrl)
 
   private def getVersionsOf(req: String) = Repo.getVersions(workNexus)(req)
 
   def depDate(groupId: String, artifactId: String, version: String): Option[ZonedDateTime] =
     Repo.depDate(workNexus)(groupId, artifactId, version)
 
-  private[release] def isReachable(showTrace: Boolean = true): Repo.ReachableResult = {
+  def isReachable(showTrace: Boolean = true): Repo.ReachableResult = {
     val config = RequestConfig.custom()
       .setConnectTimeout(1000)
       .setConnectionRequestTimeout(1000)
@@ -158,6 +196,9 @@ class Repo private(_mirrorNexus: RemoteRepository, _workNexus: RemoteRepository)
     None
   }
 
+  override def tryResolveReqWorkNexus(request: String): Try[(File, String)] = Repo.tryResolveReqWorkNexus(this)(request)
+
+
 }
 
 object Repo extends LazyLogging {
@@ -178,14 +219,6 @@ object Repo extends LazyLogging {
   def ofUrl(url: String): Repo = {
     val repositorySystem: RemoteRepository = Repo.newDefaultRepository(url)
     new Repo(_mirrorNexus = repositorySystem, _workNexus = repositorySystem)
-  }
-
-  def of(opts: Opts): Repo = {
-
-    val mirrorNexus: RemoteRepository = Repo.newDefaultRepository(ReleaseConfig.default(opts.useDefaults).mirrorNexusUrl())
-
-    val workNexus: RemoteRepository = Repo.newDefaultRepository(ReleaseConfig.default(opts.useDefaults).workNexusUrl())
-    new Repo(_mirrorNexus = mirrorNexus, _workNexus = workNexus)
   }
 
   case class ReachableResult(online: Boolean, msg: String)
@@ -330,14 +363,6 @@ object Repo extends LazyLogging {
   }
 
   type VersionString = String
-
-  def tryResolve(repository: RemoteRepository)(groupID: String, artifactId: String, version: String): Try[(File, VersionString)] = {
-    try {
-      Success(resolve(repository)(groupID, artifactId, version))
-    } catch {
-      case e: Exception => Failure(e)
-    }
-  }
 
   def tryResolveReqWorkNexus(repo: Repo)(request: String): Try[(File, VersionString)] = {
     tryResolveReq(repo.workNexus)(request)

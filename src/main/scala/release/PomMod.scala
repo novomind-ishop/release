@@ -24,7 +24,7 @@ import scala.annotation.tailrec
 import scala.collection.parallel.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
-case class PomMod(file: File, repo: Repo, opts: Opts,
+case class PomMod(file: File, repo: RepoZ, opts: Opts,
                   skipPropertyReplacement: Boolean = false, withSubPoms: Boolean,
                   failureCollector: Option[Exception => Unit]) extends ProjectMod with LazyLogging {
   logger.trace("init pomMod")
@@ -567,11 +567,11 @@ object PomMod {
   }
 
   def of(file: File, opts: Opts, failureCollector: Option[Exception => Unit]): PomMod = {
-    lazy val repo = Repo.of(opts)
+    lazy val repo = opts.newRepo
     withRepo(file, opts, repo, failureCollector = failureCollector)
   }
 
-  def withRepoTry(file: File, opts: Opts, repo: Repo, skipPropertyReplacement: Boolean = false,
+  def withRepoTry(file: File, opts: Opts, repo: RepoZ, skipPropertyReplacement: Boolean = false,
                   withSubPoms: Boolean = true, failureCollector: Option[Exception => Unit]): Try[PomMod] = {
     try {
       Success(withRepo(file, opts, repo, skipPropertyReplacement, withSubPoms, failureCollector))
@@ -580,7 +580,7 @@ object PomMod {
     }
   }
 
-  def withRepo(file: File, opts: Opts, repo: Repo, skipPropertyReplacement: Boolean = false,
+  def withRepo(file: File, opts: Opts, repo: RepoZ, skipPropertyReplacement: Boolean = false,
                withSubPoms: Boolean = true, failureCollector: Option[Exception => Unit]): PomMod = {
     PomMod(file, repo, opts, skipPropertyReplacement, withSubPoms, failureCollector)
   }

@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import scala.jdk.CollectionConverters._
 import scala.util.parsing.combinator.RegexParsers
 
-case class SbtMod(file: File, repo: Repo, opts: Opts) extends ProjectMod {
+case class SbtMod(file: File, repo: RepoZ, opts: Opts) extends ProjectMod {
 
   private val value: SbtModel = {
 
@@ -95,7 +95,7 @@ object SbtMod {
     new File(file, "build.sbt")
   }
 
-  def withRepo(workfolder: File, opts: Opts, repo: Repo): SbtMod = {
+  def withRepo(workfolder: File, opts: Opts, repo: RepoZ): SbtMod = {
     SbtMod(buildSbt(workfolder), repo, opts)
   }
 

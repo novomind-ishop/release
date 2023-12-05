@@ -14,7 +14,7 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
 
   @Rule def temp = _temporarayFolder
 
-  lazy val repo = Repo.of(Opts())
+  lazy val repo = Opts().newRepo
 
   implicit def toOpt(in: String): Option[String] = Option(in)
   @Test

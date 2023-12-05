@@ -24,9 +24,19 @@ trait SgitVersion {
   def version(): String
 }
 
+trait SgitDiff {
+  def diffSafe(): Seq[String]
+}
+
+trait SgitDetached {
+  def isNotDetached: Boolean = !isDetached
+
+  def isDetached: Boolean
+}
+
 case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStream,
                 checkExisting: Boolean = true, checkGitRoot: Boolean = true,
-                gitBin: Option[String], opts: Starter.Opts) extends LazyLogging with SgitVersion {
+                gitBin: Option[String], opts: Starter.Opts) extends LazyLogging with SgitVersion with SgitDiff with SgitDetached {
 
   private val gitRoot: File = if (checkGitRoot) {
     Sgit.findGit(file.getAbsoluteFile, checkExisting)
@@ -325,7 +335,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     Success(result)
   }
 
-  def remoteHeadRaw():  Try[Option[String]] = {
+  def remoteHeadRaw(): Try[Option[String]] = {
     Sgit.toRawRemoteHead(remoteHead())
   }
 
@@ -461,8 +471,6 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   private def tagsToPush: Seq[String] = {
     gitNative(Seq("push", "--tags", "--dry-run", "--porcelain"))
   }
-
-  def isNotDetached: Boolean = !isDetached
 
   def isDetached: Boolean = {
     val status = gitNative(Seq("status", "--branch", "--porcelain")).mkString(" ")

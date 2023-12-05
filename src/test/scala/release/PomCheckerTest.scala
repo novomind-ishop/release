@@ -276,10 +276,10 @@ class PomCheckerTest extends AssertionsForJUnit {
       "      -> any:a:1.0.0-SNAPSHOT"
     TestHelper.assertException(msg,
       classOf[ValidationException], () => {
-        PomModTest.withRepoForTests(srcPoms, Repo.of(Opts()))
+        PomModTest.withRepoForTests(srcPoms,Opts().newRepo)
       })
     var failures:Seq[Exception] = Nil
-    PomModTest.withRepoForTests(srcPoms, Repo.of(Opts()), failureCollector = Some(e => failures = failures :+ e))
+    PomModTest.withRepoForTests(srcPoms, Opts().newRepo, failureCollector = Some(e => failures = failures :+ e))
     Assert.assertEquals(Seq(msg), failures.map(_.getMessage))
   }
 

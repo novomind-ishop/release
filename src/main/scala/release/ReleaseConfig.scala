@@ -17,7 +17,7 @@ import scala.io.Source
 sealed class ReleaseConfig(map: Map[String, String]) {
 
   def workNexusUrl(): String = {
-    scala.util.Properties.envOrNone("RELEASE_NEXUS_WORK_URL")
+    ReleaseConfig.releaseNexusEnv()
       .getOrElse(map(ReleaseConfig.keyNexusWorkUrl))
   }
 
@@ -77,6 +77,11 @@ sealed class ReleaseConfig(map: Map[String, String]) {
 }
 
 object ReleaseConfig extends LazyLogging {
+  private val RELEASE_NEXUS_WORK_URL = "RELEASE_NEXUS_WORK_URL"
+
+  def releaseNexusEnv() = scala.util.Properties.envOrNone(RELEASE_NEXUS_WORK_URL)
+
+  def releaseNexusEnv(envs: Map[String, String]) = envs.get(RELEASE_NEXUS_WORK_URL)
 
   case class WorkAndMirror(workUrl: String, mirrorUrl: String)
 
@@ -230,7 +235,7 @@ object ReleaseConfig extends LazyLogging {
     if (settings.canRead) {
       val mir = ReleaseConfig.extractWorkAndMirror(Util.read(settings))
       if (mir.isDefined) {
-        new ReleaseConfig(defaults + (keyNexusWorkUrl -> mir.get.workUrl)+ (keyNexusMirrorUrl -> mir.get.mirrorUrl))
+        new ReleaseConfig(defaults + (keyNexusWorkUrl -> mir.get.workUrl) + (keyNexusMirrorUrl -> mir.get.mirrorUrl))
       } else {
         new ReleaseConfig(defaults)
       }

@@ -148,7 +148,7 @@ object Lint {
   val fiError = "❌"
 
   def run(out: PrintStream, err: PrintStream, opts: Starter.Opts,
-          repo: Repo, envs: Map[String, String],
+          envs: Map[String, String],
           file: File = new File(".").getAbsoluteFile): Int = {
     out.println()
 
@@ -309,14 +309,15 @@ object Lint {
         val rootFolderFiles = files.toSeq
         var pomFailures: Seq[Exception] = Nil
         val pompom: Option[Try[ProjectMod]] = if (rootFolderFiles.exists(_.getName == "pom.xml")) {
-          Some(PomMod.withRepoTry(file, opts, repo, failureCollector = Some(e => {
+          // new RepoProxy()
+          Some(PomMod.withRepoTry(file, opts, opts.newRepo, failureCollector = Some(e => {
             pomFailures = pomFailures :+ e
           })))
         } else {
           None
         }
         val sbt: Option[Try[ProjectMod]] = if (rootFolderFiles.exists(_.getName == "build.sbt")) {
-          Some(Success(SbtMod.withRepo(file, opts, repo)))
+          Some(Success(SbtMod.withRepo(file, opts, opts.newRepo)))
         } else {
           None
         }
@@ -520,7 +521,8 @@ object Lint {
             }
             out.println(info("--- suggest dependency updates / configurable @ maven ---", opts))
 
-            val releasenexusworkurl: String = envs.get("RELEASE_NEXUS_WORK_URL").orNull
+            val releasenexusworkurl: String = ReleaseConfig.releaseNexusEnv(envs).orNull
+            val repo = mod.repo
             if (repo.workNexusUrl() == Repo.centralUrl) {
               out.println(warn(s" work nexus points to central ${repo.workNexusUrl()} ${fiWarn} ${fiCodeNexusCentral}", opts, limit = lineMax))
               out.println(info(s"    RELEASE_NEXUS_WORK_URL=${releasenexusworkurl} # (${Util.ipFromUrl(releasenexusworkurl).getOrElse("no ip")})", opts, limit = lineMax))
