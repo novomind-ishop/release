@@ -279,10 +279,13 @@ object ProjectMod extends LazyLogging {
 
     lazy val primarys: (Int, Int, Int) = (major, minor, patch)
     lazy val primarysOpt: Option[(Int, Int, Int)] = Some(primarys)
-    lazy val isOrdinal = {
+    lazy val isOrdinal: Boolean = {
       val x = primarysOpt.getOrElse((-1, -1, -1))
       x._1 >= 0 && x._2 >= 0 && x._3 >= 0
     }
+    lazy val isOrdinalOnly: Boolean = {
+      isOrdinal && lowF.replaceFirst("_-SNAPSHOT", "" ) == "" && pre == "" && patchF == ""
+     }
     lazy val isSnapshot: Boolean = rawInput.endsWith("-SNAPSHOT")
 
     def same(major: Int): Boolean = {
@@ -382,11 +385,11 @@ object ProjectMod extends LazyLogging {
     private[release] val number2 = "^([0-9]+)\\.([0-9]+)(.*)".r
     private[release] val number3 = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)(.*)".r
 
-    def ordering1 = Ordering.by[Version, (Int, Int, Int)](e => (e.major, e.minor, e.patch))
+    private def ordering1 = Ordering.by[Version, (Int, Int, Int)](e => (e.major, e.minor, e.patch))
 
-    def ordering2: Ordering[Version] = Ordering.by[Version, (String, String)](e => (e.low, e.pre)).reverse
+    private def ordering2: Ordering[Version] = Ordering.by[Version, (String, String)](e => (e.low, e.pre)).reverse
 
-    def ordering3: Ordering[Version] = ordering1.orElse(ordering2)
+    private def ordering3: Ordering[Version] = ordering1.orElse(ordering2)
 
     implicit def ordering: Ordering[Version] = ordering3
 

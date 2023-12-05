@@ -374,6 +374,8 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO] --- skip-conf / self ---
+        |[INFO]     skips: RL10015-aa71e948
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
@@ -422,7 +424,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 0)(sys => {
-      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL10015-aa71e948")))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org/")
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
@@ -989,6 +991,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6
         |║
         |[WARNING] org.springframework:spring-context:1.0.1-SNAPSHOT is already released, remove '-SNAPSHOT' suffix 😬 RL1009-ea7ea019
+        |[WARNING] org.springframework:spring-other:1.0.0-SNAPSHOT:bert is not released, but next release (1.0.1) was found (maybe orphan snapshot) 😬 RL10015-83c41f0e
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP

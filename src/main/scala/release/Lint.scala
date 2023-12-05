@@ -138,6 +138,7 @@ object Lint {
   val fiCodePomModPreconditionsException = uniqCode(1007)(())
   val fiCodePomModException = uniqCode(1008)(())
   val fiCodeNexusFoundRelease = uniqCode(1009)
+  val fiCodeNexusFoundOrphanSnapshot = uniqCode(10015)
   val fiCodeUnusualGav = uniqCode(1010)
   val fiCodeSnapshotGav = uniqCode(1011)
   val fiCodeSnapshotText = uniqCode(1012)
@@ -542,15 +543,52 @@ object Lint {
               out.println(updatePrinter.result.toString.trim)
               val updateResult = updateResultTry.get
               val snapUpdates = updateResult.filter(e => snaps.map(_.gav()).contains(e._1.gav))
-              val releaseOfSnapshotPresent = snapUpdates.map(e => (e._1.gav, e._2._1.contains(e._1.gav.version.get.replaceFirst("-SNAPSHOT", ""))))
+              val releaseOfSnapshotPresent = snapUpdates
+                // TODO flatmap
+                .map(e => (e._1.gav, e._2._1.contains(e._1.gav.version.get.replaceFirst("-SNAPSHOT", ""))))
+                .filter(_._2)
               if (releaseOfSnapshotPresent.nonEmpty) {
-                val releasesFound = releaseOfSnapshotPresent.filter(_._2)
-                if (releasesFound.nonEmpty) {
-                  releasesFound.map(_._1).foreach(found => {
-                    out.println(warn(s"${found.formatted} is already released, remove '-SNAPSHOT' suffix ${fiWarn} ${fiCodeNexusFoundRelease(found)}", opts, limit = lineMax))
+                // TODO handle filter fiCode
+                releaseOfSnapshotPresent.map(_._1).foreach(found => {
+                  out.println(warn(s"${found.formatted} is already released, remove '-SNAPSHOT' suffix ${fiWarn} ${fiCodeNexusFoundRelease(found)}", opts, limit = lineMax))
+                })
+                warnExit.set(true)
+              }
+              val nextReleaseOfSnapshotPresent = snapUpdates.flatMap(e => {
+                val currentVersion = e._1.gav.version.get
+                val bool = e._2._1.contains(currentVersion.replaceFirst("-SNAPSHOT", ""))
+                val version = Version.parseSloppy(currentVersion)
+                if (!bool && version.isOrdinalOnly) {
+                  val otherVersions = (e._2._1 :+ currentVersion).map(Version.parseSloppy).sorted
+                  val wfe = otherVersions.dropWhile(_ == version).headOption
+                  if (wfe.isDefined) {
+                    Some((e._1.gav, wfe.get))
+                  } else {
+                    None
+                  }
+                } else {
+                  None
+                }
+              })
+              if (nextReleaseOfSnapshotPresent.nonEmpty) {
+                val withCode = nextReleaseOfSnapshotPresent
+                  .map(t => (t._1, t._2, fiCodeNexusFoundOrphanSnapshot(t)))
+                  .filterNot(t => {
+                    val bool = opts.lintOpts.skips.contains(t._3)
+                    if (bool) {
+                      usedSkips = usedSkips :+ t._3
+                    }
+                    bool
                   })
+                withCode
+                  .foreach(found => {
+                    out.println(warn(s"${found._1.formatted} is not released, but next release (${found._2.rawInput}) " +
+                      s"was found (maybe orphan snapshot) ${fiWarn} ${found._3}", opts, limit = lineMax))
+                  })
+                if (withCode.nonEmpty) {
                   warnExit.set(true)
                 }
+
               }
 
             } catch {
