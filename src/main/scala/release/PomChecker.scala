@@ -91,9 +91,19 @@ object PomChecker {
   def checkDepScopes(listDependecies: Seq[Dep], listDependeciesRaw: Seq[Dep]) = {
     val byRef = listDependecies.groupBy(_.pomRef)
     val msgs = byRef.flatMap(deps => {
-      val allGavs = deps._2.map(_.gav()).distinct.map(_.copy(scope = "", packageing = ""))
-      val withoutScope = allGavs.distinct
-      val diff = Util.symmetricDiff(allGavs, withoutScope)
+      val all = deps._2.map(_.gav())
+      val allWithoutScope = all.map(_.copy(scope = "", packageing = ""))
+      val withoutScope = allWithoutScope.distinct
+      val times = all.map(_.copyWithNonEmptyScope()).groupBy(e => e).toSeq.map(e => (e._1, e._2.size)).filter(_._2 > 1)
+      val prefix = s"found copied, use only one dependency in ${deps._1.id}\n"
+
+      val copyMsg = times.map(e => {
+        s"${prefix}  ${e._1.formatted} (times ${e._2})"
+      })
+      val value = times.map(_._1).map(_.copy(scope = "", packageing = ""))
+      val diff = Util.symmetricDiff(allWithoutScope, withoutScope).filterNot(e => {
+        value.contains(e)
+      })
       if (diff.nonEmpty) {
 
         val msg = "found overlapping scopes\n" + diff.map(select => {
@@ -104,9 +114,9 @@ object PomChecker {
               .mkString("\n")
           str
         }).mkString("\n\n")
-        Some(msg)
+        Seq(msg) ++ copyMsg
       } else {
-        None
+        copyMsg
       }
     })
     if (msgs.nonEmpty) {
@@ -127,13 +137,13 @@ object PomChecker {
 
     val depProps = Util.groupedFiltered(allP)
     val depPropsMod = depProps.toList.map(in => {
-      val inner = in._2.filter(o => {
-        val a = ga(o.parentDep.gav())
-        val b = ga(in._1.dep.gav())
-        a == b
-      })
-      (in._1, inner)
-    }).filter(_._2 != Nil)
+        val inner = in._2.filter(o => {
+          val a = ga(o.parentDep.gav())
+          val b = ga(in._1.dep.gav())
+          a == b
+        })
+        (in._1, inner)
+      }).filter(_._2 != Nil)
       .map(in => {
         val allPropsFromDocs: Seq[(String, String)] = in._2.flatMap(_.properties) ++ in._1.properties
         val withRootProps: Seq[(String, String)] = Util.symmetricDiff(allPropsFromDocs, allPropsFromDocs.distinct)

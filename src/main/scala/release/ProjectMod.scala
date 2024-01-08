@@ -237,6 +237,14 @@ object ProjectMod extends LazyLogging {
 
     def isEmpty(): Boolean = this == Gav.empty
 
+    def copyWithNonEmptyScope():Gav = {
+      if (scope.isBlank) {
+        copy(scope = "compile")
+      } else {
+        this
+      }
+    }
+
   }
 
   object Gav {

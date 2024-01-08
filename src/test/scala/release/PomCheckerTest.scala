@@ -132,6 +132,26 @@ class PomCheckerTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testCheckDepScopesCopy(): Unit = {
+    // GIVEN
+    val ref1 = SelfRef.parse("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
+    val deps: Seq[Dep] = Seq(
+      Dep(ref1, "any.group", "copy", Some("1.0.0"), "", "compile", "", ""),
+      Dep(ref1, "any.group", "copy", Some("1.0.0"), "", "compile", "", ""),
+      Dep(ref1, "any.group", "copy", Some("1.0.0"), "", "", "", ""),
+    )
+
+    // WHEN / THEN
+    TestHelper.assertException(
+      """found copied, use only one dependency in com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war
+        |  any.group:copy:1.0.0:compile (times 3)
+        |
+        |""".stripMargin.trim,
+      classOf[PomChecker.ValidationException],
+      () => PomChecker.checkDepScopes(deps, deps))
+  }
+
+  @Test
   def testCheckDepScopes(): Unit = {
     // GIVEN
     val ref1 = SelfRef.parse("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
