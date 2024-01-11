@@ -134,7 +134,7 @@ case class PomMod(file: File, repo: RepoZ, opts: Opts,
 
   val listRawDeps: Seq[Dep] = allPomsDocs.flatMap(deps)
   val listDependencies: Seq[Dep] = {
-    val oo = replacedVersionProperties(listProperties, skipPropertyReplacement)(listRawDeps).distinct // TODO distinct?
+    val oo = replacedVersionProperties(listProperties, skipPropertyReplacement)(listRawDeps) // never distinct
     oo
   }
 

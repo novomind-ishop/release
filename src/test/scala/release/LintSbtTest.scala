@@ -55,7 +55,10 @@ class LintSbtTest extends AssertionsForJUnit {
         |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-sbt-simple-init/,(push))
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
         |[INFO]     ✅ NO SNAPSHOTS in other files found
-        |[INFO]     WIP
+        |[INFO] --- model read @ maven/sbt/gradle ---
+        |[INFO]     ✅ successfull created
+        |[INFO] --- dependency scopes/copies/overlapping @ maven ---
+        |[INFO]     ✅ no warnings found
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---

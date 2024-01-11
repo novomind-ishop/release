@@ -61,6 +61,13 @@ object PomChecker {
   }
 
   def checkDepVersions(listDependecies: Seq[Dep], listDependeciesRaw: Seq[Dep]) = {
+    val msgs = getDepVersionsProblems(listDependecies, listDependeciesRaw)
+    if (msgs.nonEmpty) {
+      throw new ValidationException(msgs.mkString("\n\n"))
+    }
+  }
+
+  def getDepVersionsProblems(listDependecies: Seq[Dep], listDependeciesRaw: Seq[Dep]): Seq[String] = {
 
     val ziped = listDependecies.zip(listDependeciesRaw)
     val zg = ziped.groupBy(_._1).map(t => (t._1, t._2.map(_._2))).filterNot(_._2.size <= 1)
@@ -83,12 +90,17 @@ object PomChecker {
         None
       }
     })
-    if (msgs.nonEmpty) {
-      throw new ValidationException(msgs.mkString("\n\n"))
-    }
+    msgs.toSeq
   }
 
   def checkDepScopes(listDependecies: Seq[Dep], listDependeciesRaw: Seq[Dep]) = {
+    val msgs = getDepScopeAndOthers(listDependecies, listDependeciesRaw)
+    if (msgs.nonEmpty) {
+      throw new ValidationException(msgs.mkString("\n"))
+    }
+  }
+
+  def getDepScopeAndOthers(listDependecies: Seq[Dep], listDependeciesRaw: Seq[Dep]): Seq[String] = {
     val byRef = listDependecies.groupBy(_.pomRef)
     val msgs = byRef.flatMap(deps => {
       val all = deps._2.map(_.gav())
@@ -119,9 +131,7 @@ object PomChecker {
         copyMsg
       }
     })
-    if (msgs.nonEmpty) {
-      throw new ValidationException(msgs.mkString("\n"))
-    }
+    msgs.toSeq
   }
 
   private val path = Seq("plugin", "plugins", "build", "project")

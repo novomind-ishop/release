@@ -144,16 +144,17 @@ object Lint {
   val fiCodeSnapshotText = uniqCode(1012)
   val fiCodeCoreDiff = uniqCode(1013)
   val fiCodeVersionMissmatch = uniqCode(1014)(())
+  val fiCodeDependencyScopesCopiesOverlapping = uniqCode(1017)
   val fiWarn = "\uD83D\uDE2C"
   val fiError = "❌"
 
-  def run(out: PrintStream, err: PrintStream, opts: Starter.Opts,
+  def run(out: PrintStream, err: PrintStream, inopts: Starter.Opts,
           envs: Map[String, String],
           file: File = new File(".").getAbsoluteFile): Int = {
     out.println()
 
     // TODO handle --simple-chars
-
+    val opts = inopts.copy(checkOverlapping = false)
 
     out.println(info(center("[ lint ]"), opts))
     val stopwatch = Stopwatch.createStarted()
@@ -424,14 +425,32 @@ object Lint {
           } else {
             throw new IllegalStateException("should not happen")
           }
+          out.println(info("--- model read @ maven/sbt/gradle ---", opts))
           if (modTry.isSuccess) {
-            out.println(info("    WIP", opts))
+            out.println(info("    ✅ successfull created", opts))
           } else {
             warnExit.set(true)
             out.println(warn(s"    ${fiWarn} ${modTry.failed.get.getMessage}", opts, limit = lineMax))
           }
           if (modTry.isSuccess) {
             val mod = modTry.get
+            val msgs = PomChecker.getDepScopeAndOthers(mod.listDependencies, mod.listRawDeps) ++
+              PomChecker.getDepVersionsProblems(mod.listDependencies, mod.listRawDeps)
+            out.println(info("--- dependency scopes/copies/overlapping @ maven ---", opts))
+
+            if (msgs.nonEmpty) {
+              val code1 = fiCodeDependencyScopesCopiesOverlapping.apply(msgs)
+
+              out.println(warn(s" found scopes/copies/overlapping ${fiWarn} ${code1}", opts, limit = lineMax))
+              msgs.foreach(k => out.println(warn(k, opts, limit = lineMax)))
+              if (!opts.lintOpts.skips.contains(code1)) {
+                warnExit.set(true)
+              } else {
+                usedSkips = usedSkips :+ code1
+              }
+            } else {
+              out.println(info("    ✅ no warnings found", opts))
+            }
 
             out.println(info("--- .mvn @ maven ---", opts))
             out.println(info("    WIP", opts)) // TODO check extentions present

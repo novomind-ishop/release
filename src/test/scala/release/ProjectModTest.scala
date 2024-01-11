@@ -22,6 +22,7 @@ object ProjectModTest {
     override lazy val repo: Repo = throw new IllegalStateException("use a mock please")
     override val selfVersion: String = "???"
     override val listDependencies: Seq[ProjectMod.Dep] = Nil
+    override val listRawDeps: Seq[Dep] = Nil
     override val listPluginDependencies: Seq[ProjectMod.PluginDep] = Nil
     override val listProperties: Map[String, String] = Map("undef" -> "undef")
 

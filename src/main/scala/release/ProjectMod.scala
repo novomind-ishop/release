@@ -774,6 +774,7 @@ trait ProjectMod extends LazyLogging {
   val selfVersion: String
 
   val listDependencies: Seq[Dep]
+  val listRawDeps:Seq[Dep]
   val listPluginDependencies: Seq[PluginDep]
 
   val listProperties: Map[String, String]

@@ -29,7 +29,8 @@ case class SbtMod(file: File, repo: RepoZ, opts: Opts) extends ProjectMod {
       .map(SbtMod.SloppyParser.doParse()).flatMap(_.deps)
     mainModel.copy(deps = mainModel.deps ++ otherDeps)
   }
-  val listDependencies: Seq[ProjectMod.Dep] = value.deps
+  override val listDependencies: Seq[ProjectMod.Dep] = value.deps
+  override val listRawDeps: Seq[ProjectMod.Dep] = listDependencies
 
   val selfVersion: String = {
     value.selfVersion.getOrElse("n/a")

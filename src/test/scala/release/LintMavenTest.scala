@@ -144,7 +144,10 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(push))
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
         |[INFO]     ✅ NO SNAPSHOTS in other files found
-        |[INFO]     WIP
+        |[INFO] --- model read @ maven/sbt/gradle ---
+        |[INFO]     ✅ successfull created
+        |[INFO] --- dependency scopes/copies/overlapping @ maven ---
+        |[INFO]     ✅ no warnings found
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
@@ -293,7 +296,10 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(push))
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
         |[INFO]     ✅ NO SNAPSHOTS in other files found
-        |[INFO]     WIP
+        |[INFO] --- model read @ maven/sbt/gradle ---
+        |[INFO]     ✅ successfull created
+        |[INFO] --- dependency scopes/copies/overlapping @ maven ---
+        |[INFO]     ✅ no warnings found
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
@@ -366,6 +372,11 @@ class LintMavenTest extends AssertionsForJUnit {
         |    </dependency>
         |    <dependency>
         |      <groupId>org.springframework</groupId>
+        |      <artifactId>spring-context</artifactId>
+        |      <version>1.0.0-M1</version>
+        |    </dependency>
+        |    <dependency>
+        |      <groupId>org.springframework</groupId>
         |      <artifactId>spring-vals</artifactId>
         |      <version>1.0.0-SNAPSHOT</version>
         |    </dependency>
@@ -380,7 +391,7 @@ class LintMavenTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self ---
-        |[INFO]     skips: RL10015-aa71e948
+        |[INFO]     skips: RL10015-aa71e948, RL1017-2c658334
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
@@ -394,7 +405,12 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(push))
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
         |[INFO]     ✅ NO SNAPSHOTS in other files found
-        |[INFO]     WIP
+        |[INFO] --- model read @ maven/sbt/gradle ---
+        |[INFO]     ✅ successfull created
+        |[INFO] --- dependency scopes/copies/overlapping @ maven ---
+        |[WARNING]  found scopes/copies/overlapping 😬 RL1017-2c658334
+        |[WARNING] found copied, use only one dependency in com.novomind.ishop.any:any:0.11-SNAPSHOT
+        |  org.springframework:spring-context:1.0.0-M1:compile (times 2)
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
@@ -429,7 +445,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 0)(sys => {
-      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL10015-aa71e948")))
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL10015-aa71e948", "RL1017-2c658334")))
       val mockRepo = Mockito.mock(classOf[Repo])
       val mockRepo2 = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org/")
@@ -507,7 +523,10 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  % git remote -v # returns nothing
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
         |[INFO]     ✅ NO SNAPSHOTS in other files found
-        |[INFO]     WIP
+        |[INFO] --- model read @ maven/sbt/gradle ---
+        |[INFO]     ✅ successfull created
+        |[INFO] --- dependency scopes/copies/overlapping @ maven ---
+        |[INFO]     ✅ no warnings found
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
@@ -614,7 +633,10 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  % git remote -v # returns nothing
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
         |[INFO]     ✅ NO SNAPSHOTS in other files found
-        |[INFO]     WIP
+        |[INFO] --- model read @ maven/sbt/gradle ---
+        |[INFO]     ✅ successfull created
+        |[INFO] --- dependency scopes/copies/overlapping @ maven ---
+        |[INFO]     ✅ no warnings found
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
@@ -712,7 +734,10 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  % git remote -v # returns nothing
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
         |[INFO]     ✅ NO SNAPSHOTS in other files found
-        |[INFO]     WIP
+        |[INFO] --- model read @ maven/sbt/gradle ---
+        |[INFO]     ✅ successfull created
+        |[INFO] --- dependency scopes/copies/overlapping @ maven ---
+        |[INFO]     ✅ no warnings found
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
@@ -838,7 +863,10 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  % git remote -v # returns nothing
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
         |[INFO]     ✅ NO SNAPSHOTS in other files found
-        |[INFO]     WIP
+        |[INFO] --- model read @ maven/sbt/gradle ---
+        |[INFO]     ✅ successfull created
+        |[INFO] --- dependency scopes/copies/overlapping @ maven ---
+        |[INFO]     ✅ no warnings found
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
@@ -984,7 +1012,10 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]       a valid tag : v0.11.0
         |[INFO]       docker tag : v0.11.0
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
-        |[INFO]     WIP
+        |[INFO] --- model read @ maven/sbt/gradle ---
+        |[INFO]     ✅ successfull created
+        |[INFO] --- dependency scopes/copies/overlapping @ maven ---
+        |[INFO]     ✅ no warnings found
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
@@ -1124,6 +1155,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[warning]   found snapshot in: notes.md 😬 RL1012-d143f8dc
         |              This is the documentation for 0.11-SNAPSHOT
         |[warning]   found snapshots: 😬 RL1012-d3421ec9
+        |[INFO] --- model read @ maven/sbt/gradle ---
         |[WARNING]     😬 No property replacement found in pom.xmls for: "${non-existing}" - define properties where they are required and not in parent pom.xml. Input is Nil.
         |[WARNING]     skipped because of previous problems - No property replacement found in pom.xmls for: "${non-existing}" - define properties where they are required and not in parent pom.xml. Input is Nil. 😬
         |[INFO] --- dep.tree @ maven ---
@@ -1262,7 +1294,10 @@ class LintMavenTest extends AssertionsForJUnit {
       |[INFO]       a valid merge request : feature/bre
       |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
       |[INFO]     ✅ NO SNAPSHOTS in other files found
-      |[INFO]     WIP
+      |[INFO] --- model read @ maven/sbt/gradle ---
+      |[INFO]     ✅ successfull created
+      |[INFO] --- dependency scopes/copies/overlapping @ maven ---
+      |[INFO]     ✅ no warnings found
       |[INFO] --- .mvn @ maven ---
       |[INFO]     WIP
       |[INFO] --- project version @ maven ---
