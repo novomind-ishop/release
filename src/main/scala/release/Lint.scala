@@ -381,6 +381,7 @@ object Lint {
           val relFiles: Seq[(Int, String, Path)] = snapshotsInFiles
             .map(t => (t._1, t._2, file.toPath.relativize(t._3.normalize())))
           val code1 = fiCodeSnapshotText(relFiles)
+          var allCodes = Seq.empty[String]
           if (!opts.lintOpts.skips.contains(code1)) {
             relFiles
               .filterNot(f => {
@@ -388,6 +389,8 @@ object Lint {
                 val bool = opts.lintOpts.skips.contains(code)
                 if (bool) {
                   usedSkips = usedSkips :+ code
+                } else {
+                  allCodes = allCodes :+ code
                 }
                 bool
               })
@@ -403,7 +406,7 @@ object Lint {
                 }
 
               })
-            val snapshotSumMsg = s"  found snapshots: ${fiWarn} $code1"
+            val snapshotSumMsg = s"  found snapshots: ${fiWarn} $code1 -- ${allCodes.sorted.mkString(", ")}"
             if (isGitOrCiTag) {
               out.println(warn(snapshotSumMsg, opts, limit = lineMax))
               warnExit.set(true)
@@ -643,7 +646,8 @@ object Lint {
           val unusedSkips = opts.lintOpts.skips.diff(usedSkips)
           if (unusedSkips.nonEmpty) {
             out.println(warn("--- skip-conf / self / end ---", opts))
-            out.println(warn(s"    found unused skips, please remove from your config: " + unusedSkips.mkString(", "), opts, limit = lineMax))
+            out.println(warn(s"    found unused skips, please remove from your config: " + unusedSkips.sorted.mkString(", "), opts, limit = lineMax))
+            out.println(warn(s"    active skips: " + opts.lintOpts.skips.diff(unusedSkips).sorted.mkString(", "), opts, limit = lineMax))
             warnExit.set(true)
           }
         }

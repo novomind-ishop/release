@@ -143,8 +143,8 @@ class PomCheckerTest extends AssertionsForJUnit {
 
     // WHEN / THEN
     TestHelper.assertException(
-      """found copied, use only one dependency in com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war
-        |  any.group:copy:1.0.0:compile (times 3)
+      """found copies, use only one dependency in com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war
+        |  any.group:copy:1.0.0:compile (times 3). This can also happen if you override an unused dependencyManagement.
         |
         |""".stripMargin.trim,
       classOf[PomChecker.ValidationException],

@@ -381,6 +381,15 @@ class LintMavenTest extends AssertionsForJUnit {
         |      <version>1.0.0-SNAPSHOT</version>
         |    </dependency>
         |  </dependencies>
+        |    <dependencyManagement>
+        |    <dependencies>
+        |      <dependency>
+        |        <groupId>org.springframework</groupId>
+        |        <artifactId>spring-vals</artifactId>
+        |        <version>1.0.0-SNAPSHOT</version>
+        |      </dependency>
+        |    </dependencies>
+        |  </dependencyManagement>
         |</project>
         |""".stripMargin.linesIterator.toSeq)
     gitA.add(pom)
@@ -391,7 +400,7 @@ class LintMavenTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self ---
-        |[INFO]     skips: RL10015-aa71e948, RL1017-2c658334
+        |[INFO]     skips: RL10015-aa71e948, RL1017-ab101a0e
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
@@ -408,9 +417,11 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- model read @ maven/sbt/gradle ---
         |[INFO]     ✅ successfull created
         |[INFO] --- dependency scopes/copies/overlapping @ maven ---
-        |[WARNING]  found scopes/copies/overlapping 😬 RL1017-2c658334
-        |[WARNING] found copied, use only one dependency in com.novomind.ishop.any:any:0.11-SNAPSHOT
-        |  org.springframework:spring-context:1.0.0-M1:compile (times 2)
+        |[WARNING]  found scopes/copies/overlapping 😬 RL1017-ab101a0e
+        |[WARNING] found copies, use only one dependency in com.novomind.ishop.any:any:0.11-SNAPSHOT
+        |  org.springframework:spring-context:1.0.0-M1:compile (times 2). This can also happen if you override an unused dependencyManagement.
+        |[WARNING] found copies, use only one dependency in com.novomind.ishop.any:any:0.11-SNAPSHOT
+        |  org.springframework:spring-vals:1.0.0-SNAPSHOT:compile (times 2). This can also happen if you override an unused dependencyManagement.
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
@@ -445,7 +456,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 0)(sys => {
-      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL10015-aa71e948", "RL1017-2c658334")))
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL10015-aa71e948", "RL1017-ab101a0e")))
       val mockRepo = Mockito.mock(classOf[Repo])
       val mockRepo2 = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org/")
@@ -464,6 +475,10 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo2.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(Nil)
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-vals"), ArgumentMatchers.anyString()))
+        .thenReturn(Seq(
+          "0.1", "1.0.1", "1.0.2", "1.2.8", "1.2.9"
+        ))
+      Mockito.when(mockRepo2.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-vals"), ArgumentMatchers.anyString()))
         .thenReturn(Seq(
           "0.1", "1.0.1", "1.0.2", "1.2.8", "1.2.9"
         ))
@@ -1154,7 +1169,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
         |[warning]   found snapshot in: notes.md 😬 RL1012-d143f8dc
         |              This is the documentation for 0.11-SNAPSHOT
-        |[warning]   found snapshots: 😬 RL1012-d3421ec9
+        |[warning]   found snapshots: 😬 RL1012-d3421ec9 -- RL1012-d143f8dc
         |[INFO] --- model read @ maven/sbt/gradle ---
         |[WARNING]     😬 No property replacement found in pom.xmls for: "${non-existing}" - define properties where they are required and not in parent pom.xml. Input is Nil.
         |[WARNING]     skipped because of previous problems - No property replacement found in pom.xmls for: "${non-existing}" - define properties where they are required and not in parent pom.xml. Input is Nil. 😬
@@ -1318,6 +1333,7 @@ class LintMavenTest extends AssertionsForJUnit {
       |[INFO]     WIP
       |[WARNING] --- skip-conf / self / end ---
       |[WARNING]     found unused skips, please remove from your config: RL1003-aaaaaaa
+      |[WARNING]     active skips: RL1003-21ee7891
       |
       |/tmp/junit-REPLACED/release-lint-mvn-deploy-none/.git
       |/tmp/junit-REPLACED/release-lint-mvn-deploy-none/.mvn

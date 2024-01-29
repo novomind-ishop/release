@@ -107,10 +107,10 @@ object PomChecker {
       val allWithoutScope = all.map(_.copy(scope = "", packageing = ""))
       val withoutScope = allWithoutScope.distinct
       val times = all.map(_.copyWithNonEmptyScope()).groupBy(e => e).toSeq.map(e => (e._1, e._2.size)).filter(_._2 > 1)
-      val prefix = s"found copied, use only one dependency in ${deps._1.id}\n"
+      val prefix = s"found copies, use only one dependency in ${deps._1.id}\n"
 
       val copyMsg = times.map(e => {
-        s"${prefix}  ${e._1.formatted} (times ${e._2})"
+        s"${prefix}  ${e._1.formatted} (times ${e._2}). This can also happen if you override an unused dependencyManagement."
       })
       val value = times.map(_._1).map(_.copy(scope = "", packageing = ""))
       val diff = Util.symmetricDiff(allWithoutScope, withoutScope).filterNot(e => {

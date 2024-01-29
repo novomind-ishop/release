@@ -82,7 +82,7 @@ class RepoProxy(_repos: Seq[RepoZ]) extends RepoZ {
   }
 
   override def newerAndPrevVersionsOf(groupID: String, artifactId: String, version: String): Seq[String] = {
-    repos.flatMap(_.newerAndPrevVersionsOf(groupID, artifactId, version))
+    repos.flatMap(_.newerAndPrevVersionsOf(groupID, artifactId, version)).distinct
   }
 
   override def depDate(groupId: String, artifactId: String, version: String): Option[ZonedDateTime] = {
