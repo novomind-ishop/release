@@ -1,3 +1,10 @@
+FROM eclipse-temurin:11.0.22_7-jre-jammy
+COPY release /root/release
+COPY release.jar /root/release.jar
+ENV RELEASE_DOCKER=true
+RUN chmod +x /root/release
+RUN /root/release --help
+
 FROM eclipse-temurin:17.0.8.1_1-jre-jammy
 # https://hub.docker.com/_/eclipse-temurin/tags
 LABEL maintainer="ishop-dev-infra@novomind.com" \

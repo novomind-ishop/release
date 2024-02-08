@@ -3,11 +3,12 @@ package release
 import java.io.{ByteArrayInputStream, File}
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
-
 import javax.xml.parsers.DocumentBuilderFactory
 import javax.xml.xpath.{XPathConstants, XPathFactory}
 import org.w3c.dom.{Document, Node, NodeList}
 import org.xml.sax.SAXParseException
+
+import scala.annotation.tailrec
 
 object Xpath {
 
@@ -32,8 +33,28 @@ object Xpath {
     docBuilder.parse(stream)
   }
 
+  @tailrec
+  private def nodePRec(in: Node, result: Seq[String]): Seq[String] = {
+    val headOpt = in.getParentNode
+    if (headOpt != null) {
+      nodePRec(headOpt, result :+ in.getNodeName)
+    } else {
+      result.reverse
+    }
+  }
+
+  def nodePath(value: Node): Seq[String] = {
+    val k = nodePRec(value, Nil)
+    k
+  }
+
   def onlyString(document: Document, xpath: String): Option[String] = {
-    only(document, xpath).map(_.getTextContent)
+    onlyStringNode(document, xpath).map(e => e._1)
+  }
+
+  def onlyStringNode(document: Document, xpath: String): Option[(String, Node)] = {
+    val maybeNode = only(document, xpath)
+    maybeNode.map(k => (k.getTextContent, k))
   }
 
   def only(document: Document, xpath: String): Option[Node] = {

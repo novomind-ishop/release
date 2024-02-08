@@ -188,8 +188,12 @@ object ProjectMod extends LazyLogging {
     }
   }
 
+  trait Formated {
+    def formatted: String
+  }
+
   case class Dep(pomRef: SelfRef, groupId: String, artifactId: String, version: Option[String], typeN: String,
-                 scope: String, packaging: String, classifier: String) {
+                 scope: String, packaging: String, classifier: String, pomPath: Seq[String]) {
     val gavWithDetailsFormatted: String = Gav.format(Seq(groupId, artifactId, version.getOrElse(""), typeN, scope, packaging, classifier))
 
     def gav() = Gav(groupId, artifactId, version, packaging, classifier, scope)
@@ -199,12 +203,14 @@ object ProjectMod extends LazyLogging {
 
   case class PluginDep(pomRef: SelfRef, groupId: String, artifactId: String, version: Option[String], execs: Seq[PluginExec], pomPath: Seq[String]) {
 
-    def fakeDep() = Dep(pomRef, groupId, artifactId, version, "", "", "", "")
+    def fakeDep() = Dep(pomRef, groupId, artifactId, version, "", "", "", "", pomPath)
 
     def simpleGav() = Gav3(groupId, artifactId, version)
   }
 
-  case class Gav2(groupId: String, artifactId: String)
+  case class Gav2(groupId: String, artifactId: String) extends Formated {
+    def formatted: String = Gav.format(Seq(groupId, artifactId))
+  }
 
   object Gav3 {
     def opt(groupId: Option[String], artifactId: Option[String], version: Option[String]): Gav3 = {
@@ -212,8 +218,8 @@ object ProjectMod extends LazyLogging {
     }
   }
 
-  case class Gav3(groupId: String, artifactId: String, version: Option[String]) {
-    def toDep(pomRef: SelfRef): Dep = Dep(pomRef, groupId, artifactId, version, "", "", "", "")
+  case class Gav3(groupId: String, artifactId: String, version: Option[String]) extends Formated {
+    def toDep(pomRef: SelfRef): Dep = Dep(pomRef, groupId, artifactId, version, "", "", "", "", Nil)
 
     def toGav(): Gav = Gav(groupId, artifactId, version)
 
@@ -224,7 +230,8 @@ object ProjectMod extends LazyLogging {
     def slashedMeta: String = (groupId + '/' + artifactId).replace('.', '/') + "/maven-metadata.xml"
   }
 
-  case class Gav(groupId: String, artifactId: String, version: Option[String], packageing: String = "", classifier: String = "", scope: String = "") {
+  case class Gav(groupId: String, artifactId: String, version: Option[String], packageing: String = "", classifier: String = "", scope: String = "")
+    extends Formated {
     def formatted: String = Gav.format(Seq(groupId, artifactId, version.getOrElse(""), packageing, classifier, scope))
 
     def simpleGav() = Gav3(groupId, artifactId, version)
@@ -237,7 +244,7 @@ object ProjectMod extends LazyLogging {
 
     def isEmpty(): Boolean = this == Gav.empty
 
-    def copyWithNonEmptyScope():Gav = {
+    def copyWithNonEmptyScope(): Gav = {
       if (scope.isBlank) {
         copy(scope = "compile")
       } else {
@@ -272,6 +279,8 @@ object ProjectMod extends LazyLogging {
     val undef = SelfRef("X", Gav3("X", "X", None))
 
     def ofGav3(gav3: Gav3): SelfRef = SelfRef(gav3.formatted, gav3)
+
+    def ofGav(gav: Gav): SelfRef = SelfRef(gav.formatted, gav.simpleGav())
 
     @Deprecated
     def parse(id: String): SelfRef = {
@@ -613,7 +622,7 @@ object ProjectMod extends LazyLogging {
     }
     val now = LocalDate.now()
     val stopw = Stopwatch.createStarted()
-    updatePrinter.println("I: checking dependecies against nexus - please wait")
+    updatePrinter.println("I: checking dependencies against nexus - please wait")
 
     val selfSimple = selfDepsMod.map(_.gav().simpleGav()).distinct
     val relevant: Seq[Dep] = rootDeps
@@ -642,7 +651,7 @@ object ProjectMod extends LazyLogging {
       .flatMap(ProjectMod.relocateGavs(prepared, repoDelegator))
     val updates = checkForUpdates(value, depUpOpts, repoDelegator, updatePrinter)
 
-    updatePrinter.println(s"I: checked ${value.size} dependecies in ${stopw.elapsed(TimeUnit.MILLISECONDS)}ms (${now.toString})")
+    updatePrinter.println(s"I: checked ${value.size} dependencies in ${stopw.elapsed(TimeUnit.MILLISECONDS)}ms (${now.toString})")
 
     // TODO move Version check to here
 
@@ -774,7 +783,7 @@ trait ProjectMod extends LazyLogging {
   val selfVersion: String
 
   val listDependencies: Seq[Dep]
-  val listRawDeps:Seq[Dep]
+  val listRawDeps: Seq[Dep]
   val listPluginDependencies: Seq[PluginDep]
 
   val listProperties: Map[String, String]

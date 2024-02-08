@@ -22,7 +22,7 @@ class LintMavenTest extends AssertionsForJUnit {
       .replaceAll("^\\[..:..:..\\...Z\\] ", "[00:00:00.00Z] ")
       .replaceAll(": git version 2\\.[0-9]+\\.[0-9]+", ": git version 2.999.999")
       .replaceAll("[a-f0-9]{40}$", "affe4533042ef887a5477d73d958814317675be1")
-      .replaceAll("dependecies in [0-9]+ms \\([0-9]{4}-[0-9]{2}-[0-9]{2}\\)", "dependecies in 999ms (2000-01-01)")
+      .replaceAll("dependencies in [0-9]+ms \\([0-9]{4}-[0-9]{2}-[0-9]{2}\\)", "dependencies in 999ms (2000-01-01)")
   }
 
   @Test
@@ -67,6 +67,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
+        |[INFO] --- check branches / remote @ git ---
+        |[INFO]     active committer count: 1
+        |[INFO]     active branch count: 1
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[WARNING]  shallow clone detected 😬
         |[WARNING]    % git rev-parse --is-shallow-repository # returns true
@@ -135,6 +138,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
+        |[INFO] --- check branches / remote @ git ---
+        |[INFO]     active committer count: 1
+        |[INFO]     active branch count: 1
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -162,9 +168,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org # (no ip)
         |[WARNING]  nexus work url must end with a '/' - https://repo.example.org 😬 RL1001
-        |I: checking dependecies against nexus - please wait
+        |I: checking dependencies against nexus - please wait
         |
-        |I: checked 1 dependecies in 999ms (2000-01-01)
+        |I: checked 1 dependencies in 999ms (2000-01-01)
         |Non existing dependencies for:
         |org.springframework:spring-context:1.0.0->Nil
         |  RepoProxy: https://repo.example.orgorg/springframework/spring-context/maven-metadata.xml
@@ -213,6 +219,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 if you use gitlab try to
         |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[WARNING]  😬 HEAD branch: (unknown) - n/a
+        |[INFO] --- check branches / remote @ git ---
+        |[INFO]     active committer count: 0
+        |[INFO]     active branch count: 0
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -287,6 +296,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
+        |[INFO] --- check branches / remote @ git ---
+        |[INFO]     active committer count: 1
+        |[INFO]     active branch count: 1
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -313,9 +325,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)
-        |I: checking dependecies against nexus - please wait
+        |I: checking dependencies against nexus - please wait
         |
-        |I: checked 1 dependecies in 999ms (2000-01-01)
+        |I: checked 1 dependencies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
         |╠═╦═ org.springframework:spring-context:1.0.0
         |║ ╚═══ 1.0.1, .., 1.2.8, 1.2.9
@@ -390,6 +402,34 @@ class LintMavenTest extends AssertionsForJUnit {
         |      </dependency>
         |    </dependencies>
         |  </dependencyManagement>
+        |   <build>
+        |    <plugins>
+        |      <plugin>
+        |        <artifactId>example-maven-plugin</artifactId>
+        |        <groupId>org.example.maven</groupId>
+        |        <version>1.10.3</version>
+        |        <dependencies>
+        |          <dependency>
+        |            <groupId>org.example</groupId>
+        |            <artifactId>example</artifactId>
+        |            <version>1.2.3</version>
+        |          </dependency>
+        |        </dependencies>
+        |      </plugin>
+        |      <plugin>
+        |        <artifactId>example2-maven-plugin</artifactId>
+        |        <groupId>org.example.maven</groupId>
+        |        <version>1.10.3</version>
+        |        <dependencies>
+        |          <dependency>
+        |            <groupId>org.example</groupId>
+        |            <artifactId>example</artifactId>
+        |            <version>3.2.1</version>
+        |          </dependency>
+        |        </dependencies>
+        |      </plugin>
+        |    </plugins>
+        |  </build>
         |</project>
         |""".stripMargin.linesIterator.toSeq)
     gitA.add(pom)
@@ -405,6 +445,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
+        |[INFO] --- check branches / remote @ git ---
+        |[INFO]     active committer count: 1
+        |[INFO]     active branch count: 1
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -439,10 +482,18 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)
-        |I: checking dependecies against nexus - please wait
+        |I: checking dependencies against nexus - please wait
         |
-        |I: checked 2 dependecies in 999ms (2000-01-01)
+        |I: checked 6 dependencies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
+        |╠═╦═ org.example:example:1.2.3
+        |║ ╚═══ 99.99.99
+        |╠═╦═ org.example:example:3.2.1
+        |║ ╚═══ 99.99.99
+        |╠═╦═ org.example.maven:example-maven-plugin:1.10.3
+        |║ ╚═══ 99.99.99
+        |╠═╦═ org.example.maven:example2-maven-plugin:1.10.3
+        |║ ╚═══ 99.99.99
         |╠═╦═ org.springframework:spring-context:1.0.0-M1
         |║ ╚═══ 1.0.0, .., 1.2.8, 1.2.9
         |╠═╦═ org.springframework:spring-vals:1.0.0-SNAPSHOT
@@ -486,6 +537,18 @@ class LintMavenTest extends AssertionsForJUnit {
         .thenReturn(Seq(
           "0.99.99", "1.0.0", "1.0.1", "1.0.2", "1.2.8", "1.2.9", "1.0.0-M1"
         ))
+      Mockito.when(mockRepo2.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("example-maven-plugin"), ArgumentMatchers.anyString()))
+        .thenReturn(Seq(
+          "99.99.99"
+        ))
+      Mockito.when(mockRepo2.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("example2-maven-plugin"), ArgumentMatchers.anyString()))
+        .thenReturn(Seq(
+          "99.99.99"
+        ))
+      Mockito.when(mockRepo2.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("example"), ArgumentMatchers.anyString()))
+        .thenReturn(Seq(
+          "99.99.99"
+        ))
       System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, fileB))
     })
   }
@@ -527,6 +590,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
         |[WARNING]  😬 if you use gitlab try to
         |[WARNING]  😬 choose another default branch; save; use the original default branch
+        |[INFO] --- check branches / remote @ git ---
+        |[INFO]     active committer count: 0
+        |[INFO]     active branch count: 0
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -553,7 +619,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
         |[INFO] --- check major versions @ ishop ---
-        |[WARNING]     Found core 50, 51 😬 RL1013-9c03d223
+        |[WARNING]     Found core 50, 51 😬 RL1013-28c40a8a
         |[WARNING]       - 50 -
         |[WARNING]       com.novomind.ishop.core.other:other-context:50.2.3 😬 RL1013-253fb8cd
         |[WARNING]       - 51 -
@@ -561,9 +627,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002
         |[INFO]     RELEASE_NEXUS_WORK_URL=null # (no ip)
-        |I: checking dependecies against nexus - please wait
+        |I: checking dependencies against nexus - please wait
         |
-        |I: checked 2 dependecies in 999ms (2000-01-01)
+        |I: checked 2 dependencies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
         |╠═╦═ com.novomind.ishop.core.other:other-context:50.2.3
         |║ ╠═══ (50) 50.4.0
@@ -637,6 +703,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
         |[WARNING]  😬 if you use gitlab try to
         |[WARNING]  😬 choose another default branch; save; use the original default branch
+        |[INFO] --- check branches / remote @ git ---
+        |[INFO]     active committer count: 0
+        |[INFO]     active branch count: 0
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -669,9 +738,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002
         |[INFO]     RELEASE_NEXUS_WORK_URL=null # (no ip)
-        |I: checking dependecies against nexus - please wait
+        |I: checking dependencies against nexus - please wait
         |
-        |I: checked 2 dependecies in 999ms (2000-01-01)
+        |I: checked 2 dependencies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
         |╠═╦═ com.novomind.ishop.core.other:other-context:50x-SNAPSHOT
         |║ ╚═══ 50.2.3, 50.4.0
@@ -740,6 +809,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
         |[WARNING]  😬 if you use gitlab try to
         |[WARNING]  😬 choose another default branch; save; use the original default branch
+        |[INFO] --- check branches / remote @ git ---
+        |[INFO]     active committer count: 0
+        |[INFO]     active branch count: 0
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -768,9 +840,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002
         |[INFO]     RELEASE_NEXUS_WORK_URL=null # (no ip)
-        |I: checking dependecies against nexus - please wait
+        |I: checking dependencies against nexus - please wait
         |
-        |I: checked 1 dependecies in 999ms (2000-01-01)
+        |I: checked 1 dependencies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.14-SNAPSHOT
         |╠═╦═ org.springframework:spring-context:1
         |║ ╠═══ (1) 1.0.1, .., 1.2.8, 1.2.9
@@ -867,6 +939,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
         |[WARNING]  😬 if you use gitlab try to
         |[WARNING]  😬 choose another default branch; save; use the original default branch
+        |[INFO] --- check branches / remote @ git ---
+        |[INFO]     active committer count: 0
+        |[INFO]     active branch count: 0
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -903,9 +978,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002
         |[INFO]     RELEASE_NEXUS_WORK_URL=null # (no ip)
-        |I: checking dependecies against nexus - please wait
+        |I: checking dependencies against nexus - please wait
         |
-        |I: checked 4 dependecies in 999ms (2000-01-01)
+        |I: checked 4 dependencies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
         |╠═╦═ org.springframework:spring-context-latest:LATEST
         |║ ╠═══ (0) 0.0.1
@@ -1007,6 +1082,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
         |[WARNING]  😬 if you use gitlab try to
         |[WARNING]  😬 choose another default branch; save; use the original default branch
+        |[INFO] --- check branches / remote @ git ---
+        |[INFO]     active committer count: 1
+        |[INFO]     active branch count: 2
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO]     current git tags: v0.11.0
@@ -1050,9 +1128,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002
         |[INFO]     RELEASE_NEXUS_WORK_URL=null # (no ip)
-        |I: checking dependecies against nexus - please wait
+        |I: checking dependencies against nexus - please wait
         |
-        |I: checked 2 dependecies in 999ms (2000-01-01)
+        |I: checked 2 dependencies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.11.0
         |╠═╦═ org.springframework:spring-context:1.0.1-SNAPSHOT
         |║ ╠═══ (1) 1.0.1, .., 1.2.8, 1.2.9
@@ -1157,6 +1235,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
         |[WARNING]  😬 if you use gitlab try to
         |[WARNING]  😬 choose another default branch; save; use the original default branch
+        |[INFO] --- check branches / remote @ git ---
+        |[INFO]     active committer count: 1
+        |[INFO]     active branch count: 1
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -1294,6 +1375,9 @@ class LintMavenTest extends AssertionsForJUnit {
       |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
       |[WARNING]  😬 if you use gitlab try to
       |[WARNING]  😬 choose another default branch; save; use the original default branch
+      |[INFO] --- check branches / remote @ git ---
+      |[INFO]     active committer count: 0
+      |[INFO]     active branch count: 0
       |[INFO] --- check clone config / no shallow clone @ git ---
       |[INFO]     ✅ NO shallow clone
       |[INFO] --- .gitattributes @ git ---
@@ -1326,8 +1410,8 @@ class LintMavenTest extends AssertionsForJUnit {
       |[INFO]     ✅ no major version diff
       |[INFO] --- suggest dependency updates / configurable @ maven ---
       |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)
-      |I: checking dependecies against nexus - please wait
-      |I: checked 0 dependecies in 999ms (2000-01-01)
+      |I: checking dependencies against nexus - please wait
+      |I: checked 0 dependencies in 999ms (2000-01-01)
       |[INFO]     WIP
       |[INFO] --- dep.tree @ maven ---
       |[INFO]     WIP

@@ -9,6 +9,12 @@ import java.util
 class UtilTest extends AssertionsForJUnit {
 
   @Test
+  def testDistance(): Unit = {
+    Assert.assertEquals(1, Util.levenshtein("A", "B"))
+    Assert.assertEquals(4, Util.levenshtein("AssertionsForJUnit", "AssertionsJUnid"))
+  }
+
+  @Test
   def testSymmetricDiff(): Unit = {
     Assert.assertEquals(Nil, Util.symmetricDiff(Seq("a"), Seq("a")))
     Assert.assertEquals(Seq(("a", "b")), Util.symmetricDiff(Seq(("a", "b")), Nil))
@@ -173,10 +179,10 @@ class UtilTest extends AssertionsForJUnit {
 
   @Test
   def testShow(): Unit = {
-    case class Bert(name:String, s:Seq[Int], innerBerts:Seq[Bert])
+    case class Bert(name: String, s: Seq[Int], otherNames:List[String], innerBerts: Seq[Bert])
     Assert.assertEquals(
-      """Bert(name = Bert, s = 1,2, innerBerts = List(Bert(name = Treb, s = List(), innerBerts = List())))
-        |""".stripMargin.trim, Util.show(Bert(name = "Bert", s = Seq(1,2),
-        innerBerts = List(Bert(name = "Treb", Nil, Nil)))))
+      """Bert(name = "Bert", s = Seq(1, 2), otherNames = Seq("otto", "man"), innerBerts = List(Bert(name = "Treb", s = List(), otherNames = List(), innerBerts = List())))
+        |""".stripMargin.trim, Util.show(Bert(name = "Bert", s = Seq(1, 2), otherNames = List("otto", "man"),
+        innerBerts = List(Bert(name = "Treb", Nil, Nil, Nil)))))
   }
 }

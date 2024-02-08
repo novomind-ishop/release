@@ -18,7 +18,7 @@ class LintSbtTest extends AssertionsForJUnit {
       .replaceAll("/junit[0-9]+/", "/junit-REPLACED/")
       .replaceAll(": git version 2\\.[0-9]+\\.[0-9]+", ": git version 2.999.999")
       .replaceAll("[a-f0-9]{40}$", "affe4533042ef887a5477d73d958814317675be1")
-      .replaceAll("dependecies in [0-9]+ms \\([0-9]{4}-[0-9]{2}-[0-9]{2}\\)", "dependecies in 999ms (2000-01-01)")
+      .replaceAll("dependencies in [0-9]+ms \\([0-9]{4}-[0-9]{2}-[0-9]{2}\\)", "dependencies in 999ms (2000-01-01)")
   }
 
   @Test
@@ -46,6 +46,9 @@ class LintSbtTest extends AssertionsForJUnit {
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
+        |[INFO] --- check branches / remote @ git ---
+        |[INFO]     active committer count: 1
+        |[INFO]     active branch count: 1
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -72,9 +75,9 @@ class LintSbtTest extends AssertionsForJUnit {
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)
-        |I: checking dependecies against nexus - please wait
+        |I: checking dependencies against nexus - please wait
         |
-        |I: checked 2 dependecies in 999ms (2000-01-01)
+        |I: checked 2 dependencies in 999ms (2000-01-01)
         |║ Project GAV: X
         |╠═╦═ org.scala-lang:scala3-library_3:-1
         |║ ╚═══ 1.0.0

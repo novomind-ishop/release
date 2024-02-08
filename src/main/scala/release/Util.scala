@@ -38,6 +38,26 @@ object Util {
     }
   }
 
+  def levenshtein(s1: String, s2: String): Int = {
+    val memorizedCosts = mutable.Map[(Int, Int), Int]()
+    import scala.collection.mutable
+    import scala.collection.parallel.ParSeq
+    def lev: ((Int, Int)) => Int = {
+      case (k1, k2) =>
+        memorizedCosts.getOrElseUpdate((k1, k2), (k1, k2) match {
+          case (i, 0) => i
+          case (0, j) => j
+          case (i, j) =>
+            ParSeq(1 + lev((i - 1, j)),
+              1 + lev((i, j - 1)),
+              lev((i - 1, j - 1))
+                + (if (s1(i - 1) != s2(j - 1)) 1 else 0)).min
+        })
+    }
+
+    lev((s1.length, s2.length))
+  }
+
   implicit def pluralize(input: String): PluralString = new PluralString(input)
 
   def show(product: Product): String = {
@@ -47,13 +67,23 @@ object Util {
     val fields = fieldNames.zip(fieldValues).map {
       case (name, value) if value.isInstanceOf[Iterable[Any]] => {
         try {
-          s"$name = ${value.asInstanceOf[Iterable[Product]].map(show)}"
+          val value1 = value.asInstanceOf[Iterable[Product]]
+          s"$name = ${value1.map(show)}"
         } catch {
-          case e:Exception => s"$name = ${value.asInstanceOf[Iterable[Any]].mkString(",")}"
-        }
+          case _: Exception => {
+            val value1 = value.asInstanceOf[Iterable[Any]]
+            if (value1.nonEmpty && value1.head.isInstanceOf[String]) {
+              s"$name = Seq(${value1.map(e => s"\"${e}\"").mkString(", ")})"
+            } else {
+              s"$name = Seq(${value1.mkString(", ")})"
+            }
 
+          }
+
+        }
       }
       case (name, value: Product) => s"$name = ${show(value)}"
+      case (name, value: String) => s"$name = \"${value}\""
       case (name, value) => s"$name = $value"
     }
 
@@ -215,7 +245,7 @@ object Util {
 
   def hashMd5Random(): String = Util.hashMd5(Random.nextLong().toString)
 
-  def hashMurmur3_32_fixed(in:String):String = {
+  def hashMurmur3_32_fixed(in: String): String = {
     Hashing.murmur3_32_fixed().hashString(in, StandardCharsets.UTF_8).toString
   }
 

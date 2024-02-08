@@ -8,11 +8,42 @@ import release.Release.findBadLines
 import release.Starter.{Opts, PreconditionsException}
 
 import java.nio.file.Path
+import java.io.File
 import java.util.regex.Pattern
 import scala.collection.parallel.CollectionConverters._
 
 object PomChecker {
-  def printSnapshotsInFiles(gitFiles: Seq[String], out: PrintStream) = {
+  def checkOwnArtifacts(relevants: Seq[(Dep, File)], rootFile:File): Unit = {
+    implicit class Crossable[X](xs: Iterable[X]) {
+      def cross[Y](ys: Iterable[Y]): Iterable[(X, Y)] = for {x <- xs; y <- ys} yield (x, y)
+    }
+    val simplified = relevants.map(e => (e._1.pomRef.gav3.toGav2(), e._2))
+    val value1 = simplified.cross(simplified).toSeq
+      .filterNot(k => k._1 == k._2)
+      .map(t => {
+        val tElementsSorted = Seq(t._1, t._2).sortBy(_.toString)
+        (tElementsSorted(0), tElementsSorted(1))
+      })
+    val distinct = value1.distinct
+    val value = distinct
+      .map(t => (t._1, t._2, Util.levenshtein(t._1._1.formatted, t._2._1.formatted)))
+    val pr = value
+      .filterNot(_._3 > 3)
+
+    def rel(a:File, b:File):File = {
+      b.toPath.relativize(a.toPath).toFile
+    }
+
+    if (pr.nonEmpty) {
+      val msg = pr.map(e => {
+        "»"+  e._1._1.formatted + "« (in " + rel(e._1._2, rootFile).toString + ") is too similar or identical to »" +
+          e._2._1.formatted + "« (in " + rel(e._2._2, rootFile).toString + ")"
+      }).mkString("; ") + ". Please choose distinguishable names."
+      throw new ValidationException(msg)
+    }
+  }
+
+  def printSnapshotsInFiles(gitFiles: Seq[String], out: PrintStream): Unit = {
 
     val snapsF: Seq[(Int, String, Path)] = getSnapshotsInFiles(gitFiles)
 
@@ -77,7 +108,8 @@ object PomChecker {
 
       .groupBy(_.pomRef)
     val msgs = byRef.flatMap(deps => {
-      val allGavs = deps._2.flatMap(d => Seq(d) ++ zg.getOrElse(d, Nil)).map(_.gav()).distinct
+      val value = deps._2.filterNot(_.pomPath == Seq("project", "build", "plugins", "plugin", "dependencies", "dependency"))
+      val allGavs = value.flatMap(d => Seq(d) ++ zg.getOrElse(d, Nil)).map(_.gav()).distinct
       val withoutVersion = allGavs.map(_.copy(version = None)).groupBy(x => x).filter(_._2.size > 1).keySet
       val diff = allGavs.filter(g => withoutVersion.contains(g.copy(version = None)))
       if (diff.nonEmpty) {
@@ -139,8 +171,10 @@ object PomChecker {
   private[release] def checkRootFirstChildPropertiesVar(opts: Opts, childPomFiles: Seq[RawPomFile]): Unit = {
     case class DepProps(dep: Dep, parentDep: Dep, properties: Map[String, String])
 
-    val allP: Seq[DepProps] = childPomFiles.map(in => {
-      DepProps(in.selfDep, in.parentDep, PomMod.createPropertyMap(in.document).view.filterKeys(key => !opts.skipProperties.contains(key)).toMap)
+    val allP: Seq[DepProps] = childPomFiles.flatMap(in => {
+      in.selfDep.map(s => {
+        DepProps(s, in.parentDep.getOrElse(s), PomMod.createPropertyMap(in.document).view.filterKeys(key => !opts.skipProperties.contains(key)).toMap)
+      })
     })
 
     def ga(gav: Gav): String = Gav.format(Seq(gav.groupId, gav.artifactId, gav.version.getOrElse("")))

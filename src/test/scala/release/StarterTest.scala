@@ -10,7 +10,7 @@ import org.junit.rules.Timeout
 import org.junit.{Assert, Ignore, Rule, Test}
 import org.mockito.MockitoSugar
 import org.scalatestplus.junit.AssertionsForJUnit
-import release.ProjectMod.Gav3
+import release.ProjectMod.{Gav3, SelfRef}
 import release.Sgit.GitRemote
 import release.Starter.{FutureEither, FutureError, LintOpts, Opts, OptsApidiff, OptsDepUp}
 
@@ -364,14 +364,14 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
   @Test
   def testCompressToGav(): Unit = {
 
-    val dep0 = ProjectMod.Dep(ProjectMod.SelfRef.undef, "groupId", "artifactId", Some(""), "", "", "jar", "")
-    val dep1 = ProjectMod.Dep(ProjectMod.SelfRef.undef, "groupId", "artifactId", Some("version${a}${b}"), "", "", "jar", "")
-    val dep2 = ProjectMod.Dep(ProjectMod.SelfRef.undef, "groupId2", "artifactId", Some("version${a}${b}"), "", "", "jar", "")
-    val dep3 = ProjectMod.Dep(ProjectMod.SelfRef.undef, "groupId2", "artifactId", Some(""), "", "", "", "")
-    val dep4 = ProjectMod.Dep(ProjectMod.SelfRef.undef, "groupId2", "artifactId", Some(""), "", "", "", "")
-    val dep5 = ProjectMod.Dep(ProjectMod.SelfRef.undef, "groupId5", "artifactId", None, "", "", "", "")
-    val dep6 = ProjectMod.Dep(ProjectMod.SelfRef.undef, "groupId", "artifactId-Self", Some("version"), "", "", "jar", "")
-    val dep7 = ProjectMod.Dep(ProjectMod.SelfRef.undef, "groupId", "artifactId-test", Some("version"), "", "test", "jar", "")
+    val dep0 = ProjectModTest.depOfUndef(groupId = "groupId", artifactId = "artifactId", version = Some(""), packaging = "jar")
+    val dep1 = ProjectModTest.depOfUndef(groupId = "groupId", artifactId = "artifactId", version = Some("version${a}${b}"), packaging = "jar")
+    val dep2 = ProjectModTest.depOfUndef(groupId = "groupId2", artifactId = "artifactId", version = Some("version${a}${b}"), packaging = "jar")
+    val dep3 = ProjectModTest.depOfUndef(groupId = "groupId2", artifactId = "artifactId", version = Some(""))
+    val dep4 = ProjectModTest.depOfUndef(groupId = "groupId2", artifactId = "artifactId", version = Some(""))
+    val dep5 = ProjectModTest.depOfUndef(groupId = "groupId5", artifactId = "artifactId", version = None)
+    val dep6 = ProjectModTest.depOfUndef(groupId = "groupId", artifactId = "artifactId-Self", version = Some("version"), packaging = "jar")
+    val dep7 = ProjectModTest.depOfUndef(groupId = "groupId", "artifactId-test", Some("version"), scope = "test", packaging = "jar")
 
     val gavSelf = dep6.gav().simpleGav()
     val prop = Map("a" -> "-1.2.3")

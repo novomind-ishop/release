@@ -211,6 +211,10 @@ object Lint {
           }
           warnExit.set(true)
         }
+        out.println(info("--- check branches / remote @ git ---", opts))
+        val commiters = sgit.listCommitterNames().size
+        out.println(info(s"    active committer count: $commiters", opts)) // TODO range?
+        out.println(info(s"    active branch count: ${sgit.listBranchNamesAll().size}", opts)) // TODO limits?
         out.println(info("--- check clone config / no shallow clone @ git ---", opts))
         if (sgit.isShallowClone) {
           Term.wrap(out, Term.warn,

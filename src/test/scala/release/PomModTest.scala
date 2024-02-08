@@ -86,9 +86,47 @@ class PomModTest extends AssertionsForJUnit {
     // WHEN
     TestHelper.assertException("More then one Version found in your pom.xmls: " +
       "Dep(SelfRef(Gav3(com.novomind.ishop.shops.any,any-erp,Some(28.0.0-SNAPSHOT)))," +
-      "com.novomind.ishop.shops.any,any-erp,Some(28.0.0-SNAPSHOT),,,,) (27.0.0-SNAPSHOT, 28.0.0-SNAPSHOT)",
+      "com.novomind.ishop.shops.any,any-erp,Some(28.0.0-SNAPSHOT),,,,,List(project, artifactId)) (27.0.0-SNAPSHOT, 28.0.0-SNAPSHOT)",
       classOf[IllegalArgumentException], () => {
         PomModTest.withRepoForTests(srcPoms, repo).selfVersion
+      })
+
+  }
+
+  @Test
+  def defectSelfPomMultiple(): Unit = {
+    val srcPoms: File = pomTestFile(temp, document(<project>
+      <modelVersion>4.0.0</modelVersion>
+      <groupId>com.novomind.ishop.shops.any</groupId>
+      <artifactId>any</artifactId>
+      <version>27.0.0-SNAPSHOT</version>
+      <packaging>pom</packaging>
+
+      <modules>
+        <module>any</module>
+      </modules>
+    </project>
+    )).sub("any", document(<project>
+      <modelVersion>4.0.0</modelVersion>
+
+      <parent>
+        <groupId>com.novomind.ishop.shops.any</groupId>
+        <artifactId>any</artifactId>
+        <version>27.0.0-SNAPSHOT</version>
+        <relativePath>..</relativePath>
+      </parent>
+
+      <artifactId>any</artifactId>
+      <name>any</name>
+    </project>
+    )).create()
+
+    // WHEN
+    TestHelper.assertException("" +
+      "»com.novomind.ishop.shops.any:any« (in any/pom.xml) is too similar or identical to " +
+      "»com.novomind.ishop.shops.any:any« (in pom.xml). Please choose distinguishable names.",
+      classOf[ValidationException], () => {
+        PomModTest.withRepoForTests(srcPoms, repo)
       })
 
   }
@@ -293,7 +331,7 @@ class PomModTest extends AssertionsForJUnit {
   def testUpdates(): Unit = {
     // GIVEN
     val ref = GavWithRef(
-      SelfRef.parse("com.novomind.ishop:ishop-shop-frontend:42.0.0-SNAPSHOT:pom"),
+      ProjectModTest.parseSelfRef("com.novomind.ishop:ishop-shop-frontend:42.0.0-SNAPSHOT:pom"),
       Gav(groupId = "com.github.eirslett", artifactId = "frontend-maven-plugin", version = Some("1.11.2")))
     val in: Seq[(GavWithRef, (Seq[String], Duration))] = Seq((ref, (List("1.11.3", "1.12.0"), Duration.parse("PT2063H9M3S"))))
 
@@ -308,9 +346,9 @@ class PomModTest extends AssertionsForJUnit {
   @Test
   def testMavenUpdateFormat(): Unit = {
     val mavenRuleset = <ruleset comparisonMethod="maven"
-                     xmlns="http://mojo.codehaus.org/versions-maven-plugin/rule/2.0.0"
-                     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                     xsi:schemaLocation="http://mojo.codehaus.org/versions-maven-plugin/rule/2.0.0
+                                xmlns="http://mojo.codehaus.org/versions-maven-plugin/rule/2.0.0"
+                                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                                xsi:schemaLocation="http://mojo.codehaus.org/versions-maven-plugin/rule/2.0.0
         http://mojo.codehaus.org/versions-maven-plugin/xsd/rule-2.0.0.xsd">
       <rules>
         <ignoreVersions>
@@ -438,7 +476,7 @@ class PomModTest extends AssertionsForJUnit {
     val dep: Seq[PluginDep] = pomMod.mavenDependencyPlugins
 
     // THEN
-    assertPluginDeps(Seq(PluginDep(SelfRef.parse("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
+    assertPluginDeps(Seq(PluginDep(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
       "org.apache.maven.plugins", "maven-dependency-plugin", Some("2.8"),
       Seq(
         PluginExec("pre-build-validate-tree", Seq("tree"), "validate", Map("outputFile" -> "dep.tree")),
@@ -494,32 +532,34 @@ class PomModTest extends AssertionsForJUnit {
   def changeVersionSub(): Unit = {
     // GIVEN
     val orgPoms = TestHelper.testResources("pom-packed-sub-sub")
-    val orgMod = PomModTest.withRepoForTests(orgPoms, repo)
+    val orgMod = PomModTest.withRepoForTests(orgPoms, repo, opts = Opts().copy(checkOverlapping = false))
 
     assertDeps(Seq(
-      Dep(SelfRef.parse("any:a-parent:1.0.0-SNAPSHOT"),
-        "", "", None, "", "", "", ""),
-      Dep(SelfRef.parse("other:a:1.0.0-SNAPSHOT"),
-        "any", "a-parent", "1.0.0-SNAPSHOT", "", "", "", ""),
-      Dep(SelfRef.parse("any:bparent:1.0.0-SNAPSHOT"),
-        "any", "a-parent", "1.0.0-SNAPSHOT", "", "", "", ""),
-      Dep(SelfRef.parse("any:bsub:1.0.0-SNAPSHOT"),
-        "any", "bparent", "1.0.0-SNAPSHOT", "", "", "", ""),
-      Dep(SelfRef.parse("any:bsub:1.0.0-SNAPSHOT"),
-        "other", "a", "1.0.0-SNAPSHOT", "", "", "", ""),
-      Dep(SelfRef.parse("any:c:1.0.0-SNAPSHOT"),
-        "any", "a-parent", "1.0.0-SNAPSHOT", "", "", "", ""),
-      Dep(SelfRef.parse("any:c:1.0.0-SNAPSHOT"),
-        "any", "bsub", "1.0.0-SNAPSHOT", "", "", "", ""),
-      Dep(SelfRef.parse("any:c:1.0.0-SNAPSHOT"),
-        "any", "other", "1.0.0-SNAPSHOT", "", "", "", ""),
-      Dep(SelfRef.parse("any:c:1.0.0-SNAPSHOT"),
-        "any", "final", "1.0.1", "", "", "", "")
+      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("other:a:1.0.0-SNAPSHOT"),
+        "any", "a-parent", "1.0.0-SNAPSHOT", pomPath = Seq("project", "parent", "artifactId")),
+      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("any:bparent:1.0.0-SNAPSHOT"),
+        "any", "a-parent", "1.0.0-SNAPSHOT", pomPath = Seq("project", "parent", "artifactId")),
+      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("any:bsub:1.0.0-SNAPSHOT"),
+        "any", "bparent", "1.0.0-SNAPSHOT", pomPath = Seq("project", "parent", "artifactId")),
+      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("any:bsub:1.0.0-SNAPSHOT"),
+        "other", "a", "1.0.0-SNAPSHOT", pomPath = Seq("project", "dependencies", "dependency")),
+      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("any:c:1.0.0-SNAPSHOT"),
+        "any", "a-parent", "1.0.0-SNAPSHOT", pomPath = Seq("project", "parent", "artifactId")),
+      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("any:c:1.0.0-SNAPSHOT"),
+        "any", "bsub", "1.0.0-SNAPSHOT", pomPath = Seq("project", "dependencies", "dependency")),
+      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("any:c:1.0.0-SNAPSHOT"),
+        "any", "other", "1.0.0-SNAPSHOT", pomPath = Seq("project", "dependencies", "dependency")),
+      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("any:c:1.0.0-SNAPSHOT"),
+        "any", "final", "1.0.1", pomPath = Seq("project", "dependencies", "dependency"))
     ), orgMod.listDependencies)
-    assertDeps(Seq(Dep(SelfRef.parse("any:c:1.0.0-SNAPSHOT"), "any", "other", "1.0.0-SNAPSHOT", "", "", "", "")), orgMod.listSnapshotDependencies)
+    assertDeps(Seq(
+      ProjectModTest.depOf(
+        pomRef = ProjectModTest.parseSelfRef("any:c:1.0.0-SNAPSHOT"), "any", "other", "1.0.0-SNAPSHOT",
+        pomPath = Seq("project", "dependencies", "dependency")),
+    ), orgMod.listSnapshotDependencies)
     orgMod.changeVersion("master-SNAPSHOT")
     orgMod.writeTo(orgPoms)
-    val orgMod1 = PomModTest.withRepoForTests(orgPoms, repo)
+    val orgMod1 = PomModTest.withRepoForTests(orgPoms, repo, opts = Opts().copy(checkOverlapping = false))
     orgMod1.changeVersion("1.0.0-SNAPSHOT")
     orgMod1.writeTo(orgPoms)
   }
@@ -549,8 +589,8 @@ class PomModTest extends AssertionsForJUnit {
       } else {
         dep
       }).map(dep =>
-      dep.copy(pomRef = SelfRef.parse(dep.pomRef.id.replace("27.0.0-SNAPSHOT", "RC-2017.01-SNAPSHOT")))
-    )
+        dep.copy(pomRef = ProjectModTest.parseSelfRef(dep.pomRef.id.replace("27.0.0-SNAPSHOT", "RC-2017.01-SNAPSHOT")))
+      )
 
     // THEN
     val newMod = PomModTest.withRepoForTests(srcPoms, repo)
@@ -666,12 +706,12 @@ class PomModTest extends AssertionsForJUnit {
 
     // THEN
     val s = Seq(
-      Dep(SelfRef.parse("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-projects", "27.0.0-SNAPSHOT", "", "", "pom", ""),
-      Dep(SelfRef.parse("com.novomind.ishop.shops.anyshop:anyshop-erp:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-erp", "27.0.0-SNAPSHOT", "", "", "", ""),
-      Dep(SelfRef.parse("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops", "anyshop", "27.0.0-SNAPSHOT", "", "", "war", "")
+      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop", "anyshop-projects", "27.0.0-SNAPSHOT", "", "", "pom", "", Seq("project", "artifactId")),
+      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop", "anyshop-erp", "27.0.0-SNAPSHOT", "", "", "", "", Seq("project", "artifactId")),
+      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops", "anyshop", "27.0.0-SNAPSHOT", "", "", "war", "", Seq("project", "artifactId"))
     )
     val newMod = PomModTest.withRepoForTests(srcPoms, repo)
     assertDeps(s, newMod.listSelf)
@@ -1354,8 +1394,8 @@ class PomModTest extends AssertionsForJUnit {
     val deps = PomModTest.withRepoForTests(srcPoms, repo).listSnapshotDependencies
 
     // THEN
-    assertDeps(Seq(Dep(SelfRef.parse("com.novomind.ishop.any:any:0.11-SNAPSHOT"),
-      "org.springframework", "spring-other", "0.11-SNAPSHOT", "", "", "", "")), deps)
+    assertDeps(Seq(ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("com.novomind.ishop.any:any:0.11-SNAPSHOT"),
+      "org.springframework", "spring-other", "0.11-SNAPSHOT", pomPath = Seq("project", "dependencies", "dependency"))), deps)
   }
 
   @Test
@@ -1868,8 +1908,8 @@ class PomModTest extends AssertionsForJUnit {
 object PomModTest {
 
   def withRepoForTests(file: File, repo: RepoZ, skipPropertyReplacement: Boolean = false,
-                       withSubPoms: Boolean = true, failureCollector: Option[Exception => Unit] = None): PomMod = {
-    PomMod(file, repo, Opts(), skipPropertyReplacement, withSubPoms, failureCollector)
+                       withSubPoms: Boolean = true, failureCollector: Option[Exception => Unit] = None, opts:Opts = Opts()): PomMod = {
+    PomMod(file, repo, opts, skipPropertyReplacement, withSubPoms, failureCollector)
   }
 
   def pomTestFile(temp: TemporaryFolder, root: Document, treeFileContent: String = ""): TestFileBuilder = {
@@ -1877,13 +1917,7 @@ object PomModTest {
   }
 
   def assertDeps(expected: Seq[Dep], actual: Seq[Dep]) = {
-    def defstr(dep: Dep): String = {
-      "Dep(SelfRef(\"" + dep.pomRef.id + "\"),\n \"" + dep.groupId + "\", \"" +
-        dep.artifactId + "\", \"" + dep.version + "\", \"" + dep.typeN + "\", \"" +
-        dep.scope + "\", \"" + dep.packaging + "\", \"" + dep.classifier + "\")"
-    }
-
-    assertBy(expected, actual, defstr)
+    assertBy(expected, actual, Util.show)
   }
 
   private def assertBy[L](expected: Seq[L], actual: Seq[L], fn: L => String) = {
@@ -1905,7 +1939,7 @@ object PomModTest {
 
   def document(elem: Elem): Document = Xpath.newDocument(elem.toString())
 
-  def pomfile(doc: Document) = RawPomFile(new File("f"), doc, new File("f"))
+  def pomfile(doc: Document): RawPomFile = RawPomFile(new File("f"), doc, new File("f"))
 
   sealed case class TestFileBuilder(temp: TemporaryFolder, root: Document, treeFileContent: String = "",
                                     subs: Seq[(String, Document, String, Seq[(String, Document, String)])],

@@ -227,12 +227,12 @@ object SbtMod {
               groupId = "org.scala-lang",
               artifactId = "scala3-library_3",
               version = Some(lv.get),
-              "", "", "", ""))
+              "", "", "", "", Nil))
             case lv => Seq(ProjectMod.Dep(SelfRef.undef,
               groupId = "org.scala-lang",
               artifactId = "scala-library",
               version = Some(lv.get),
-              "", "", "", ""))
+              "", "", "", "", Nil))
           }
 
           val sbt = sbtVersionL match {
@@ -241,7 +241,7 @@ object SbtMod {
               groupId = "org.scala-sbt",
               artifactId = "sbt",
               version = Some(lv.get),
-              "", "", "", ""))
+              "", "", "", "", Nil))
           }
           val allVals: Map[String, String] = vp.collect({ case o: ValDef => o })
             .map(kv => (kv.key -> kv.value))
@@ -287,7 +287,7 @@ object SbtMod {
               groupId = eval(allVals)(d.groupId),
               artifactId = eval(allVals)(d.artifactId),
               version = Some(eval(allVals)(d.version)),
-              "", "", "", ""))
+              "", "", "", "", Nil))
           SbtModel(deps = sbt ++ scala ++ result, selfVersion = selfVersionL)
         }
         case f: Failure => {

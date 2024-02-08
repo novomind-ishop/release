@@ -432,7 +432,7 @@ class ReleaseTest extends AssertionsForJUnit {
   @Test
   def testFindDiff_single(): Unit = {
     val value = "50.1.2"
-    val d = ProjectMod.Dep(SelfRef.undef, "g", "a", Some(value), "", "", "", "")
+    val d = ProjectModTest.depOf(pomRef = SelfRef.undef, groupId = "g", artifactId = "a", version = Some(value))
     val deps = Seq((value, d))
     Assert.assertEquals((Seq("50"), false, Seq(("50", d))), Release.findDiff("50", deps))
   }
@@ -440,7 +440,7 @@ class ReleaseTest extends AssertionsForJUnit {
   @Test
   def testFindDiff_single_2(): Unit = {
     val value = "50.1.2"
-    val d = ProjectMod.Dep(SelfRef.undef, "g", "a", Some(value), "", "", "", "")
+    val d = ProjectModTest.depOf(pomRef = SelfRef.undef, groupId = "g", artifactId = "a", version = Some(value))
     val deps = Seq((value, d), (value, d.copy(artifactId = "a2")))
     Assert.assertEquals((Seq("50"), false, Seq(("50", d), ("50", d.copy(artifactId = "a2")))), Release.findDiff("50", deps))
   }
@@ -448,7 +448,7 @@ class ReleaseTest extends AssertionsForJUnit {
   @Test
   def testFindDiff_single_snpashot(): Unit = {
     val value = "50.1.2-SNAPSHOT"
-    val d = ProjectMod.Dep(SelfRef.undef, "g", "a", Some(value), "", "", "", "")
+    val d = ProjectModTest.depOf(pomRef = SelfRef.undef, groupId = "g", artifactId = "a", version = Some(value))
     val deps = Seq((value, d))
     Assert.assertEquals((Seq("50"), false, Seq(("50", d))), Release.findDiff("50", deps))
   }
@@ -456,7 +456,7 @@ class ReleaseTest extends AssertionsForJUnit {
   @Test
   def testFindDiff_single_snpashot_2(): Unit = {
     val value = "50.1.2-SNAPSHOT"
-    val d = ProjectMod.Dep(SelfRef.undef, "g", "a", Some(value), "", "", "", "")
+    val d = ProjectModTest.depOfUndef(groupId = "g", artifactId = "a", version = Some(value))
     val deps = Seq((value, d), (value, d.copy(artifactId = "a2")))
     Assert.assertEquals((Seq("50"), false, Seq(("50", d), ("50", d.copy(artifactId = "a2")))), Release.findDiff("50", deps))
   }
@@ -464,7 +464,7 @@ class ReleaseTest extends AssertionsForJUnit {
   @Test
   def testFindDiff_single_x_snpashot(): Unit = {
     val value = "50x-SNAPSHOT"
-    val d = ProjectMod.Dep(SelfRef.undef, "g", "a", Some(value), "", "", "", "")
+    val d = ProjectModTest.depOfUndef(groupId = "g", artifactId = "a", version = Some(value))
     val deps = Seq((value, d))
     Assert.assertEquals((Seq("50"), false, Seq(("50", d))), Release.findDiff("50", deps))
   }
@@ -472,7 +472,7 @@ class ReleaseTest extends AssertionsForJUnit {
   @Test
   def testFindDiff_single_x_snpashot_2(): Unit = {
     val value = "50x-SNAPSHOT"
-    val d = ProjectMod.Dep(SelfRef.undef, "g", "a", Some(value), "", "", "", "")
+    val d = ProjectModTest.depOfUndef(groupId = "g", artifactId = "a", version = Some(value))
     val deps = Seq((value, d), (value, d.copy(artifactId = "a2")))
     Assert.assertEquals((Seq("50"), false, Seq(("50", d), ("50", d.copy(artifactId = "a2")))), Release.findDiff(value, deps))
   }
@@ -568,23 +568,23 @@ class ReleaseTest extends AssertionsForJUnit {
       val testMod = new ProjectModTest.MockMod() {
         override def listSnapshotDependenciesDistinct: Seq[ProjectMod.Dep] = {
           Seq(
-            ProjectModTest.depOf("org.example", "example", "1.0.0-SNAPSHOT"),
-            ProjectModTest.depOf("org.example", "example2", "1.0.0-SNAPSHOT"),
+            ProjectModTest.depOfShort("org.example", "example", "1.0.0-SNAPSHOT"),
+            ProjectModTest.depOfShort("org.example", "example2", "1.0.0-SNAPSHOT"),
           )
         }
 
         override private[release] def listDeps() = {
           Seq(
-            ProjectModTest.depOf("org.example", "example3", "3.0.0"),
-            ProjectModTest.depOf("org.example", "example", "1.0.0-SNAPSHOT"),
-            ProjectModTest.depOf("org.example", "self", "1.0.0-SNAPSHOT"),
-            ProjectModTest.depOf("org.example", "plugin", "1.0.0-SNAPSHOT"),
+            ProjectModTest.depOfShort("org.example", "example3", "3.0.0"),
+            ProjectModTest.depOfShort("org.example", "example", "1.0.0-SNAPSHOT"),
+            ProjectModTest.depOfShort("org.example", "self", "1.0.0-SNAPSHOT"),
+            ProjectModTest.depOfShort("org.example", "plugin", "1.0.0-SNAPSHOT"),
           )
         }
 
         override def getSelfDepsMod: Seq[ProjectMod.Dep] = {
           Seq(
-            ProjectModTest.depOf("org.example", "self", "1.0.0-SNAPSHOT"),
+            ProjectModTest.depOfShort("org.example", "self", "1.0.0-SNAPSHOT"),
           )
         }
       }

@@ -7,4 +7,4 @@ project/target
 .idea/
 .idea_modules/
 .bsp/
-
+.attach_*

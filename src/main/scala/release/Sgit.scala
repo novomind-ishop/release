@@ -338,6 +338,9 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   def remoteHeadRaw(): Try[Option[String]] = {
     Sgit.toRawRemoteHead(remoteHead())
   }
+  private[release] def listCommitterNames(): Seq[String] = {
+    gitNative(Seq("log", "--all", "--pretty=%an", "--since=14.days")).distinct.sorted
+  }
 
   def listBranchNamesRemote(): Seq[String] = listBranchRemoteRaw().map(_.branchName).sorted
 

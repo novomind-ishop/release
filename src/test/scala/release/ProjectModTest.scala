@@ -1,12 +1,12 @@
 package release
 
 import org.junit.{Assert, Test}
-import org.mockito.ArgumentMatchers.anyString
+import org.mockito.ArgumentMatchers.{anyString, argThat}
 import org.mockito.{ArgumentMatchers, Mockito}
 import org.mockito.MockitoSugar._
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.ProjectMod.{Dep, Gav, Gav3, GavWithRef, SelfRef, UpdatePrinter}
-import release.ProjectModTest.MockMod
+import release.ProjectModTest.{MockMod, depOfShort}
 import release.SbtModTest.d
 import release.Starter.OptsDepUp
 
@@ -15,6 +15,30 @@ import java.time.{Duration, ZonedDateTime}
 import scala.collection.immutable.ListMap
 
 object ProjectModTest {
+
+  def parseSelfRef(id: String): SelfRef = {
+    val splited = id.split(":").toSeq
+    splited.size match {
+      case 3 => SelfRef.ofGav(Gav(splited.head, splited(1), Some(splited(2))))
+      case 4 => SelfRef.ofGav(Gav(splited.head, splited(1), Some(splited(2)), splited(3)))
+      case size => throw new IllegalStateException(s"not valid id for ref splitting ${id} (${size})")
+    }
+  }
+
+  def depOfUndef(groupId: String, artifactId: String, version: Option[String] = None, typeN: String = "",
+                 scope: String = "", packaging: String = "", classifier: String = "", pomPath: Seq[String] = Nil): Dep = {
+    depOf(pomRef = SelfRef.undef, groupId, artifactId, version, typeN, scope, packaging, classifier, pomPath)
+  }
+
+  def depOf(pomRef: SelfRef, groupId: String, artifactId: String, version: Option[String] = None, typeN: String = "",
+            scope: String = "", packaging: String = "", classifier: String = "", pomPath: Seq[String] = Nil): Dep = {
+    Dep(pomRef, groupId, artifactId, version, typeN, scope, packaging, classifier, pomPath)
+  }
+
+  def depOfShort(g: String, a: String, v: String, scope: String = ""): ProjectMod.Dep = {
+    depOf(pomRef = SelfRef.undef, groupId = g, artifactId = a, version = Some(v), scope = scope)
+  }
+
   class MockMod extends ProjectMod {
 
     override val file: File = new File("")
@@ -55,9 +79,6 @@ object ProjectModTest {
     override def listRemoteRepoUrls(): Seq[String] = Nil
   }
 
-  def depOf(g: String, a: String, v: String, scope: String = ""): ProjectMod.Dep = {
-    Dep(SelfRef.undef, g, a, Some(v), "", scope, "", "")
-  }
 }
 
 class ProjectModTest extends AssertionsForJUnit {
@@ -105,7 +126,7 @@ class ProjectModTest extends AssertionsForJUnit {
 
       val innerResult: Seq[(GavWithRef, (Seq[String], Duration))] = ProjectMod.collectDependencyUpdates(
         new UpdatePrinter(100, term, sys, printProgress = true), opts,
-        rootDeps, selfDepsModX,new RepoProxy( Seq(repoMock1, repoMock2)), checkOnline = false)
+        rootDeps, selfDepsModX, new RepoProxy(Seq(repoMock1, repoMock2)), checkOnline = false)
 
       val sca1 = GavWithRef(SelfRef.undef, anyDep.gav())
       val scala2 = (sca1, (Seq("2.13.1", "2.13.2"), Duration.ZERO))
@@ -172,20 +193,20 @@ class ProjectModTest extends AssertionsForJUnit {
     val testee = new ProjectModTest.MockMod() {
 
       override val selfDepsMod: Seq[ProjectMod.Dep] = Seq(
-        Dep(SelfRef.parse("ou:x:x"), "gg", "a", "v", "", "", "", ""),
+        ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("ou:x:x"), groupId = "gg", artifactId = "a", version = Some("v")),
       )
       override val listDependencies: Seq[ProjectMod.Dep] = Seq(
-        Dep(SelfRef.undef, "g", "a", "v", "", "", "", ""),
-        Dep(SelfRef.undef, "g", "a", "v", "", "runtime", "", ""),
-        Dep(SelfRef.undef, "g", "a", "v", "", "john", "", ""),
-        Dep(SelfRef.undef, "g", "a", None, "", "john", "", ""),
-        Dep(SelfRef.undef, "g", "a", "v", "", "", "", ""),
-        Dep(SelfRef.parse("bert:x:x"), "g", "a", "v", "", "", "", ""),
-        Dep(SelfRef.parse("se:x:x"), "gg", "a", "v", "", "", "", ""),
+        ProjectModTest.depOf(pomRef = SelfRef.undef, groupId = "g", artifactId = "a", version = Some("v")),
+        ProjectModTest.depOf(pomRef = SelfRef.undef, groupId = "g", artifactId = "a", version = Some("v"), scope = "runtime"),
+        ProjectModTest.depOf(pomRef = SelfRef.undef, groupId = "g", artifactId = "a", version = Some("v"), scope = "john"),
+        ProjectModTest.depOf(pomRef = SelfRef.undef, groupId = "g", artifactId = "a", version = None, scope = "john"),
+        ProjectModTest.depOf(pomRef = SelfRef.undef, groupId = "g", artifactId = "a", version = Some("v")),
+        ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("bert:x:x"), groupId = "g", artifactId = "a", version = Some("v")),
+        ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("se:x:x"), groupId = "gg", artifactId = "a", version = Some("v")),
       )
     }
     Assert.assertEquals(Seq(
-      Dep(SelfRef.undef, "g", "a", "v", "", "", "", "")
+      ProjectModTest.depOf(pomRef = SelfRef.undef, groupId = "g", artifactId = "a", version = Some("v"))
     ), testee.listGavsForCheck())
 
     Assert.assertEquals(Seq(
@@ -276,7 +297,7 @@ class ProjectModTest extends AssertionsForJUnit {
     val filteredOut = result.out
       .linesIterator
       .map(line => {
-        if (line.matches(".* dependecies in [0-9]+ms \\(20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]\\)$")) {
+        if (line.matches(".* dependencies in [0-9]+ms \\(20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]\\)$")) {
           line.replaceFirst(" in.*", " in ...")
         } else {
           line
@@ -285,10 +306,10 @@ class ProjectModTest extends AssertionsForJUnit {
       .mkString("\n")
     Assert.assertEquals(
       """
-        |I: checking dependecies against nexus - please wait
-        |I: checked 0 dependecies in ...
-        |I: checking dependecies against nexus - please wait
-        |I: checked 0 dependecies in ...
+        |I: checking dependencies against nexus - please wait
+        |I: checked 0 dependencies in ...
+        |I: checking dependencies against nexus - please wait
+        |I: checked 0 dependencies in ...
         |""".stripMargin.trim, filteredOut)
 
   }

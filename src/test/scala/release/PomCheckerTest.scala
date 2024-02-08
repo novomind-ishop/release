@@ -49,11 +49,11 @@ class PomCheckerTest extends AssertionsForJUnit {
   @Test
   def testCheckDepVersions_noException(): Unit = {
     // GIVEN
-    val ref1 = SelfRef.parse("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
-    val ref2 = SelfRef.parse("com.novomind.ishop.shops:util:27.0.0-SNAPSHOT:jar")
+    val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
+    val ref2 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:util:27.0.0-SNAPSHOT:jar")
     val deps: Seq[Dep] = Seq(
-      Dep(ref2, "any.group", "valid", Some("1.0.0"), "", "test", "", ""),
-      Dep(ref1, "any.group", "valid", Some("1.0.0"), "", "compile", "", ""),
+      ProjectModTest.depOf(pomRef = ref2, groupId = "any.group", artifactId = "valid", version = Some("1.0.0"), scope = "test"),
+      ProjectModTest.depOf(pomRef = ref1, groupId = "any.group", artifactId = "valid", version = Some("1.0.0"), scope = "compile"),
     )
 
     // WHEN / THEN
@@ -63,9 +63,9 @@ class PomCheckerTest extends AssertionsForJUnit {
   @Test
   def testCheckDepVersions_noException_var(): Unit = {
     // GIVEN
-    val ref1 = SelfRef.parse("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
+    val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
     val deps: Seq[Dep] = Seq(
-      Dep(ref1, "any.group", "valid", Some("${v}"), "", "test", "", ""),
+      ProjectModTest.depOf(pomRef = ref1, groupId = "any.group", artifactId = "valid", version = Some("${v}"), scope = "test"),
     )
     val props = Map("v" -> "1.2.0")
     // WHEN / THEN
@@ -75,27 +75,27 @@ class PomCheckerTest extends AssertionsForJUnit {
   @Test
   def testCheckDepVersions(): Unit = {
     // GIVEN
-    val ref1 = SelfRef.parse("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
-    val ref2 = SelfRef.parse("com.novomind.ishop.shops:util:27.0.0-SNAPSHOT:jar")
+    val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
+    val ref2 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:util:27.0.0-SNAPSHOT:jar")
     val deps: Seq[Dep] = Seq(
-      Dep(ref1, "any.group", "some", Some("1.0.0"), "", "compile", "", ""),
-      Dep(ref1, "any.group", "some", Some("1.0.0"), "", "compile", "", ""),
+      ProjectModTest.depOf(pomRef = ref1, groupId = "any.group", artifactId = "some", version = Some("1.0.0"), scope = "compile"),
+      ProjectModTest.depOf(pomRef = ref1, groupId = "any.group", artifactId = "some", version = Some("1.0.0"), scope = "compile"),
 
-      Dep(ref1, "any.group", "other", Some("1.0.0"), "", "runtime", "", ""),
+      ProjectModTest.depOf(pomRef = ref1, groupId = "any.group", artifactId = "other", version = Some("1.0.0"), scope = "runtime"),
 
-      Dep(ref1, "any.group", "wrong", Some("1.0.0"), "", "test", "", ""),
-      Dep(ref1, "any.group", "wrong", Some("2.0.0"), "", "test", "", ""),
+      ProjectModTest.depOf(pomRef = ref1, groupId = "any.group", artifactId = "wrong", version = Some("1.0.0"), scope = "test"),
+      ProjectModTest.depOf(pomRef = ref1, groupId = "any.group", artifactId = "wrong", version = Some("2.0.0"), scope = "test"),
 
-      Dep(ref2, "any.group", "different-ref", Some("1.0.0"), "", "test", "", ""),
-      Dep(ref1, "any.group", "different-ref", Some("1.2.0"), "", "test", "", ""),
+      ProjectModTest.depOf(pomRef = ref2, groupId = "any.group", artifactId = "different-ref", version = Some("1.0.0"), scope = "test"),
+      ProjectModTest.depOf(pomRef = ref1, groupId = "any.group", artifactId = "different-ref", version = Some("1.2.0"), scope = "test"),
 
-      Dep(ref2, "any.group", "wrong2", Some("1.0.0"), "", "test", "", ""),
-      Dep(ref2, "any.group", "wrong2", Some("1.2.0"), "", "test", "", ""),
-      Dep(ref2, "any.group", "wrong2", Some("1.2.0"), "", "test", "", ""),
-      Dep(ref2, "any.group", "wrong2", Some("${wrongV}"), "", "test", "", ""),
-      Dep(ref2, "any.group", "wrong2", Some("${wrongV2}"), "", "test", "", ""),
-      Dep(ref2, "any.group", "wrong2", None, "", "test", "", ""),
-      Dep(ref2, "any.group", "wrong2", Some(""), "", "test", "", ""),
+      ProjectModTest.depOf(pomRef = ref2, groupId = "any.group", artifactId = "wrong2", version = Some("1.0.0"), scope = "test"),
+      ProjectModTest.depOf(pomRef = ref2, groupId = "any.group", artifactId = "wrong2", version = Some("1.2.0"), scope = "test"),
+      ProjectModTest.depOf(pomRef = ref2, groupId = "any.group", artifactId = "wrong2", version = Some("1.2.0"), scope = "test"),
+      ProjectModTest.depOf(pomRef = ref2, groupId = "any.group", artifactId = "wrong2", version = Some("${wrongV}"), scope = "test"),
+      ProjectModTest.depOf(pomRef = ref2, groupId = "any.group", artifactId = "wrong2", version = Some("${wrongV2}"), scope = "test"),
+      ProjectModTest.depOf(pomRef = ref2, groupId = "any.group", artifactId = "wrong2", version = None, scope = "test"),
+      ProjectModTest.depOf(pomRef = ref2, groupId = "any.group", artifactId = "wrong2", version = Some(""), scope = "test"),
     )
 
     val props = Map("wrongV" -> "1.2.0", "wrongV2" -> "1.2.1")
@@ -120,11 +120,11 @@ class PomCheckerTest extends AssertionsForJUnit {
   @Test
   def testCheckDepScopes_noException(): Unit = {
     // GIVEN
-    val ref1 = SelfRef.parse("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
-    val ref2 = SelfRef.parse("com.novomind.ishop.shops:util:27.0.0-SNAPSHOT:jar")
+    val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
+    val ref2 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:util:27.0.0-SNAPSHOT:jar")
     val deps: Seq[Dep] = Seq(
-      Dep(ref2, "any.group", "valid", Some("1.0.0"), "", "test", "", ""),
-      Dep(ref1, "any.group", "valid", Some("1.0.0"), "", "compile", "", ""),
+      ProjectModTest.depOf(pomRef = ref2, "any.group", "valid", Some("1.0.0"), "", "test", "", ""),
+      ProjectModTest.depOf(pomRef = ref1, "any.group", "valid", Some("1.0.0"), "", "compile", "", ""),
     )
 
     // WHEN / THEN
@@ -134,11 +134,11 @@ class PomCheckerTest extends AssertionsForJUnit {
   @Test
   def testCheckDepScopesCopy(): Unit = {
     // GIVEN
-    val ref1 = SelfRef.parse("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
+    val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
     val deps: Seq[Dep] = Seq(
-      Dep(ref1, "any.group", "copy", Some("1.0.0"), "", "compile", "", ""),
-      Dep(ref1, "any.group", "copy", Some("1.0.0"), "", "compile", "", ""),
-      Dep(ref1, "any.group", "copy", Some("1.0.0"), "", "", "", ""),
+      ProjectModTest.depOf(pomRef = ref1, "any.group", "copy", Some("1.0.0"), "", "compile", "", ""),
+      ProjectModTest.depOf(pomRef = ref1, "any.group", "copy", Some("1.0.0"), "", "compile", "", ""),
+      ProjectModTest.depOf(pomRef = ref1, "any.group", "copy", Some("1.0.0"), "", "", "", ""),
     )
 
     // WHEN / THEN
@@ -154,16 +154,16 @@ class PomCheckerTest extends AssertionsForJUnit {
   @Test
   def testCheckDepScopes(): Unit = {
     // GIVEN
-    val ref1 = SelfRef.parse("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
-    val ref2 = SelfRef.parse("com.novomind.ishop.shops:util:27.0.0-SNAPSHOT:jar")
+    val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
+    val ref2 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:util:27.0.0-SNAPSHOT:jar")
     val deps: Seq[Dep] = Seq(
-      Dep(ref1, "any.group", "some", Some("1.0.0"), "", "compile", "", ""),
-      Dep(ref1, "any.group", "some", Some("1.0.0"), "", "runtime", "", ""),
-      Dep(ref1, "any.group", "other", Some("1.0.0"), "", "runtime", "", ""),
-      Dep(ref1, "any.group", "wrong", Some("1.0.0"), "", "test", "", ""),
-      Dep(ref1, "any.group", "wrong", Some("1.0.0"), "", "compile", "", ""),
-      Dep(ref2, "any.group", "valid", Some("1.0.0"), "", "test", "", ""),
-      Dep(ref1, "any.group", "valid", Some("1.0.0"), "", "compile", "", ""),
+      ProjectModTest.depOf(pomRef = ref1, "any.group", "some", Some("1.0.0"), "", "compile", "", ""),
+      ProjectModTest.depOf(pomRef = ref1, "any.group", "some", Some("1.0.0"), "", "runtime", "", ""),
+      ProjectModTest.depOf(pomRef = ref1, "any.group", "other", Some("1.0.0"), "", "runtime", "", ""),
+      ProjectModTest.depOf(pomRef = ref1, "any.group", "wrong", Some("1.0.0"), "", "test", "", ""),
+      ProjectModTest.depOf(pomRef = ref1, "any.group", "wrong", Some("1.0.0"), "", "compile", "", ""),
+      ProjectModTest.depOf(pomRef = ref2, "any.group", "valid", Some("1.0.0"), "", "test", "", ""),
+      ProjectModTest.depOf(pomRef = ref1, "any.group", "valid", Some("1.0.0"), "", "compile", "", ""),
     )
 
     // WHEN / THEN
@@ -186,9 +186,9 @@ class PomCheckerTest extends AssertionsForJUnit {
   @Test
   def testCheckExternalWithProjectScope_noException(): Unit = {
     // GIVEN
-    val ref1 = SelfRef.parse("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
-    val a = Dep(ref1, "com.novomind.ishop.shops", "valid", Some("1.0.0"), "", "test", "", "")
-    val b = Dep(ref1, "any.group", "valid", Some("1.0.0"), "", "test", "", "")
+    val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
+    val a = ProjectModTest.depOf(pomRef = ref1, "com.novomind.ishop.shops", "valid", Some("1.0.0"), "", "test", "", "")
+    val b = ProjectModTest.depOf(pomRef = ref1, "any.group", "valid", Some("1.0.0"), "", "test", "", "")
 
     // WHEN / THEN
     PomChecker.checkExternalWithProjectScope(Seq(a, b), Seq(a), Map("project.version" -> "27.0.0-SNAPSHOT")) // no exception
@@ -197,9 +197,9 @@ class PomCheckerTest extends AssertionsForJUnit {
   @Test
   def testCheckExternalWithProjectScope_selfvar(): Unit = {
     // GIVEN
-    val ref1 = SelfRef.parse("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
-    val a = Dep(ref1, "com.novomind.ishop.shops", "valid", Some("${project.version}"), "", "test", "", "")
-    val b = Dep(ref1, "any.group", "valid", Some("1.0.0"), "", "test", "", "")
+    val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
+    val a = ProjectModTest.depOf(pomRef = ref1, "com.novomind.ishop.shops", "valid", Some("${project.version}"), "", "test", "", "")
+    val b = ProjectModTest.depOf(pomRef = ref1, "any.group", "valid", Some("1.0.0"), "", "test", "", "")
 
     // WHEN / THEN
     PomChecker.checkExternalWithProjectScope(Seq(a, b), Seq(a), Map("project.version" -> "27.0.0-SNAPSHOT")) // no exception
@@ -208,10 +208,10 @@ class PomCheckerTest extends AssertionsForJUnit {
   @Test
   def testCheckExternalWithProjectScope_selfvar1(): Unit = {
     // GIVEN
-    val ref1 = SelfRef.parse("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
-    val a = Dep(ref1, "com.novomind.ishop.shops", "valid", Some("${project.version}"), "", "", "", "")
-    val a1 = Dep(ref1, "com.novomind.ishop.shops", "valid", Some("27.0.0-SNAPSHOT"), "", "", "", "")
-    val b = Dep(ref1, "any.group", "valid", Some("1.0.0"), "", "test", "", "")
+    val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
+    val a = ProjectModTest.depOf(pomRef = ref1, "com.novomind.ishop.shops", "valid", Some("${project.version}"), "", "", "", "")
+    val a1 = ProjectModTest.depOf(pomRef = ref1, "com.novomind.ishop.shops", "valid", Some("27.0.0-SNAPSHOT"), "", "", "", "")
+    val b = ProjectModTest.depOf(pomRef = ref1, "any.group", "valid", Some("1.0.0"), "", "test", "", "")
 
     // WHEN / THEN
     PomChecker.checkExternalWithProjectScope(Seq(a, b), Seq(a1), Map("project.version" -> "27.0.0-SNAPSHOT")) // no exception
@@ -220,9 +220,9 @@ class PomCheckerTest extends AssertionsForJUnit {
   @Test
   def testCheckExternalWithProjectScope_exception(): Unit = {
     // GIVEN
-    val ref1 = SelfRef.parse("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
-    val a = Dep(ref1, "com.novomind.ishop.shops", "valid", Some("${project.version}"), "", "test", "", "")
-    val b = Dep(ref1, "any.group", "valid", Some("${project.version}"), "", "test", "", "")
+    val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
+    val a = ProjectModTest.depOf(pomRef = ref1, "com.novomind.ishop.shops", "valid", Some("${project.version}"), "", "test", "", "")
+    val b = ProjectModTest.depOf(pomRef = ref1, "any.group", "valid", Some("${project.version}"), "", "test", "", "")
 
     // WHEN / THEN
     TestHelper.assertException(
@@ -289,16 +289,16 @@ class PomCheckerTest extends AssertionsForJUnit {
         PomChecker.checkRootFirstChildPropertiesVar(Opts().copy(skipProperties = Seq("valid")), Seq(pomfile(root), pomfile(child)))
       })
 
-    val srcPoms: File = pomTestFile(temp,root).sub("a", child).create()
+    val srcPoms: File = pomTestFile(temp, root).sub("a", child).create()
     val msg = "unnecessary/multiple property definition (move property to parent pom or remove from sub poms):\n" +
       "  (p -> 1), (valid -> 1)\n" +
       "      -> very.long.groupid.any:a-parent:1.0.0-SNAPSHOT\n" +
       "      -> any:a:1.0.0-SNAPSHOT"
     TestHelper.assertException(msg,
       classOf[ValidationException], () => {
-        PomModTest.withRepoForTests(srcPoms,Opts().newRepo)
+        PomModTest.withRepoForTests(srcPoms, Opts().newRepo)
       })
-    var failures:Seq[Exception] = Nil
+    var failures: Seq[Exception] = Nil
     PomModTest.withRepoForTests(srcPoms, Opts().newRepo, failureCollector = Some(e => failures = failures :+ e))
     Assert.assertEquals(Seq(msg), failures.map(_.getMessage))
   }
@@ -580,7 +580,7 @@ class PomCheckerTest extends AssertionsForJUnit {
   @Test
   def testCheck_ishop_maven_changes_before(): Unit = {
     // GIVEN
-    val deps: Seq[PluginDep] = Seq(PluginDep(SelfRef.parse("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war"),
+    val deps: Seq[PluginDep] = Seq(PluginDep(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war"),
       "com.novomind.ishop.maven", "ishop-maven-plugin", Some(""), Seq(PluginExec("", Seq("check-for-changes-package"), "", Map())),
       Seq("plugin", "plugins", "build", "project")))
 
@@ -593,8 +593,8 @@ class PomCheckerTest extends AssertionsForJUnit {
   @Test
   def testCheck_ishop_maven_changes_package(): Unit = {
     // GIVEN
-    val deps: Seq[PluginDep] = Seq(PluginDep(SelfRef.parse("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war"),
-      "com.novomind.ishop.maven", "ishop-maven-plugin",Some(""), Seq(PluginExec("", Seq("check-for-changes-before"), "", Map())),
+    val deps: Seq[PluginDep] = Seq(PluginDep(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war"),
+      "com.novomind.ishop.maven", "ishop-maven-plugin", Some(""), Seq(PluginExec("", Seq("check-for-changes-before"), "", Map())),
       Seq("plugin", "plugins", "build", "project")))
 
     // WHEN / THEN
@@ -606,7 +606,7 @@ class PomCheckerTest extends AssertionsForJUnit {
   @Test
   def testCheck_ishop_maven(): Unit = {
     // GIVEN
-    val deps: Seq[PluginDep] = Seq(PluginDep(SelfRef.parse("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war"),
+    val deps: Seq[PluginDep] = Seq(PluginDep(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war"),
       "com.novomind.ishop.maven", "ishop-maven-plugin", Some(""),
       Seq(PluginExec("", Seq("check-for-changes-before", "check-for-changes-package"), "", Map())),
       Seq("plugin", "plugins", "build", "project")))
@@ -621,12 +621,12 @@ class PomCheckerTest extends AssertionsForJUnit {
   @Test
   def testCheck_ishop_maven_managed(): Unit = {
     // GIVEN
-    val deps: Seq[PluginDep] = Seq(PluginDep(SelfRef.parse("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war"),
+    val deps: Seq[PluginDep] = Seq(PluginDep(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war"),
       "com.novomind.ishop.maven", "ishop-maven-plugin", Some(""),
       Seq(PluginExec("", Seq("check-for-changes-before", "check-for-changes-package"), "", Map())),
       Seq("plugin", "plugins", "build", "project")),
 
-      PluginDep(SelfRef.parse("com.novomind.ishop.shops:anyshop-any:27.0.0-SNAPSHOT:jar"),
+      PluginDep(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop-any:27.0.0-SNAPSHOT:jar"),
         "com.novomind.ishop.maven", "ishop-maven-plugin", Some(""), Nil,
         Seq("plugin", "plugins", "pluginManagement", "build", "project")))
 
@@ -640,12 +640,12 @@ class PomCheckerTest extends AssertionsForJUnit {
   @Test
   def testCheck_ishop_maven_multiple_no_exec(): Unit = {
     // GIVEN
-    val deps: Seq[PluginDep] = Seq(PluginDep(SelfRef.parse("c.n.i.s:n:0.0.1-SNAPSHOT:war"),
+    val deps: Seq[PluginDep] = Seq(PluginDep(ProjectModTest.parseSelfRef("c.n.i.s:n:0.0.1-SNAPSHOT:war"),
       "com.novomind.ishop.maven", "ishop-maven-plugin", Some(""), Seq(PluginExec("",
         Seq("check-for-changes-before", "check-for-changes-package"), "", Map())),
       Seq("plugin", "plugins", "build", "project")),
 
-      PluginDep(SelfRef.parse("c.n.i.s:n-any:0.0.1-SNAPSHOT:jar"),
+      PluginDep(ProjectModTest.parseSelfRef("c.n.i.s:n-any:0.0.1-SNAPSHOT:jar"),
         "com.novomind.ishop.maven", "ishop-maven-plugin", Some(""), Nil,
         Seq("plugin", "plugins", "build", "project")))
 
@@ -657,7 +657,7 @@ class PomCheckerTest extends AssertionsForJUnit {
   @Test
   def testCheck_ishop_maven_pom_path(): Unit = {
     // GIVEN
-    val deps: Seq[PluginDep] = Seq(PluginDep(SelfRef.parse("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war"),
+    val deps: Seq[PluginDep] = Seq(PluginDep(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war"),
       "com.novomind.ishop.maven", "ishop-maven-plugin", Some(""),
       Seq(PluginExec("", Seq("check-for-changes-before", "check-for-changes-package"), "", Map())),
       Seq("plugin", "plugins", "build", "profile", "profiles", "project")))
@@ -672,7 +672,7 @@ class PomCheckerTest extends AssertionsForJUnit {
   def testCheck_maven_dependecy_plugin_invalid_output_position(): Unit = {
 
     // GIVEN
-    val deps = Seq(PluginDep(SelfRef.parse("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
+    val deps = Seq(PluginDep(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
       "org.apache.maven.plugins", "maven-dependency-plugin", Some("2.8"),
       Seq(
         PluginExec("pre-build-validate-any", Seq("tree"), "validate", Map("outputFile" -> "target/dependency-tree")),
@@ -689,7 +689,7 @@ class PomCheckerTest extends AssertionsForJUnit {
   def testCheck_maven_dependecy_plugin_invalid_phase(): Unit = {
 
     // GIVEN
-    val deps = Seq(PluginDep(SelfRef.parse("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
+    val deps = Seq(PluginDep(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
       "org.apache.maven.plugins", "maven-dependency-plugin", Some("2.8"),
       Seq(
         PluginExec("pre-build-validate-tree", Seq("tree"), "test", Map("outputFile" -> "target/dependency-tree")),
@@ -705,7 +705,7 @@ class PomCheckerTest extends AssertionsForJUnit {
   def testCheck_maven_dependecy_plugin_empty_config(): Unit = {
 
     // GIVEN
-    val deps = Seq(PluginDep(SelfRef.parse("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
+    val deps = Seq(PluginDep(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
       "org.apache.maven.plugins", "maven-dependency-plugin", Some("2.8"),
       Seq(
         PluginExec("pre-build-validate-tree", Seq("tree"), "validate", Map())),
@@ -721,7 +721,7 @@ class PomCheckerTest extends AssertionsForJUnit {
   def testCheck_maven_dependecy_plugin_invalid_exec(): Unit = {
 
     // GIVEN
-    val deps = Seq(PluginDep(SelfRef.parse("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
+    val deps = Seq(PluginDep(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
       "org.apache.maven.plugins", "maven-dependency-plugin", Some("2.8"), Nil,
       Seq("plugin", "plugins", "build", "project")))
 
@@ -734,7 +734,7 @@ class PomCheckerTest extends AssertionsForJUnit {
   def testCheck_maven_dependecy_plugin_valid(): Unit = {
 
     // GIVEN
-    val deps = Seq(PluginDep(SelfRef.parse("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
+    val deps = Seq(PluginDep(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
       "org.apache.maven.plugins", "maven-dependency-plugin", Some("2.8"),
       Seq(
         PluginExec("pre-build-validate-tree", Seq("tree"), "validate", Map("outputFile" -> "dep.tree")),
@@ -751,7 +751,7 @@ class PomCheckerTest extends AssertionsForJUnit {
   def testCheck_maven_dependecy_plugin_pomPath(): Unit = {
 
     // GIVEN
-    val deps = Seq(PluginDep(SelfRef.parse("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
+    val deps = Seq(PluginDep(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
       "org.apache.maven.plugins", "maven-dependency-plugin", Some("2.8"),
       Seq(
         PluginExec("pre-build-validate-tree", Seq("tree"), "validate", Map("outputFile" -> "dep.tree")),
@@ -792,7 +792,8 @@ class PomCheckerTest extends AssertionsForJUnit {
   @Test
   def testCheckGavFormat(): Unit = {
     val result = TermTest.withOutErr[Unit]()(sys => {
-      val base = ProjectMod.Dep(SelfRef.undef, "g", "a", Some("v"), "t", "runtime", "jar", "classi")
+      val base = ProjectModTest.depOfUndef(groupId = "g", artifactId = "a", version = Some("v"), typeN = "t", scope = "runtime",
+        packaging = "jar", classifier = "classi")
       PomChecker.checkGavFormat(Seq(
         base,
         base.copy(groupId = "g."),
@@ -818,5 +819,61 @@ class PomCheckerTest extends AssertionsForJUnit {
         |  "g:a:v:jar:classi:s "
         |  "g:a:v:~p:classi:runtime"
         |  "g:a:v;:jar:classi:runtime"""".stripMargin, result.out)
+  }
+
+  @Test
+  def testCheckOwnArtifacts_noException(): Unit = {
+    val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
+    val ref2 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:util:27.0.0-SNAPSHOT:jar")
+
+    val dep1 = ProjectModTest.depOf(pomRef = ref1, groupId = "any.group", artifactId = "some", version = Some("1.0.0"))
+    val dep2 = ProjectModTest.depOf(pomRef = ref2, groupId = "any.group", artifactId = "some2", version = Some("1.0.0"))
+
+    PomChecker.checkOwnArtifacts(Seq(
+      (dep1, new File("file/a/pom.xml")),
+      (dep2, new File("file/b/pom.xml")),
+    ), new File("file/"))
+
+    // no exception
+  }
+
+  @Test
+  def testCheckOwnArtifacts_2(): Unit = {
+    val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:otil:27.0.0-SNAPSHOT:war")
+    val ref2 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:util:27.0.0-SNAPSHOT:jar")
+
+    val dep1 = ProjectModTest.depOf(pomRef = ref1, groupId = "any.group", artifactId = "some", version = Some("1.0.0"))
+    val dep2 = ProjectModTest.depOf(pomRef = ref2, groupId = "any.group", artifactId = "some2", version = Some("1.0.0"))
+
+    TestHelper.assertException("" +
+      "»com.novomind.ishop.shops:otil« (in a/pom.xml) is too similar or identical to " +
+      "»com.novomind.ishop.shops:util« (in b/pom.xml). Please choose distinguishable names.",
+      classOf[ValidationException], () => {
+        PomChecker.checkOwnArtifacts(Seq(
+          (dep1, new File("file/a/pom.xml")),
+          (dep2, new File("file/b/pom.xml")),
+        ), new File("file/"))
+      })
+  }
+
+  @Test
+  def testCheckOwnArtifacts(): Unit = {
+    val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
+    val ref2 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:util:27.0.0-SNAPSHOT:jar")
+    val ref3 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:util:27.0.0-SNAPSHOT:jar")
+
+    val dep1 = ProjectModTest.depOf(pomRef = ref1, groupId = "any.group", artifactId = "some", version = Some("1.0.0"))
+    val dep2 = ProjectModTest.depOf(pomRef = ref2, groupId = "any.group", artifactId = "some", version = Some("1.0.0"))
+    val dep3 = ProjectModTest.depOf(pomRef = ref3, groupId = "any.group", artifactId = "some", version = Some("1.0.0"))
+    TestHelper.assertException("" +
+      "»com.novomind.ishop.shops:util« (in b/pom.xml) is too similar or identical to " +
+      "»com.novomind.ishop.shops:util« (in c/pom.xml). Please choose distinguishable names.", classOf[ValidationException], () => {
+      PomChecker.checkOwnArtifacts(Seq(
+        (dep1, new File("file/a/pom.xml")),
+        (dep2, new File("file/b/pom.xml")),
+        (dep3, new File("file/c/pom.xml")),
+      ), new File("file/"))
+    })
+
   }
 }
