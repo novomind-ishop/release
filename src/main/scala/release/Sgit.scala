@@ -897,10 +897,8 @@ object Sgit {
             ended = "2023-01-03", announced = "2022-06-29", announcedEnd = "2022-08-01",
             msg = "", gitPath = cmdLine)
         case v: String if v.startsWith("git version 2.34.") => // do nothing (2021-11-14) (tag: v2.34.0)
-          if (ReleaseConfig.isDocker()) {
-            List.tabulate(3)(_ =>
-              err.println("W: please update your git version, \"" + v + "\" support endet at 2023-01-03")
-            )
+          if (false && ReleaseConfig.isDocker()) {
+            // do nothing
           } else {
             throw new YourGitInstallationIsToOldException(version = "2.34",
               ended = "2023-01-03", announced = "2022-06-29", announcedEnd = "2022-08-01",

@@ -238,7 +238,7 @@ object Starter extends LazyLogging {
   case class OptsDepUp(showDependencyUpdates: Boolean = false, showHelp: Boolean = false,
                        hideLatest: Boolean = true, versionRangeLimit: Integer = 3,
                        hideStageVersions: Boolean = true, showLibYears: Boolean = false,
-                       changeToLatest: Boolean = false,
+                       changeToLatest: Boolean = false, allowDependencyDowngrades: Boolean = false,
                        filter: Option[Regex] = None,
                        invalids: Seq[String] = Nil)
 

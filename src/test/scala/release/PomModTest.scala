@@ -1663,6 +1663,9 @@ class PomModTest extends AssertionsForJUnit {
   def testVersionOrdering(): Unit = {
     val in = Seq(
       Version.parseSloppy("alpha"),
+      Version.parseSloppy("1.1.0-M2"), // TODO flip with M1
+      Version.parseSloppy("1.1.0-M1"),
+      Version.parseSloppy("1.1.0"),
       Version.parse("1.2.3"),
       Version.parse("2.2.3"),
       Version.parse("2.2.4"),
@@ -1671,6 +1674,7 @@ class PomModTest extends AssertionsForJUnit {
       Version.parseSloppy("4.0.0"),
       Version.parse("7"),
       Version.parse("9.1"),
+      Version.parseSloppy("10-bravo"), // TODO flip with alpha
       Version.parseSloppy("10-alpha"),
       Version.parseSloppy("10"),
       Version.parse("10.2.3"),

@@ -10,12 +10,25 @@ import java.io.{File, PrintStream}
 import java.time.{Duration, LocalDate, Period}
 import java.util.concurrent.TimeUnit
 import scala.annotation.tailrec
-import scala.collection.immutable.Seq
+import scala.collection.immutable.{ListMap, Seq}
 import scala.collection.parallel.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
 object ProjectMod extends LazyLogging {
-  def reduceIn(in: Map[Gav3, (Seq[String], Duration)]): Map[Gav3, (Seq[String], Duration)] = {
+
+  def toDepChangeMap(in: Seq[(ProjectMod.GavWithRef, (Seq[String], Duration))]): Map[Gav3, (Seq[String], Duration)] = {
+    in.map(k => (k._1.gav.simpleGav(), k._2)).to(ListMap)
+  }
+
+  def toDepChangeSeq(in: Map[Gav3, (Seq[String], Duration)]): Seq[(ProjectMod.GavWithRef, (Seq[String], Duration))] = {
+    in.toSeq.map(e => (GavWithRef(SelfRef.ofGav3(e._1), e._1.toGav()), e._2)).sortBy(_.toString())
+  }
+
+  def removeOlderVersions(in: Seq[(ProjectMod.GavWithRef, (Seq[String], Duration))]): Seq[(ProjectMod.GavWithRef, (Seq[String], Duration))] = {
+    toDepChangeSeq(removeOlderVersions(toDepChangeMap(in)))
+  }
+
+  def removeOlderVersions(in: Map[Gav3, (Seq[String], Duration)]): Map[Gav3, (Seq[String], Duration)] = {
     in.map(gavAndVersion => {
       val versionLiterals = gavAndVersion._2._1.map(Version.parseSloppy).sorted
       if (versionLiterals == Nil) {
@@ -610,7 +623,8 @@ object ProjectMod extends LazyLogging {
   }
 
   def collectDependencyUpdates(updatePrinter: UpdateCon, depUpOpts: OptsDepUp,
-                               rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], repoDelegator: RepoProxy, checkOnline: Boolean): Seq[(GavWithRef, (Seq[String], Duration))] = {
+                               rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], repoDelegator: RepoProxy,
+                               checkOnline: Boolean): Seq[(GavWithRef, (Seq[String], Duration))] = {
     if (checkOnline) {
       repoDelegator.repos.foreach(repo => {
         val reachableResult = repo.isReachable(false)
@@ -653,19 +667,26 @@ object ProjectMod extends LazyLogging {
 
     updatePrinter.println(s"I: checked ${value.size} dependencies in ${stopw.elapsed(TimeUnit.MILLISECONDS)}ms (${now.toString})")
 
-    // TODO move Version check to here
+    val checkedUpdates: Map[Gav3, (Seq[String], Duration)] = if (depUpOpts.allowDependencyDowngrades) {
+      updates
+    } else {
+      ProjectMod.removeOlderVersions(updates)
+    }
 
-    val checkedUpdates: Map[Gav3, (Seq[String], Duration)] = ProjectMod.reduceIn(updates)
+    def change(inp:Map[Gav3, (Seq[String], Duration)]) = {
+      (relevant ++ ProjectMod.relocatedDeps(relevant, repoDelegator)).distinct
+        .map(in => {
+          val ref = GavWithRef(in.pomRef, in.gav())
+          val a: (Seq[String], Duration) = inp.getOrElse(in.gav().simpleGav(), (Nil, Duration.ZERO))
+          (ref, a)
+        })
+        .filterNot((in: (GavWithRef, (Seq[String], Duration))) => depUpOpts.hideLatest && in._2._1.isEmpty)
+    }
 
-    val allWithUpdate: Seq[(GavWithRef, (Seq[String], Duration))] = (relevant ++ ProjectMod.relocatedDeps(relevant, repoDelegator)).distinct
-      .map(in => {
-        val ref = GavWithRef(in.pomRef, in.gav())
-        val a: (Seq[String], Duration) = checkedUpdates.getOrElse(in.gav().simpleGav(), (Nil, Duration.ZERO))
-        (ref, a)
-      })
-      .filterNot((in: (GavWithRef, (Seq[String], Duration))) => depUpOpts.hideLatest && in._2._1.isEmpty)
+    val allWithUpdate: Seq[(GavWithRef, (Seq[String], Duration))] = change(checkedUpdates)
+    val allWithUpdateForPrint: Seq[(GavWithRef, (Seq[String], Duration))] = change(ProjectMod.removeOlderVersions(updates))
 
-    allWithUpdate.groupBy(_._1.pomRef).foreach(element => {
+    allWithUpdateForPrint.groupBy(_._1.pomRef).foreach(element => {
       val ref: SelfRef = element._1
       val mods: Seq[(GavWithRef, (Seq[String], Duration))] = element._2
 

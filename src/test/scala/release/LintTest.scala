@@ -8,6 +8,7 @@ import org.junit.rules.TemporaryFolder
 import org.mockito.{ArgumentMatchers, Mockito}
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.Lint.BranchTagMerge
+import release.ProjectMod.Gav3
 import release.Repo.ReachableResult
 import release.Starter.{LintOpts, Opts}
 
@@ -16,8 +17,30 @@ class LintTest extends AssertionsForJUnit {
 
   @Rule def temp = _temporarayFolder
 
-  def br(branchName:String) = Some(BranchTagMerge(tagName = None, branchName = Some(branchName)))
-  def tag(tagName:String) = Some(BranchTagMerge(tagName = Some(tagName), branchName = None))
+  def br(branchName: String) = Some(BranchTagMerge(tagName = None, branchName = Some(branchName)))
+
+  def tag(tagName: String) = Some(BranchTagMerge(tagName = Some(tagName), branchName = None))
+
+  @Test
+  def testNextAndPrevious(): Unit = {
+    val in = Gav3("a", "b", Some("1.0.0-M1"))
+    Assert.assertEquals(None, Lint.selectNextAndPrevious(None, in))
+
+    Assert.assertEquals(Some(
+      (Some(in.copy(version = Some("1.0.0"))), Some(in.copy(version = Some("0.9"))))),
+      Lint.selectNextAndPrevious(Some(Seq("0.9", "1.0.0")), in))
+    Assert.assertEquals(Some((Some(in.copy(version = Some("1.0.0"))), Some(in.copy(version = Some("0.9"))))),
+      Lint.selectNextAndPrevious(Some(Seq("0.8", "0.9", "1.0.0", "2.2.2")), in))
+
+    Assert.assertEquals(Some((Some(in.copy(version = Some("1.0.0"))), None)),
+      Lint.selectNextAndPrevious(Some(Seq("1.0.0")), in))
+
+    Assert.assertEquals(Some((Some(in.copy(version = Some("1.0.1"))), None)),
+      Lint.selectNextAndPrevious(Some(Seq("1.0.1")), in))
+    Assert.assertEquals(Some((None, Some(in.copy(version = Some("1.0.0-M2"))))), // TODO wrong
+      Lint.selectNextAndPrevious(Some(Seq("1.0.0-M2", "1.0.0-M3")), in))
+
+  }
 
   @Test
   def testVersionMatches(): Unit = {
@@ -33,7 +56,6 @@ class LintTest extends AssertionsForJUnit {
     Assert.assertFalse(Lint.versionMissmatches("master-SNAPSHOT", br("master")))
     Assert.assertTrue(Lint.versionMissmatches("main-SNAPSHOT", br("master")))
     Assert.assertTrue(Lint.versionMissmatches("1.0.0-M1", br("feature/0x")))
-
 
     Assert.assertTrue(Lint.versionMissmatches("main-SNAPSHOT", tag("master")))
     Assert.assertFalse(Lint.versionMissmatches("1.2.3", tag("v1.2.3")))

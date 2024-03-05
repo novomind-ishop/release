@@ -475,8 +475,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     ✅ all GAVs scopes looks fine
         |[INFO] --- check for preview releases @ maven ---
         |[warning]   found preview: org.springframework:spring-context:1.0.0-M1 😬
-        |[warning]        next     WIP: org.springframework:spring-context:1.0.1
-        |[warning]        previous WIP: org.springframework:spring-context:0.99.99
+        |[warning]        next    : org.springframework:spring-context:1.0.1
         |[INFO]     WIP
         |[INFO] --- check major versions @ ishop ---
         |[INFO]     ✅ no major version diff
@@ -495,7 +494,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |╠═╦═ org.example.maven:example2-maven-plugin:1.10.3
         |║ ╚═══ 99.99.99
         |╠═╦═ org.springframework:spring-context:1.0.0-M1
-        |║ ╚═══ 1.0.0, .., 1.2.8, 1.2.9
+        |║ ╚═══ 1.0.1, .., 1.2.8, 1.2.9
         |╠═╦═ org.springframework:spring-vals:1.0.0-SNAPSHOT
         |║ ╚═══ 1.0.1, .., 1.2.8, 1.2.9
         |║
@@ -535,7 +534,7 @@ class LintMavenTest extends AssertionsForJUnit {
         ))
       Mockito.when(mockRepo2.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-context"), ArgumentMatchers.anyString()))
         .thenReturn(Seq(
-          "0.99.99", "1.0.0", "1.0.1", "1.0.2", "1.2.8", "1.2.9", "1.0.0-M1"
+          "0.99.99", "1.0.1", "1.0.2", "1.2.8", "1.2.9", "1.0.0-M1"
         ))
       Mockito.when(mockRepo2.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("example-maven-plugin"), ArgumentMatchers.anyString()))
         .thenReturn(Seq(
@@ -1140,7 +1139,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6
         |║
         |[WARNING] org.springframework:spring-context:1.0.1-SNAPSHOT is already released, remove '-SNAPSHOT' suffix 😬 RL1009-ea7ea019
-        |[WARNING] org.springframework:spring-other:1.0.0-SNAPSHOT:bert is not released, but next release (1.0.1) was found (maybe orphan snapshot) 😬 RL10015-83c41f0e
+        |[WARNING] org.springframework:spring-other:1.0.0-SNAPSHOT is not released, but next release (1.0.1) was found (maybe orphan snapshot) 😬 RL10015-f0a969b5
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP

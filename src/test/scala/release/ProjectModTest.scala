@@ -244,9 +244,11 @@ class ProjectModTest extends AssertionsForJUnit {
     ), result)
   }
 
+
+
   @Test
   def testFilter(): Unit = {
-    val in: Map[Gav3, (Seq[String], Duration)] = ListMap(
+    val in: ListMap[Gav3, (Seq[String], Duration)] = ListMap(
       Gav3(groupId = "g", artifactId = "a", version = "1.0.0") -> (Nil, Duration.ZERO),
       Gav3(groupId = "g", artifactId = "a1", version = "1.0.0") -> (Seq("1.0.0"), Duration.ZERO),
       Gav3(groupId = "g", artifactId = "a2", version = "1.0.0-SNAPSHOT") -> (Seq("1.0.0"), Duration.ZERO),
@@ -257,7 +259,7 @@ class ProjectModTest extends AssertionsForJUnit {
       Gav3(groupId = "g", artifactId = "a7", version = "ok") -> (Seq("1.0.0", "ok"), Duration.ZERO),
       Gav3(groupId = "g", artifactId = "a8", version = "1.0.0-SNAPSHOT") -> (Seq("1.0.1"), Duration.ZERO),
     )
-    val result = ProjectMod.reduceIn(in)
+    val result = ProjectMod.removeOlderVersions(in)
     val expected = ListMap(
       Gav3(groupId = "g", artifactId = "a", version = "1.0.0") -> (Nil, Duration.ZERO),
       Gav3(groupId = "g", artifactId = "a1", version = "1.0.0") -> (Nil, Duration.ZERO),
@@ -270,6 +272,7 @@ class ProjectModTest extends AssertionsForJUnit {
       Gav3(groupId = "g", artifactId = "a8", version = "1.0.0-SNAPSHOT") -> (Seq("1.0.1"), Duration.ZERO),
     )
     Assert.assertEquals(expected, result)
+    Assert.assertEquals(ProjectMod.toDepChangeSeq(expected), ProjectMod.removeOlderVersions(ProjectMod.toDepChangeSeq(in)))
   }
 
   @Test

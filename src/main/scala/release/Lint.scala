@@ -17,6 +17,36 @@ import scala.util.{Failure, Success, Try}
 import scala.collection.parallel.CollectionConverters._
 
 object Lint {
+  def selectNextAndPrevious(versionRangeFor: Option[Seq[String]], gav: Gav3): Option[(Option[Gav3], Option[Gav3])] = {
+    if (versionRangeFor.isDefined && versionRangeFor.get.nonEmpty) {
+      val value = versionRangeFor.get
+      value.size match {
+        case _ => {
+          val value1 = gav.version.get
+          val al = (value :+ value1).distinct.map(Version.parseSloppy).sorted.map(_.rawInput)
+          val index = al.indexOf(value1)
+
+          def sefwhiu(ind: Int): Option[Gav3] = {
+            try {
+              val n = al(ind)
+              Some(gav.copy(version = Some(n)))
+            } catch {
+              case _: Exception => {
+                None
+              }
+            }
+          }
+
+          Some((sefwhiu(index + 1), sefwhiu(index - 1)))
+
+        }
+      }
+
+    } else {
+      None
+    }
+  }
+
   def versionMissmatches(selfVersion: String, tagBranchInfo: Option[BranchTagMerge]): Boolean = {
     val defaultBranchnames = Set("main", "master")
     if (tagBranchInfo.isDefined) {
@@ -510,10 +540,10 @@ object Lint {
             }
             out.println(info("--- check for preview releases @ maven ---", opts))
             val updatePrinter = new StaticPrinter()
-            val updateOpts = opts.depUpOpts.copy(hideStageVersions = true)
-            val updateResultTry = mod.tryCollectDependencyUpdates(updateOpts, checkOn = true, updatePrinter)
-            val lookup: Map[Gav3, Seq[String]] = if (updateResultTry.isSuccess) {
-              updateResultTry.get.map(t => (t._1.gav.simpleGav(), t._2._1)).toMap
+            val updateOpts = opts.depUpOpts.copy(hideStageVersions = true, allowDependencyDowngrades = false)
+            val resultTry = mod.tryCollectDependencyUpdates(updateOpts, checkOn = true, updatePrinter)
+            val lookupUpAndDowngrades: Map[Gav3, Seq[String]] = if (resultTry.isSuccess) {
+              resultTry.get.map(t => (t._1.gav.simpleGav(), t._2._1)).toMap
             } else {
               Map.empty
             }
@@ -522,11 +552,19 @@ object Lint {
               .filterNot(_.version.get.endsWith("-SNAPSHOT"))
               .foreach(dep => {
                 out.println(warnSoft("  found preview: " + dep.gav().formatted + s" ${fiWarn}", opts, limit = lineMax))
-                if (updateResultTry.isSuccess) {
-                  // FIXME use update for next/previous later
-                  val versionRangeFor = lookup.get(dep.gav().simpleGav())
-                  out.println(warnSoft("       next     WIP: " + dep.gav().copy(version = Some("1.0.1")).formatted, opts, limit = lineMax))
-                  out.println(warnSoft("       previous WIP: " + dep.gav().copy(version = Some("0.99.99")).formatted, opts, limit = lineMax))
+                if (resultTry.isSuccess) {
+                  val gav = dep.gav().simpleGav()
+                  val versionRangeFor = lookupUpAndDowngrades.get(gav)
+                  val npo = Lint.selectNextAndPrevious(versionRangeFor, gav)
+                  if (npo.isDefined) {
+                    val nextAndPrev = npo.get
+                    if (nextAndPrev._1.isDefined) {
+                      out.println(warnSoft("       next    : " + nextAndPrev._1.get.formatted, opts, limit = lineMax))
+                    }
+                    if (nextAndPrev._2.isDefined) {
+                      out.println(warnSoft("       previous: " + nextAndPrev._2.get.formatted, opts, limit = lineMax))
+                    }
+                  }
                 }
               })
             out.println(info("    WIP", opts))
@@ -575,8 +613,8 @@ object Lint {
 
             try {
               out.println(updatePrinter.result.toString.trim)
-              val updateResult = updateResultTry.get
-              val snapUpdates = updateResult.filter(e => snaps.map(_.gav()).contains(e._1.gav))
+              val updateResult = ProjectMod.removeOlderVersions(resultTry.get)
+              val snapUpdates = updateResult.filter(e => snaps.map(_.gav().simpleGav()).contains(e._1.gav.simpleGav()))
               val releaseOfSnapshotPresent = snapUpdates
                 // TODO flatmap
                 .map(e => (e._1.gav, e._2._1.contains(e._1.gav.version.get.replaceFirst("-SNAPSHOT", ""))))
