@@ -69,7 +69,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
         |[INFO] --- check branches / remote @ git ---
         |[INFO]     active committer count: 1
-        |[INFO]     active branch count: 1
+        |[INFO]     active branch count: 1 - master
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[WARNING]  shallow clone detected 😬
         |[WARNING]    % git rev-parse --is-shallow-repository # returns true
@@ -140,7 +140,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
         |[INFO] --- check branches / remote @ git ---
         |[INFO]     active committer count: 1
-        |[INFO]     active branch count: 1
+        |[INFO]     active branch count: 1 - master
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -298,7 +298,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
         |[INFO] --- check branches / remote @ git ---
         |[INFO]     active committer count: 1
-        |[INFO]     active branch count: 1
+        |[INFO]     active branch count: 1 - master
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -447,7 +447,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
         |[INFO] --- check branches / remote @ git ---
         |[INFO]     active committer count: 1
-        |[INFO]     active branch count: 1
+        |[INFO]     active branch count: 1 - master
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -1084,7 +1084,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[INFO] --- check branches / remote @ git ---
         |[INFO]     active committer count: 1
-        |[INFO]     active branch count: 2
+        |[INFO]     active branch count: 1 - master
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO]     current git tags: v0.11.0
@@ -1237,7 +1237,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[INFO] --- check branches / remote @ git ---
         |[INFO]     active committer count: 1
-        |[INFO]     active branch count: 1
+        |[INFO]     active branch count: 1 - master
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---

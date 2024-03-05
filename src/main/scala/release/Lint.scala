@@ -213,8 +213,14 @@ object Lint {
         }
         out.println(info("--- check branches / remote @ git ---", opts))
         val commiters = sgit.listCommitterNames().size
+        val branchNames = sgit.listBranchNamesAll()
         out.println(info(s"    active committer count: $commiters", opts)) // TODO range?
-        out.println(info(s"    active branch count: ${sgit.listBranchNamesAll().size}", opts)) // TODO limits?
+        val branchMsg = if (branchNames == Nil) {
+          ""
+        } else {
+          s" - ${branchNames.mkString(", ")}"
+        }
+        out.println(info(s"    active branch count: ${branchNames.size}${branchMsg}", opts, limit = lineMax)) // TODO limits?
         out.println(info("--- check clone config / no shallow clone @ git ---", opts))
         if (sgit.isShallowClone) {
           Term.wrap(out, Term.warn,

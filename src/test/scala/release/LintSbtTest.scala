@@ -48,7 +48,7 @@ class LintSbtTest extends AssertionsForJUnit {
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
         |[INFO] --- check branches / remote @ git ---
         |[INFO]     active committer count: 1
-        |[INFO]     active branch count: 1
+        |[INFO]     active branch count: 1 - master
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---

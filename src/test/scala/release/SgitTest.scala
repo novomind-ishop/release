@@ -768,6 +768,10 @@ class SgitTest extends AssertionsForJUnit {
         |* 0000000 (tag: v0.0.8) delete v10""".stripMargin, gitB.logGraph().replaceAll("\\* [0-9a-f]{7} ", "* 0000000 "))
     Assert.assertEquals(Seq("any.xml", "pom.xml", "schönes Ding", "sub/pom.xml", "test"), gitB.lsFiles())
     Assert.assertEquals(Seq("master"), gitB.listBranchNamesLocal())
+    gitB.checkout("v1.0.1")
+    Assert.assertEquals(Seq("master"), gitB.listBranchNamesLocal())
+    gitB.checkout("master")
+    Assert.assertEquals(Seq("master"), gitB.listBranchNamesLocal())
     assertMsg(Seq("update pom.xml", "", "Signed-off-by: Signer <signer@example.org>"), gitB)
 
     Util.write(pomFile, Seq("b"))

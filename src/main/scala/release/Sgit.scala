@@ -294,17 +294,26 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     })
   }
 
-  def listBranchNamesLocal(): Seq[String] = listBranchesLocal().map(_.branchName.replaceFirst("refs/heads/", "")).sorted
+  def listBranchNamesLocal(): Seq[String] = {
+    listBranchesLocal().map(_.branchName.replaceFirst("refs/heads/", "")).sorted
+  }
 
   def listBranchesLocal(): Seq[GitShaBranch] = {
     gitNative(Seq("branch", "--list", "--verbose", "--no-abbrev"))
       .flatMap(Sgit.splitLineOnBranchlistErr(err))
+      .flatMap(in => if (in._1 == in._2) {
+        None
+      } else {
+        Some(in)
+      })
       .map(parts => {
         GitShaBranch(parts._2, "refs/heads/" + parts._1)
       }).toList
   }
 
-  def listBranchNamesRemoteShort(): Seq[String] = listBranchNamesRemote().map(_.replaceFirst("origin/", "")).sorted
+  def listBranchNamesRemoteShort(): Seq[String] = {
+    listBranchNamesRemote().map(_.replaceFirst("origin/", "")).sorted
+  }
 
   def remoteHead(timeout: Duration = Duration(10, TimeUnit.SECONDS)): Try[Option[String]] = {
     val executor = Executors.newSingleThreadExecutor() // TODO reuse executor later
@@ -338,6 +347,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   def remoteHeadRaw(): Try[Option[String]] = {
     Sgit.toRawRemoteHead(remoteHead())
   }
+
   private[release] def listCommitterNames(): Seq[String] = {
     gitNative(Seq("log", "--all", "--pretty=%an", "--since=14.days")).distinct.sorted
   }
