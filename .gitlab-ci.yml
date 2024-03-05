@@ -1,5 +1,5 @@
 include:
-  - project: 'dc_rd_dcp_pk/gitlab-ci-information-public/template-ci-pipeline/ishop-ci-template/gitlab-templates'
+  - project: 'product-development/dc_rd_ishop_so/ishop-core-gitlab-ci-templates'
     ref: "main"
     file: 'sbt-docker.yml'
 

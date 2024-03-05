@@ -930,6 +930,9 @@ object Sgit {
         // do nothing (2022-12-13) (tag: v2.39.1)
         case v: String if v.startsWith("git version 2.40.") => // do nothing (2023-04-17) (tag: v2.40.1)
         case v: String if v.startsWith("git version 2.41.") => // do nothing (2023-06-01) (tag: v2.41.0)
+        case v: String if v.startsWith("git version 2.42.") => // do nothing (2023-08-21) (tag: v2.42.0)
+        case v: String if v.startsWith("git version 2.43.") => // do nothing (2023-11-20) (tag: v2.43.0)
+        case v: String if v.startsWith("git version 2.44.") => // do nothing (2024-02-22) (tag: v2.44.0)
         case v: String => out.println("W: unknown/untested git version: \"" + v + "\". Please create a ticket at ISBO.");
         //  if (!ReleaseConfig.isTravisCi()) {
         //    if (Sgit.getOs == Os.Darwin) {
