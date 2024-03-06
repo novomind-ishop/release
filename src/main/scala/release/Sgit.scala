@@ -326,7 +326,10 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
           value.headOption
         } catch {
-          case _: Throwable => None
+          case t: Throwable => {
+            t.printStackTrace()
+            None
+          }
         }
       }
     }
