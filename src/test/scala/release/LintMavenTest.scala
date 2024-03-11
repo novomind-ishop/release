@@ -68,7 +68,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check clone config / remote @ git ---
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active committer count: 1
+        |[INFO]     active committer count: 1 - Your Name
         |[INFO]     active branch count: 1 - master
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[WARNING]  shallow clone detected 😬
@@ -139,7 +139,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check clone config / remote @ git ---
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active committer count: 1
+        |[INFO]     active committer count: 1 - Your Name
         |[INFO]     active branch count: 1 - master
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
@@ -297,7 +297,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check clone config / remote @ git ---
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active committer count: 1
+        |[INFO]     active committer count: 1 - Your Name
         |[INFO]     active branch count: 1 - master
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
@@ -446,7 +446,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check clone config / remote @ git ---
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active committer count: 1
+        |[INFO]     active committer count: 1 - Your Name
         |[INFO]     active branch count: 1 - master
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
@@ -589,6 +589,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
         |[WARNING]  😬 if you use gitlab try to
         |[WARNING]  😬 choose another default branch; save; use the original default branch
+        |[WARNING]  😬 remote call exception: java.lang.RuntimeException message: Nonzero exit value: 128; git --no-pager remote show origin; fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
         |[INFO] --- check branches / remote @ git ---
         |[INFO]     active committer count: 0
         |[INFO]     active branch count: 0
@@ -702,6 +703,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
         |[WARNING]  😬 if you use gitlab try to
         |[WARNING]  😬 choose another default branch; save; use the original default branch
+        |[WARNING]  😬 remote call exception: java.lang.RuntimeException message: Nonzero exit value: 128; git --no-pager remote show origin; fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
         |[INFO] --- check branches / remote @ git ---
         |[INFO]     active committer count: 0
         |[INFO]     active branch count: 0
@@ -808,6 +810,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
         |[WARNING]  😬 if you use gitlab try to
         |[WARNING]  😬 choose another default branch; save; use the original default branch
+        |[WARNING]  😬 remote call exception: java.lang.RuntimeException message: Nonzero exit value: 128; git --no-pager remote show origin; fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
         |[INFO] --- check branches / remote @ git ---
         |[INFO]     active committer count: 0
         |[INFO]     active branch count: 0
@@ -938,6 +941,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
         |[WARNING]  😬 if you use gitlab try to
         |[WARNING]  😬 choose another default branch; save; use the original default branch
+        |[WARNING]  😬 remote call exception: java.lang.RuntimeException message: Nonzero exit value: 128; git --no-pager remote show origin; fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
         |[INFO] --- check branches / remote @ git ---
         |[INFO]     active committer count: 0
         |[INFO]     active branch count: 0
@@ -967,9 +971,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING] org.springframework:spring-context-range:(,1.0],[1.2,) uses unusual format, please repair 😬 RL1010-92f68063
         |[WARNING] org.springframework:spring-context-release:RELEASE uses unusual format, please repair 😬 RL1010-d484eb4f
         |[WARNING] org.springframework:spring-context-latest:LATEST uses unusual format, please repair 😬 RL1010-94d64e99
-        |[INFO] known scopes are: compile, import, provided, runtime, system, test
-        |[INFO] version ranges are not allowed
-        |[INFO] unstable marker like LATEST and RELEASE are not allowed
+        |[WARNING] known scopes are: compile, import, provided, runtime, system, test
+        |[WARNING] version ranges are not allowed
+        |[WARNING] unstable marker like LATEST and RELEASE are not allowed
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
         |[INFO] --- check major versions @ ishop ---
@@ -1081,8 +1085,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
         |[WARNING]  😬 if you use gitlab try to
         |[WARNING]  😬 choose another default branch; save; use the original default branch
+        |[WARNING]  😬 remote call exception: java.lang.RuntimeException message: Nonzero exit value: 128; git --no-pager remote show origin; fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active committer count: 1
+        |[INFO]     active committer count: 1 - Your Name
         |[INFO]     active branch count: 1 - master
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
@@ -1117,9 +1122,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]   found snapshot: org.springframework:spring-other:1.0.0-SNAPSHOT:bert 😬 RL1011-bd849fd4
         |[INFO] --- check for GAV format @ maven ---
         |[WARNING] org.springframework:spring-other:1.0.0-SNAPSHOT:bert uses unusual format, please repair 😬 RL1010-bd849fd4
-        |[INFO] known scopes are: compile, import, provided, runtime, system, test
-        |[INFO] version ranges are not allowed
-        |[INFO] unstable marker like LATEST and RELEASE are not allowed
+        |[WARNING] known scopes are: compile, import, provided, runtime, system, test
+        |[WARNING] version ranges are not allowed
+        |[WARNING] unstable marker like LATEST and RELEASE are not allowed
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
         |[INFO] --- check major versions @ ishop ---
@@ -1234,8 +1239,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
         |[WARNING]  😬 if you use gitlab try to
         |[WARNING]  😬 choose another default branch; save; use the original default branch
+        |[WARNING]  😬 remote call exception: java.lang.RuntimeException message: Nonzero exit value: 128; git --no-pager remote show origin; fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active committer count: 1
+        |[INFO]     active committer count: 1 - Your Name
         |[INFO]     active branch count: 1 - master
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
@@ -1313,11 +1319,18 @@ class LintMavenTest extends AssertionsForJUnit {
     gitA.commitAll("test")
     gitA.createBranch("work")
     gitA.checkout("work")
+    gitA.checkout("HEAD~0")
     Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", null, gitA, "work")))
     Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", "", gitA, "work")))
 
     Assert.assertFalse(Lint.isValidTag(Lint.toBranchTag("work", null, gitA, "work")))
     Assert.assertFalse(Lint.isValidTag(Lint.toBranchTag("work", "", gitA, "work")))
+
+    gitA.doTag("1.2.3")
+    Assert.assertEquals(Some(Seq("v1.2.3")), gitA.currentTags)
+    val maybeMerge = Lint.toBranchTag("work", "", gitA, "work")
+    Assert.assertFalse(Lint.isValidBranch(maybeMerge))
+    Assert.assertFalse(Lint.isValidTag(maybeMerge))
   }
 
   @Test
@@ -1374,6 +1387,7 @@ class LintMavenTest extends AssertionsForJUnit {
       |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
       |[WARNING]  😬 if you use gitlab try to
       |[WARNING]  😬 choose another default branch; save; use the original default branch
+      |[WARNING]  😬 remote call exception: java.lang.RuntimeException message: Nonzero exit value: 128; git --no-pager remote show origin; fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
       |[INFO] --- check branches / remote @ git ---
       |[INFO]     active committer count: 0
       |[INFO]     active branch count: 0

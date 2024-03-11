@@ -23,7 +23,7 @@ class SgitTest extends AssertionsForJUnit {
 
   @Test
   def testSelectGitCmd(): Unit = {
-    val git = Sgit.selectedGitCmd(System.err, None)
+    val git = Sgit.selectedGitCmd(System.err, None).get
 
     Term.Os.getCurrent match {
       case Term.Os.Windows => {
@@ -158,7 +158,7 @@ class SgitTest extends AssertionsForJUnit {
   def testOutLogger(): Unit = {
     var err: Seq[String] = Seq.empty[String]
     var out: Seq[String] = Seq.empty[String]
-    val testee = Sgit.outLogger(syserrErrors = true, Seq("fetch"),
+    val testee = Sgit.outLogger(
       in => err = err :+ in, in => out = out :+ in, in => Some(in))
 
     // WHEN
@@ -172,7 +172,7 @@ class SgitTest extends AssertionsForJUnit {
   def testOutLoggerFetchFilter_fatal(): Unit = {
     var err: Seq[String] = Seq.empty[String]
     var out: Seq[String] = Seq.empty[String]
-    val testee = Sgit.outLogger(syserrErrors = true, Seq("fetch"),
+    val testee = Sgit.outLogger(
       in => err = err :+ in, in => out = out :+ in, Sgit.fetchFilter())
 
     // WHEN
@@ -193,7 +193,7 @@ class SgitTest extends AssertionsForJUnit {
   def testOutLoggerFetchFilter_error(): Unit = {
     var err: Seq[String] = Seq.empty[String]
     var out: Seq[String] = Seq.empty[String]
-    val testee = Sgit.outLogger(syserrErrors = true, Seq("fetch"),
+    val testee = Sgit.outLogger(
       in => err = err :+ in, in => out = out :+ in, Sgit.fetchFilter())
 
     // WHEN
@@ -211,7 +211,7 @@ class SgitTest extends AssertionsForJUnit {
   def testOutLoggerFetchFilter_bang(): Unit = {
     var err: Seq[String] = Seq.empty[String]
     var out: Seq[String] = Seq.empty[String]
-    val testee = Sgit.outLogger(syserrErrors = true, Seq("fetch"),
+    val testee = Sgit.outLogger(
       in => err = err :+ in, in => out = out :+ in, Sgit.fetchFilter())
 
     // WHEN
@@ -230,7 +230,7 @@ class SgitTest extends AssertionsForJUnit {
   def testOutLoggerFetchFilter_ssh(): Unit = {
     var err: Seq[String] = Seq.empty[String]
     var out: Seq[String] = Seq.empty[String]
-    val testee = Sgit.outLogger(syserrErrors = true, Seq("fetch"),
+    val testee = Sgit.outLogger(
       in => err = err :+ in, in => out = out :+ in, Sgit.fetchFilter())
 
     // WHEN
@@ -248,7 +248,7 @@ class SgitTest extends AssertionsForJUnit {
   def testOutLoggerFetchFilter(): Unit = {
     var err: Seq[String] = Seq.empty[String]
     var out: Seq[String] = Seq.empty[String]
-    val testee = Sgit.outLogger(syserrErrors = true, Seq("fetch"),
+    val testee = Sgit.outLogger(
       in => err = err :+ in, in => out = out :+ in, Sgit.fetchFilter())
 
     // WHEN
@@ -274,7 +274,7 @@ class SgitTest extends AssertionsForJUnit {
   def testOutLoggerGerrit_push(): Unit = {
     var err: Seq[String] = Seq.empty[String]
     var out: Seq[String] = Seq.empty[String]
-    val testee = Sgit.outLogger(syserrErrors = true, Seq("push"),
+    val testee = Sgit.outLogger(
       in => err = err :+ in, in => out = out :+ in, Sgit.gerritPushFilter)
 
     // WHEN
@@ -302,7 +302,7 @@ class SgitTest extends AssertionsForJUnit {
   def testOutLoggerGerrit_push_fail(): Unit = {
     var err: Seq[String] = Seq.empty[String]
     var out: Seq[String] = Seq.empty[String]
-    val testee = Sgit.outLogger(syserrErrors = true, Seq("push"),
+    val testee = Sgit.outLogger(
       in => err = err :+ in, in => out = out :+ in, Sgit.gerritPushFilter)
 
     // WHEN
@@ -346,7 +346,7 @@ class SgitTest extends AssertionsForJUnit {
   def testOutLoggerPushFilter_error_no_new_changes(): Unit = {
     var err: Seq[String] = Seq.empty[String]
     var out: Seq[String] = Seq.empty[String]
-    val testee = Sgit.outLogger(syserrErrors = true, Seq("push"),
+    val testee = Sgit.outLogger(
       in => err = err :+ in, in => out = out :+ in, Sgit.gerritPushFilter)
 
     // WHEN
@@ -378,7 +378,7 @@ class SgitTest extends AssertionsForJUnit {
     TestHelper.assertException("Nonzero exit value: 1; git --no-pager iutghiprjhpeth; " +
       "git: 'iutghiprjhpeth' is not a git command. See 'git --help'.",
       classOf[RuntimeException], () => {
-        SgitTest.workSgit().gitNative(Seq("iutghiprjhpeth"))
+        SgitTest.workSgit().gitNative(Seq("iutghiprjhpeth")).get
       })
 
   }
@@ -904,7 +904,7 @@ class SgitTest extends AssertionsForJUnit {
   }
 
   private def assertMsg(expected: Seq[String], sgit: Sgit): Unit = {
-    val gitRawOut = sgit.gitNative(Seq("log", "-n1", "--pretty=\"%B\""))
+    val gitRawOut = sgit.gitNative(Seq("log", "-n1", "--pretty=\"%B\"")).get
     val nativeLines = unw(gitRawOut.mkString("\n")).linesIterator.toList
     val body = nativeLines match {
       case lines if lines.last.startsWith("Change-Id:") => lines.dropRight(1)

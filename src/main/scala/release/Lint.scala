@@ -110,11 +110,11 @@ object Lint {
       Some(BranchTagMerge(tagName = Some(ciCommitTag), branchName = None))
     } else if (Strings.emptyToNull(ciCommitTag) == null &&
       (currentBranchOpt.getOrElse("") == ciCommitRefName || ciCommitRefName == ciCommitBranch)) {
-      Some(BranchTagMerge(tagName = None, branchName = Some(ciCommitRefName)))
+      Some(BranchTagMerge(tagName = currentTags.headOption, branchName = Some(ciCommitRefName)))
     } else if (currentBranchOpt.isDefined) {
-      Some(BranchTagMerge(tagName = None, branchName = Some(currentBranchOpt.get)))
+      Some(BranchTagMerge(tagName = currentTags.headOption, branchName = Some(currentBranchOpt.get)))
     } else if (currentTags.nonEmpty) {
-      Some(BranchTagMerge(tagName = Some(currentTags.head), branchName = None)) // XXX multiple tags
+      Some(BranchTagMerge(tagName = currentTags.headOption, branchName = None)) // XXX multiple tags
     } else {
       None
     }
@@ -125,11 +125,11 @@ object Lint {
   }
 
   def isValidBranch(maybeBranch: Option[BranchTagMerge]): Boolean = {
-    maybeBranch.isDefined && maybeBranch.get.branchName.isDefined
+    maybeBranch.isDefined && maybeBranch.get.branchName.isDefined && maybeBranch.get.tagName.isEmpty
   }
 
   def isValidTag(maybeTag: Option[BranchTagMerge]): Boolean = {
-    maybeTag.isDefined && maybeTag.get.tagName.isDefined
+    maybeTag.isDefined && maybeTag.get.tagName.isDefined && maybeTag.get.branchName.isEmpty
   }
 
   type UniqCode = String
@@ -215,7 +215,7 @@ object Lint {
         out.println(info(s"    ${fiFine} git version: " + sgit.version(), opts))
         out.println(info("--- check clone config / remote @ git ---", opts))
         val remoteHeadDefinition = sgit.remoteHead()
-        if (remoteHeadDefinition.isSuccess && remoteHeadDefinition.get.isDefined) {
+        if (remoteHeadDefinition.isSuccess) {
           if (remoteHeadDefinition.get.exists(_.contains("(unknown)"))) {
             out.println(warn(s" ${fiWarn} unknown remote HEAD found, corrupted remote -- repair please", opts))
             out.println(warn(s" ${fiWarn} if you use gitlab try to", opts))
@@ -242,9 +242,14 @@ object Lint {
           warnExit.set(true)
         }
         out.println(info("--- check branches / remote @ git ---", opts))
-        val commiters = sgit.listCommitterNames().size
+        val names = sgit.listCommitterNames().sorted
         val branchNames = sgit.listBranchNamesAll()
-        out.println(info(s"    active committer count: $commiters", opts)) // TODO range?
+        val ciNames = if (names == Nil) {
+          ""
+        } else {
+          s" - ${names.mkString(", ")}"
+        }
+        out.println(info(s"    active committer count: ${names.size}${ciNames}", opts)) // TODO range?
         val branchMsg = if (branchNames == Nil) {
           ""
         } else {
@@ -531,9 +536,9 @@ object Lint {
               unusualGavs.foreach(found => {
                 out.println(warn(s"${found.formatted} uses unusual format, please repair ${fiWarn} ${fiCodeUnusualGav.apply(found)}", opts, limit = lineMax))
               })
-              out.println(info(s"known scopes are: ${ProjectMod.knownScopes.filterNot(_.isEmpty).toSeq.sorted.mkString(", ")}", opts))
-              out.println(info(s"version ranges are not allowed", opts))
-              out.println(info(s"unstable marker like LATEST and RELEASE are not allowed", opts))
+              out.println(warn(s"known scopes are: ${ProjectMod.knownScopes.filterNot(_.isEmpty).toSeq.sorted.mkString(", ")}", opts))
+              out.println(warn(s"version ranges are not allowed", opts))
+              out.println(warn(s"unstable marker like LATEST and RELEASE are not allowed", opts))
               warnExit.set(true)
             } else {
               out.println(info(s"    ${fiFine} all GAVs scopes looks fine", opts))
