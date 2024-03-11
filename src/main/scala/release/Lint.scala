@@ -247,9 +247,9 @@ object Lint {
         val ciNames = if (names == Nil) {
           ""
         } else {
-          s" - ${names.mkString(", ")}"
+          s" - ${names.map(n => s"'$n'").mkString(", ")}"
         }
-        out.println(info(s"    active committer count: ${names.size}${ciNames}", opts)) // TODO range?
+        out.println(info(s"    active committer count: ${names.size}${ciNames}", opts, limit = lineMax)) // TODO range?
         val branchMsg = if (branchNames == Nil) {
           ""
         } else {

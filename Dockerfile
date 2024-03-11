@@ -17,7 +17,7 @@ LABEL maintainer="ishop-dev-infra@novomind.com" \
       novomind.deko.color="ec601a" \
       novomind.deko.linux.distribution="ubuntu/22.04 Jammy Jellyfish"
 
-RUN apt-get update && apt-get install -y tzdata bash
+RUN apt-get update && apt-get install -y tzdata bash libcurl4-openssl-dev
 COPY --from=0 /latest-git/git /usr/bin/git
 RUN git --version
 RUN git config --global core.autocrlf input
