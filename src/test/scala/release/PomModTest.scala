@@ -1708,10 +1708,13 @@ class PomModTest extends AssertionsForJUnit {
 
   @Test
   def testIsOrdinal(): Unit = {
+    Assert.assertTrue(Version.parse("1.0.1-SNAPSHOT").isOrdinalOnly)
+    Assert.assertTrue(Version.parse("1.1.1-SNAPSHOT").isOrdinalOnly)
     Assert.assertTrue(Version.parse("21.0.0").isOrdinal)
     Assert.assertTrue(Version.parse("21.0.0").isOrdinalOnly)
     Assert.assertTrue(Version.parse("21.0.0-SNAPSHOT").isOrdinal)
     Assert.assertTrue(Version.parse("21.0.0-SNAPSHOT").isOrdinalOnly)
+
     Assert.assertTrue(Version.parseSloppy("21.0.0-SNAPSHOT").isOrdinalOnly)
     Assert.assertFalse(Version.parse("alpha").isOrdinal)
     Assert.assertFalse(Version.parse("alpha").isOrdinalOnly)

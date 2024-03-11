@@ -314,7 +314,7 @@ object ProjectMod extends LazyLogging {
       x._1 >= 0 && x._2 >= 0 && x._3 >= 0
     }
     lazy val isOrdinalOnly: Boolean = {
-      isOrdinal && lowF.replaceFirst("_-SNAPSHOT", "") == "" && pre == "" && patchF == ""
+      isOrdinal && lowF.replaceFirst("_-SNAPSHOT", "") == "" && pre == ""
     }
     lazy val isSnapshot: Boolean = rawInput.endsWith("-SNAPSHOT")
 
