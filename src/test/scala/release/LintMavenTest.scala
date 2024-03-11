@@ -68,7 +68,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check clone config / remote @ git ---
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active committer count: 1 - 'Your Name'
+        |[INFO]     active contributor count: 1
+        |[INFO]       Your Name <you@example.com>
         |[INFO]     active branch count: 1 - master
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[WARNING]  shallow clone detected 😬
@@ -139,7 +140,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check clone config / remote @ git ---
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active committer count: 1 - 'Your Name'
+        |[INFO]     active contributor count: 1
+        |[INFO]       Your Name <you@example.com>
         |[INFO]     active branch count: 1 - master
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
@@ -220,7 +222,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[WARNING]  😬 HEAD branch: (unknown) - n/a
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active committer count: 0
+        |[INFO]     active contributor count: 0
         |[INFO]     active branch count: 0
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
@@ -297,7 +299,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check clone config / remote @ git ---
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active committer count: 1 - 'Your Name'
+        |[INFO]     active contributor count: 1
+        |[INFO]       Your Name <you@example.com>
         |[INFO]     active branch count: 1 - master
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
@@ -446,7 +449,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check clone config / remote @ git ---
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active committer count: 1 - 'Your Name'
+        |[INFO]     active contributor count: 1
+        |[INFO]       Your Name <you@example.com>
         |[INFO]     active branch count: 1 - master
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
@@ -591,7 +595,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[WARNING]  😬 remote call exception: java.lang.RuntimeException message: Nonzero exit value: 128; git --no-pager remote show origin; fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active committer count: 0
+        |[INFO]     active contributor count: 0
         |[INFO]     active branch count: 0
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
@@ -705,7 +709,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[WARNING]  😬 remote call exception: java.lang.RuntimeException message: Nonzero exit value: 128; git --no-pager remote show origin; fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active committer count: 0
+        |[INFO]     active contributor count: 0
         |[INFO]     active branch count: 0
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
@@ -812,7 +816,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[WARNING]  😬 remote call exception: java.lang.RuntimeException message: Nonzero exit value: 128; git --no-pager remote show origin; fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active committer count: 0
+        |[INFO]     active contributor count: 0
         |[INFO]     active branch count: 0
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
@@ -943,7 +947,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[WARNING]  😬 remote call exception: java.lang.RuntimeException message: Nonzero exit value: 128; git --no-pager remote show origin; fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active committer count: 0
+        |[INFO]     active contributor count: 0
         |[INFO]     active branch count: 0
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
@@ -1087,7 +1091,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[WARNING]  😬 remote call exception: java.lang.RuntimeException message: Nonzero exit value: 128; git --no-pager remote show origin; fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active committer count: 1 - 'Your Name'
+        |[INFO]     active contributor count: 1
+        |[INFO]       Your Name <you@example.com>
         |[INFO]     active branch count: 1 - master
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
@@ -1241,7 +1246,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[WARNING]  😬 remote call exception: java.lang.RuntimeException message: Nonzero exit value: 128; git --no-pager remote show origin; fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active committer count: 1 - 'Your Name'
+        |[INFO]     active contributor count: 1
+        |[INFO]       Your Name <you@example.com>
         |[INFO]     active branch count: 1 - master
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
@@ -1389,7 +1395,7 @@ class LintMavenTest extends AssertionsForJUnit {
       |[WARNING]  😬 choose another default branch; save; use the original default branch
       |[WARNING]  😬 remote call exception: java.lang.RuntimeException message: Nonzero exit value: 128; git --no-pager remote show origin; fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
       |[INFO] --- check branches / remote @ git ---
-      |[INFO]     active committer count: 0
+      |[INFO]     active contributor count: 0
       |[INFO]     active branch count: 0
       |[INFO] --- check clone config / no shallow clone @ git ---
       |[INFO]     ✅ NO shallow clone

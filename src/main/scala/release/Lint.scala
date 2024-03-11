@@ -242,14 +242,11 @@ object Lint {
           warnExit.set(true)
         }
         out.println(info("--- check branches / remote @ git ---", opts))
-        val names = sgit.listCommitterNames().sorted
+        val names = sgit.listContributorMailboxes().sorted
         val branchNames = sgit.listBranchNamesAll()
-        val ciNames = if (names == Nil) {
-          ""
-        } else {
-          s" - ${names.map(n => s"'$n'").mkString(", ")}"
-        }
-        out.println(info(s"    active committer count: ${names.size}${ciNames}", opts, limit = lineMax)) // TODO range?
+
+        out.println(info(s"    active contributor count: ${names.size}", opts, limit = lineMax)) // TODO range?
+        names.foreach(n => out.println(info(s"      ${n}", opts, limit = lineMax)))
         val branchMsg = if (branchNames == Nil) {
           ""
         } else {

@@ -348,8 +348,11 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     Sgit.toRawRemoteHead(remoteHead())
   }
 
-  private[release] def listCommitterNames(): Seq[String] = {
-    gitNative(Seq("log", "--all", "--pretty=%an", "--since=14.days")).get.distinct.sorted
+  private[release] def listContributorMailboxes(): Seq[String] = {
+    val value = "--since=14.days"
+    val anCn = gitNative(Seq("log", "--all", "--pretty=%an <%ae>᎒%cn <%ce>", value)).get
+
+    anCn.flatMap(l => l.split('᎒').toSeq).distinct.sorted
   }
 
   def listBranchNamesRemote(): Seq[String] = listBranchRemoteRaw().map(_.branchName).sorted

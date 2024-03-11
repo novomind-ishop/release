@@ -842,6 +842,9 @@ class SgitTest extends AssertionsForJUnit {
       }
 
     }
+    val expectedMailboxes = Seq("Your Name <you@example.com>")
+    Assert.assertEquals(expectedMailboxes, gitA.listContributorMailboxes())
+    Assert.assertEquals(expectedMailboxes, gitB.listContributorMailboxes())
   }
 
   @Test
