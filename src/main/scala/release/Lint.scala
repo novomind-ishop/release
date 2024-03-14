@@ -388,7 +388,7 @@ object Lint {
           } else if (Lint.isValidMergeRequest(tagBranchInfo)) {
             out.println(info("      a valid merge request : " + ciCommitRefName, opts))
           } else {
-            out.println(warn(s"   an invalid branch/tag: " +
+            out.println(warn(s"   an INVALID branch/tag: " +
               s"ciRef: ${ciCommitRefName}, " +
               s"ciTag: ${ciCommitTag}, " +
               s"ciBranch: ${ciCommitBranch}, " +
@@ -411,8 +411,9 @@ object Lint {
                 Term.wrap(out, Term.error, "     docker tag : " + dockerTag.get.failed.get.getMessage + s" ${fiError}\u00A0${fiCodeGitlabCiTagname}", opts)
                 errorExit.set(true)
               }
-
             }
+          } else {
+            out.println(warnSoft("   no docker tag : " + dockerTag.failed.get.getMessage, opts))
           }
 
         }
@@ -501,6 +502,7 @@ object Lint {
             out.println(info("    WIP", opts)) // TODO check extentions present
             out.println(info("--- project version @ maven ---", opts))
             out.println(info(s"    ${modTry.get.selfVersion}", opts))
+             // TODO non snapshots are only allowed in tags, because if someone install it to its local repo this will lead to problems
             if (Lint.versionMissmatches(modTry.get.selfVersion, tagBranchInfo)) {
               val msg = s" ${modTry.get.selfVersion} != ${Util.show(tagBranchInfo)} ${fiWarn} ${fiCodeVersionMissmatch}"
               val bool = opts.lintOpts.skips.contains(fiCodeVersionMissmatch)
@@ -571,6 +573,7 @@ object Lint {
               })
             out.println(info("    WIP", opts))
             out.println(info("--- check major versions @ ishop ---", opts))
+            out.println(info(s"    is shop: ${mod.isShop}", opts))
             val mrc = Release.coreMajorResultOf(mod, None)
             if (mrc.hasDifferentMajors) {
               warnExit.set(true)

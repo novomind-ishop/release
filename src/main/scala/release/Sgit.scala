@@ -640,6 +640,8 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     if (allTags.contains(newTag)) {
       throw new IllegalStateException("tag " + newTag + " already exists")
     }
+    // TODO if % git config --local tag.gpgsign true
+    // TODO only annotated tags are allowed % git tag -a v1.4 -m "my version 1.4"
     gitNative(Seq("tag", newTag)).get
   }
 

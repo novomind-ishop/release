@@ -73,6 +73,7 @@ class LintSbtTest extends AssertionsForJUnit {
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
         |[INFO] --- check major versions @ ishop ---
+        |[INFO]     is shop: false
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)

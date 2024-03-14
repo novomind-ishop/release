@@ -166,6 +166,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
         |[INFO] --- check major versions @ ishop ---
+        |[INFO]     is shop: false
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org # (no ip)
@@ -237,7 +238,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]       CI_COMMIT_TAG : vU
         |[INFO]       CI_COMMIT_REF_NAME : vU
         |[INFO]       CI_COMMIT_BRANCH :
-        |[WARNING]    an invalid branch/tag: ciRef: vU, ciTag: vU, ciBranch: , gitTags: , gitBranch:
+        |[WARNING]    an INVALID branch/tag: ciRef: vU, ciTag: vU, ciBranch: , gitTags: , gitBranch:
         |[ERROR]      docker tag : » vU « is no valid git tag name. This could lead to
         |[ERROR]        build problems later. A git tag must match the pattern
         |[ERROR]        » ^v[0-9]+\.[0-9]+\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ « ❌ RL1006
@@ -325,6 +326,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
         |[INFO] --- check major versions @ ishop ---
+        |[INFO]     is shop: false
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)
@@ -482,6 +484,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[warning]        next    : org.springframework:spring-context:1.0.1
         |[INFO]     WIP
         |[INFO] --- check major versions @ ishop ---
+        |[INFO]     is shop: false
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)
@@ -623,6 +626,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
         |[INFO] --- check major versions @ ishop ---
+        |[INFO]     is shop: false
         |[WARNING]     Found core 50, 51 😬 RL1013-28c40a8a
         |[WARNING]       - 50 -
         |[WARNING]       com.novomind.ishop.core.other:other-context:50.2.3 😬 RL1013-253fb8cd
@@ -739,6 +743,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
         |[INFO] --- check major versions @ ishop ---
+        |[INFO]     is shop: false
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002
@@ -842,6 +847,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
         |[INFO] --- check major versions @ ishop ---
+        |[INFO]     is shop: false
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002
@@ -981,6 +987,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
         |[INFO] --- check major versions @ ishop ---
+        |[INFO]     is shop: false
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002
@@ -1133,6 +1140,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for preview releases @ maven ---
         |[INFO]     WIP
         |[INFO] --- check major versions @ ishop ---
+        |[INFO]     is shop: false
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002
@@ -1410,6 +1418,7 @@ class LintMavenTest extends AssertionsForJUnit {
       |[INFO]       CI_COMMIT_REF_NAME : feature/bre
       |[INFO]       CI_COMMIT_BRANCH :
       |[INFO]       a valid merge request : feature/bre
+      |[warning]    no docker tag : no tag
       |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
       |[INFO]     ✅ NO SNAPSHOTS in other files found
       |[INFO] --- model read @ maven/sbt/gradle ---
@@ -1426,6 +1435,7 @@ class LintMavenTest extends AssertionsForJUnit {
       |[INFO] --- check for preview releases @ maven ---
       |[INFO]     WIP
       |[INFO] --- check major versions @ ishop ---
+      |[INFO]     is shop: false
       |[INFO]     ✅ no major version diff
       |[INFO] --- suggest dependency updates / configurable @ maven ---
       |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)
