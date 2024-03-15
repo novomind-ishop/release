@@ -15,6 +15,36 @@ class UtilTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testSoundex(): Unit = {
+
+    Assert.assertEquals(4, Util.soundex("A", "A"))
+    Assert.assertEquals(4, Util.soundex("All", "All"))
+    Assert.assertEquals(3, Util.soundex("All", "Bll"))
+    Assert.assertEquals(3, Util.soundex("A", "B"))
+    Assert.assertEquals(4, Util.soundex("AssertionsForJUnit", "AssertionsJUnid"))
+    Assert.assertEquals(2, Util.soundex("Yongera", "Remkpu"))
+    Assert.assertEquals(2, Util.soundex("Zonger", "Remkpu"))
+    Assert.assertEquals(2, Util.soundex("Anger", "Rengeo"))
+    Assert.assertEquals(3, Util.soundex("Anger", "Ranger"))
+    Assert.assertEquals(0, Util.soundex("Otto", "Ranger"))
+
+
+    Assert.assertEquals(0, Util.soundexMax(Seq("Otto"), Seq("Ranger")))
+    Assert.assertEquals(0, Util.soundexMax(Seq("Otto", "o"), Seq("Otto")))
+    Assert.assertEquals(4, Util.soundexMax(Seq("Otto", "o"), Seq("Otto", "u")))
+
+    Assert.assertEquals(0, Util.soundexSplitMax("Otto", "Ranger"))
+    Assert.assertEquals(4, Util.soundexSplitMax("Otto Bert", "Otto Wert"))
+    Assert.assertEquals(0, Util.soundexSplitMax("ishop-xx-commons", "ishop-commons"))
+
+    Assert.assertEquals(4, Util.soundexSplitMax("core-bom", "core-api"))
+    Assert.assertEquals(2, Util.soundexSplitMin("core-bom", "core-api"))
+
+
+  }
+
+
+  @Test
   def testSymmetricDiff(): Unit = {
     Assert.assertEquals(Nil, Util.symmetricDiff(Seq("a"), Seq("a")))
     Assert.assertEquals(Seq(("a", "b")), Util.symmetricDiff(Seq(("a", "b")), Nil))

@@ -3,6 +3,7 @@ package release
 import com.google.common.base.Strings
 import com.google.common.hash.Hashing
 import com.google.common.net.InetAddresses
+import org.apache.commons.codec.language.Soundex
 
 import java.io.{File, IOException}
 import java.net.URI
@@ -20,6 +21,34 @@ import scala.collection.immutable.Iterable
 import scala.language.implicitConversions
 
 object Util {
+
+  private def spl(a:String): Seq[String] =a.toLowerCase.split("[^a-z]").toSeq
+
+  def soundexSplitMax(a: String, b: String) = {
+    soundexMax(spl(a), spl(b))
+  }
+  def soundexSplitMin(a: String, b: String) = {
+    soundexMin(spl(a), spl(b))
+  }
+  def soundexMin(a: Seq[String], b: Seq[String]) = {
+    soundexRange(a, b).min
+  }
+
+  def soundexMax(a: Seq[String], b: Seq[String]) = {
+    soundexRange(a, b).max
+  }
+
+  def soundexRange(a: Seq[String], b: Seq[String]): Seq[Int] = {
+    if (a.size != b.size) {
+      Seq(0)
+    } else {
+      a.zip(b).map(t => soundex(t._1, t._2))
+    }
+  }
+
+  def soundex(a: String, b: String) = {
+    Soundex.US_ENGLISH.difference(a, b)
+  }
 
   class PluralString(in: String) {
     def pluralize(int: Int): String = {

@@ -1,5 +1,7 @@
 package release
 
+import org.apache.commons.codec.language.Soundex
+
 import java.io.PrintStream
 import release.ProjectMod.PluginDep
 import release.ProjectMod.Dep
@@ -13,7 +15,7 @@ import java.util.regex.Pattern
 import scala.collection.parallel.CollectionConverters._
 
 object PomChecker {
-  def checkOwnArtifacts(relevants: Seq[(Dep, File)], rootFile:File): Unit = {
+  def checkOwnArtifacts(relevants: Seq[(Dep, File)], rootFile: File): Unit = {
     implicit class Crossable[X](xs: Iterable[X]) {
       def cross[Y](ys: Iterable[Y]): Iterable[(X, Y)] = for {x <- xs; y <- ys} yield (x, y)
     }
@@ -29,14 +31,20 @@ object PomChecker {
       .map(t => (t._1, t._2, Util.levenshtein(t._1._1.formatted, t._2._1.formatted)))
     val pr = value
       .filterNot(_._3 > 3)
+      .filterNot(e => {
+        val formatted = e._1._1
+        val formatted1 = e._2._1
+        val score = Util.soundexSplitMin(formatted.formatted, formatted1.formatted)
+        score <= 2
+      })
 
-    def rel(a:File, b:File):File = {
+    def rel(a: File, b: File): File = {
       b.toPath.relativize(a.toPath).toFile
     }
 
     if (pr.nonEmpty) {
       val msg = pr.map(e => {
-        "»"+  e._1._1.formatted + "« (in " + rel(e._1._2, rootFile).toString + ") is too similar or identical to »" +
+        "»" + e._1._1.formatted + "« (in " + rel(e._1._2, rootFile).toString + ") is too similar or identical to »" +
           e._2._1.formatted + "« (in " + rel(e._2._2, rootFile).toString + ")"
       }).mkString("; ") + ". Please choose distinguishable names."
       throw new ValidationException(msg)
