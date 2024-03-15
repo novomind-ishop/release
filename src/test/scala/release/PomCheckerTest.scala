@@ -874,19 +874,6 @@ class PomCheckerTest extends AssertionsForJUnit {
     ), new File("file/"))
   }
 
-  @Test
-  def testCheckOwnArtifacts_5(): Unit = {
-    val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:ishop-ba-core:27.0.0-SNAPSHOT:war")
-    val ref2 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:ishop-core:27.0.0-SNAPSHOT:jar")
-
-    val dep1 = ProjectModTest.depOf(pomRef = ref1, groupId = "any.group", artifactId = "some", version = Some("1.0.0"))
-    val dep2 = ProjectModTest.depOf(pomRef = ref2, groupId = "any.group", artifactId = "some2", version = Some("1.0.0"))
-
-    PomChecker.checkOwnArtifacts(Seq(
-      (dep1, new File("file/a/pom.xml")),
-      (dep2, new File("file/b/pom.xml")),
-    ), new File("file/"))
-  }
 
   @Test
   def testCheckOwnArtifacts_4(): Unit = {
@@ -906,6 +893,34 @@ class PomCheckerTest extends AssertionsForJUnit {
         ), new File("file/"))
       })
   }
+  @Test
+  def testCheckOwnArtifacts_5(): Unit = {
+    val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:ishop-ba-core:27.0.0-SNAPSHOT:war")
+    val ref2 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:ishop-core:27.0.0-SNAPSHOT:jar")
+
+    val dep1 = ProjectModTest.depOf(pomRef = ref1, groupId = "any.group", artifactId = "some", version = Some("1.0.0"))
+    val dep2 = ProjectModTest.depOf(pomRef = ref2, groupId = "any.group", artifactId = "some2", version = Some("1.0.0"))
+
+    PomChecker.checkOwnArtifacts(Seq(
+      (dep1, new File("file/a/pom.xml")),
+      (dep2, new File("file/b/pom.xml")),
+    ), new File("file/"))
+  }
+
+  @Test
+  def testCheckOwnArtifacts_6(): Unit = {
+    val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:bre:27.0.0-SNAPSHOT:war")
+    val ref2 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:core:27.0.0-SNAPSHOT:jar")
+
+    val dep1 = ProjectModTest.depOf(pomRef = ref1, groupId = "any.group", artifactId = "some", version = Some("1.0.0"))
+    val dep2 = ProjectModTest.depOf(pomRef = ref2, groupId = "any.group", artifactId = "some2", version = Some("1.0.0"))
+
+    PomChecker.checkOwnArtifacts(Seq(
+      (dep1, new File("file/a/pom.xml")),
+      (dep2, new File("file/b/pom.xml")),
+    ), new File("file/"))
+  }
+
 
   @Test
   def testCheckOwnArtifacts(): Unit = {

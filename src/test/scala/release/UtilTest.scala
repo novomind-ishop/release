@@ -22,6 +22,7 @@ class UtilTest extends AssertionsForJUnit {
     Assert.assertEquals(3, Util.soundex("All", "Bll"))
     Assert.assertEquals(3, Util.soundex("A", "B"))
     Assert.assertEquals(4, Util.soundex("AssertionsForJUnit", "AssertionsJUnid"))
+    Assert.assertEquals(2, Util.soundex("core", "bre"))
     Assert.assertEquals(2, Util.soundex("Yongera", "Remkpu"))
     Assert.assertEquals(2, Util.soundex("Zonger", "Remkpu"))
     Assert.assertEquals(2, Util.soundex("Anger", "Rengeo"))

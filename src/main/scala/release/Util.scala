@@ -45,9 +45,14 @@ object Util {
       a.zip(b).map(t => soundex(t._1, t._2))
     }
   }
+  private val predefScores:Map[(String, String), Int] = Map(
+    ("bre", "core") -> 2
+  )
 
   def soundex(a: String, b: String) = {
-    Soundex.US_ENGLISH.difference(a, b)
+    val s = Seq(a, b).sorted
+    val t = (s.head, s.last)
+    predefScores.get(t).getOrElse(Soundex.US_ENGLISH.difference(a, b))
   }
 
   class PluralString(in: String) {
