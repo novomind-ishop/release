@@ -46,7 +46,8 @@ object Util {
     }
   }
   private val predefScores:Map[(String, String), Int] = Map(
-    ("bre", "core") -> 2
+    ("bre", "core") -> 2,
+    ("ui", "vue") -> 2,
   )
 
   def soundex(a: String, b: String) = {

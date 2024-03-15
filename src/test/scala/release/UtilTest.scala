@@ -39,9 +39,7 @@ class UtilTest extends AssertionsForJUnit {
     Assert.assertEquals(0, Util.soundexSplitMax("ishop-xx-commons", "ishop-commons"))
 
     Assert.assertEquals(4, Util.soundexSplitMax("core-bom", "core-api"))
-    Assert.assertEquals(2, Util.soundexSplitMin("core-bom", "core-api"))
-
-
+    Assert.assertEquals(2, Util.soundexSplitMin("ui", "vue"))
   }
 
 
