@@ -164,7 +164,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
         |[INFO] --- check for preview releases @ maven ---
-        |[INFO]     WIP
         |[INFO] --- check major versions @ ishop ---
         |[INFO]     is shop: false
         |[INFO]     ✅ no major version diff
@@ -324,7 +323,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
         |[INFO] --- check for preview releases @ maven ---
-        |[INFO]     WIP
         |[INFO] --- check major versions @ ishop ---
         |[INFO]     is shop: false
         |[INFO]     ✅ no major version diff
@@ -397,6 +395,11 @@ class LintMavenTest extends AssertionsForJUnit {
         |      <artifactId>spring-vals</artifactId>
         |      <version>1.0.0-SNAPSHOT</version>
         |    </dependency>
+        |    <dependency>
+        |      <groupId>org.springframework</groupId>
+        |      <artifactId>spring-vars</artifactId>
+        |      <version>1.0.0-M1</version>
+        |    </dependency>
         |  </dependencies>
         |    <dependencyManagement>
         |    <dependencies>
@@ -445,7 +448,7 @@ class LintMavenTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self ---
-        |[INFO]     skips: RL10015-aa71e948, RL1017-ab101a0e
+        |[INFO]     skips: RL10015-aa71e948, RL1017-ab101a0e, RL1018-ceefe9c6
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
@@ -480,10 +483,12 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
         |[INFO] --- check for preview releases @ maven ---
-        |[WARNING]   found preview: org.springframework:spring-context:1.0.0-M1 😬
+        |[WARNING]   found preview: org.springframework:spring-context:1.0.0-M1 😬 RL1018-b40c1656
         |[WARNING]        next    : org.springframework:spring-context:1.0.1
         |[WARNING]        latest  : org.springframework:spring-context:1.2.9
-        |[INFO]     WIP
+        |[WARNING]        previous: org.springframework:spring-context:0.99.99
+        |[warning]   found preview: org.springframework:spring-vars:1.0.0-M1 😬 RL1018-ceefe9c6
+        |[warning]        previous: org.springframework:spring-vars:0.0.99
         |[INFO] --- check major versions @ ishop ---
         |[INFO]     is shop: false
         |[INFO]     ✅ no major version diff
@@ -491,7 +496,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)
         |I: checking dependencies against nexus - please wait
         |
-        |I: checked 6 dependencies in 999ms (2000-01-01)
+        |I: checked 7 dependencies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
         |╠═╦═ org.example:example:1.2.3
         |║ ╚═══ 99.99.99
@@ -514,7 +519,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 0)(sys => {
-      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL10015-aa71e948", "RL1017-ab101a0e")))
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL10015-aa71e948", "RL1017-ab101a0e", "RL1018-ceefe9c6")))
       val mockRepo = Mockito.mock(classOf[Repo])
       val mockRepo2 = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org/")
@@ -532,6 +537,10 @@ class LintMavenTest extends AssertionsForJUnit {
         .thenReturn(Nil)
       Mockito.when(mockRepo2.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(Nil)
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-vars"), ArgumentMatchers.anyString()))
+        .thenReturn(Seq(
+          "0.0.99", "1.0.0-M1"
+        ))
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-vals"), ArgumentMatchers.anyString()))
         .thenReturn(Seq(
           "0.1", "1.0.1", "1.0.2", "1.2.8", "1.2.9"
@@ -625,7 +634,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
         |[INFO] --- check for preview releases @ maven ---
-        |[INFO]     WIP
         |[INFO] --- check major versions @ ishop ---
         |[INFO]     is shop: false
         |[WARNING]     Found core 50, 51 😬 RL1013-28c40a8a
@@ -742,7 +750,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
         |[INFO] --- check for preview releases @ maven ---
-        |[INFO]     WIP
         |[INFO] --- check major versions @ ishop ---
         |[INFO]     is shop: false
         |[INFO]     ✅ no major version diff
@@ -846,7 +853,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
         |[INFO] --- check for preview releases @ maven ---
-        |[INFO]     WIP
         |[INFO] --- check major versions @ ishop ---
         |[INFO]     is shop: false
         |[INFO]     ✅ no major version diff
@@ -986,7 +992,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING] version ranges are not allowed
         |[WARNING] unstable marker like LATEST and RELEASE are not allowed
         |[INFO] --- check for preview releases @ maven ---
-        |[INFO]     WIP
         |[INFO] --- check major versions @ ishop ---
         |[INFO]     is shop: false
         |[INFO]     ✅ no major version diff
@@ -1139,7 +1144,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING] version ranges are not allowed
         |[WARNING] unstable marker like LATEST and RELEASE are not allowed
         |[INFO] --- check for preview releases @ maven ---
-        |[INFO]     WIP
         |[INFO] --- check major versions @ ishop ---
         |[INFO]     is shop: false
         |[INFO]     ✅ no major version diff
@@ -1446,7 +1450,6 @@ class LintMavenTest extends AssertionsForJUnit {
       |[INFO] --- check for GAV format @ maven ---
       |[INFO]     ✅ all GAVs scopes looks fine
       |[INFO] --- check for preview releases @ maven ---
-      |[INFO]     WIP
       |[INFO] --- check major versions @ ishop ---
       |[INFO]     is shop: false
       |[INFO]     ✅ no major version diff

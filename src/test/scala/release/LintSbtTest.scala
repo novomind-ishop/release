@@ -71,7 +71,6 @@ class LintSbtTest extends AssertionsForJUnit {
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
         |[INFO] --- check for preview releases @ maven ---
-        |[INFO]     WIP
         |[INFO] --- check major versions @ ishop ---
         |[INFO]     is shop: false
         |[INFO]     ✅ no major version diff

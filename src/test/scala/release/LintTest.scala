@@ -56,6 +56,13 @@ class LintTest extends AssertionsForJUnit {
       )),
       Lint.selectNextAndPrevious(Some(Seq("1.0.0-M2", "1.0.0-M3")), in))
 
+    Assert.assertEquals(Some(
+      NePrLa(next = None,
+        previous = Some(in.copy(version = Some("0.0.9"))),
+        latest = None
+      )),
+      Lint.selectNextAndPrevious(Some(Seq("1.0.0-M1", "0.0.9")), in))
+
   }
 
   @Test

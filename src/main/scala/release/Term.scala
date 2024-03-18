@@ -241,7 +241,14 @@ object Term {
 
   def warnSoft(text: String, opts: Opts, limit: Int = warnSoft.defaultLimit): String = warnSoft.ex(text, opts, limit)
 
-  def warn(text: String, opts: Opts, limit: Int = warn.defaultLimit): String = warn.ex(text, opts, limit)
+  def warn(text: String, opts: Opts, limit: Int = warn.defaultLimit, soft:Boolean = false): String = {
+    if (soft) {
+      warnSoft(text, opts, limit)
+    } else {
+      warn.ex(text, opts, limit)
+    }
+
+  }
 
   def error(text: String, opts: Opts, limit: Int = error.defaultLimit): String = error.ex(text, opts, limit)
 

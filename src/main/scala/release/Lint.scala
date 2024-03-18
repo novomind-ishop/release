@@ -18,7 +18,8 @@ import scala.collection.parallel.CollectionConverters._
 
 object Lint {
 
-  case class NePrLa(next:Option[Gav3], previous:Option[Gav3], latest:Option[Gav3])
+  case class NePrLa(next: Option[Gav3], previous: Option[Gav3], latest: Option[Gav3])
+
   def selectNextAndPrevious(versionRangeFor: Option[Seq[String]], gav: Gav3): Option[NePrLa] = {
     if (versionRangeFor.isDefined && versionRangeFor.get.nonEmpty) {
       val value = versionRangeFor.get
@@ -40,7 +41,12 @@ object Lint {
           }
 
           val maybeNext = toOption(index + 1)
-          val la: Option[Gav3] = al.lastOption.filterNot(e => maybeNext.map(_.version).map(_.getOrElse("")).contains(e)).map(n => gav.copy(version = Some(n)))
+          val la: Option[Gav3] = al.lastOption
+            .filterNot(e => {
+              val otherVersions = maybeNext.map(_.version).map(_.getOrElse("")).toSeq ++ gav.version.toSeq
+              otherVersions.contains(e)
+            })
+            .map(n => gav.copy(version = Some(n)))
           Some(NePrLa(next = maybeNext, previous = toOption(index - 1), latest = la))
 
         }
@@ -180,6 +186,7 @@ object Lint {
   val fiCodeCoreDiff = uniqCode(1013)
   val fiCodeVersionMissmatch = uniqCode(1014)(())
   val fiCodeDependencyScopesCopiesOverlapping = uniqCode(1017)
+  val fiCodePreviouRelease = uniqCode(1018)
   val fiWarn = "\uD83D\uDE2C"
   val fiError = "❌"
 
@@ -507,7 +514,7 @@ object Lint {
             out.println(info("    WIP", opts)) // TODO check extentions present
             out.println(info("--- project version @ maven ---", opts))
             out.println(info(s"    ${modTry.get.selfVersion}", opts))
-             // TODO non snapshots are only allowed in tags, because if someone install it to its local repo this will lead to problems
+            // TODO non snapshots are only allowed in tags, because if someone install it to its local repo this will lead to problems
             if (Lint.versionMissmatches(modTry.get.selfVersion, tagBranchInfo)) {
               val msg = s" ${modTry.get.selfVersion} != ${Util.show(tagBranchInfo)} ${fiWarn} ${fiCodeVersionMissmatch}"
               val bool = opts.lintOpts.skips.contains(fiCodeVersionMissmatch)
@@ -549,7 +556,7 @@ object Lint {
             }
             out.println(info("--- check for preview releases @ maven ---", opts))
             val updatePrinter = new StaticPrinter()
-            val updateOpts = opts.depUpOpts.copy(hideStageVersions = true, allowDependencyDowngrades = false)
+            val updateOpts = opts.depUpOpts.copy(hideStageVersions = true, allowDependencyDowngrades = true)
             val resultTry = mod.tryCollectDependencyUpdates(updateOpts, checkOn = true, updatePrinter)
             val lookupUpAndDowngrades: Map[Gav3, Seq[String]] = if (resultTry.isSuccess) {
               resultTry.get.map(t => (t._1.gav.simpleGav(), t._2._1)).toMap
@@ -560,7 +567,12 @@ object Lint {
               .filter(dep => ProjectMod.isUnwanted(dep.gav().simpleGav()))
               .filterNot(_.version.get.endsWith("-SNAPSHOT"))
               .foreach(dep => {
-                out.println(warn("  found preview: " + dep.gav().formatted + s" ${fiWarn}", opts, limit = lineMax))
+                val code = fiCodePreviouRelease.apply(dep.gav())
+                val skipped = opts.lintOpts.skips.contains(code)
+                if (skipped) {
+                  usedSkips = usedSkips :+ code
+                }
+                out.println(warn("  found preview: " + dep.gav().formatted + s" ${fiWarn} ${code}", opts, limit = lineMax, soft = skipped))
                 if (resultTry.isSuccess) {
                   val gav = dep.gav().simpleGav()
                   val versionRangeFor = lookupUpAndDowngrades.get(gav)
@@ -568,18 +580,17 @@ object Lint {
                   if (npo.isDefined) {
                     val nextAndPrev = npo.get
                     if (nextAndPrev.next.isDefined) {
-                      out.println(warn("       next    : " + nextAndPrev.next.get.formatted, opts, limit = lineMax))
+                      out.println(warn("       next    : " + nextAndPrev.next.get.formatted, opts, limit = lineMax, soft = skipped))
                     }
                     if (nextAndPrev.latest.isDefined) {
-                      out.println(warn("       latest  : " + nextAndPrev.latest.get.formatted, opts, limit = lineMax))
+                      out.println(warn("       latest  : " + nextAndPrev.latest.get.formatted, opts, limit = lineMax, soft = skipped))
                     }
                     if (nextAndPrev.previous.isDefined) {
-                      out.println(warn("       previous: " + nextAndPrev.previous.get.formatted, opts, limit = lineMax))
+                      out.println(warn("       previous: " + nextAndPrev.previous.get.formatted, opts, limit = lineMax, soft = skipped))
                     }
                   }
                 }
               })
-            out.println(info("    WIP", opts))
             out.println(info("--- check major versions @ ishop ---", opts))
             out.println(info(s"    is shop: ${mod.isShop}", opts))
             val mrc = Release.coreMajorResultOf(mod, None)
