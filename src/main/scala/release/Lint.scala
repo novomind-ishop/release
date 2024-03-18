@@ -563,6 +563,7 @@ object Lint {
             } else {
               Map.empty
             }
+            val warnExitForDepCheck = new AtomicBoolean(false)
             mod.listGavsForCheck()
               .filter(dep => ProjectMod.isUnwanted(dep.gav().simpleGav()))
               .filterNot(_.version.get.endsWith("-SNAPSHOT"))
@@ -571,6 +572,8 @@ object Lint {
                 val skipped = opts.lintOpts.skips.contains(code)
                 if (skipped) {
                   usedSkips = usedSkips :+ code
+                } else {
+                  warnExitForDepCheck.set(true)
                 }
                 out.println(warn("  found preview: " + dep.gav().formatted + s" ${fiWarn} ${code}", opts, limit = lineMax, soft = skipped))
                 if (resultTry.isSuccess) {
@@ -591,6 +594,9 @@ object Lint {
                   }
                 }
               })
+            if (warnExitForDepCheck.get()) {
+              warnExit.set(true)
+            }
             out.println(info("--- check major versions @ ishop ---", opts))
             out.println(info(s"    is shop: ${mod.isShop}", opts))
             val mrc = Release.coreMajorResultOf(mod, None)
