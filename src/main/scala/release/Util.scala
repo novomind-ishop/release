@@ -22,38 +22,60 @@ import scala.language.implicitConversions
 
 object Util {
 
-  private def spl(a:String): Seq[String] =a.toLowerCase.split("[^a-z]").toSeq
+  object Similarity {
+    private def spl(a:String): Seq[String] =a.toLowerCase.split("[^a-z]").toSeq
 
-  def soundexSplitMax(a: String, b: String) = {
-    soundexMax(spl(a), spl(b))
-  }
-  def soundexSplitMin(a: String, b: String) = {
-    soundexMin(spl(a), spl(b))
-  }
-  def soundexMin(a: Seq[String], b: Seq[String]) = {
-    soundexRange(a, b).min
-  }
-
-  def soundexMax(a: Seq[String], b: Seq[String]) = {
-    soundexRange(a, b).max
-  }
-
-  def soundexRange(a: Seq[String], b: Seq[String]): Seq[Int] = {
-    if (a.size != b.size) {
-      Seq(0)
-    } else {
-      a.zip(b).map(t => soundex(t._1, t._2))
+    def soundexSplitMax(a: String, b: String) = {
+      soundexMax(spl(a), spl(b))
     }
-  }
-  private val predefScores:Map[(String, String), Int] = Map(
-    ("bre", "core") -> 2,
-    ("ui", "vue") -> 2,
-  )
+    def soundexSplitMin(a: String, b: String) = {
+      soundexMin(spl(a), spl(b))
+    }
+    def soundexMin(a: Seq[String], b: Seq[String]) = {
+      soundexRange(a, b).min
+    }
 
-  def soundex(a: String, b: String) = {
-    val s = Seq(a, b).sorted
-    val t = (s.head, s.last)
-    predefScores.get(t).getOrElse(Soundex.US_ENGLISH.difference(a, b))
+    def soundexMax(a: Seq[String], b: Seq[String]) = {
+      soundexRange(a, b).max
+    }
+
+    def soundexRange(a: Seq[String], b: Seq[String]): Seq[Int] = {
+      if (a.size != b.size) {
+        Seq(0)
+      } else {
+        a.zip(b).map(t => soundex(t._1, t._2))
+      }
+    }
+    private val predefScores:Map[(String, String), Int] = Map(
+      ("bre", "core") -> 2,
+      ("ui", "vue") -> 2,
+    )
+
+    def soundex(a: String, b: String) = {
+      val s = Seq(a, b).sorted
+      val t = (s.head, s.last)
+      predefScores.get(t).getOrElse(Soundex.US_ENGLISH.difference(a, b))
+    }
+
+    def levenshtein(s1: String, s2: String): Int = {
+      val memorizedCosts = mutable.Map[(Int, Int), Int]()
+      import scala.collection.mutable
+      import scala.collection.parallel.ParSeq
+      def lev: ((Int, Int)) => Int = {
+        case (k1, k2) =>
+          memorizedCosts.getOrElseUpdate((k1, k2), (k1, k2) match {
+            case (i, 0) => i
+            case (0, j) => j
+            case (i, j) =>
+              ParSeq(1 + lev((i - 1, j)),
+                1 + lev((i, j - 1)),
+                lev((i - 1, j - 1))
+                  + (if (s1(i - 1) != s2(j - 1)) 1 else 0)).min
+          })
+      }
+
+      lev((s1.length, s2.length))
+    }
   }
 
   class PluralString(in: String) {
@@ -71,26 +93,6 @@ object Util {
     def blank(): Boolean = {
       in == null || in != null && in.trim.isEmpty
     }
-  }
-
-  def levenshtein(s1: String, s2: String): Int = {
-    val memorizedCosts = mutable.Map[(Int, Int), Int]()
-    import scala.collection.mutable
-    import scala.collection.parallel.ParSeq
-    def lev: ((Int, Int)) => Int = {
-      case (k1, k2) =>
-        memorizedCosts.getOrElseUpdate((k1, k2), (k1, k2) match {
-          case (i, 0) => i
-          case (0, j) => j
-          case (i, j) =>
-            ParSeq(1 + lev((i - 1, j)),
-              1 + lev((i, j - 1)),
-              lev((i - 1, j - 1))
-                + (if (s1(i - 1) != s2(j - 1)) 1 else 0)).min
-        })
-    }
-
-    lev((s1.length, s2.length))
   }
 
   implicit def pluralize(input: String): PluralString = new PluralString(input)

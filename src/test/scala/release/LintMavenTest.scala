@@ -1340,6 +1340,18 @@ class LintMavenTest extends AssertionsForJUnit {
     Assert.assertFalse(Lint.isValidTag(Lint.toBranchTag("work", null, gitA, "work")))
     Assert.assertFalse(Lint.isValidTag(Lint.toBranchTag("work", "", gitA, "work")))
 
+    gitA.doTag("work-20315-gcb5491b407")
+    Assert.assertEquals(Some(Seq("vwork-20315-gcb5491b407")), gitA.currentTags)
+
+    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", "", gitA, "work")))
+
+    gitA.doTag("20.0.0.some-6439-g800ef8fee7")
+    Assert.assertEquals(Some(Seq("v20.0.0.some-6439-g800ef8fee7")), gitA.currentTags)
+    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", "", gitA, "work")))
+
+    gitA.deleteTag("work-20315-gcb5491b407")
+    gitA.deleteTag("20.0.0.some-6439-g800ef8fee7")
+
     gitA.doTag("1.2.3")
     Assert.assertEquals(Some(Seq("v1.2.3")), gitA.currentTags)
     val maybeMerge = Lint.toBranchTag("work", "", gitA, "work")

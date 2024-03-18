@@ -28,13 +28,13 @@ object PomChecker {
       })
     val distinct = value1.distinct
     val value = distinct
-      .map(t => (t._1, t._2, Util.levenshtein(t._1._1.formatted, t._2._1.formatted)))
+      .map(t => (t._1, t._2, Util.Similarity.levenshtein(t._1._1.formatted, t._2._1.formatted)))
     val pr = value
       .filterNot(_._3 > 3)
       .filterNot(e => {
         val formatted = e._1._1
         val formatted1 = e._2._1
-        val score = Util.soundexSplitMin(formatted.formatted, formatted1.formatted)
+        val score = Util.Similarity.soundexSplitMin(formatted.formatted, formatted1.formatted)
         score <= 2
       })
 

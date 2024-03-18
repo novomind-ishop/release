@@ -106,6 +106,7 @@ object Lint {
     }
     val currentBranchOpt = sgit.currentBranchOpt
     val currentTags = sgit.currentTags.getOrElse(Nil)
+      .filterNot(tagName => tagName.matches(".*-[0-9]+-g[0-9a-f]+$"))
     if (ciCommitRefName == ciCommitTag && currentTags.contains(ciCommitTag) && Strings.emptyToNull(ciCommitBranch) == null) {
       Some(BranchTagMerge(tagName = Some(ciCommitTag), branchName = None))
     } else if (Strings.emptyToNull(ciCommitTag) == null &&

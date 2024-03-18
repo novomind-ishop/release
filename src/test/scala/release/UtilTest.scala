@@ -10,36 +10,36 @@ class UtilTest extends AssertionsForJUnit {
 
   @Test
   def testDistance(): Unit = {
-    Assert.assertEquals(1, Util.levenshtein("A", "B"))
-    Assert.assertEquals(4, Util.levenshtein("AssertionsForJUnit", "AssertionsJUnid"))
+    Assert.assertEquals(1, Util.Similarity.levenshtein("A", "B"))
+    Assert.assertEquals(4, Util.Similarity.levenshtein("AssertionsForJUnit", "AssertionsJUnid"))
   }
 
   @Test
   def testSoundex(): Unit = {
 
-    Assert.assertEquals(4, Util.soundex("A", "A"))
-    Assert.assertEquals(4, Util.soundex("All", "All"))
-    Assert.assertEquals(3, Util.soundex("All", "Bll"))
-    Assert.assertEquals(3, Util.soundex("A", "B"))
-    Assert.assertEquals(4, Util.soundex("AssertionsForJUnit", "AssertionsJUnid"))
-    Assert.assertEquals(2, Util.soundex("core", "bre"))
-    Assert.assertEquals(2, Util.soundex("Yongera", "Remkpu"))
-    Assert.assertEquals(2, Util.soundex("Zonger", "Remkpu"))
-    Assert.assertEquals(2, Util.soundex("Anger", "Rengeo"))
-    Assert.assertEquals(3, Util.soundex("Anger", "Ranger"))
-    Assert.assertEquals(0, Util.soundex("Otto", "Ranger"))
+    Assert.assertEquals(4, Util.Similarity.soundex("A", "A"))
+    Assert.assertEquals(4, Util.Similarity.soundex("All", "All"))
+    Assert.assertEquals(3, Util.Similarity.soundex("All", "Bll"))
+    Assert.assertEquals(3, Util.Similarity.soundex("A", "B"))
+    Assert.assertEquals(4, Util.Similarity.soundex("AssertionsForJUnit", "AssertionsJUnid"))
+    Assert.assertEquals(2, Util.Similarity.soundex("core", "bre"))
+    Assert.assertEquals(2, Util.Similarity.soundex("Yongera", "Remkpu"))
+    Assert.assertEquals(2, Util.Similarity.soundex("Zonger", "Remkpu"))
+    Assert.assertEquals(2, Util.Similarity.soundex("Anger", "Rengeo"))
+    Assert.assertEquals(3, Util.Similarity.soundex("Anger", "Ranger"))
+    Assert.assertEquals(0, Util.Similarity.soundex("Otto", "Ranger"))
 
 
-    Assert.assertEquals(0, Util.soundexMax(Seq("Otto"), Seq("Ranger")))
-    Assert.assertEquals(0, Util.soundexMax(Seq("Otto", "o"), Seq("Otto")))
-    Assert.assertEquals(4, Util.soundexMax(Seq("Otto", "o"), Seq("Otto", "u")))
+    Assert.assertEquals(0, Util.Similarity.soundexMax(Seq("Otto"), Seq("Ranger")))
+    Assert.assertEquals(0, Util.Similarity.soundexMax(Seq("Otto", "o"), Seq("Otto")))
+    Assert.assertEquals(4, Util.Similarity.soundexMax(Seq("Otto", "o"), Seq("Otto", "u")))
 
-    Assert.assertEquals(0, Util.soundexSplitMax("Otto", "Ranger"))
-    Assert.assertEquals(4, Util.soundexSplitMax("Otto Bert", "Otto Wert"))
-    Assert.assertEquals(0, Util.soundexSplitMax("ishop-xx-commons", "ishop-commons"))
+    Assert.assertEquals(0, Util.Similarity.soundexSplitMax("Otto", "Ranger"))
+    Assert.assertEquals(4, Util.Similarity.soundexSplitMax("Otto Bert", "Otto Wert"))
+    Assert.assertEquals(0, Util.Similarity.soundexSplitMax("ishop-xx-commons", "ishop-commons"))
 
-    Assert.assertEquals(4, Util.soundexSplitMax("core-bom", "core-api"))
-    Assert.assertEquals(2, Util.soundexSplitMin("ui", "vue"))
+    Assert.assertEquals(4, Util.Similarity.soundexSplitMax("core-bom", "core-api"))
+    Assert.assertEquals(2, Util.Similarity.soundexSplitMin("ui", "vue"))
   }
 
 
