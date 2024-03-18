@@ -17,7 +17,9 @@ import scala.util.{Failure, Success, Try}
 import scala.collection.parallel.CollectionConverters._
 
 object Lint {
-  def selectNextAndPrevious(versionRangeFor: Option[Seq[String]], gav: Gav3): Option[(Option[Gav3], Option[Gav3])] = {
+
+  case class NePrLa(next:Option[Gav3], previous:Option[Gav3], latest:Option[Gav3])
+  def selectNextAndPrevious(versionRangeFor: Option[Seq[String]], gav: Gav3): Option[NePrLa] = {
     if (versionRangeFor.isDefined && versionRangeFor.get.nonEmpty) {
       val value = versionRangeFor.get
       value.size match {
@@ -26,7 +28,7 @@ object Lint {
           val al = (value :+ value1).distinct.map(Version.parseSloppy).sorted.map(_.rawInput)
           val index = al.indexOf(value1)
 
-          def sefwhiu(ind: Int): Option[Gav3] = {
+          def toOption(ind: Int): Option[Gav3] = {
             try {
               val n = al(ind)
               Some(gav.copy(version = Some(n)))
@@ -37,7 +39,9 @@ object Lint {
             }
           }
 
-          Some((sefwhiu(index + 1), sefwhiu(index - 1)))
+          val maybeNext = toOption(index + 1)
+          val la: Option[Gav3] = al.lastOption.filterNot(e => maybeNext.map(_.version).map(_.getOrElse("")).contains(e)).map(n => gav.copy(version = Some(n)))
+          Some(NePrLa(next = maybeNext, previous = toOption(index - 1), latest = la))
 
         }
       }
@@ -556,18 +560,21 @@ object Lint {
               .filter(dep => ProjectMod.isUnwanted(dep.gav().simpleGav()))
               .filterNot(_.version.get.endsWith("-SNAPSHOT"))
               .foreach(dep => {
-                out.println(warnSoft("  found preview: " + dep.gav().formatted + s" ${fiWarn}", opts, limit = lineMax))
+                out.println(warn("  found preview: " + dep.gav().formatted + s" ${fiWarn}", opts, limit = lineMax))
                 if (resultTry.isSuccess) {
                   val gav = dep.gav().simpleGav()
                   val versionRangeFor = lookupUpAndDowngrades.get(gav)
                   val npo = Lint.selectNextAndPrevious(versionRangeFor, gav)
                   if (npo.isDefined) {
                     val nextAndPrev = npo.get
-                    if (nextAndPrev._1.isDefined) {
-                      out.println(warnSoft("       next    : " + nextAndPrev._1.get.formatted, opts, limit = lineMax))
+                    if (nextAndPrev.next.isDefined) {
+                      out.println(warn("       next    : " + nextAndPrev.next.get.formatted, opts, limit = lineMax))
                     }
-                    if (nextAndPrev._2.isDefined) {
-                      out.println(warnSoft("       previous: " + nextAndPrev._2.get.formatted, opts, limit = lineMax))
+                    if (nextAndPrev.latest.isDefined) {
+                      out.println(warn("       latest  : " + nextAndPrev.latest.get.formatted, opts, limit = lineMax))
+                    }
+                    if (nextAndPrev.previous.isDefined) {
+                      out.println(warn("       previous: " + nextAndPrev.previous.get.formatted, opts, limit = lineMax))
                     }
                   }
                 }

@@ -480,8 +480,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
         |[INFO] --- check for preview releases @ maven ---
-        |[warning]   found preview: org.springframework:spring-context:1.0.0-M1 😬
-        |[warning]        next    : org.springframework:spring-context:1.0.1
+        |[WARNING]   found preview: org.springframework:spring-context:1.0.0-M1 😬
+        |[WARNING]        next    : org.springframework:spring-context:1.0.1
+        |[WARNING]        latest  : org.springframework:spring-context:1.2.9
         |[INFO]     WIP
         |[INFO] --- check major versions @ ishop ---
         |[INFO]     is shop: false

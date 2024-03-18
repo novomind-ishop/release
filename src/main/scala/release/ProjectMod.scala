@@ -1,6 +1,6 @@
 package release
 
-import com.google.common.base.Stopwatch
+import com.google.common.base.{Stopwatch, Strings}
 import com.typesafe.scalalogging.LazyLogging
 import release.PomMod.{abbreviate, selectFirstVersionFrom, selfDep, unmanaged}
 import release.ProjectMod.{Dep, Gav3, PluginDep, UpdateCon, UpdatePrinter}
@@ -340,13 +340,17 @@ object ProjectMod extends LazyLogging {
 
     }
 
-    private val lowF = if (Util.isNullOrEmpty(low)) {
+    private val lowF:String = if (Util.isNullOrEmpty(low)) {
       ""
     } else {
       "_" + low
     }
 
-    private val patchF = if (patch == 0) {
+    val lowOrdinalPart:Int = {
+      Strings.nullToEmpty(low).replaceAll("[^0-9]+", "").toIntOption.getOrElse(Int.MaxValue)
+    }
+
+    private val patchF: String = if (patch == 0) {
       ""
     } else {
       "." + patch
@@ -415,7 +419,7 @@ object ProjectMod extends LazyLogging {
     private[release] val number2 = "^([0-9]+)\\.([0-9]+)(.*)".r
     private[release] val number3 = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)(.*)".r
 
-    private def ordering1 = Ordering.by[Version, (Int, Int, Int)](e => (e.major, e.minor, e.patch))
+    private def ordering1 = Ordering.by[Version, (Int, Int, Int, Int)](e => (e.major, e.minor, e.patch, e.lowOrdinalPart))
 
     private def ordering2: Ordering[Version] = Ordering.by[Version, (String, String)](e => (e.low, e.pre)).reverse
 

@@ -1663,8 +1663,9 @@ class PomModTest extends AssertionsForJUnit {
   def testVersionOrdering(): Unit = {
     val in = Seq(
       Version.parseSloppy("alpha"),
-      Version.parseSloppy("1.1.0-M2"), // TODO flip with M1
       Version.parseSloppy("1.1.0-M1"),
+      Version.parseSloppy("1.1.0-M2"),
+      Version.parseSloppy("1.1.0-M3"),
       Version.parseSloppy("1.1.0"),
       Version.parse("1.2.3"),
       Version.parse("2.2.3"),
@@ -1691,7 +1692,7 @@ class PomModTest extends AssertionsForJUnit {
 
     }).toList
     t.foreach(l => {
-      println(s"${l._1._1.format()} <-> ${l._1._2.format()} = ${l._2.mkString(", ")}")
+      println(s"${l._1._1.format()} (${l._1._1.rawInput}) <-> ${l._1._2.format()} (${l._1._2.rawInput}) = ${l._2.mkString(", ")}")
     })
     Assert.assertEquals(1, t.flatMap(_._2).distinct.size)
   }
@@ -1723,6 +1724,15 @@ class PomModTest extends AssertionsForJUnit {
     Assert.assertFalse(Version.parseSloppy("210_alpha").isOrdinalOnly)
     Assert.assertTrue(Version.parse("210.0.0_alpha").isOrdinal)
     Assert.assertFalse(Version.parse("210.0.0_alpha").isOrdinalOnly)
+  }
+
+  @Test
+  def testLowOrdinal(): Unit = {
+    Assert.assertEquals(Int.MaxValue,Version.parseSloppy("21.0.0-SNAPSHOT").lowOrdinalPart)
+    Assert.assertEquals(1,Version.parseSloppy("21.0.0_1").lowOrdinalPart)
+    Assert.assertEquals(7,Version.parseSloppy("21.0.0_RC7").lowOrdinalPart)
+    Assert.assertEquals(8,Version.parseSloppy("21.0.0_M8").lowOrdinalPart)
+    Assert.assertEquals(20423,Version.parseSloppy("21.0.0_RC-204-23").lowOrdinalPart)
   }
 
   @Test

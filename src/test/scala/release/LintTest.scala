@@ -7,7 +7,7 @@ import org.junit.{Assert, Ignore, Rule, Test}
 import org.junit.rules.TemporaryFolder
 import org.mockito.{ArgumentMatchers, Mockito}
 import org.scalatestplus.junit.AssertionsForJUnit
-import release.Lint.BranchTagMerge
+import release.Lint.{BranchTagMerge, NePrLa}
 import release.ProjectMod.Gav3
 import release.Repo.ReachableResult
 import release.Starter.{LintOpts, Opts}
@@ -27,17 +27,33 @@ class LintTest extends AssertionsForJUnit {
     Assert.assertEquals(None, Lint.selectNextAndPrevious(None, in))
 
     Assert.assertEquals(Some(
-      (Some(in.copy(version = Some("1.0.0"))), Some(in.copy(version = Some("0.9"))))),
+      NePrLa(next = Some(in.copy(version = Some("1.0.0"))),
+        previous = Some(in.copy(version = Some("0.9"))),
+        latest = None)),
       Lint.selectNextAndPrevious(Some(Seq("0.9", "1.0.0")), in))
-    Assert.assertEquals(Some((Some(in.copy(version = Some("1.0.0"))), Some(in.copy(version = Some("0.9"))))),
+    Assert.assertEquals(Some(
+      NePrLa(next = Some(in.copy(version = Some("1.0.0"))),
+        previous = Some(in.copy(version = Some("0.9"))),
+        latest = Some(in.copy(version = Some("2.2.2"))))),
       Lint.selectNextAndPrevious(Some(Seq("0.8", "0.9", "1.0.0", "2.2.2")), in))
 
-    Assert.assertEquals(Some((Some(in.copy(version = Some("1.0.0"))), None)),
+    Assert.assertEquals(Some(
+      NePrLa(next = Some(in.copy(version = Some("1.0.0"))),
+        previous = None,
+        latest = None)),
       Lint.selectNextAndPrevious(Some(Seq("1.0.0")), in))
 
-    Assert.assertEquals(Some((Some(in.copy(version = Some("1.0.1"))), None)),
+    Assert.assertEquals(Some(
+      NePrLa(next = Some(in.copy(version = Some("1.0.1"))),
+        previous = None,
+        latest = None)),
       Lint.selectNextAndPrevious(Some(Seq("1.0.1")), in))
-    Assert.assertEquals(Some((None, Some(in.copy(version = Some("1.0.0-M2"))))), // TODO wrong
+
+    Assert.assertEquals(Some(
+      NePrLa(next = Some(in.copy(version = Some("1.0.0-M2"))),
+        previous = None,
+        latest = Some(in.copy(version = Some("1.0.0-M3")))
+      )),
       Lint.selectNextAndPrevious(Some(Seq("1.0.0-M2", "1.0.0-M3")), in))
 
   }
