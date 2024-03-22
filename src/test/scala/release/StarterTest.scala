@@ -524,6 +524,14 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
   }
 
   @Test
+  def testEnvRead_checkPackages(): Unit = {
+    val inOpts = Opts()
+    Assert.assertEquals(Opts(lintOpts = LintOpts(checkPackages = false)), inOpts)
+    val result = Starter.envRead(Seq(("RELEASE_LINT_CHECKPACKAGES", "true")), inOpts)
+    Assert.assertEquals(Opts(lintOpts = LintOpts(checkPackages = true)), result)
+  }
+
+  @Test
   def testEnvRead_release_lint(): Unit = {
     val tuples = Seq(
       ("RELEASE_ANY0", "a"),

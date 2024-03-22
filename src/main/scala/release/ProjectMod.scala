@@ -288,6 +288,7 @@ object ProjectMod extends LazyLogging {
   }
 
   object SelfRef {
+    val virtualParent = SelfRef("virtual-group-of-all-parents", Gav3("maven", "parent", None))
     val extensions = SelfRef(".mvn/extensions.xml", Gav3("maven", "extension", None))
     val undef = SelfRef("X", Gav3("X", "X", None))
 

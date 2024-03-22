@@ -96,12 +96,22 @@ class PomCheckerTest extends AssertionsForJUnit {
       ProjectModTest.depOf(pomRef = ref2, groupId = "any.group", artifactId = "wrong2", version = Some("${wrongV2}"), scope = "test"),
       ProjectModTest.depOf(pomRef = ref2, groupId = "any.group", artifactId = "wrong2", version = None, scope = "test"),
       ProjectModTest.depOf(pomRef = ref2, groupId = "any.group", artifactId = "wrong2", version = Some(""), scope = "test"),
+
+      ProjectModTest.depOf(pomRef = ref1, groupId = "any.group", artifactId = "some-parent", version = Some("1.0.0"),
+        pomPath = Seq("project", "parent")),
+      ProjectModTest.depOf(pomRef = ref2, groupId = "any.group", artifactId = "some-parent", version = Some("2.0.0"),
+        pomPath = Seq("project", "parent")),
     )
 
     val props = Map("wrongV" -> "1.2.0", "wrongV2" -> "1.2.1")
     // WHEN / THEN
     TestHelper.assertException(
       """found overlapping versions in
+        |virtual-group-of-all-parents
+        |  any.group:some-parent:1.0.0
+        |  any.group:some-parent:2.0.0
+        |
+        |found overlapping versions in
         |com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war
         |  any.group:wrong:1.0.0:test
         |  any.group:wrong:2.0.0:test
@@ -856,7 +866,6 @@ class PomCheckerTest extends AssertionsForJUnit {
       })
   }
 
-
   @Test
   def testCheckOwnArtifacts_3(): Unit = {
     val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:ishop-core:27.0.0-SNAPSHOT:war")
@@ -873,7 +882,6 @@ class PomCheckerTest extends AssertionsForJUnit {
       (dep3, new File("file/c/pom.xml")),
     ), new File("file/"))
   }
-
 
   @Test
   def testCheckOwnArtifacts_4(): Unit = {
@@ -893,6 +901,7 @@ class PomCheckerTest extends AssertionsForJUnit {
         ), new File("file/"))
       })
   }
+
   @Test
   def testCheckOwnArtifacts_5(): Unit = {
     val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:ishop-ba-core:27.0.0-SNAPSHOT:war")
@@ -920,7 +929,6 @@ class PomCheckerTest extends AssertionsForJUnit {
       (dep2, new File("file/b/pom.xml")),
     ), new File("file/"))
   }
-
 
   @Test
   def testCheckOwnArtifacts(): Unit = {

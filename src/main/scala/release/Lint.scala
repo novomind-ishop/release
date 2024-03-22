@@ -12,11 +12,70 @@ import java.io.{File, IOException, PrintStream}
 import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{FileVisitResult, FileVisitor, Files, Path}
+import java.time.Duration
 import java.util.concurrent.atomic.AtomicBoolean
-import scala.util.{Failure, Success, Try}
+import scala.collection.mutable.ListBuffer
+import scala.util.{Failure, Success, Try, Using}
 import scala.collection.parallel.CollectionConverters._
 
 object Lint {
+
+  case class PackageResult(names: Seq[String], d: Duration)
+
+  def findAllPackagenames(rootFile: File, check: Boolean): PackageResult = {
+    if (check) {
+      val stopwatch = Stopwatch.createStarted()
+      val na = ListBuffer.empty[Path]
+      val skipDirNames = Set(".git", "target")
+      Files.walkFileTree(rootFile.toPath, new FileVisitor[Path] {
+        override def preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult = {
+          if (skipDirNames.contains(dir.getFileName.toString)) {
+            FileVisitResult.SKIP_SUBTREE
+          } else {
+            FileVisitResult.CONTINUE
+          }
+        }
+
+        override def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
+          na += file
+          FileVisitResult.CONTINUE
+
+        }
+
+        override def visitFileFailed(file: Path, exc: IOException): FileVisitResult = {
+          FileVisitResult.CONTINUE
+        }
+
+        override def postVisitDirectory(dir: Path, exc: IOException): FileVisitResult = {
+
+          FileVisitResult.CONTINUE
+        }
+      })
+      val suffix = Set("java", "scala")
+      PackageResult(na.par
+        .filter(p => suffix.contains(com.google.common.io.Files.getFileExtension(p.toFile.getName)))
+        .flatMap(f => {
+          try {
+            Using.resource(scala.io.Source.fromFile(f.toFile)) { r => selectPackage(r.getLines()) }
+          } catch {
+            case _: Exception => None
+          }
+
+        }).distinct.toList.sorted, stopwatch.elapsed())
+    } else {
+      PackageResult(Nil, Duration.ZERO)
+    }
+
+  }
+
+  def selectPackage(value: Iterator[String]): Option[String] = {
+    for (line <- value) {
+      if (line.trim.startsWith("package")) {
+        return Some(line)
+      }
+    }
+    None
+  }
 
   case class NePrLa(next: Option[Gav3], previous: Option[Gav3], latest: Option[Gav3])
 
@@ -184,7 +243,7 @@ object Lint {
   val fiCodeSnapshotGav = uniqCode(1011)
   val fiCodeSnapshotText = uniqCode(1012)
   val fiCodeCoreDiff = uniqCode(1013)
-  val fiCodeVersionMissmatch = uniqCode(1014)(())
+  val fiCodeVersionMismatch = uniqCode(1014)(())
   val fiCodeDependencyScopesCopiesOverlapping = uniqCode(1017)
   val fiCodePreviouRelease = uniqCode(1018)
   val fiWarn = "\uD83D\uDE2C"
@@ -205,7 +264,7 @@ object Lint {
       // https://polaris.docs.fairwinds.com/infrastructure-as-code/
 
       val warnExitCode = 42
-      val errorExitCode = 2
+      val errorExitCode = 43
       val lineMax = 100_000
       // TODO print $HOME
       println(info("    " + file.getAbsolutePath, opts, lineMax))
@@ -500,7 +559,7 @@ object Lint {
               val code1 = fiCodeDependencyScopesCopiesOverlapping.apply(msgs)
 
               out.println(warn(s" found scopes/copies/overlapping ${fiWarn} ${code1}", opts, limit = lineMax))
-              msgs.foreach(k => out.println(warn(k, opts, limit = lineMax)))
+              msgs.foreach(k => out.println(warn(" " + k, opts, limit = lineMax)))
               if (!opts.lintOpts.skips.contains(code1)) {
                 warnExit.set(true)
               } else {
@@ -515,11 +574,13 @@ object Lint {
             out.println(info("--- project version @ maven ---", opts))
             out.println(info(s"    ${modTry.get.selfVersion}", opts))
             // TODO non snapshots are only allowed in tags, because if someone install it to its local repo this will lead to problems
+            // TODO check if current version is older then released tags
+            // TODO extract unit test here
             if (Lint.versionMissmatches(modTry.get.selfVersion, tagBranchInfo)) {
-              val msg = s" ${modTry.get.selfVersion} != ${Util.show(tagBranchInfo)} ${fiWarn} ${fiCodeVersionMissmatch}"
-              val bool = opts.lintOpts.skips.contains(fiCodeVersionMissmatch)
+              val msg = s" ${modTry.get.selfVersion} != ${Util.show(tagBranchInfo)} ${fiWarn} ${fiCodeVersionMismatch}"
+              val bool = opts.lintOpts.skips.contains(fiCodeVersionMismatch)
               if (bool) {
-                usedSkips = usedSkips :+ fiCodeVersionMissmatch
+                usedSkips = usedSkips :+ fiCodeVersionMismatch
                 out.println(warnSoft(msg, opts, limit = lineMax))
               } else {
                 out.println(warn(msg, opts, limit = lineMax))
@@ -733,6 +794,12 @@ object Lint {
         out.println()
         rootFolderFiles.sortBy(_.toString)
           .take(5).foreach(f => out.println(f.toPath.normalize().toAbsolutePath.toFile.getAbsolutePath))
+
+        val packageNamesDetails = Lint.findAllPackagenames(file, opts.lintOpts.checkPackages)
+        if (packageNamesDetails.names.nonEmpty) {
+          out.println(s"   found ${packageNamesDetails.names.size} package names in ${packageNamesDetails.d.toString}")
+        }
+
         val timerResult = if (opts.lintOpts.showTimer) {
           " - " + stopwatch.elapsed().toString // TODO timer score A - F
         } else {

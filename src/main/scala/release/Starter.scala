@@ -216,7 +216,8 @@ object Starter extends LazyLogging {
     }
   }
 
-  case class LintOpts(doLint: Boolean = false, showTimer: Boolean = true, showTimeStamps: Boolean = false, showHelp: Boolean = false,
+  case class LintOpts(doLint: Boolean = false, showTimer: Boolean = true, showTimeStamps: Boolean = false,
+                      showHelp: Boolean = false, checkPackages: Boolean = false,
                       skips: Seq[String] = Nil, waringsToErrors: Boolean = false, invalids: Seq[String] = Nil)
 
   @tailrec
@@ -343,6 +344,9 @@ object Opts {
       })
       case ("RELEASE_LINT_TIMESTAMPS", k) :: tail => envRead(tail, {
         inOpt.copy(lintOpts = inOpt.lintOpts.copy(showTimeStamps = Strings.nullToEmpty(k).toBooleanOption.getOrElse(false)))
+      })
+      case ("RELEASE_LINT_CHECKPACKAGES", k) :: tail => envRead(tail, {
+        inOpt.copy(lintOpts = inOpt.lintOpts.copy(checkPackages = Strings.nullToEmpty(k).toBooleanOption.getOrElse(false)))
       })
       case ("RELEASE_SHOW_OPTS", k) :: tail => envRead(tail, {
         inOpt.copy(showOpts = Strings.nullToEmpty(k).toBooleanOption.getOrElse(false))

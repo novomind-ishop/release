@@ -22,6 +22,33 @@ class LintTest extends AssertionsForJUnit {
   def tag(tagName: String) = Some(BranchTagMerge(tagName = Some(tagName), branchName = None))
 
   @Test
+  def testSelectPackage_blank(): Unit = {
+    Assert.assertEquals(None, Lint.selectPackage(
+      """
+        |""".stripMargin.linesIterator))
+  }
+
+  @Test
+  def testSelectPackage(): Unit = {
+    Assert.assertEquals(Some("package a.b;"), Lint.selectPackage(
+      """package a.b;
+        |""".stripMargin.linesIterator))
+  }
+
+  @Test
+  def testSelectPackage_with_header(): Unit = {
+    Assert.assertEquals(Some("package a.b"), Lint.selectPackage(
+      """
+        |/*
+        | * Copyright (c) 2001, 2018 and/or its affiliates. All rights reserved.
+        |*/
+        |package a.b
+        |""".stripMargin.linesIterator))
+  }
+
+
+
+  @Test
   def testNextAndPrevious(): Unit = {
     val in = Gav3("a", "b", Some("1.0.0-M1"))
     Assert.assertEquals(None, Lint.selectNextAndPrevious(None, in))

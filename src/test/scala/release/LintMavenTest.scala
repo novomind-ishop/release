@@ -246,8 +246,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |[INFO] ----------------------------[ end of lint ]----------------------------
-        |[ERROR] exit 2 - because lint found errors, see above ❌""".stripMargin
-    TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 2)(sys => {
+        |[ERROR] exit 43 - because lint found errors, see above ❌""".stripMargin
+    TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 43)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
 
@@ -470,9 +470,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     ✅ successfull created
         |[INFO] --- dependency scopes/copies/overlapping @ maven ---
         |[WARNING]  found scopes/copies/overlapping 😬 RL1017-ab101a0e
-        |[WARNING] found copies, use only one dependency in com.novomind.ishop.any:any:0.11-SNAPSHOT
+        |[WARNING]  found copies, use only one dependency in com.novomind.ishop.any:any:0.11-SNAPSHOT
         |  org.springframework:spring-context:1.0.0-M1:compile (times 2). This can also happen if you override an unused dependencyManagement.
-        |[WARNING] found copies, use only one dependency in com.novomind.ishop.any:any:0.11-SNAPSHOT
+        |[WARNING]  found copies, use only one dependency in com.novomind.ishop.any:any:0.11-SNAPSHOT
         |  org.springframework:spring-vals:1.0.0-SNAPSHOT:compile (times 2). This can also happen if you override an unused dependencyManagement.
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
@@ -1023,8 +1023,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-empty/.git
         |/tmp/junit-REPLACED/release-lint-mvn-empty/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
-        |[ERROR] exit 2 - because lint found errors, see above ❌""".stripMargin
-    TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 2)(sys => {
+        |[ERROR] exit 43 - because lint found errors, see above ❌""".stripMargin
+    TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 43)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)

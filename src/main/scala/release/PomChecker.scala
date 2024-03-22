@@ -3,9 +3,7 @@ package release
 import org.apache.commons.codec.language.Soundex
 
 import java.io.PrintStream
-import release.ProjectMod.PluginDep
-import release.ProjectMod.Dep
-import release.ProjectMod.Gav
+import release.ProjectMod.{Dep, Gav, PluginDep, SelfRef}
 import release.Release.findBadLines
 import release.Starter.{Opts, PreconditionsException}
 
@@ -113,9 +111,8 @@ object PomChecker {
 
     val byRef = listDependecies
       .filterNot(_.version.getOrElse("").isBlank)
-
       .groupBy(_.pomRef)
-    val msgs = byRef.flatMap(deps => {
+    val msgs = (virtualParentRef(listDependecies) ++ byRef).flatMap(deps => {
       val value = deps._2.filterNot(_.pomPath == Seq("project", "build", "plugins", "plugin", "dependencies", "dependency"))
       val allGavs = value.flatMap(d => Seq(d) ++ zg.getOrElse(d, Nil)).map(_.gav()).distinct
       val withoutVersion = allGavs.map(_.copy(version = None)).groupBy(x => x).filter(_._2.size > 1).keySet
@@ -140,9 +137,15 @@ object PomChecker {
     }
   }
 
+  def virtualParentRef(listDependecies: Seq[Dep]):Map[SelfRef, Seq[Dep]] = {
+    val parentRefs:Map[SelfRef, Seq[Dep]] = Map(SelfRef.virtualParent -> listDependecies.filter(_.pomPath.contains("parent")).distinctBy(_.gav()))
+    parentRefs
+  }
+
   def getDepScopeAndOthers(listDependecies: Seq[Dep], listDependeciesRaw: Seq[Dep]): Seq[String] = {
-    val byRef = listDependecies.groupBy(_.pomRef)
-    val msgs = byRef.flatMap(deps => {
+    val byRef:Map[SelfRef, Seq[Dep]] = listDependecies.groupBy(_.pomRef)
+
+    val msgs = (virtualParentRef(listDependecies) ++ byRef).flatMap(deps => {
       val all = deps._2.map(_.gav())
       val allWithoutScope = all.map(_.copy(scope = "", packageing = ""))
       val withoutScope = allWithoutScope.distinct
