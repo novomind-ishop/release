@@ -41,6 +41,10 @@ case class PomMod(file: File, repo: RepoZ, opts: Opts,
     () => PomMod.allRawModulePomsFiles(Seq(file), withSubPoms))
 
   private[release] val raws: Seq[RawPomFile] = toRawPoms(allRawPomFiles)
+  lazy val depInFiles: Seq[(Dep, File)] = raws.flatMap(d => {
+    val result = PomMod.selfDep(_ => {})(d.document)
+    result.map(e => (e, d.pomFile))
+  })
   private[release] val allPomsDocs: Seq[Document] = raws.map(_.document).toList
 
   private[release] val mvnExtension: Option[File] = {
@@ -141,11 +145,7 @@ case class PomMod(file: File, repo: RepoZ, opts: Opts,
   if (opts.checkOverlapping) {
     PomChecker.checkDepScopes(listDependencies, listRawDeps)
     PomChecker.checkDepVersions(listDependencies, listRawDeps)
-    val relevants = raws.flatMap(d => {
-      val result = PomMod.selfDep(_ => {})(d.document)
-      result.map(e => (e, d.pomFile))
-    })
-    PomChecker.checkOwnArtifacts(relevants, file)
+    PomChecker.checkOwnArtifactNames(depInFiles, file)
   }
   if (opts.checkProjectDeps) {
     PomChecker.checkExternalWithProjectScope(listRawDeps, selfDepsMod, listProperties)

@@ -217,7 +217,7 @@ object Starter extends LazyLogging {
   }
 
   case class LintOpts(doLint: Boolean = false, showTimer: Boolean = true, showTimeStamps: Boolean = false,
-                      showHelp: Boolean = false, checkPackages: Boolean = false,
+                      showHelp: Boolean = false, checkPackages: Boolean = true,
                       skips: Seq[String] = Nil, waringsToErrors: Boolean = false, invalids: Seq[String] = Nil)
 
   @tailrec

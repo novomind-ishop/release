@@ -7,6 +7,7 @@ import org.scalatestplus.junit.AssertionsForJUnit
 import release.Starter.Opts
 
 import java.io.File
+import java.time.ZonedDateTime
 
 class LintSbtTest extends AssertionsForJUnit {
   val _temporarayFolder = new TemporaryFolder()
@@ -61,10 +62,8 @@ class LintSbtTest extends AssertionsForJUnit {
         |[INFO]     ✅ NO SNAPSHOTS in other files found
         |[INFO] --- model read @ maven/sbt/gradle ---
         |[INFO]     ✅ successfull created
-        |[INFO] --- dependency scopes/copies/overlapping @ maven ---
+        |[INFO] --- dependency scopes/copies/overlapping @ maven/sbt ---
         |[INFO]     ✅ no warnings found
-        |[INFO] --- .mvn @ maven ---
-        |[INFO]     WIP
         |[INFO] --- project version @ maven ---
         |[INFO]     1.0-SNAPSHOT
         |[INFO] --- check for snapshots @ maven ---
@@ -81,8 +80,10 @@ class LintSbtTest extends AssertionsForJUnit {
         |I: checked 2 dependencies in 999ms (2000-01-01)
         |║ Project GAV: X
         |╠═╦═ org.scala-lang:scala3-library_3:-1
-        |║ ╚═══ 1.0.0
+        |║ ╚═══ 1.0.0 (libyears: 0.0 [0 days])
         |║
+        |
+        |libyears: 0.0 (0 days)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -98,6 +99,8 @@ class LintSbtTest extends AssertionsForJUnit {
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org/")
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
+      Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
+        thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))

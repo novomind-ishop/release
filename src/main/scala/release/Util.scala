@@ -80,7 +80,7 @@ object Util {
 
   class PluralString(in: String) {
     def pluralize(int: Int): String = {
-      if (int > 0) {
+      if (int > 1) {
         in + "s"
       } else {
         in
@@ -180,13 +180,14 @@ object Util {
     b.result()
   }
 
-  def write(f: File, content: String): Unit = {
+  def write(f: File, content: String): File = {
     write(f, content.linesIterator.toSeq)
   }
 
-  def write(f: File, content: Seq[String]): Unit = {
+  def write(f: File, content: Seq[String]): File = {
     val list: java.util.List[String] = content.asJava
     Files.write(f.toPath, list)
+    f
   }
 
   def read(f: File): String = {

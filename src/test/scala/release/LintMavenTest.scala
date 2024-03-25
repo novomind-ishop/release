@@ -10,6 +10,7 @@ import release.Repo.ReachableResult
 import release.Starter.{LintOpts, Opts}
 
 import java.io.File
+import java.time.ZonedDateTime
 
 class LintMavenTest extends AssertionsForJUnit {
   val _temporarayFolder = new TemporaryFolder()
@@ -19,6 +20,7 @@ class LintMavenTest extends AssertionsForJUnit {
   def outT(in: String): String = {
     in.replaceAll("- $", "-")
       .replaceAll("/junit[0-9]+/", "/junit-REPLACED/")
+      .replaceAll(" package(?:s|) names in PT[0-9]+\\.[0-9]+S", " package names in PT0.0123S")
       .replaceAll("^\\[..:..:..\\...Z\\] ", "[00:00:00.00Z] ")
       .replaceAll(": git version 2\\.[0-9]+\\.[0-9]+", ": git version 2.999.999")
       .replaceAll("[a-f0-9]{40}$", "affe4533042ef887a5477d73d958814317675be1")
@@ -154,8 +156,10 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     ✅ NO SNAPSHOTS in other files found
         |[INFO] --- model read @ maven/sbt/gradle ---
         |[INFO]     ✅ successfull created
-        |[INFO] --- dependency scopes/copies/overlapping @ maven ---
+        |[INFO] --- dependency scopes/copies/overlapping @ maven/sbt ---
         |[INFO]     ✅ no warnings found
+        |[INFO] --- artifactnames @ maven ---
+        |[INFO]     com.novomind.ishop.any:any
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
@@ -176,6 +180,10 @@ class LintMavenTest extends AssertionsForJUnit {
         |Non existing dependencies for:
         |org.springframework:spring-context:1.0.0->Nil
         |  RepoProxy: https://repo.example.orgorg/springframework/spring-context/maven-metadata.xml
+        |
+        |
+        |WARN: negative durations for:
+        |libyears: 0.0 (-2 days)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -313,8 +321,10 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     ✅ NO SNAPSHOTS in other files found
         |[INFO] --- model read @ maven/sbt/gradle ---
         |[INFO]     ✅ successfull created
-        |[INFO] --- dependency scopes/copies/overlapping @ maven ---
+        |[INFO] --- dependency scopes/copies/overlapping @ maven/sbt ---
         |[INFO]     ✅ no warnings found
+        |[INFO] --- artifactnames @ maven ---
+        |[INFO]     com.novomind.ishop.any:any
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
@@ -333,8 +343,10 @@ class LintMavenTest extends AssertionsForJUnit {
         |I: checked 1 dependencies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
         |╠═╦═ org.springframework:spring-context:1.0.0
-        |║ ╚═══ 1.0.1, .., 1.2.8, 1.2.9
+        |║ ╚═══ 1.0.1, .., 1.2.8, 1.2.9 (libyears: 0.0 [0 days])
         |║
+        |
+        |libyears: 0.0 (0 days)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -349,6 +361,8 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org/")
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
+      Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
+        thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
@@ -468,12 +482,14 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     ✅ NO SNAPSHOTS in other files found
         |[INFO] --- model read @ maven/sbt/gradle ---
         |[INFO]     ✅ successfull created
-        |[INFO] --- dependency scopes/copies/overlapping @ maven ---
+        |[INFO] --- dependency scopes/copies/overlapping @ maven/sbt ---
         |[WARNING]  found scopes/copies/overlapping 😬 RL1017-ab101a0e
         |[WARNING]  found copies, use only one dependency in com.novomind.ishop.any:any:0.11-SNAPSHOT
         |  org.springframework:spring-context:1.0.0-M1:compile (times 2). This can also happen if you override an unused dependencyManagement.
         |[WARNING]  found copies, use only one dependency in com.novomind.ishop.any:any:0.11-SNAPSHOT
         |  org.springframework:spring-vals:1.0.0-SNAPSHOT:compile (times 2). This can also happen if you override an unused dependencyManagement.
+        |[INFO] --- artifactnames @ maven ---
+        |[INFO]     com.novomind.ishop.any:any
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
@@ -499,18 +515,20 @@ class LintMavenTest extends AssertionsForJUnit {
         |I: checked 7 dependencies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
         |╠═╦═ org.example:example:1.2.3
-        |║ ╚═══ 99.99.99
+        |║ ╚═══ 99.99.99 (libyears: 0.0 [0 days])
         |╠═╦═ org.example:example:3.2.1
-        |║ ╚═══ 99.99.99
+        |║ ╚═══ 99.99.99 (libyears: 0.0 [0 days])
         |╠═╦═ org.example.maven:example-maven-plugin:1.10.3
-        |║ ╚═══ 99.99.99
+        |║ ╚═══ 99.99.99 (libyears: 0.0 [0 days])
         |╠═╦═ org.example.maven:example2-maven-plugin:1.10.3
-        |║ ╚═══ 99.99.99
+        |║ ╚═══ 99.99.99 (libyears: 0.0 [0 days])
         |╠═╦═ org.springframework:spring-context:1.0.0-M1
-        |║ ╚═══ 1.0.1, .., 1.2.8, 1.2.9
+        |║ ╚═══ 1.0.1, .., 1.2.8, 1.2.9 (libyears: 0.0 [0 days])
         |╠═╦═ org.springframework:spring-vals:1.0.0-SNAPSHOT
-        |║ ╚═══ 1.0.1, .., 1.2.8, 1.2.9
+        |║ ╚═══ 1.0.1, .., 1.2.8, 1.2.9 (libyears: 0.0 [0 days])
         |║
+        |
+        |libyears: 0.0 (0 days)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -530,6 +548,10 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo2.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo, mockRepo2))
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
       Mockito.when(mockRepo2.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
+      Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
+        thenReturn(Some(ZonedDateTime.now()))
+      Mockito.when(mockRepo2.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
+        thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       Mockito.when(mockRepo2.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
@@ -624,8 +646,10 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     ✅ NO SNAPSHOTS in other files found
         |[INFO] --- model read @ maven/sbt/gradle ---
         |[INFO]     ✅ successfull created
-        |[INFO] --- dependency scopes/copies/overlapping @ maven ---
+        |[INFO] --- dependency scopes/copies/overlapping @ maven/sbt ---
         |[INFO]     ✅ no warnings found
+        |[INFO] --- artifactnames @ maven ---
+        |[INFO]     com.novomind.ishop.any:any
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
@@ -651,10 +675,12 @@ class LintMavenTest extends AssertionsForJUnit {
         |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
         |╠═╦═ com.novomind.ishop.core.other:other-context:50.2.3
         |║ ╠═══ (50) 50.4.0
-        |║ ╚═══ (51) 51.0.0, 51.2.5
+        |║ ╚═══ (51) 51.0.0, 51.2.5 (libyears: 0.0 [0 days])
         |╠═╦═ com.novomind.ishop.core.some:core-some-context:51.2.3
-        |║ ╚═══ 51.2.5
+        |║ ╚═══ 51.2.5 (libyears: 0.0 [0 days])
         |║
+        |
+        |libyears: 0.0 (0 days)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -670,6 +696,8 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq(Repo.centralUrl))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
+      Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
+        thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       val mockUpdates = Seq(
@@ -738,8 +766,10 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     ✅ NO SNAPSHOTS in other files found
         |[INFO] --- model read @ maven/sbt/gradle ---
         |[INFO]     ✅ successfull created
-        |[INFO] --- dependency scopes/copies/overlapping @ maven ---
+        |[INFO] --- dependency scopes/copies/overlapping @ maven/sbt ---
         |[INFO]     ✅ no warnings found
+        |[INFO] --- artifactnames @ maven ---
+        |[INFO]     com.novomind.ishop.any:any
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
@@ -762,10 +792,12 @@ class LintMavenTest extends AssertionsForJUnit {
         |I: checked 2 dependencies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
         |╠═╦═ com.novomind.ishop.core.other:other-context:50x-SNAPSHOT
-        |║ ╚═══ 50.2.3, 50.4.0
+        |║ ╚═══ 50.2.3, 50.4.0 (libyears: 0.0 [0 days])
         |╠═╦═ com.novomind.ishop.core.some:core-some-context:50x-SNAPSHOT
-        |║ ╚═══ 50.2.3, 50.4.0
+        |║ ╚═══ 50.2.3, 50.4.0 (libyears: 0.0 [0 days])
         |║
+        |
+        |libyears: 0.0 (0 days)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -781,6 +813,8 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
+      Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
+        thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       val mockUpdates = Seq(
@@ -843,8 +877,10 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     ✅ NO SNAPSHOTS in other files found
         |[INFO] --- model read @ maven/sbt/gradle ---
         |[INFO]     ✅ successfull created
-        |[INFO] --- dependency scopes/copies/overlapping @ maven ---
+        |[INFO] --- dependency scopes/copies/overlapping @ maven/sbt ---
         |[INFO]     ✅ no warnings found
+        |[INFO] --- artifactnames @ maven ---
+        |[INFO]     com.novomind.ishop.any:any
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
@@ -866,8 +902,10 @@ class LintMavenTest extends AssertionsForJUnit {
         |║ Project GAV: com.novomind.ishop.any:any:0.14-SNAPSHOT
         |╠═╦═ org.springframework:spring-context:1
         |║ ╠═══ (1) 1.0.1, .., 1.2.8, 1.2.9
-        |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6
+        |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6 (libyears: 0.0 [0 days])
         |║
+        |
+        |libyears: 0.0 (0 days)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -883,6 +921,8 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq(Repo.centralUrl))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
+      Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
+        thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       val mockUpdates = Seq(
@@ -976,8 +1016,10 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     ✅ NO SNAPSHOTS in other files found
         |[INFO] --- model read @ maven/sbt/gradle ---
         |[INFO]     ✅ successfull created
-        |[INFO] --- dependency scopes/copies/overlapping @ maven ---
+        |[INFO] --- dependency scopes/copies/overlapping @ maven/sbt ---
         |[INFO]     ✅ no warnings found
+        |[INFO] --- artifactnames @ maven ---
+        |[INFO]     com.novomind.ishop.any:any
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
@@ -1005,13 +1047,13 @@ class LintMavenTest extends AssertionsForJUnit {
         |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
         |╠═╦═ org.springframework:spring-context-latest:LATEST
         |║ ╠═══ (0) 0.0.1
-        |║ ╚═══ (1) 1.0.0
+        |║ ╚═══ (1) 1.0.0 (libyears: 0.0 [0 days])
         |╠═╦═ org.springframework:spring-context-range:(,1.0],[1.2,)
         |║ ╠═══ (0) 0.0.1
-        |║ ╚═══ (1) 1.0.0
+        |║ ╚═══ (1) 1.0.0 (libyears: 0.0 [0 days])
         |╠═╦═ org.springframework:spring-context-release:RELEASE
         |║ ╠═══ (0) 0.0.1
-        |║ ╚═══ (1) 1.0.0
+        |║ ╚═══ (1) 1.0.0 (libyears: 0.0 [0 days])
         |║
         |[ERROR] invalid empty versions:
         |org.springframework:spring-context-empty
@@ -1031,6 +1073,8 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq(Repo.centralUrl))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
+      Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
+        thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
@@ -1130,8 +1174,10 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
         |[INFO] --- model read @ maven/sbt/gradle ---
         |[INFO]     ✅ successfull created
-        |[INFO] --- dependency scopes/copies/overlapping @ maven ---
+        |[INFO] --- dependency scopes/copies/overlapping @ maven/sbt ---
         |[INFO]     ✅ no warnings found
+        |[INFO] --- artifactnames @ maven ---
+        |[INFO]     com.novomind.ishop.any:any
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
@@ -1157,11 +1203,13 @@ class LintMavenTest extends AssertionsForJUnit {
         |║ Project GAV: com.novomind.ishop.any:any:0.11.0
         |╠═╦═ org.springframework:spring-context:1.0.1-SNAPSHOT
         |║ ╠═══ (1) 1.0.1, .., 1.2.8, 1.2.9
-        |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6
+        |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6 (libyears: 0.0 [0 days])
         |╠═╦═ org.springframework:spring-other:1.0.0-SNAPSHOT:bert
         |║ ╠═══ (1) 1.0.1, .., 1.2.8, 1.2.9
-        |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6
+        |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6 (libyears: 0.0 [0 days])
         |║
+        |
+        |libyears: 0.0 (0 days)
         |[WARNING] org.springframework:spring-context:1.0.1-SNAPSHOT is already released, remove '-SNAPSHOT' suffix 😬 RL1009-ea7ea019
         |[WARNING] org.springframework:spring-other:1.0.0-SNAPSHOT is not released, but next release (1.0.1) was found (maybe orphan snapshot) 😬 RL10015-f0a969b5
         |[INFO]     WIP
@@ -1181,6 +1229,8 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq(Repo.centralUrl))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
+      Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
+        thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
 
@@ -1202,6 +1252,142 @@ class LintMavenTest extends AssertionsForJUnit {
       System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), value, file))
     })
 
+  }
+
+  @Test
+  def testRunMvnParent(): Unit = {
+    val file = temp.newFolder("release-lint-mvn-parent")
+    val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
+    gitA.configSetLocal("user.email", "you@example.com")
+    gitA.configSetLocal("user.name", "Your Name")
+    Util.write(new File(file, "pom.xml"),
+      """<?xml version="1.0" encoding="UTF-8"?>
+        |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+        |  <modelVersion>4.0.0</modelVersion>
+        |  <groupId>com.novomind.ishop.any</groupId>
+        |  <artifactId>ert</artifactId>
+        |  <version>0.11-SNAPSHOT</version>
+        |  <packaging>pom</packaging>
+        |  <modules>
+        |    <module>bert</module>
+        |  </modules>
+        |</project>
+        |""".stripMargin.linesIterator.toSeq)
+
+    val bertFolder = new File(file, "bert")
+    bertFolder.mkdir()
+    val bertPom = new File(bertFolder, "pom.xml")
+    Util.write(bertPom,
+      """<?xml version="1.0" encoding="UTF-8"?>
+        |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+        |  <modelVersion>4.0.0</modelVersion>
+        |  <parent>
+        |    <groupId>com.novomind.ishop.any</groupId>
+          |  <artifactId>ert</artifactId>d>
+        |    <version>0.11-SNAPSHOT</version>
+        |  </parent>
+        |  <groupId>com.novomind.ishop.any</groupId>
+        |  <artifactId>uert</artifactId>
+        |  <version>0.11-SNAPSHOT</version>
+        |</project>
+        |""".stripMargin.linesIterator.toSeq)
+    gitA.add(bertPom)
+
+    val unwantedPackages = new File(file, ".unwanted-packages")
+    Util.write(unwantedPackages,
+      """a.b
+        |a.b.c
+        |""".stripMargin.linesIterator.toSeq)
+    gitA.add(unwantedPackages)
+    gitA.add(Util.write(new File(bertFolder, "Demo.java"), // TODO valid folder
+      """package a.b;
+        |""".stripMargin.linesIterator.toSeq))
+
+    gitA.add(Util.write(new File(bertFolder, "Demo.scala"), // TODO valid folder
+      """package c.b
+        |""".stripMargin.linesIterator.toSeq))
+    gitA.commitAll("some")
+    val expected =
+      """
+        |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO] --- version / git ---
+        |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO] --- check clone config / remote @ git ---
+        |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
+        |[WARNING]  😬 if you use gitlab try to
+        |[WARNING]  😬 choose another default branch; save; use the original default branch
+        |[WARNING]  😬 remote call exception: java.lang.RuntimeException message: Nonzero exit value: 128; git --no-pager remote show origin; fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
+        |[INFO] --- check branches / remote @ git ---
+        |[INFO]     active contributor count: 1
+        |[INFO]       Your Name <you@example.com>
+        |[INFO]     active branch count: 1 - master
+        |[INFO] --- check clone config / no shallow clone @ git ---
+        |[INFO]     ✅ NO shallow clone
+        |[INFO] --- .gitattributes @ git ---
+        |[INFO] --- .gitignore @ git ---
+        |[WARNING]  Found local changes 😬 RL1003-3b946499
+        |[WARNING]  ?? pom.xml 😬 RL1003-467ad8bc
+        |[INFO] --- list-remotes @ git ---
+        |[WARNING]  NO remotes found 😬 RL1004
+        |[WARNING]  % git remote -v # returns nothing
+        |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
+        |[INFO]     ✅ NO SNAPSHOTS in other files found
+        |[INFO] --- model read @ maven/sbt/gradle ---
+        |[INFO]     ✅ successfull created
+        |[INFO] --- dependency scopes/copies/overlapping @ maven/sbt ---
+        |[INFO]     ✅ no warnings found
+        |[INFO] --- artifactnames @ maven ---
+        |[INFO]     com.novomind.ishop.any:ert
+        |[INFO]     com.novomind.ishop.any:uert
+        |[WARNING]    »com.novomind.ishop.any:ert« (in pom.xml) is too similar to
+        |[WARNING]      »com.novomind.ishop.any:uert« (in bert/pom.xml). Please choose
+        |[WARNING]      distinguishable names.
+        |[INFO] --- .mvn @ maven ---
+        |[INFO]     WIP
+        |[INFO] --- project version @ maven ---
+        |[INFO]     0.11-SNAPSHOT
+        |[INFO] --- check for snapshots @ maven ---
+        |[INFO] --- check for GAV format @ maven ---
+        |[INFO]     ✅ all GAVs scopes looks fine
+        |[INFO] --- check for preview releases @ maven ---
+        |[INFO] --- check major versions @ ishop ---
+        |[INFO]     is shop: false
+        |[INFO]     ✅ no major version diff
+        |[INFO] --- suggest dependency updates / configurable @ maven ---
+        |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)
+        |I: checking dependencies against nexus - please wait
+        |I: checked 0 dependencies in 999ms (2000-01-01)
+        |
+        |libyears: 0.0 (0 days)
+        |[INFO]     WIP
+        |[INFO] --- dep.tree @ maven ---
+        |[INFO]     WIP
+        |[INFO] --- unwanted-packages @ ishop ---
+        |[INFO]     found 2 package names in PT0.0123S
+        |[WARNING]  package »a.b« is in list of unwanted packages, please avoid this package
+        |
+        |/tmp/junit-REPLACED/release-lint-mvn-parent/.git
+        |/tmp/junit-REPLACED/release-lint-mvn-parent/.unwanted-packages
+        |/tmp/junit-REPLACED/release-lint-mvn-parent/bert
+        |/tmp/junit-REPLACED/release-lint-mvn-parent/pom.xml
+        |[INFO] ----------------------------[ end of lint ]----------------------------
+        |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
+    TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+      val mockRepo = Mockito.mock(classOf[Repo])
+      Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org/")
+      Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
+      Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
+      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "202"))
+      Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
+        thenReturn(Some(ZonedDateTime.now()))
+      Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+        .thenReturn(None)
+      System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file))
+
+    })
   }
 
   @Test
@@ -1441,8 +1627,10 @@ class LintMavenTest extends AssertionsForJUnit {
       |[INFO]     ✅ NO SNAPSHOTS in other files found
       |[INFO] --- model read @ maven/sbt/gradle ---
       |[INFO]     ✅ successfull created
-      |[INFO] --- dependency scopes/copies/overlapping @ maven ---
+      |[INFO] --- dependency scopes/copies/overlapping @ maven/sbt ---
       |[INFO]     ✅ no warnings found
+      |[INFO] --- artifactnames @ maven ---
+      |[INFO]     com.novomind.ishop.any:any
       |[INFO] --- .mvn @ maven ---
       |[INFO]     WIP
       |[INFO] --- project version @ maven ---
@@ -1458,6 +1646,8 @@ class LintMavenTest extends AssertionsForJUnit {
       |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)
       |I: checking dependencies against nexus - please wait
       |I: checked 0 dependencies in 999ms (2000-01-01)
+      |
+      |libyears: 0.0 (0 days)
       |[INFO]     WIP
       |[INFO] --- dep.tree @ maven ---
       |[INFO]     WIP
@@ -1477,6 +1667,8 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "202"))
+      Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
+        thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       val env = Map(

@@ -298,11 +298,11 @@ object ProjectMod extends LazyLogging {
 
     @Deprecated
     def parse(id: String): SelfRef = {
-      val splited = id.split(":").toSeq
-      if (splited.size < 3) {
+      val parts = id.split(":").toSeq
+      if (parts.size < 3) {
         throw new IllegalStateException(s"not valid id for ref splitting ${id}")
       }
-      SelfRef(id, Gav3(splited.head, splited(1), Some(splited(2))))
+      SelfRef(id, Gav3(parts.head, parts(1), Some(parts(2))))
     }
   }
 
@@ -804,6 +804,7 @@ trait ProjectMod extends LazyLogging {
   def listRemoteRepoUrls(): Seq[String]
 
   val file: File
+  val depInFiles: Seq[(Dep, File)]
   val repo: RepoZ
   val opts: Opts
   val selfVersion: String
@@ -819,7 +820,9 @@ trait ProjectMod extends LazyLogging {
     try {
       Success(collectDependencyUpdates(depUpOpts, checkOn, updatePrinter))
     } catch {
-      case e: Exception => Failure(e)
+      case e: Exception => {
+        Failure(e)
+      }
     }
   }
 

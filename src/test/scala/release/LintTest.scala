@@ -7,10 +7,12 @@ import org.junit.{Assert, Ignore, Rule, Test}
 import org.junit.rules.TemporaryFolder
 import org.mockito.{ArgumentMatchers, Mockito}
 import org.scalatestplus.junit.AssertionsForJUnit
-import release.Lint.{BranchTagMerge, NePrLa}
+import release.Lint.{BranchTagMerge, NePrLa, PackageResult}
 import release.ProjectMod.Gav3
 import release.Repo.ReachableResult
 import release.Starter.{LintOpts, Opts}
+
+import java.time.Duration
 
 class LintTest extends AssertionsForJUnit {
   val _temporarayFolder = new TemporaryFolder()
@@ -32,7 +34,27 @@ class LintTest extends AssertionsForJUnit {
   def testSelectPackage(): Unit = {
     Assert.assertEquals(Some("package a.b;"), Lint.selectPackage(
       """package a.b;
+        |package c.b;
         |""".stripMargin.linesIterator))
+  }
+
+  @Test
+  def testUnwantedPackage(): Unit = {
+    val testee = PackageResult(names = Seq(
+      "package a.bl",
+      "package a.bl.ba",
+      "package   a.j; ",
+      " package a.s",
+    ), Duration.ZERO,
+      """a.bl
+        |package a.j;
+        |package a.s
+        |""".stripMargin)
+    Assert.assertEquals(Seq(
+      "a.bl",
+      "a.j",
+      "a.s",
+    ), testee.unwantedPackages)
   }
 
   @Test
@@ -45,8 +67,6 @@ class LintTest extends AssertionsForJUnit {
         |package a.b
         |""".stripMargin.linesIterator))
   }
-
-
 
   @Test
   def testNextAndPrevious(): Unit = {

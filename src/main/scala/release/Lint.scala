@@ -17,13 +17,26 @@ import java.util.concurrent.atomic.AtomicBoolean
 import scala.collection.mutable.ListBuffer
 import scala.util.{Failure, Success, Try, Using}
 import scala.collection.parallel.CollectionConverters._
+import release.Util.pluralize
 
 object Lint {
 
-  case class PackageResult(names: Seq[String], d: Duration)
+  case class PackageResult(names: Seq[String], d: Duration, private val unwantedText: String) {
+    lazy val unwantedPackages: Seq[String] = {
+      def nom(in: String) = {
+        in.replaceAll("package", "").replaceAll(";", "").trim
+      }
+      val allNames = unwantedText.linesIterator.toSet.map(nom)
+
+
+      val normalized = names.map(nom)
+      normalized.filter(allNames.toSeq.contains)
+    }
+  }
 
   def findAllPackagenames(rootFile: File, check: Boolean): PackageResult = {
-    if (check) {
+    val packageScanFile = new File(rootFile, ".unwanted-packages")
+    if (check && packageScanFile.canRead) {
       val stopwatch = Stopwatch.createStarted()
       val na = ListBuffer.empty[Path]
       val skipDirNames = Set(".git", "target")
@@ -61,9 +74,9 @@ object Lint {
             case _: Exception => None
           }
 
-        }).distinct.toList.sorted, stopwatch.elapsed())
+        }).distinct.toList.sorted, stopwatch.elapsed(), unwantedText = Util.read(packageScanFile))
     } else {
-      PackageResult(Nil, Duration.ZERO)
+      PackageResult(Nil, Duration.ZERO, "")
     }
 
   }
@@ -551,9 +564,9 @@ object Lint {
           }
           if (modTry.isSuccess) {
             val mod = modTry.get
+            out.println(info("--- dependency scopes/copies/overlapping @ maven/sbt ---", opts))
             val msgs = PomChecker.getDepScopeAndOthers(mod.listDependencies, mod.listRawDeps) ++
               PomChecker.getDepVersionsProblems(mod.listDependencies, mod.listRawDeps)
-            out.println(info("--- dependency scopes/copies/overlapping @ maven ---", opts))
 
             if (msgs.nonEmpty) {
               val code1 = fiCodeDependencyScopesCopiesOverlapping.apply(msgs)
@@ -568,9 +581,16 @@ object Lint {
             } else {
               out.println(info("    ✅ no warnings found", opts))
             }
-
-            out.println(info("--- .mvn @ maven ---", opts))
-            out.println(info("    WIP", opts)) // TODO check extentions present
+            if (mod.isInstanceOf[PomMod]) {
+              out.println(info("--- artifactnames @ maven ---", opts))
+              val checkResult = PomChecker.getOwnArtifactNames(mod.depInFiles, mod.file)
+              checkResult._1.foreach(name => out.println(info("    " + name.formatted, opts)))
+              if (checkResult._2.isDefined) {
+                Term.wrap(out, Term.warn, "   " + checkResult._2.get, opts)
+              }
+              out.println(info("--- .mvn @ maven ---", opts))
+              out.println(info("    WIP", opts)) // TODO check extensions present
+            }
             out.println(info("--- project version @ maven ---", opts))
             out.println(info(s"    ${modTry.get.selfVersion}", opts))
             // TODO non snapshots are only allowed in tags, because if someone install it to its local repo this will lead to problems
@@ -617,7 +637,7 @@ object Lint {
             }
             out.println(info("--- check for preview releases @ maven ---", opts))
             val updatePrinter = new StaticPrinter()
-            val updateOpts = opts.depUpOpts.copy(hideStageVersions = true, allowDependencyDowngrades = true)
+            val updateOpts = opts.depUpOpts.copy(hideStageVersions = true, allowDependencyDowngrades = true, showLibYears = true)
             val resultTry = mod.tryCollectDependencyUpdates(updateOpts, checkOn = true, updatePrinter)
             val lookupUpAndDowngrades: Map[Gav3, Seq[String]] = if (resultTry.isSuccess) {
               resultTry.get.map(t => (t._1.gav.simpleGav(), t._2._1)).toMap
@@ -777,6 +797,16 @@ object Lint {
           out.println(info("--- dep.tree @ maven ---", opts))
           out.println(info("    WIP", opts))
         }
+        val packageNamesDetails = Lint.findAllPackagenames(file, opts.lintOpts.checkPackages)
+        if (packageNamesDetails.names.nonEmpty) {
+          out.println(info("--- unwanted-packages @ ishop ---", opts))
+          out.println(info(s"    found ${packageNamesDetails.names.size} ${"package".pluralize(packageNamesDetails.names.size)} names in ${packageNamesDetails.d.toString}", opts))
+          if (packageNamesDetails.unwantedPackages.nonEmpty) {
+            packageNamesDetails.unwantedPackages.foreach(line => {
+              out.println(warn(s" package »${line}« is in list of unwanted packages, please avoid this package", opts, limit = lineMax))
+            })
+          }
+        }
         if (sbt.isDefined) {
           out.println(info("--- ??? @ sbt ---", opts))
           out.println(info("    WIP", opts))
@@ -794,11 +824,6 @@ object Lint {
         out.println()
         rootFolderFiles.sortBy(_.toString)
           .take(5).foreach(f => out.println(f.toPath.normalize().toAbsolutePath.toFile.getAbsolutePath))
-
-        val packageNamesDetails = Lint.findAllPackagenames(file, opts.lintOpts.checkPackages)
-        if (packageNamesDetails.names.nonEmpty) {
-          out.println(s"   found ${packageNamesDetails.names.size} package names in ${packageNamesDetails.d.toString}")
-        }
 
         val timerResult = if (opts.lintOpts.showTimer) {
           " - " + stopwatch.elapsed().toString // TODO timer score A - F

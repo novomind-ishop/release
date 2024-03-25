@@ -207,7 +207,7 @@ object Term {
 
     val o = str.trim.linesIterator.map(_.split(" ").toSeq).toSeq
 
-    def asdf(words: Seq[String]): Seq[Seq[String]] = {
+    def doIndent(words: Seq[String]): Seq[Seq[String]] = {
       val wcount = new AtomicInteger(0)
       if (words.isEmpty) {
         Nil
@@ -220,11 +220,11 @@ object Term {
           r
         }).toList
         val value = words.drop(taken.length)
-        Seq(taken) ++ asdf(value)
+        Seq(taken) ++ doIndent(value)
       }
     }
 
-    val wer: Seq[Seq[String]] = o.flatMap(asdf)
+    val wer: Seq[Seq[String]] = o.flatMap(doIndent)
     val l = wer.map(line => {
       if (flip.getAndSet(false)) {
         indent + line.mkString(" ")

@@ -839,7 +839,7 @@ class PomCheckerTest extends AssertionsForJUnit {
     val dep1 = ProjectModTest.depOf(pomRef = ref1, groupId = "any.group", artifactId = "some", version = Some("1.0.0"))
     val dep2 = ProjectModTest.depOf(pomRef = ref2, groupId = "any.group", artifactId = "some2", version = Some("1.0.0"))
 
-    PomChecker.checkOwnArtifacts(Seq(
+    PomChecker.checkOwnArtifactNames(Seq(
       (dep1, new File("file/a/pom.xml")),
       (dep2, new File("file/b/pom.xml")),
     ), new File("file/"))
@@ -856,10 +856,10 @@ class PomCheckerTest extends AssertionsForJUnit {
     val dep2 = ProjectModTest.depOf(pomRef = ref2, groupId = "any.group", artifactId = "some2", version = Some("1.0.0"))
 
     TestHelper.assertException("" +
-      "»com.novomind.ishop.shops:otil« (in a/pom.xml) is too similar or identical to " +
+      "»com.novomind.ishop.shops:otil« (in a/pom.xml) is too similar to " +
       "»com.novomind.ishop.shops:util« (in b/pom.xml). Please choose distinguishable names.",
       classOf[ValidationException], () => {
-        PomChecker.checkOwnArtifacts(Seq(
+        PomChecker.checkOwnArtifactNames(Seq(
           (dep1, new File("file/a/pom.xml")),
           (dep2, new File("file/b/pom.xml")),
         ), new File("file/"))
@@ -876,7 +876,7 @@ class PomCheckerTest extends AssertionsForJUnit {
     val dep2 = ProjectModTest.depOf(pomRef = ref2, groupId = "any.group", artifactId = "some2", version = Some("1.0.0"))
     val dep3 = ProjectModTest.depOf(pomRef = ref3, groupId = "any.group", artifactId = "some3", version = Some("1.0.0"))
 
-    PomChecker.checkOwnArtifacts(Seq(
+    PomChecker.checkOwnArtifactNames(Seq(
       (dep1, new File("file/a/pom.xml")),
       (dep2, new File("file/b/pom.xml")),
       (dep3, new File("file/c/pom.xml")),
@@ -892,10 +892,10 @@ class PomCheckerTest extends AssertionsForJUnit {
     val dep2 = ProjectModTest.depOf(pomRef = ref2, groupId = "any.group", artifactId = "some2", version = Some("1.0.0"))
 
     TestHelper.assertException("" +
-      "»com.novomind.ishop.shops:ishop-licuide« (in a/pom.xml) is too similar or identical to " +
+      "»com.novomind.ishop.shops:ishop-licuide« (in a/pom.xml) is too similar to " +
       "»com.novomind.ishop.shops:ishop-liquid« (in b/pom.xml). Please choose distinguishable names.",
       classOf[ValidationException], () => {
-        PomChecker.checkOwnArtifacts(Seq(
+        PomChecker.checkOwnArtifactNames(Seq(
           (dep1, new File("file/a/pom.xml")),
           (dep2, new File("file/b/pom.xml")),
         ), new File("file/"))
@@ -910,7 +910,7 @@ class PomCheckerTest extends AssertionsForJUnit {
     val dep1 = ProjectModTest.depOf(pomRef = ref1, groupId = "any.group", artifactId = "some", version = Some("1.0.0"))
     val dep2 = ProjectModTest.depOf(pomRef = ref2, groupId = "any.group", artifactId = "some2", version = Some("1.0.0"))
 
-    PomChecker.checkOwnArtifacts(Seq(
+    PomChecker.checkOwnArtifactNames(Seq(
       (dep1, new File("file/a/pom.xml")),
       (dep2, new File("file/b/pom.xml")),
     ), new File("file/"))
@@ -924,7 +924,7 @@ class PomCheckerTest extends AssertionsForJUnit {
     val dep1 = ProjectModTest.depOf(pomRef = ref1, groupId = "any.group", artifactId = "some", version = Some("1.0.0"))
     val dep2 = ProjectModTest.depOf(pomRef = ref2, groupId = "any.group", artifactId = "some2", version = Some("1.0.0"))
 
-    PomChecker.checkOwnArtifacts(Seq(
+    PomChecker.checkOwnArtifactNames(Seq(
       (dep1, new File("file/a/pom.xml")),
       (dep2, new File("file/b/pom.xml")),
     ), new File("file/"))
@@ -940,9 +940,9 @@ class PomCheckerTest extends AssertionsForJUnit {
     val dep2 = ProjectModTest.depOf(pomRef = ref2, groupId = "any.group", artifactId = "some", version = Some("1.0.0"))
     val dep3 = ProjectModTest.depOf(pomRef = ref3, groupId = "any.group", artifactId = "some", version = Some("1.0.0"))
     TestHelper.assertException("" +
-      "»com.novomind.ishop.shops:util« (in b/pom.xml) is too similar or identical to " +
+      "»com.novomind.ishop.shops:util« (in b/pom.xml) is identical to " +
       "»com.novomind.ishop.shops:util« (in c/pom.xml). Please choose distinguishable names.", classOf[ValidationException], () => {
-      PomChecker.checkOwnArtifacts(Seq(
+      PomChecker.checkOwnArtifactNames(Seq(
         (dep1, new File("file/a/pom.xml")),
         (dep2, new File("file/b/pom.xml")),
         (dep3, new File("file/c/pom.xml")),

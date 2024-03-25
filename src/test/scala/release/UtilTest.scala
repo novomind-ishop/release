@@ -40,6 +40,9 @@ class UtilTest extends AssertionsForJUnit {
 
     Assert.assertEquals(4, Util.Similarity.soundexSplitMax("core-bom", "core-api"))
     Assert.assertEquals(2, Util.Similarity.soundexSplitMin("ui", "vue"))
+    Assert.assertEquals(2, Util.Similarity.soundexSplitMin("api", "ui"))
+    Assert.assertEquals(2, Util.Similarity.soundexSplitMin("cli", "api"))
+    Assert.assertEquals(3, Util.Similarity.soundexSplitMin("gui", "ui"))
   }
 
 
@@ -85,6 +88,7 @@ class UtilTest extends AssertionsForJUnit {
   def testPluralize(): Unit = {
     import Util.pluralize
     Assert.assertEquals("value", "value".pluralize(0))
+    Assert.assertEquals("value", "value".pluralize(1))
     Assert.assertEquals("values", "value".pluralize(10))
   }
 

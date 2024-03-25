@@ -13,7 +13,14 @@ import java.util.regex.Pattern
 import scala.collection.parallel.CollectionConverters._
 
 object PomChecker {
-  def checkOwnArtifacts(relevants: Seq[(Dep, File)], rootFile: File): Unit = {
+
+  def checkOwnArtifactNames(relevants: Seq[(Dep, File)], rootFile: File): Unit = {
+    val problem = getOwnArtifactNames(relevants, rootFile)._2
+    if (problem.isDefined) {
+      throw new ValidationException(problem.get)
+    }
+  }
+  def getOwnArtifactNames(relevants: Seq[(Dep, File)], rootFile: File): (Seq[ProjectMod.Gav2], Option[String]) = {
     implicit class Crossable[X](xs: Iterable[X]) {
       def cross[Y](ys: Iterable[Y]): Iterable[(X, Y)] = for {x <- xs; y <- ys} yield (x, y)
     }
@@ -42,10 +49,18 @@ object PomChecker {
 
     if (pr.nonEmpty) {
       val msg = pr.map(e => {
-        "»" + e._1._1.formatted + "« (in " + rel(e._1._2, rootFile).toString + ") is too similar or identical to »" +
+        val identOrSimilarMsg = if (e._1._1.formatted == e._2._1.formatted) {
+          "identical"
+        } else {
+          "too similar"
+        }
+
+        "»" + e._1._1.formatted + "« (in " + rel(e._1._2, rootFile).toString + s") is ${identOrSimilarMsg} to »" +
           e._2._1.formatted + "« (in " + rel(e._2._2, rootFile).toString + ")"
       }).mkString("; ") + ". Please choose distinguishable names."
-      throw new ValidationException(msg)
+      (simplified.map(_._1), Some(msg))
+    } else {
+      (simplified.map(_._1), None)
     }
   }
 

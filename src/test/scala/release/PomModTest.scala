@@ -123,7 +123,7 @@ class PomModTest extends AssertionsForJUnit {
 
     // WHEN
     TestHelper.assertException("" +
-      "»com.novomind.ishop.shops.any:any« (in any/pom.xml) is too similar or identical to " +
+      "»com.novomind.ishop.shops.any:any« (in any/pom.xml) is identical to " +
       "»com.novomind.ishop.shops.any:any« (in pom.xml). Please choose distinguishable names.",
       classOf[ValidationException], () => {
         PomModTest.withRepoForTests(srcPoms, repo)

@@ -15,6 +15,7 @@ import scala.util.parsing.combinator.RegexParsers
 
 case class SbtMod(file: File, repo: RepoZ, opts: Opts) extends ProjectMod {
 
+  override val depInFiles: Seq[(ProjectMod.Dep, File)] = Nil // TODO
   private val value: SbtModel = {
 
     def read(f: File) = Files.readAllLines(f.toPath, StandardCharsets.UTF_8)

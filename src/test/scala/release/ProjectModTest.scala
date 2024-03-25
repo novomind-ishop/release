@@ -56,6 +56,8 @@ object ProjectModTest {
 
     override val selfDepsMod: Seq[ProjectMod.Dep] = Nil
 
+    override val depInFiles: Seq[(Dep, File)] = Nil
+
     override def suggestReleaseVersion(branchNames: Seq[String], tagNames: Seq[String], increment: Option[Increment]): Seq[String] = Nil
 
     override def suggestNextRelease(releaseVersion: String): String = "???"
