@@ -8,6 +8,8 @@ import release.Starter.{Opts, PreconditionsException}
 
 import java.io.File
 import java.nio.file.{Files, StandardCopyOption}
+import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.Duration
 
 class SgitTest extends AssertionsForJUnit {
 
@@ -465,7 +467,7 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(Seq(GitRemote("ubglu", "failfail", "(fetch)"), GitRemote("ubglu", "failfail", "(push)")),
       gitA.listRemotes())
     gitA.removeRemote("ubglu")
-    gitA.addRemote("ubglu", "ssh://git.example.org/ubglu")
+    gitA.addRemote("ubglu", "ssh://user@git.example.org/ubglu")
 
     def failFetchAll(expectedMsg: String*): Unit = {
       TestHelper.assertExceptionWithCheck(message => {
@@ -481,6 +483,9 @@ class SgitTest extends AssertionsForJUnit {
           gitA.fetchAll()
         })
     }
+    Assert.assertEquals("after 1 millisecond to ssh://git.example.org/ubglu", gitA.remoteHead(timeout = Duration(1, TimeUnit.MILLISECONDS), debugFn = () => {
+      Thread.sleep(10_000)
+    }).failed.get.getMessage)
 
     Term.Os.getCurrent match {
       // TODO a git version change in 2.21

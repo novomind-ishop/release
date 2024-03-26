@@ -315,11 +315,12 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     listBranchNamesRemote().map(_.replaceFirst("origin/", "")).sorted
   }
 
-  def remoteHead(timeout: Duration = Duration(10, TimeUnit.SECONDS)): Try[Option[String]] = {
+  def remoteHead(timeout: Duration = Duration(10, TimeUnit.SECONDS), debugFn:() => Unit = () => ()): Try[Option[String]] = {
     val executor = Executors.newSingleThreadExecutor() // TODO reuse executor later
     val call = new Callable[Try[Seq[String]]] {
       override def call(): Try[Seq[String]] = {
         try {
+          debugFn.apply()
           val value = gitNative(Seq("remote", "show", "origin"), showErrorsOnStdErr = false)
             .flatMap(in => Success(in.filter(_.startsWith("  HEAD branch")).map(_.trim)))
           value
@@ -336,7 +337,9 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     } catch {
       case te: java.util.concurrent.TimeoutException => {
         future.cancel(true)
-        return Failure(te)
+        return Failure(new java.util.concurrent.TimeoutException(
+          (Strings.nullToEmpty(te.getMessage) + " after " + timeout.toString + " to " + listRemotes().map(_.position).map(Util.stripUserinfo).distinct.mkString(", ")).trim)
+        )
       }
     } finally {
       executor.shutdownNow();

@@ -4,6 +4,7 @@ import com.google.common.base.Strings
 import com.google.common.hash.Hashing
 import com.google.common.net.InetAddresses
 import org.apache.commons.codec.language.Soundex
+import org.apache.http.client.utils.URIBuilder
 
 import java.io.{File, IOException}
 import java.net.URI
@@ -16,11 +17,16 @@ import scala.jdk.CollectionConverters._
 import scala.util.Random
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{FileSystemException, FileVisitResult, FileVisitor, Files, Path}
+import java.time.{Duration, LocalDateTime, Period, ZonedDateTime}
 import java.util
 import scala.collection.immutable.Iterable
 import scala.language.implicitConversions
 
 object Util {
+  def toPeriod(d: Duration): Period = {
+    val aDate = ZonedDateTime.parse("2018-05-31T00:10:52+00:00").toLocalDate
+    Period.between(aDate, aDate.plusDays(d.toDays))
+  }
 
   object Similarity {
     private def spl(a:String): Seq[String] =a.toLowerCase.split("[^a-z]").toSeq
@@ -208,6 +214,12 @@ object Util {
     } catch {
       case e: Exception => None
     }
+  }
+
+  def stripUserinfo(url:String):String = {
+    new URIBuilder(Strings.nullToEmpty(url))
+      .setUserInfo(null)
+      .toString
   }
 
   def recursive(start: File): Seq[File] = {

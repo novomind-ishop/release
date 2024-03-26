@@ -4,9 +4,31 @@ import java.io.File
 import org.junit.{Assert, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
 
+import java.time.{Duration, Period}
 import java.util
 
 class UtilTest extends AssertionsForJUnit {
+
+  @Test
+  def testDurationPeriods(): Unit = {
+    val dDays = Duration.ofDays(39)
+    val pDays = Period.ofDays(39)
+    val pMonthYear = Period.ofMonths(3).plusYears(2)
+    Assert.assertEquals(dDays.toDays, pDays.getDays)
+
+    Assert.assertEquals(0, pDays.getMonths)
+    val period = Util.toPeriod(dDays)
+    Assert.assertEquals(1, period.getMonths)
+
+  }
+
+  @Test
+  def testUserdata(): Unit = {
+    Assert.assertEquals("A", Util.stripUserinfo("A"))
+    Assert.assertEquals("", Util.stripUserinfo(""))
+    Assert.assertEquals("", Util.stripUserinfo(null))
+    Assert.assertEquals("https://example.org/a?a=b", Util.stripUserinfo("https://username@example.org/a?a=b"))
+  }
 
   @Test
   def testDistance(): Unit = {

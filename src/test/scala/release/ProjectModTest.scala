@@ -13,6 +13,7 @@ import release.Starter.OptsDepUp
 import java.io.File
 import java.time.{Duration, ZonedDateTime}
 import scala.collection.immutable.ListMap
+import scala.util.{Failure, Success, Try}
 
 object ProjectModTest {
 
@@ -126,12 +127,12 @@ class ProjectModTest extends AssertionsForJUnit {
     val result = TermTest.withOutErr[Unit]()(sys => {
       val opts = OptsDepUp().copy(showLibYears = true)
 
-      val innerResult: Seq[(GavWithRef, (Seq[String], Duration))] = ProjectMod.collectDependencyUpdates(
+      val innerResult: Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = ProjectMod.collectDependencyUpdates(
         new UpdatePrinter(100, term, sys, printProgress = true), opts,
         rootDeps, selfDepsModX, new RepoProxy(Seq(repoMock1, repoMock2)), checkOnline = false)
 
-      val sca1 = GavWithRef(SelfRef.undef, anyDep.gav())
-      val scala2 = (sca1, (Seq("2.13.1", "2.13.2"), Duration.ZERO))
+      val any = GavWithRef(SelfRef.undef, anyDep.gav())
+      val scala2 = (any, Seq("1.0.0", "2.13.1", "2.13.2").map((_, Success(now))))
 
       Assert.assertEquals(Seq(scala2), innerResult)
     })
@@ -151,23 +152,31 @@ class ProjectModTest extends AssertionsForJUnit {
     Mockito.when(repoMock.createAll(ArgumentMatchers.any())).thenReturn(Seq(repoMock))
     when(repoMock.getRelocationOf(anyString(), anyString(), anyString())).thenReturn(None)
     when(repoMock.newerAndPrevVersionsOf(scala.groupId, scala.artifactId, scala.version.get)).thenReturn(Seq("2.12.0", scala.version.get, "2.13.1"))
+    when(repoMock.depDate(anyString(), anyString(), anyString())).thenReturn(None)
     when(repoMock.depDate(scala.groupId, scala.artifactId, scala.version.get)).thenReturn(Some(now))
     when(repoMock.depDate(scala.groupId, scala.artifactId, "2.13.1")).thenReturn(Some(now))
     when(repoMock.newerAndPrevVersionsOf(scala.groupId, "scala3-library_3", "-1")).thenReturn(Seq("-1", "3.0.1"))
     when(repoMock.depDate(scala.groupId, "scala3-library_3", "-1")).thenReturn(None)
-    when(repoMock.depDate(scala.groupId, "scala3-library_3", "3.0.1")).thenReturn(None)
+    when(repoMock.depDate(scala.groupId, "scala3-library_3", "3.0.1")).thenReturn(Some(now.minusDays(1)))
     val result = TermTest.withOutErr[Unit]()(sys => {
       val opts = OptsDepUp().copy(showLibYears = true)
 
-      val innerResult: Seq[(GavWithRef, (Seq[String], Duration))] = ProjectMod.collectDependencyUpdates(
+      val innerResult: Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = ProjectMod.collectDependencyUpdates(
         new UpdatePrinter(100, term, sys, printProgress = true), opts,
         rootDeps, selfDepsModX, new RepoProxy(Seq(repoMock)), checkOnline = false)
 
-      val sca1 = GavWithRef(SelfRef.undef, Gav("org.scala-lang", "scala-library", "2.13.0"))
-      val scala2 = (sca1, (Seq("2.13.1"), Duration.ZERO))
-      val sca2 = GavWithRef(SelfRef.undef, Gav("org.scala-lang", "scala3-library_3", "-1"))
-      val scala3 = (sca2, (Seq("3.0.1"), Duration.ofDays(-1)))
-      Assert.assertEquals(Seq(scala2, scala3), innerResult)
+      val sca0 = GavWithRef(SelfRef.undef, Gav("org.scala-lang", "scala-library", "2.13.0"))
+      val scala0 = (sca0, Seq(
+        ("2.13.0", Success(now)),
+        ("2.13.1", Success(now)),
+      ))
+
+      val sca3 = GavWithRef(SelfRef.undef, Gav("org.scala-lang", "scala3-library_3", "-1"))
+      val scala3 = (sca3, Seq(
+        ("-1", Failure(new UnsupportedOperationException("no date found for org.scala-lang:scala3-library_3:-1"))),
+        ("3.0.1", Success(now.minusDays(1))),
+      ))
+      Assert.assertEquals(tryToString(Seq(scala0, scala3)), tryToString(innerResult))
       val updatePrinter = new UpdatePrinter(shellWidth = 100,
         termOs = term,
         sys = sys, printProgress = true)
@@ -179,9 +188,14 @@ class ProjectModTest extends AssertionsForJUnit {
 
         override val selfDepsMod: Seq[Dep] = selfDepsModX
       }.collectDependencyUpdates(opts, checkOn = false, updatePrinter)
-      Assert.assertEquals(Seq(scala2, scala3), resultMod)
+      Assert.assertEquals(tryToString(Seq(scala0, scala3)), tryToString(resultMod))
     })
     Assert.assertEquals("", result.err)
+  }
+
+  def tryToString(e:Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])]):Seq[(GavWithRef, Seq[(String, String)])] = {
+    val r = e.map(t => (t._1, t._2.map(k => (k._1, k._2.toString))))
+    r
   }
 
   @Test
@@ -246,32 +260,32 @@ class ProjectModTest extends AssertionsForJUnit {
     ), result)
   }
 
-
-
   @Test
   def testFilter(): Unit = {
-    val in: ListMap[Gav3, (Seq[String], Duration)] = ListMap(
-      Gav3(groupId = "g", artifactId = "a", version = "1.0.0") -> (Nil, Duration.ZERO),
-      Gav3(groupId = "g", artifactId = "a1", version = "1.0.0") -> (Seq("1.0.0"), Duration.ZERO),
-      Gav3(groupId = "g", artifactId = "a2", version = "1.0.0-SNAPSHOT") -> (Seq("1.0.0"), Duration.ZERO),
-      Gav3(groupId = "g", artifactId = "a3", version = "1.0.0-M1") -> (Seq("1.0.0"), Duration.ZERO),
-      Gav3(groupId = "g", artifactId = "a4", version = "1.0.1-SNAPSHOT") -> (Seq("1.0.0", "1.0.1", "2.0.0"), Duration.ZERO),
-      Gav3(groupId = "g", artifactId = "a5", version = "1.0.1-M2") -> (Seq("2.0.0", "1.0.1", "1.0.0"), Duration.ZERO),
-      Gav3(groupId = "g", artifactId = "a6", version = "ok") -> (Seq("1.0.0"), Duration.ZERO),
-      Gav3(groupId = "g", artifactId = "a7", version = "ok") -> (Seq("1.0.0", "ok"), Duration.ZERO),
-      Gav3(groupId = "g", artifactId = "a8", version = "1.0.0-SNAPSHOT") -> (Seq("1.0.1"), Duration.ZERO),
+
+    val now = ZonedDateTime.parse("2024-03-26T12:00:00+00:00")
+    val in: ListMap[Gav3, Seq[(String, Try[ZonedDateTime])]] = ListMap(
+      Gav3(groupId = "g", artifactId = "a", version = "1.0.0") -> Nil,
+      Gav3(groupId = "g", artifactId = "a1", version = "1.0.0") -> Seq("1.0.0").map((_, Success(now))),
+      Gav3(groupId = "g", artifactId = "a2", version = "1.0.0-SNAPSHOT") -> Seq("1.0.0").map((_, Success(now))),
+      Gav3(groupId = "g", artifactId = "a3", version = "1.0.0-M1") -> Seq("1.0.0").map((_, Success(now))),
+      Gav3(groupId = "g", artifactId = "a4", version = "1.0.1-SNAPSHOT") -> Seq("1.0.0", "1.0.1", "2.0.0").map((_, Success(now))),
+      Gav3(groupId = "g", artifactId = "a5", version = "1.0.1-M2") -> Seq("2.0.0", "1.0.1", "1.0.0").map((_, Success(now))),
+      Gav3(groupId = "g", artifactId = "a6", version = "ok") -> Seq("1.0.0").map((_, Success(now))),
+      Gav3(groupId = "g", artifactId = "a7", version = "ok") -> Seq("1.0.0", "ok").map((_, Success(now))),
+      Gav3(groupId = "g", artifactId = "a8", version = "1.0.0-SNAPSHOT") -> Seq("1.0.1").map((_, Success(now))),
     )
     val result = ProjectMod.removeOlderVersions(in)
     val expected = ListMap(
-      Gav3(groupId = "g", artifactId = "a", version = "1.0.0") -> (Nil, Duration.ZERO),
-      Gav3(groupId = "g", artifactId = "a1", version = "1.0.0") -> (Nil, Duration.ZERO),
-      Gav3(groupId = "g", artifactId = "a2", version = "1.0.0-SNAPSHOT") -> (Seq("1.0.0"), Duration.ZERO),
-      Gav3(groupId = "g", artifactId = "a3", version = "1.0.0-M1") -> (Seq("1.0.0"), Duration.ZERO),
-      Gav3(groupId = "g", artifactId = "a4", version = "1.0.1-SNAPSHOT") -> (Seq("1.0.1", "2.0.0"), Duration.ZERO),
-      Gav3(groupId = "g", artifactId = "a5", version = "1.0.1-M2") -> (Seq("1.0.1", "2.0.0"), Duration.ZERO),
-      Gav3(groupId = "g", artifactId = "a6", version = "ok") -> (Seq("1.0.0"), Duration.ZERO),
-      Gav3(groupId = "g", artifactId = "a7", version = "ok") -> (Seq("1.0.0"), Duration.ZERO),
-      Gav3(groupId = "g", artifactId = "a8", version = "1.0.0-SNAPSHOT") -> (Seq("1.0.1"), Duration.ZERO),
+      Gav3(groupId = "g", artifactId = "a", version = "1.0.0") -> Nil,
+      Gav3(groupId = "g", artifactId = "a1", version = "1.0.0") -> Nil,
+      Gav3(groupId = "g", artifactId = "a2", version = "1.0.0-SNAPSHOT") -> Seq("1.0.0").map((_, Success(now))),
+      Gav3(groupId = "g", artifactId = "a3", version = "1.0.0-M1") -> Seq("1.0.0").map((_, Success(now))),
+      Gav3(groupId = "g", artifactId = "a4", version = "1.0.1-SNAPSHOT") -> Seq("1.0.1", "2.0.0").map((_, Success(now))),
+      Gav3(groupId = "g", artifactId = "a5", version = "1.0.1-M2") -> Seq("1.0.1", "2.0.0").map((_, Success(now))),
+      Gav3(groupId = "g", artifactId = "a6", version = "ok") -> Seq("1.0.0").map((_, Success(now))),
+      Gav3(groupId = "g", artifactId = "a7", version = "ok") -> Seq("ok", "1.0.0").map((_, Success(now))),
+      Gav3(groupId = "g", artifactId = "a8", version = "1.0.0-SNAPSHOT") -> Seq("1.0.1").map((_, Success(now))),
     )
     Assert.assertEquals(expected, result)
     Assert.assertEquals(ProjectMod.toDepChangeSeq(expected), ProjectMod.removeOlderVersions(ProjectMod.toDepChangeSeq(in)))
@@ -286,7 +300,7 @@ class ProjectModTest extends AssertionsForJUnit {
     when(repoMock.allRepoUrls()).thenReturn(Nil)
     Mockito.when(repoMock.createAll(ArgumentMatchers.any())).thenReturn(Seq(repoMock))
     val result = TermTest.withOutErr[Unit]()(sys => {
-      val innerResult: Seq[(GavWithRef, (Seq[String], Duration))] = ProjectMod.collectDependencyUpdates(
+      val innerResult: Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = ProjectMod.collectDependencyUpdates(
         new UpdatePrinter(100, term, sys, printProgress = true), OptsDepUp(),
         rootDeps, selfDepsMod, new RepoProxy(Seq(repoMock)), checkOnline = false)
       Assert.assertEquals(Nil, innerResult)

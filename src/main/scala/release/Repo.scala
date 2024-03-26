@@ -74,9 +74,11 @@ class RepoProxy(_repos: Seq[RepoZ]) extends RepoZ {
       t
     }
   }
+
   override def allRepoUrls(): Seq[String] = {
     repos.flatMap(_.allRepoUrls())
   }
+
   override def getRelocationOf(groupID: String, artifactId: String, version: String): Option[Gav3] = {
     repos.flatMap(_.getRelocationOf(groupID, artifactId, version)).headOption
   }
@@ -108,7 +110,6 @@ class RepoProxy(_repos: Seq[RepoZ]) extends RepoZ {
   override def tryResolveReqWorkNexus(request: String): Try[(File, String)] = {
     repos.map(_.tryResolveReqWorkNexus(request)).headOption.getOrElse(Failure(new IllegalStateException("nothing found")))
   }
-
 
 }
 
@@ -185,19 +186,12 @@ class Repo(_mirrorNexus: RemoteRepository, _workNexus: RemoteRepository) extends
     Repo.convertNewerAndPrefVersions(groupID, artifactId, version, request => getVersionsOf(request).map(_.toString))
   }
 
-  def newerVersionsOf(groupID: String, artifactId: String, version: String): Seq[String] = {
-    val request = Seq(groupID, artifactId, "[" + version + ",)").mkString(":")
-    val result = getVersionsOf(request).map(_.toString)
-    result
-  }
-
   def getRelocationOf(groupID: String, artifactId: String, version: String): Option[Gav3] = {
     // TODO https://maven.apache.org/guides/mini/guide-relocation.html
     None
   }
 
   override def tryResolveReqWorkNexus(request: String): Try[(File, String)] = Repo.tryResolveReqWorkNexus(this)(request)
-
 
 }
 

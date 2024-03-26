@@ -7,7 +7,7 @@ import release.ProjectMod.{Dep, Gav3, PluginDep, UpdateCon, UpdatePrinter}
 import release.Starter.{Opts, OptsDepUp, PreconditionsException}
 
 import java.io.{File, PrintStream}
-import java.time.{Duration, LocalDate, Period}
+import java.time.{Duration, LocalDate, Period, ZonedDateTime}
 import java.util.concurrent.TimeUnit
 import scala.annotation.tailrec
 import scala.collection.immutable.{ListMap, Seq}
@@ -16,40 +16,48 @@ import scala.util.{Failure, Success, Try}
 
 object ProjectMod extends LazyLogging {
 
-  def toDepChangeMap(in: Seq[(ProjectMod.GavWithRef, (Seq[String], Duration))]): Map[Gav3, (Seq[String], Duration)] = {
+  def toDepChangeMap(in: Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])]): Map[Gav3, Seq[(String, Try[ZonedDateTime])]] = {
     in.map(k => (k._1.gav.simpleGav(), k._2)).to(ListMap)
   }
 
-  def toDepChangeSeq(in: Map[Gav3, (Seq[String], Duration)]): Seq[(ProjectMod.GavWithRef, (Seq[String], Duration))] = {
+  def toDepChangeSeq(in: Map[Gav3, Seq[(String, Try[ZonedDateTime])]]): Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])] = {
     in.toSeq.map(e => (GavWithRef(SelfRef.ofGav3(e._1), e._1.toGav()), e._2)).sortBy(_.toString())
   }
 
-  def removeOlderVersions(in: Seq[(ProjectMod.GavWithRef, (Seq[String], Duration))]): Seq[(ProjectMod.GavWithRef, (Seq[String], Duration))] = {
+  def removeOlderVersions(in: Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])]): Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])] = {
     toDepChangeSeq(removeOlderVersions(toDepChangeMap(in)))
   }
 
-  def removeOlderVersions(in: Map[Gav3, (Seq[String], Duration)]): Map[Gav3, (Seq[String], Duration)] = {
+  def removeOlderVersions(in: Map[Gav3, Seq[(String, Try[ZonedDateTime])]]): Map[Gav3, Seq[(String, Try[ZonedDateTime])]] = {
     in.map(gavAndVersion => {
-      val versionLiterals = gavAndVersion._2._1.map(Version.parseSloppy).sorted
-      if (versionLiterals == Nil) {
-        (gavAndVersion._1, (Nil, gavAndVersion._2._2)) // TODO remove this, because it is invalid
+      val versionLiterals: (Gav3, Seq[(Version, Try[ZonedDateTime])]) = (gavAndVersion._1,
+        gavAndVersion._2.map(e => (Version.parseSloppy(e._1), e._2)).sortBy(_._1))
+      if (versionLiterals._2 == Nil) {
+        (gavAndVersion._1, Nil)
       } else {
         (gavAndVersion._1, {
           val current = Version.parseSloppy(gavAndVersion._1.version.get)
-          (versionLiterals
-            .filter(v => Version.ordering.gteq(v, current))
-            .filter(_.rawInput != gavAndVersion._1.version.get)
-            .map(_.rawInput), gavAndVersion._2._2)
+          val value = versionLiterals._2
+            .filter(v => Version.ordering.gteq(v._1, current))
+            .map(e => (e._1.rawInput, e._2))
+          if (Seq(current.rawInput) == value.map(_._1)) {
+            Nil
+          } else {
+            value
+          }
         })
       }
     })
   }
 
   val knownScopes = Set("provided", "compile", "runtime", "test", "system", "import", "")
+  private val sGroupId = "org.scala-lang"
+  private val sArtifactId = "scala-library"
+  private val s3ArtifactId = "scala3-library_3"
 
-  def toUpdats(refs: Seq[(GavWithRef, (Seq[String], Duration))], fx: (Gav3, Seq[String]) => String): Seq[(Gav3, String)] = {
+  def toUpdats(refs: Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])], fx: (Gav3, Seq[String]) => String): Seq[(Gav3, String)] = {
     refs.map(in => {
-      (in._1.gav.simpleGav(), fx.apply(in._1.gav.simpleGav(), in._2._1))
+      (in._1.gav.simpleGav(), fx.apply(in._1.gav.simpleGav(), in._2.map(_._1)))
     }).distinct
   }
 
@@ -102,9 +110,6 @@ object ProjectMod extends LazyLogging {
       // TODO handle remote relocation
       Seq(gav)
     } else {
-      val sGroupId = "org.scala-lang"
-      val sArtifactId = "scala-library"
-      val s3ArtifactId = "scala3-library_3"
       val sFind = gavs.find(gavk => gavk.groupId == sGroupId &&
         (gavk.artifactId == sArtifactId || gavk.artifactId == s3ArtifactId))
       if (sFind.isDefined) {
@@ -238,6 +243,8 @@ object ProjectMod extends LazyLogging {
 
     def toGav2(): Gav2 = Gav2(groupId, artifactId)
 
+    def versionSloppy(): Option[Version] = version.map(Version.parseSloppy)
+
     def formatted: String = Gav.format(Seq(groupId, artifactId, version.getOrElse("")))
 
     def slashedMeta: String = (groupId + '/' + artifactId).replace('.', '/') + "/maven-metadata.xml"
@@ -341,13 +348,13 @@ object ProjectMod extends LazyLogging {
 
     }
 
-    private val lowF:String = if (Util.isNullOrEmpty(low)) {
+    private val lowF: String = if (Util.isNullOrEmpty(low)) {
       ""
     } else {
       "_" + low
     }
 
-    val lowOrdinalPart:Int = {
+    val lowOrdinalPart: Int = {
       Strings.nullToEmpty(low).replaceAll("[^0-9]+", "").toIntOption.getOrElse(Int.MaxValue)
     }
 
@@ -493,14 +500,14 @@ object ProjectMod extends LazyLogging {
     }
   }
 
-  def checkForUpdates(in: Seq[Gav3], depUpOpts: OptsDepUp, repo: RepoZ, updatePrinter: UpdateCon): Map[Gav3, (Seq[String], Duration)] = {
+  def checkForUpdates(in: Seq[Gav3], depUpOpts: OptsDepUp, repo: RepoZ, updatePrinter: UpdateCon): Map[Gav3, Seq[(String, Try[ZonedDateTime])]] = {
 
     val statusLine = StatusLine(in.size, updatePrinter.shellWidth, new StatusPrinter() {
       override def print(string: String): Unit = updatePrinter.println(string)
 
       override def println(): Unit = updatePrinter.println()
     }, updatePrinter.printProgress)
-    val updates: Map[Gav3, (Seq[String], Duration)] = in
+    val updates: Map[Gav3, Seq[(String, Try[ZonedDateTime])]] = in
       .par
       .map(dep => (dep, {
         statusLine.start()
@@ -520,26 +527,23 @@ object ProjectMod extends LazyLogging {
         } else {
           newerVersions
         }
-        val d = if (depUpOpts.showLibYears && selectedVersions.nonEmpty) {
-          val latest: String = selectedVersions.last // TODO version sort
-          if (dep != dep.copy(version = Some(latest))) {
-            val currentDate = repo.depDate(dep.groupId, dep.artifactId, dep.version.get)
-            val latestDate = repo.depDate(dep.groupId, dep.artifactId, latest)
-            if (currentDate.isDefined && latestDate.isDefined) {
-              logger.trace(s"libyear - ${dep.groupId}:${dep.artifactId}:(${dep.version},${selectedVersions.last}) => ${currentDate.get} to ${latestDate.get}")
-              Duration.between(currentDate.get, latestDate.get)
+
+        def df(gav2: Gav2, v: String): Try[ZonedDateTime] = {
+          if (depUpOpts.showLibYears && selectedVersions.nonEmpty) {
+            val latestDate = repo.depDate(gav2.groupId, gav2.artifactId, v)
+            if (latestDate.isDefined) {
+              Success(latestDate.get)
             } else {
-              Duration.ofDays(-1)
+              Failure(new UnsupportedOperationException(s"no date found for ${gav2.formatted}:${v}"))
             }
           } else {
-            Duration.ZERO
+            Failure(new UnsupportedOperationException("libyears are not computed"))
           }
 
-        } else {
-          Duration.ofDays(-2)
         }
+
         statusLine.end()
-        (selectedVersions, d)
+        selectedVersions.map(ke => (ke, df(dep.toGav2(), ke)))
       }))
       .seq
       .toMap
@@ -629,7 +633,7 @@ object ProjectMod extends LazyLogging {
 
   def collectDependencyUpdates(updatePrinter: UpdateCon, depUpOpts: OptsDepUp,
                                rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], repoDelegator: RepoProxy,
-                               checkOnline: Boolean): Seq[(GavWithRef, (Seq[String], Duration))] = {
+                               checkOnline: Boolean): Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = {
     if (checkOnline) {
       repoDelegator.repos.foreach(repo => {
         val reachableResult = repo.isReachable(false)
@@ -639,7 +643,7 @@ object ProjectMod extends LazyLogging {
       })
 
     }
-    val now = LocalDate.now()
+    var years: Seq[(Gav3, Option[Int], Duration)] = Nil
     val stopw = Stopwatch.createStarted()
     updatePrinter.println("I: checking dependencies against nexus - please wait")
 
@@ -669,31 +673,31 @@ object ProjectMod extends LazyLogging {
     val value: Seq[Gav3] = prepared
       .flatMap(ProjectMod.relocateGavs(prepared, repoDelegator))
     val updates = checkForUpdates(value, depUpOpts, repoDelegator, updatePrinter)
-
+    val now = LocalDate.now()
     updatePrinter.println(s"I: checked ${value.size} dependencies in ${stopw.elapsed(TimeUnit.MILLISECONDS)}ms (${now.toString})")
 
-    val checkedUpdates: Map[Gav3, (Seq[String], Duration)] = if (depUpOpts.allowDependencyDowngrades) {
+    val checkedUpdates: Map[Gav3, Seq[(String, Try[ZonedDateTime])]] = if (depUpOpts.allowDependencyDowngrades) {
       updates
     } else {
       ProjectMod.removeOlderVersions(updates)
     }
 
-    def change(inp:Map[Gav3, (Seq[String], Duration)]) = {
+    def change(inp: Map[Gav3, Seq[(String, Try[ZonedDateTime])]]) = {
       (relevant ++ ProjectMod.relocatedDeps(relevant, repoDelegator)).distinct
         .map(in => {
           val ref = GavWithRef(in.pomRef, in.gav())
-          val a: (Seq[String], Duration) = inp.getOrElse(in.gav().simpleGav(), (Nil, Duration.ZERO))
+          val a: Seq[(String, Try[ZonedDateTime])] = inp.getOrElse(in.gav().simpleGav(), Nil)
           (ref, a)
         })
-        .filterNot((in: (GavWithRef, (Seq[String], Duration))) => depUpOpts.hideLatest && in._2._1.isEmpty)
+        .filterNot((in: (GavWithRef, Seq[(String, Try[ZonedDateTime])])) => depUpOpts.hideLatest && in._2.isEmpty)
     }
 
-    val allWithUpdate: Seq[(GavWithRef, (Seq[String], Duration))] = change(checkedUpdates)
-    val allWithUpdateForPrint: Seq[(GavWithRef, (Seq[String], Duration))] = change(ProjectMod.removeOlderVersions(updates))
+    val allWithUpdate: Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = change(checkedUpdates)
+    val allWithUpdateForPrint: Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = change(ProjectMod.removeOlderVersions(updates))
 
     allWithUpdateForPrint.groupBy(_._1.pomRef).foreach(element => {
       val ref: SelfRef = element._1
-      val mods: Seq[(GavWithRef, (Seq[String], Duration))] = element._2
+      val mods: Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = element._2
 
       def ch(pretty: String, simple: String) = if (updatePrinter.simpleChars) {
         simple
@@ -702,90 +706,138 @@ object ProjectMod extends LazyLogging {
       }
 
       updatePrinter.println(ch("║ ", "| ") + "Project GAV: " + ref.id)
-      mods.sortBy(_._1.toString).foreach((subElement: (GavWithRef, (Seq[String], Duration))) => {
+      mods.sortBy(_._1.toString).foreach((subElement: (GavWithRef, Seq[(String, Try[ZonedDateTime])])) => {
 
-        val o: Seq[String] = subElement._2._1
+        val o: Seq[String] = subElement._2.map(_._1)
 
         val majorVersions: Seq[(String, Seq[String])] = ProjectMod.groupSortReleases(o)
-        val libyear = if (depUpOpts.showLibYears) {
-          val period: Period = Period.between(now, now.plusDays(subElement._2._2.toDays))
-          s" (libyears: ${period.getYears}.${period.getMonths} [${subElement._2._2.toDays} days])"
-        } else {
-          ""
-        }
+
         if (majorVersions != Nil) {
           updatePrinter.println(ch("╠═╦═ ", "+-+- ") + subElement._1.gav.formatted)
         } else {
           updatePrinter.println(ch("╠═══ ", "+--- ") + subElement._1.gav.formatted)
         }
 
-        if (majorVersions.size == 1) {
+        val majorVersionWithoutSelf = majorVersions.map(e => {
+          (e._1, e._2.filterNot(_ == subElement._1.gav.version.get))
+        }).filterNot(_._2.isEmpty)
+        if (majorVersionWithoutSelf.size == 1) {
+
+          val year = libyear(subElement._1.gav.simpleGav(), None, subElement._2)
           updatePrinter.println(ch("║ ╚═══ ", "| +--- ") +
-            abbreviate(depUpOpts.versionRangeLimit)(majorVersions.head._2).mkString(", ") + libyear)
+            abbreviate(depUpOpts.versionRangeLimit)(majorVersionWithoutSelf.head._2).mkString(", ") + year)
         } else {
-          if (majorVersions != Nil) {
-            majorVersions.tail.reverse.foreach(el => {
+          if (majorVersionWithoutSelf != Nil) {
+            majorVersionWithoutSelf.tail.reverse.foreach(el => {
+              val year = libyear(subElement._1.gav.simpleGav(), Some(el._1), subElement._2)
               updatePrinter.println(ch("║ ╠═══ ", "| +--- ") + "(" + el._1 + ") " +
-                abbreviate(depUpOpts.versionRangeLimit)(el._2).mkString(", "))
+                abbreviate(depUpOpts.versionRangeLimit)(el._2).mkString(", ") + year)
             })
-            updatePrinter.println(ch("║ ╚═══ ", "| +--- ") + "(" + majorVersions.head._1 + ") " +
-              abbreviate(depUpOpts.versionRangeLimit)(majorVersions.head._2).mkString(", ") + libyear)
+            val year = libyear(subElement._1.gav.simpleGav(), Some(majorVersionWithoutSelf.head._1), subElement._2)
+            updatePrinter.println(ch("║ ╚═══ ", "| +--- ") + "(" + majorVersionWithoutSelf.head._1 + ") " +
+              abbreviate(depUpOpts.versionRangeLimit)(majorVersionWithoutSelf.head._2).mkString(", ") + year)
           }
         }
 
       })
       updatePrinter.println(ch("║", "|"))
+
+      def libyear(currentGav: Gav3, major: Option[String], versionTimestamps: Seq[(String, Try[ZonedDateTime])]): String = {
+        if (depUpOpts.showLibYears) {
+          if (versionTimestamps.size > 1) {
+            val currentVersionWithTimestamp = versionTimestamps.find(s => s._1 == currentGav.version.get)
+            if (currentVersionWithTimestamp.isDefined) {
+              val maybeInt = major.flatMap(_.toIntOption)
+              val lastSelection = if (major.isDefined) {
+                val r = versionTimestamps.filter(v => {
+                  Version.parseSloppy(v._1).major == maybeInt.getOrElse(-1)
+                }).lastOption
+                if (r.nonEmpty) {
+                  r
+                } else {
+                  versionTimestamps.lastOption
+                }
+
+              } else {
+                versionTimestamps.lastOption
+              }
+              if (currentVersionWithTimestamp.isDefined && currentVersionWithTimestamp.get._2.isSuccess) {
+                val dur = Duration.between(currentVersionWithTimestamp.get._2.get, lastSelection.get._2.get)
+
+                years = years :+ (currentGav, maybeInt, dur)
+                val period: Period = Util.toPeriod(dur)
+                s" (libyears: ${period.getYears}Y ${period.getMonths}M [${dur.toDays} days])"
+              } else {
+                " (libyears: ?????)"
+              }
+
+            } else {
+              " (libyears: ????)"
+            }
+
+          } else {
+            " (libyears: ???)"
+          }
+
+        } else {
+          ""
+        }
+      }
     })
 
-    {
-      // TODO check versions before
-      val versionNotFound: Map[Gav3, (Seq[String], Duration)] = updates
-        .filterNot(t => if (depUpOpts.filter.isEmpty) {
-          false
-        } else {
-          !depUpOpts.filter.get.matches(t._1.formatted)
-        })
-        .filter(_._2._1 == Nil)
-      if (versionNotFound.nonEmpty) {
-        // TODO throw new PreconditionsException
-        updatePrinter.printlnErr("Non existing dependencies for:\n" +
-          versionNotFound.toList.map(in => in._1.formatted + "->" + (in._2._1 match {
-            case Nil => "Nil"
-            case e => e
-          }) + "\n  " + repoDelegator.workNexusUrl() + in._1.slashedMeta).sorted.mkString("\n"))
-        updatePrinter.printlnErr()
-      }
+    // TODO check versions before
+    val versionNotFound: Map[Gav3, Seq[(String, Try[ZonedDateTime])]] = updates
+      .filterNot(t => if (depUpOpts.filter.isEmpty) {
+        false
+      } else {
+        !depUpOpts.filter.get.matches(t._1.formatted)
+      })
+      .filter(_._2 == Nil)
+    if (versionNotFound.nonEmpty) {
+      // TODO throw new PreconditionsException
+      updatePrinter.printlnErr("Non existing dependencies for:\n" +
+        versionNotFound.toList.map(in => in._1.formatted + "->" + (in._2 match {
+          case Nil => "Nil"
+          case e => e
+        }) + "\n  " + repoDelegator.workNexusUrl() + in._1.slashedMeta).sorted.mkString("\n"))
+      updatePrinter.printlnErr()
     }
 
-    {
-      val unmangedVersions = unmanaged(emptyVersions, relevantGav)
-      if (unmangedVersions != Nil) {
-        updatePrinter.printlnErr("Empty or managed versions found:")
-        unmangedVersions.map(_.simpleGav()).foreach(updatePrinter.printlnErr)
-        updatePrinter.printlnErr()
-      }
+    val unmangedVersions = unmanaged(emptyVersions, relevantGav)
+    if (unmangedVersions != Nil) {
+      updatePrinter.printlnErr("Empty or managed versions found:")
+      unmangedVersions.map(_.simpleGav()).foreach(updatePrinter.printlnErr)
+      updatePrinter.printlnErr()
     }
 
     if (depUpOpts.showLibYears) {
       // https://libyear.com/
       // https://ericbouwers.github.io/papers/icse15.pdf
       updatePrinter.println()
-      val durations = updates
-        .filter(t => if (depUpOpts.filter.isEmpty) {
-          true
-        } else {
-          depUpOpts.filter.get.matches(t._1.formatted)
+      val workYears = years.distinct
+      val fi = workYears
+        .groupBy(_._1)
+        .flatMap(k => {
+          val ident = k._2
+          if (ident.size > 1) {
+            ident.filterNot(e => e._2.getOrElse(0) <= k._1.versionSloppy().map(_.major).getOrElse(0))
+          } else {
+            ident
+          }
         })
-        .map(_._2._2)
-      val sum = durations.foldLeft(Duration.ZERO)((a, b) => a.plus(b))
-      val period: Period = Period.between(now, now.plusDays(sum.toDays))
-      if (durations.exists(_.isNegative)) {
+      val sum = fi
+        .map(_._3).foldLeft(Duration.ZERO)((a, b) => a.plus(b))
+
+      if (workYears.exists(_._3.isNegative)) {
         updatePrinter.println("WARN: negative durations for:")
-        updates
-          .filter(_._2._2.isNegative)
-          .foreach(e => println(s"${e._1} ${e._2._2.toString}"))
+        workYears
+          .filter(se => {
+            se._3.isNegative
+          })
+          .foreach(e => updatePrinter.println(s"${e._1} ${e._2.toString}"))
       }
-      updatePrinter.println(s"libyears: ${period.getYears}.${period.getMonths} (${sum.toDays} days)")
+      val period = Util.toPeriod(sum)
+      updatePrinter.println(s"libyears: ${period.getYears}Y ${period.getMonths}M (${sum.toDays} days)")
     }
     allWithUpdate
   }
@@ -816,7 +868,8 @@ trait ProjectMod extends LazyLogging {
   val listProperties: Map[String, String]
   val skipPropertyReplacement: Boolean
 
-  def tryCollectDependencyUpdates(depUpOpts: OptsDepUp, checkOn: Boolean = true, updatePrinter: UpdateCon): Try[Seq[(ProjectMod.GavWithRef, (Seq[String], Duration))]] = {
+  def tryCollectDependencyUpdates(depUpOpts: OptsDepUp, checkOn: Boolean = true, updatePrinter: UpdateCon):
+  Try[Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])]] = {
     try {
       Success(collectDependencyUpdates(depUpOpts, checkOn, updatePrinter))
     } catch {
@@ -826,7 +879,8 @@ trait ProjectMod extends LazyLogging {
     }
   }
 
-  def collectDependencyUpdates(depUpOpts: OptsDepUp, checkOn: Boolean = true, updatePrinter: UpdateCon): Seq[(ProjectMod.GavWithRef, (Seq[String], Duration))] = {
+  def collectDependencyUpdates(depUpOpts: OptsDepUp, checkOn: Boolean = true, updatePrinter: UpdateCon):
+  Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])] = {
     val depForCheck: Seq[Dep] = listGavsForCheck()
     val sdm = selfDepsMod
     val allUrls: Seq[String] = repo.allRepoUrls() ++ listRemoteRepoUrls()

@@ -43,6 +43,22 @@ class RepoTest extends AssertionsForJUnit {
     println(repo.latestGav("com.google.guava", "guava", "1.0.0-SNAPSHOT"))
   }
 
+
+  @Test
+  def testNewerAndPrevVersionsOf_trival(): Unit = {
+    val result = Repo.convertNewerAndPrefVersions("g", "a", "v", in => in.split(' ').toSeq)
+    Assert.assertEquals(Seq("g:a:[-2,)"), result)
+  }
+
+  @Test
+  def testNewerAndPrevVersionsOf_SNAPSHOT(): Unit = {
+    Assert.assertEquals(Seq("32.1.2-android", "33-SNAPSHOT"),
+      Repo.convertNewerAndPrefVersions("com.google.guava", "guava", "33-SNAPSHOT",
+        k => Seq("31.0-android", "31.0-jre", "31.0.1-android", "31.0.1-jre", "31.1-android", "31.1-jre",
+          "32.0.0-android", "32.0.0-jre", "32.0.1-android", "32.0.1-jre", "32.1.0-android", "32.1.0-jre",
+          "32.1.1-android", "32.1.1-jre", "32.1.2-android", "33-SNAPSHOT")))
+  }
+
   @Test
   def testNewerAndPrevVersionsOf(): Unit = {
     Assert.assertEquals(Seq("32.1.1-jre", "32.1.1-android", "32.1.2-jre", "32.1.2-android"),

@@ -13,7 +13,8 @@ import release.Util.linuxPath
 
 import java.io.{BufferedWriter, File, FileWriter}
 import java.nio.file.Paths
-import java.time.{Duration, LocalDate, Month}
+import java.time.{Duration, LocalDate, Month, ZonedDateTime}
+import scala.util.{Success, Try}
 import scala.xml.Elem
 
 class PomModTest extends AssertionsForJUnit {
@@ -333,7 +334,10 @@ class PomModTest extends AssertionsForJUnit {
     val ref = GavWithRef(
       ProjectModTest.parseSelfRef("com.novomind.ishop:ishop-shop-frontend:42.0.0-SNAPSHOT:pom"),
       Gav(groupId = "com.github.eirslett", artifactId = "frontend-maven-plugin", version = Some("1.11.2")))
-    val in: Seq[(GavWithRef, (Seq[String], Duration))] = Seq((ref, (List("1.11.3", "1.12.0"), Duration.parse("PT2063H9M3S"))))
+    val in: Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = Seq((ref, List(
+      ("1.11.3",Success(ZonedDateTime.now())),
+      ("1.12.0", Success(ZonedDateTime.now())),
+    )))
 
     // WHEN
     val out = ProjectMod.toUpdats(in, ProjectMod.rangeFnOf(""))
@@ -1663,10 +1667,13 @@ class PomModTest extends AssertionsForJUnit {
   def testVersionOrdering(): Unit = {
     val in = Seq(
       Version.parseSloppy("alpha"),
+      Version.parseSloppy("1.1.0.1"), // TODO not semver so before 1.0.0
       Version.parseSloppy("1.1.0-M1"),
       Version.parseSloppy("1.1.0-M2"),
       Version.parseSloppy("1.1.0-M3"),
       Version.parseSloppy("1.1.0"),
+      Version.parseSloppy("1.1.1_emergency-bugfix"),
+      Version.parseSloppy("1.1.1"), // regular 1.1.1
       Version.parse("1.2.3"),
       Version.parse("2.2.3"),
       Version.parse("2.2.4"),

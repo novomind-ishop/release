@@ -10,14 +10,14 @@ import release.Repo.ReachableResult
 import release.Starter.{LintOpts, Opts}
 
 import java.io.File
-import java.time.ZonedDateTime
+import java.time.{Duration, ZonedDateTime}
 
 class LintMavenTest extends AssertionsForJUnit {
   val _temporarayFolder = new TemporaryFolder()
 
   @Rule def temp = _temporarayFolder
 
-  def outT(in: String): String = {
+  def replaceVarLiterals(in: String): String = {
     in.replaceAll("- $", "-")
       .replaceAll("/junit[0-9]+/", "/junit-REPLACED/")
       .replaceAll(" package(?:s|) names in PT[0-9]+\\.[0-9]+S", " package names in PT0.0123S")
@@ -35,7 +35,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[00:00:00.00Z] [[34mINFO[0m] --------------------------------[ lint ]--------------------------------
         |[00:00:00.00Z] [[31mERROR[0m] E: NO FILES FOUND in /tmp/junit-REPLACED/release-lint-empty
         |[00:00:00.00Z] [[31mERROR[0m] ----------------------------[ end of lint ]----------------------------""".stripMargin
-    TermTest.testSys(Nil, expected, "", outFn = outT)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
       val opts = Opts().copy(lintOpts = Opts().lintOpts.copy(showTimer = true, showTimeStamps = true))
       Assert.assertEquals(1, Lint.run(sys.out, sys.err, opts, Map.empty, file))
     })
@@ -97,7 +97,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/any.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
-    TermTest.testSys(Nil, expected, "", outFn = outT)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       Assert.assertEquals(42, Lint.run(sys.out, sys.err, opts, Map.empty, fileB))
     })
@@ -182,8 +182,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |  RepoProxy: https://repo.example.orgorg/springframework/spring-context/maven-metadata.xml
         |
         |
-        |WARN: negative durations for:
-        |libyears: 0.0 (-2 days)
+        |libyears: 0Y 0M (0 days)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -192,7 +191,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
-    TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org")
@@ -255,7 +254,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[ERROR] exit 43 - because lint found errors, see above ❌""".stripMargin
-    TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 43)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 43)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
 
@@ -343,10 +342,10 @@ class LintMavenTest extends AssertionsForJUnit {
         |I: checked 1 dependencies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
         |╠═╦═ org.springframework:spring-context:1.0.0
-        |║ ╚═══ 1.0.1, .., 1.2.8, 1.2.9 (libyears: 0.0 [0 days])
+        |║ ╚═══ 1.0.1, .., 1.2.8, 1.2.9 (libyears: 0Y 0M [0 days])
         |║
         |
-        |libyears: 0.0 (0 days)
+        |libyears: 0Y 0M (0 days)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -354,7 +353,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------""".stripMargin
-    TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 0)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
       val opts1 = Opts().lintOpts.copy(showTimer = false)
       val opts = Opts(colors = false, lintOpts = opts1)
       val mockRepo = Mockito.mock(classOf[Repo])
@@ -515,20 +514,21 @@ class LintMavenTest extends AssertionsForJUnit {
         |I: checked 7 dependencies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
         |╠═╦═ org.example:example:1.2.3
-        |║ ╚═══ 99.99.99 (libyears: 0.0 [0 days])
+        |║ ╠═══ (3) 3.2.1 (libyears: 0Y 0M [0 days])
+        |║ ╚═══ (99) 99.99.99 (libyears: 0Y 0M [0 days])
         |╠═╦═ org.example:example:3.2.1
-        |║ ╚═══ 99.99.99 (libyears: 0.0 [0 days])
+        |║ ╚═══ 99.99.99 (libyears: 0Y 0M [0 days])
         |╠═╦═ org.example.maven:example-maven-plugin:1.10.3
-        |║ ╚═══ 99.99.99 (libyears: 0.0 [0 days])
+        |║ ╚═══ 99.99.99 (libyears: 0Y 0M [0 days])
         |╠═╦═ org.example.maven:example2-maven-plugin:1.10.3
-        |║ ╚═══ 99.99.99 (libyears: 0.0 [0 days])
+        |║ ╚═══ 99.99.99 (libyears: 0Y 0M [0 days])
         |╠═╦═ org.springframework:spring-context:1.0.0-M1
-        |║ ╚═══ 1.0.1, .., 1.2.8, 1.2.9 (libyears: 0.0 [0 days])
+        |║ ╚═══ 1.0.1, .., 1.2.8, 1.2.9 (libyears: 0Y 0M [0 days])
         |╠═╦═ org.springframework:spring-vals:1.0.0-SNAPSHOT
-        |║ ╚═══ 1.0.1, .., 1.2.8, 1.2.9 (libyears: 0.0 [0 days])
+        |║ ╚═══ 1.0.1, .., 1.2.8, 1.2.9 (libyears: 0Y 0M [0 days])
         |║
         |
-        |libyears: 0.0 (0 days)
+        |libyears: 0Y 0M (0 days)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -537,7 +537,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
-    TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL10015-aa71e948", "RL1017-ab101a0e", "RL1018-ceefe9c6")))
       val mockRepo = Mockito.mock(classOf[Repo])
       val mockRepo2 = Mockito.mock(classOf[Repo])
@@ -566,7 +566,7 @@ class LintMavenTest extends AssertionsForJUnit {
         ))
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-vals"), ArgumentMatchers.anyString()))
         .thenReturn(Seq(
-          "0.1", "1.0.1", "1.0.2", "1.2.8", "1.2.9"
+          "1.0.0-SNAPSHOT", "0.1", "1.0.1", "1.0.2", "1.2.8", "1.2.9"
         ))
       Mockito.when(mockRepo2.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-vals"), ArgumentMatchers.anyString()))
         .thenReturn(Seq(
@@ -578,15 +578,15 @@ class LintMavenTest extends AssertionsForJUnit {
         ))
       Mockito.when(mockRepo2.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("example-maven-plugin"), ArgumentMatchers.anyString()))
         .thenReturn(Seq(
-          "99.99.99"
+         "1.10.3", "99.99.99"
         ))
       Mockito.when(mockRepo2.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("example2-maven-plugin"), ArgumentMatchers.anyString()))
         .thenReturn(Seq(
-          "99.99.99"
+          "1.10.3", "99.99.99"
         ))
       Mockito.when(mockRepo2.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("example"), ArgumentMatchers.anyString()))
         .thenReturn(Seq(
-          "99.99.99"
+          "1.2.3", "99.99.99", "3.2.1"
         ))
       System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, fileB))
     })
@@ -674,13 +674,13 @@ class LintMavenTest extends AssertionsForJUnit {
         |I: checked 2 dependencies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
         |╠═╦═ com.novomind.ishop.core.other:other-context:50.2.3
-        |║ ╠═══ (50) 50.4.0
-        |║ ╚═══ (51) 51.0.0, 51.2.5 (libyears: 0.0 [0 days])
+        |║ ╠═══ (50) 50.4.0 (libyears: 0Y 0M [0 days])
+        |║ ╚═══ (51) 51.0.0, 51.2.5 (libyears: 0Y 0M [0 days])
         |╠═╦═ com.novomind.ishop.core.some:core-some-context:51.2.3
-        |║ ╚═══ 51.2.5 (libyears: 0.0 [0 days])
+        |║ ╚═══ 51.2.5 (libyears: 0Y 0M [0 days])
         |║
         |
-        |libyears: 0.0 (0 days)
+        |libyears: 0Y 0M (0 days)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -689,7 +689,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
-    TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
@@ -700,13 +700,16 @@ class LintMavenTest extends AssertionsForJUnit {
         thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
-      val mockUpdates = Seq(
-        "51.0.0", "51.2.5",
-        "50.4.0", "50.2.3",
-        "0.0.1"
-      )
-      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
-        .thenReturn(mockUpdates)
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("other-context"), ArgumentMatchers.anyString()))
+        .thenReturn(Seq(
+          "51.0.0", "51.2.5",
+          "50.4.0", "50.2.3",
+          "0.0.1"
+        ))
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("core-some-context"), ArgumentMatchers.anyString()))
+        .thenReturn(Seq(
+          "51.0.0", "51.2.5", "51.2.3",
+        ))
       System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file))
     })
 
@@ -792,12 +795,12 @@ class LintMavenTest extends AssertionsForJUnit {
         |I: checked 2 dependencies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
         |╠═╦═ com.novomind.ishop.core.other:other-context:50x-SNAPSHOT
-        |║ ╚═══ 50.2.3, 50.4.0 (libyears: 0.0 [0 days])
+        |║ ╚═══ 50.2.3, 50.4.0 (libyears: 0Y 0M [0 days])
         |╠═╦═ com.novomind.ishop.core.some:core-some-context:50x-SNAPSHOT
-        |║ ╚═══ 50.2.3, 50.4.0 (libyears: 0.0 [0 days])
+        |║ ╚═══ 50.2.3, 50.4.0 (libyears: 0Y 0M [0 days])
         |║
         |
-        |libyears: 0.0 (0 days)
+        |libyears: 0Y 0M (0 days)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -806,7 +809,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
-    TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
@@ -818,7 +821,7 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       val mockUpdates = Seq(
-        "49.4.0", "50.4.0", "50.2.3"
+        "49.4.0", "50.4.0", "50.2.3", "50x-SNAPSHOT"
       )
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(mockUpdates)
@@ -901,11 +904,11 @@ class LintMavenTest extends AssertionsForJUnit {
         |I: checked 1 dependencies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.14-SNAPSHOT
         |╠═╦═ org.springframework:spring-context:1
-        |║ ╠═══ (1) 1.0.1, .., 1.2.8, 1.2.9
-        |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6 (libyears: 0.0 [0 days])
+        |║ ╠═══ (1) 1.0.1, .., 1.2.8, 1.2.9 (libyears: 0Y 0M [0 days])
+        |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6 (libyears: 0Y 0M [0 days])
         |║
         |
-        |libyears: 0.0 (0 days)
+        |libyears: 0Y 0M (0 days)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -914,7 +917,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
-    TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1003-467ad8bc")))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
@@ -927,6 +930,7 @@ class LintMavenTest extends AssertionsForJUnit {
         .thenReturn(None)
       val mockUpdates = Seq(
         "0.1",
+        "1",
         "1.0.1", "1.0.2", "1.2.8", "1.2.9",
         "2.0", "2.1.1", "2.5.5", "2.5.6",
       )
@@ -1046,14 +1050,14 @@ class LintMavenTest extends AssertionsForJUnit {
         |I: checked 4 dependencies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
         |╠═╦═ org.springframework:spring-context-latest:LATEST
-        |║ ╠═══ (0) 0.0.1
-        |║ ╚═══ (1) 1.0.0 (libyears: 0.0 [0 days])
+        |║ ╠═══ (0) 0.0.1 (libyears: ????)
+        |║ ╚═══ (1) 1.0.0 (libyears: ????)
         |╠═╦═ org.springframework:spring-context-range:(,1.0],[1.2,)
-        |║ ╠═══ (0) 0.0.1
-        |║ ╚═══ (1) 1.0.0 (libyears: 0.0 [0 days])
+        |║ ╠═══ (0) 0.0.1 (libyears: ????)
+        |║ ╚═══ (1) 1.0.0 (libyears: ????)
         |╠═╦═ org.springframework:spring-context-release:RELEASE
-        |║ ╠═══ (0) 0.0.1
-        |║ ╚═══ (1) 1.0.0 (libyears: 0.0 [0 days])
+        |║ ╠═══ (0) 0.0.1 (libyears: ????)
+        |║ ╚═══ (1) 1.0.0 (libyears: ????)
         |║
         |[ERROR] invalid empty versions:
         |org.springframework:spring-context-empty
@@ -1066,7 +1070,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-empty/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[ERROR] exit 43 - because lint found errors, see above ❌""".stripMargin
-    TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 43)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 43)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
@@ -1085,7 +1089,7 @@ class LintMavenTest extends AssertionsForJUnit {
   }
 
   @Test
-  def testSnapUpdate(): Unit = {
+  def testSnapUpdateWithDates(): Unit = {
     val file = temp.newFolder("release-lint-mvn-simple")
     val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
     gitA.configSetLocal("user.email", "you@example.com")
@@ -1103,6 +1107,11 @@ class LintMavenTest extends AssertionsForJUnit {
         |      <groupId>org.springframework</groupId>
         |      <artifactId>spring-context</artifactId>
         |      <version>1.0.1-SNAPSHOT</version>
+        |    </dependency>
+        |    <dependency>
+        |      <groupId>org.springframework</groupId>
+        |      <artifactId>spring-single</artifactId>
+        |      <version>1.0.1</version>
         |    </dependency>
         |    <dependency>
         |      <groupId>org.springframework</groupId>
@@ -1199,17 +1208,19 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     RELEASE_NEXUS_WORK_URL=null # (no ip)
         |I: checking dependencies against nexus - please wait
         |
-        |I: checked 2 dependencies in 999ms (2000-01-01)
+        |I: checked 3 dependencies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.11.0
         |╠═╦═ org.springframework:spring-context:1.0.1-SNAPSHOT
-        |║ ╠═══ (1) 1.0.1, .., 1.2.8, 1.2.9
-        |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6 (libyears: 0.0 [0 days])
+        |║ ╠═══ (1) 1.0.1, .., 1.2.8, 1.2.9 (libyears: 0Y 0M [1 days])
+        |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6 (libyears: 0Y 0M [2 days])
         |╠═╦═ org.springframework:spring-other:1.0.0-SNAPSHOT:bert
-        |║ ╠═══ (1) 1.0.1, .., 1.2.8, 1.2.9
-        |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6 (libyears: 0.0 [0 days])
+        |║ ╠═══ (1) 1.0.1, .., 1.2.8, 1.2.9 (libyears: 0Y 0M [7 days])
+        |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6 (libyears: 0Y 0M [14 days])
+        |╠═╦═ org.springframework:spring-single:1.0.1
+        |║ ╚═══ 1.0.2 (libyears: 2Y 10M [1049 days])
         |║
         |
-        |libyears: 0.0 (0 days)
+        |libyears: 2Y 10M (1065 days)
         |[WARNING] org.springframework:spring-context:1.0.1-SNAPSHOT is already released, remove '-SNAPSHOT' suffix 😬 RL1009-ea7ea019
         |[WARNING] org.springframework:spring-other:1.0.0-SNAPSHOT is not released, but next release (1.0.1) was found (maybe orphan snapshot) 😬 RL10015-f0a969b5
         |[INFO]     WIP
@@ -1222,25 +1233,50 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
-    TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1012-d3421ec9", "RL1003-8a73d4ae")))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq(Repo.centralUrl))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
-      Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
-        thenReturn(Some(ZonedDateTime.now()))
+      val now = ZonedDateTime.parse("2018-05-31T00:10:52+00:00")
+      val now2 = ZonedDateTime.parse("2023-05-31T00:10:52+00:00")
+      Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+        .thenReturn(Some(now))
+      Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-context"), ArgumentMatchers.eq("1.0.1-SNAPSHOT")))
+        .thenReturn(Some(now))
+      Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-context"), ArgumentMatchers.eq("1.2.9")))
+        .thenReturn(Some(now.plusDays(1)))
+      Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-context"), ArgumentMatchers.eq("2.5.6")))
+        .thenReturn(Some(now.plusDays(2)))
+
+      Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-other"), ArgumentMatchers.eq("1.2.9")))
+        .thenReturn(Some(now.plusDays(7)))
+      Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-other"), ArgumentMatchers.eq("2.5.6")))
+        .thenReturn(Some(now.plusDays(14)))
+
+      Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-single"), ArgumentMatchers.eq("1.0.1")))
+        .thenReturn(Some(now2))
+      Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-single"), ArgumentMatchers.eq("1.0.2")))
+        .thenReturn(Some(now2.plusDays(1049)))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
 
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-single"), ArgumentMatchers.anyString()))
+        .thenReturn(Seq(
+          "1.0.1",
+          "1.0.2",
+        ))
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-other"), ArgumentMatchers.anyString()))
         .thenReturn(Seq(
+          "1.0.0-SNAPSHOT",
           "0.0.2", "1.0.1", "1.0.2", "1.2.8", "1.2.9",
           "2.0", "2.1.1", "2.5.5", "2.5.6",
         ))
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-context"), ArgumentMatchers.anyString()))
         .thenReturn(Seq(
+          "1.0.1-SNAPSHOT",
           "0.0.2", "1.0.1", "1.0.2", "1.2.8", "1.2.9",
           "2.0", "2.1.1", "2.5.5", "2.5.6",
         ))
@@ -1285,7 +1321,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |  <modelVersion>4.0.0</modelVersion>
         |  <parent>
         |    <groupId>com.novomind.ishop.any</groupId>
-          |  <artifactId>ert</artifactId>d>
+        |  <artifactId>ert</artifactId>d>
         |    <version>0.11-SNAPSHOT</version>
         |  </parent>
         |  <groupId>com.novomind.ishop.any</groupId>
@@ -1360,7 +1396,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |I: checking dependencies against nexus - please wait
         |I: checked 0 dependencies in 999ms (2000-01-01)
         |
-        |libyears: 0.0 (0 days)
+        |libyears: 0Y 0M (0 days)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -1374,7 +1410,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-parent/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
-    TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org/")
@@ -1475,7 +1511,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple-fail/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
-    TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1012-637a4930", "RL1003-b4b0c08b")))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "202"))
@@ -1491,7 +1527,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val file = temp.newFolder("release-lint-mvn-valid-branch")
     val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
     Assert.assertTrue(Lint.isValidMergeRequest(Lint.toBranchTag("work", null, null, null)))
-    Assert.assertTrue(Lint.isValidMergeRequest(Lint.toBranchTag("work", "",null, "")))
+    Assert.assertTrue(Lint.isValidMergeRequest(Lint.toBranchTag("work", "", null, "")))
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
     val work = new File(file, "pom.xml")
@@ -1595,72 +1631,72 @@ class LintMavenTest extends AssertionsForJUnit {
     // gitA.createBranch(branchName)
     //gitA.checkout(branchName)
     val expected =
-    """
-      |[INFO] --------------------------------[ lint ]--------------------------------
-      |[INFO] --- skip-conf / self ---
-      |[INFO]     skips: RL1003-21ee7891, RL1003-aaaaaaa
-      |[INFO] --- version / git ---
-      |[INFO]     ✅ git version: git version 2.999.999
-      |[INFO] --- check clone config / remote @ git ---
-      |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
-      |[WARNING]  😬 if you use gitlab try to
-      |[WARNING]  😬 choose another default branch; save; use the original default branch
-      |[WARNING]  😬 remote call exception: java.lang.RuntimeException message: Nonzero exit value: 128; git --no-pager remote show origin; fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
-      |[INFO] --- check branches / remote @ git ---
-      |[INFO]     active contributor count: 0
-      |[INFO]     active branch count: 0
-      |[INFO] --- check clone config / no shallow clone @ git ---
-      |[INFO]     ✅ NO shallow clone
-      |[INFO] --- .gitattributes @ git ---
-      |[INFO] --- .gitignore @ git ---
-      |[INFO] --- list-remotes @ git ---
-      |[WARNING]  NO remotes found 😬 RL1004
-      |[WARNING]  % git remote -v # returns nothing
-      |[INFO] --- gitlabci.yml @ gitlab ---
-      |[INFO]       ci path: .gitlab-ci.yml
-      |[INFO]       CI_COMMIT_TAG :
-      |[INFO]       CI_COMMIT_REF_NAME : feature/bre
-      |[INFO]       CI_COMMIT_BRANCH :
-      |[INFO]       a valid merge request : feature/bre
-      |[warning]    no docker tag : no tag
-      |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
-      |[INFO]     ✅ NO SNAPSHOTS in other files found
-      |[INFO] --- model read @ maven/sbt/gradle ---
-      |[INFO]     ✅ successfull created
-      |[INFO] --- dependency scopes/copies/overlapping @ maven/sbt ---
-      |[INFO]     ✅ no warnings found
-      |[INFO] --- artifactnames @ maven ---
-      |[INFO]     com.novomind.ishop.any:any
-      |[INFO] --- .mvn @ maven ---
-      |[INFO]     WIP
-      |[INFO] --- project version @ maven ---
-      |[INFO]     0.11-SNAPSHOT
-      |[INFO] --- check for snapshots @ maven ---
-      |[INFO] --- check for GAV format @ maven ---
-      |[INFO]     ✅ all GAVs scopes looks fine
-      |[INFO] --- check for preview releases @ maven ---
-      |[INFO] --- check major versions @ ishop ---
-      |[INFO]     is shop: false
-      |[INFO]     ✅ no major version diff
-      |[INFO] --- suggest dependency updates / configurable @ maven ---
-      |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)
-      |I: checking dependencies against nexus - please wait
-      |I: checked 0 dependencies in 999ms (2000-01-01)
-      |
-      |libyears: 0.0 (0 days)
-      |[INFO]     WIP
-      |[INFO] --- dep.tree @ maven ---
-      |[INFO]     WIP
-      |[WARNING] --- skip-conf / self / end ---
-      |[WARNING]     found unused skips, please remove from your config: RL1003-aaaaaaa
-      |[WARNING]     active skips: RL1003-21ee7891
-      |
-      |/tmp/junit-REPLACED/release-lint-mvn-deploy-none/.git
-      |/tmp/junit-REPLACED/release-lint-mvn-deploy-none/.mvn
-      |/tmp/junit-REPLACED/release-lint-mvn-deploy-none/pom.xml
-      |[INFO] ----------------------------[ end of lint ]----------------------------
-      |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
-    TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 42)(sys => {
+      """
+        |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO] --- skip-conf / self ---
+        |[INFO]     skips: RL1003-21ee7891, RL1003-aaaaaaa
+        |[INFO] --- version / git ---
+        |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO] --- check clone config / remote @ git ---
+        |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
+        |[WARNING]  😬 if you use gitlab try to
+        |[WARNING]  😬 choose another default branch; save; use the original default branch
+        |[WARNING]  😬 remote call exception: java.lang.RuntimeException message: Nonzero exit value: 128; git --no-pager remote show origin; fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
+        |[INFO] --- check branches / remote @ git ---
+        |[INFO]     active contributor count: 0
+        |[INFO]     active branch count: 0
+        |[INFO] --- check clone config / no shallow clone @ git ---
+        |[INFO]     ✅ NO shallow clone
+        |[INFO] --- .gitattributes @ git ---
+        |[INFO] --- .gitignore @ git ---
+        |[INFO] --- list-remotes @ git ---
+        |[WARNING]  NO remotes found 😬 RL1004
+        |[WARNING]  % git remote -v # returns nothing
+        |[INFO] --- gitlabci.yml @ gitlab ---
+        |[INFO]       ci path: .gitlab-ci.yml
+        |[INFO]       CI_COMMIT_TAG :
+        |[INFO]       CI_COMMIT_REF_NAME : feature/bre
+        |[INFO]       CI_COMMIT_BRANCH :
+        |[INFO]       a valid merge request : feature/bre
+        |[warning]    no docker tag : no tag
+        |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
+        |[INFO]     ✅ NO SNAPSHOTS in other files found
+        |[INFO] --- model read @ maven/sbt/gradle ---
+        |[INFO]     ✅ successfull created
+        |[INFO] --- dependency scopes/copies/overlapping @ maven/sbt ---
+        |[INFO]     ✅ no warnings found
+        |[INFO] --- artifactnames @ maven ---
+        |[INFO]     com.novomind.ishop.any:any
+        |[INFO] --- .mvn @ maven ---
+        |[INFO]     WIP
+        |[INFO] --- project version @ maven ---
+        |[INFO]     0.11-SNAPSHOT
+        |[INFO] --- check for snapshots @ maven ---
+        |[INFO] --- check for GAV format @ maven ---
+        |[INFO]     ✅ all GAVs scopes looks fine
+        |[INFO] --- check for preview releases @ maven ---
+        |[INFO] --- check major versions @ ishop ---
+        |[INFO]     is shop: false
+        |[INFO]     ✅ no major version diff
+        |[INFO] --- suggest dependency updates / configurable @ maven ---
+        |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)
+        |I: checking dependencies against nexus - please wait
+        |I: checked 0 dependencies in 999ms (2000-01-01)
+        |
+        |libyears: 0Y 0M (0 days)
+        |[INFO]     WIP
+        |[INFO] --- dep.tree @ maven ---
+        |[INFO]     WIP
+        |[WARNING] --- skip-conf / self / end ---
+        |[WARNING]     found unused skips, please remove from your config: RL1003-aaaaaaa
+        |[WARNING]     active skips: RL1003-21ee7891
+        |
+        |/tmp/junit-REPLACED/release-lint-mvn-deploy-none/.git
+        |/tmp/junit-REPLACED/release-lint-mvn-deploy-none/.mvn
+        |/tmp/junit-REPLACED/release-lint-mvn-deploy-none/pom.xml
+        |[INFO] ----------------------------[ end of lint ]----------------------------
+        |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1003-21ee7891", "RL1003-aaaaaaa")))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org/")

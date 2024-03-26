@@ -640,7 +640,7 @@ object Lint {
             val updateOpts = opts.depUpOpts.copy(hideStageVersions = true, allowDependencyDowngrades = true, showLibYears = true)
             val resultTry = mod.tryCollectDependencyUpdates(updateOpts, checkOn = true, updatePrinter)
             val lookupUpAndDowngrades: Map[Gav3, Seq[String]] = if (resultTry.isSuccess) {
-              resultTry.get.map(t => (t._1.gav.simpleGav(), t._2._1)).toMap
+              resultTry.get.map(t => (t._1.gav.simpleGav(), t._2.map(_._1))).toMap
             } else {
               Map.empty
             }
@@ -728,7 +728,7 @@ object Lint {
               val snapUpdates = updateResult.filter(e => snaps.map(_.gav().simpleGav()).contains(e._1.gav.simpleGav()))
               val releaseOfSnapshotPresent = snapUpdates
                 // TODO flatmap
-                .map(e => (e._1.gav, e._2._1.contains(e._1.gav.version.get.replaceFirst("-SNAPSHOT", ""))))
+                .map(e => (e._1.gav, e._2.map(_._1).contains(e._1.gav.version.get.replaceFirst("-SNAPSHOT", ""))))
                 .filter(_._2)
               if (releaseOfSnapshotPresent.nonEmpty) {
                 // TODO handle filter fiCode
@@ -739,10 +739,10 @@ object Lint {
               }
               val nextReleaseOfSnapshotPresent = snapUpdates.flatMap(e => {
                 val currentVersion = e._1.gav.version.get
-                val bool = e._2._1.contains(currentVersion.replaceFirst("-SNAPSHOT", ""))
+                val bool = e._2.map(_._1).contains(currentVersion.replaceFirst("-SNAPSHOT", ""))
                 val version = Version.parseSloppy(currentVersion)
                 if (!bool && version.isOrdinalOnly) {
-                  val otherVersions = (e._2._1 :+ currentVersion).map(Version.parseSloppy).sorted
+                  val otherVersions = (e._2.map(_._1) :+ currentVersion).map(Version.parseSloppy).sorted
                   val wfe = otherVersions.dropWhile(_ == version).headOption
                   if (wfe.isDefined) {
                     Some((e._1.gav, wfe.get))

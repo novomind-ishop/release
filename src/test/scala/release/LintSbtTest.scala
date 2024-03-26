@@ -80,10 +80,10 @@ class LintSbtTest extends AssertionsForJUnit {
         |I: checked 2 dependencies in 999ms (2000-01-01)
         |║ Project GAV: X
         |╠═╦═ org.scala-lang:scala3-library_3:-1
-        |║ ╚═══ 1.0.0 (libyears: 0.0 [0 days])
+        |║ ╚═══ 1.0.0 (libyears: ???)
         |║
         |
-        |libyears: 0.0 (0 days)
+        |libyears: 0Y 0M (0 days)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP

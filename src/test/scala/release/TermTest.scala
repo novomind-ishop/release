@@ -46,7 +46,7 @@ class TermTest extends AssertionsForJUnit {
   def testReadFrom(): Unit = {
     val value = "My string"
 
-    TermTest.testSys(Seq(value), "enter some [word]: My string", "")(sys => {
+    TermTest.testSys(Seq(value), "enter some [word]: My string", "", expectedExitCode = 0)(sys => {
       val result = Term.readFrom(sys, "enter some", "word", Opts(useJlineInput = false))
       Assert.assertEquals(value, result)
     })
@@ -62,7 +62,7 @@ class TermTest extends AssertionsForJUnit {
 
   @Test
   def testReadDirect(): Unit = {
-    TermTest.testSys(Seq("a", "b"), "", "")(sys => {
+    TermTest.testSys(Seq("a", "b"), "", "", expectedExitCode = 0)(sys => {
       val bin: BufferedReader = new BufferedReader(new InputStreamReader(sys.inS))
       Assert.assertEquals("a", bin.readLine())
       Assert.assertEquals("b", bin.readLine())
@@ -73,7 +73,7 @@ class TermTest extends AssertionsForJUnit {
   @Test
   def testThrows(): Unit = {
     TestHelper.assertComparisonFailure("expected:<[a]> but was:<[b]>", () => {
-      TermTest.testSys(Nil, "", "")(_ => {
+      TermTest.testSys(Nil, "", "", expectedExitCode = 0)(_ => {
         Assert.assertEquals("a", "b")
       })
     })
@@ -82,7 +82,7 @@ class TermTest extends AssertionsForJUnit {
   @Test
   def testThrowsAll(): Unit = {
     TestHelper.assertException("hello", classOf[Exception], () => {
-      TermTest.testSys(Nil, "", "")(_ => {
+      TermTest.testSys(Nil, "", "", expectedExitCode = 0)(_ => {
         throw new Exception("hello")
       })
     })
@@ -114,7 +114,7 @@ class TermTest extends AssertionsForJUnit {
         |[WARNING]   a very long line a very long line a very long line a very long line a
         |[WARNING]     very long line a very long line
         |""".stripMargin.trim
-    testSys(Nil, a, "")(sys => {
+    testSys(Nil, a, "", expectedExitCode = 0)(sys => {
       val value = "  a very long line a very long line a very long line a very long line a very long line a very long line "
       Term.wrap(sys.out, Term.warn, value, Opts(colors = false))
     })
@@ -130,7 +130,7 @@ class TermTest extends AssertionsForJUnit {
         |[WARNING]       53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69,
         |[WARNING]       70, 71, 72, 73, 74
         |""".stripMargin.trim
-    testSys(Nil, a, "")(sys => {
+    testSys(Nil, a, "", expectedExitCode = 0)(sys => {
       val value = "    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,26, " +
         "27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, " +
         "56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74"
@@ -145,7 +145,7 @@ class TermTest extends AssertionsForJUnit {
         |[WARNING] a very long line a very long line a very long line a very long line a
         |[WARNING]   very long line a very long line
         |""".stripMargin.trim
-    testSys(Nil, a, "")(sys => {
+    testSys(Nil, a, "", expectedExitCode = 0)(sys => {
       val value = "a very long line a very long line a very long line a very long line a very long line a very long line "
       Term.wrap(sys.out, Term.warn, value, Opts(colors = false))
     })
@@ -158,7 +158,7 @@ class TermTest extends AssertionsForJUnit {
         |[WARNING] a
         |[WARNING]   b
         |""".stripMargin.trim
-    testSys(Nil, a, "")(sys => {
+    testSys(Nil, a, "", expectedExitCode = 0)(sys => {
       val value =
         """a
           |b""".stripMargin
@@ -174,7 +174,7 @@ class TermTest extends AssertionsForJUnit {
         |[WARNING]   b
         |[WARNING]     c
         |""".stripMargin.trim
-    testSys(Nil, a, "")(sys => {
+    testSys(Nil, a, "", expectedExitCode = 0)(sys => {
       val value =
         """a
           |b
@@ -235,7 +235,7 @@ object TermTest extends LazyLogging {
 
   case class OutErr[T](out: String, err: String, value: T)
 
-  def testSys(input: Seq[String], expectedOut: String, expectedErr: String, expectedExitCode: Int = 0,
+  def testSys(input: Seq[String], expectedOut: String, expectedErr: String, expectedExitCode: Int,
               outFn: String => String = a => a)
              (fn: Term.Sys => Unit): Unit = {
     this.synchronized {
