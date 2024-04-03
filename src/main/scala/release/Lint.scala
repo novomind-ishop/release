@@ -24,13 +24,20 @@ object Lint {
   case class PackageResult(names: Seq[String], d: Duration, private val unwantedText: String) {
     lazy val unwantedPackages: Seq[String] = {
       def nom(in: String) = {
-        in.replaceAll("package", "").replaceAll(";", "").trim
+        in.replaceAll("package", "").trim
       }
       val allNames = unwantedText.linesIterator.toSet.map(nom)
 
 
       val normalized = names.map(nom)
-      normalized.filter(allNames.toSeq.contains)
+      normalized.filter(e => allNames.toSeq.exists(k => {
+        if (k.endsWith(";")) {
+          e.replace(";", "").endsWith(k.replace(";", ""))
+        } else {
+          e.startsWith(k)
+        }
+
+      }))
     }
   }
 
@@ -800,11 +807,14 @@ object Lint {
         val packageNamesDetails = Lint.findAllPackagenames(file, opts.lintOpts.checkPackages)
         if (packageNamesDetails.names.nonEmpty) {
           out.println(info("--- unwanted-packages @ ishop ---", opts))
-          out.println(info(s"    found ${packageNamesDetails.names.size} ${"package".pluralize(packageNamesDetails.names.size)} names in ${packageNamesDetails.d.toString}", opts))
+          val nameSize = packageNamesDetails.names.size
+          out.println(info(s"    found $nameSize package ${"name".pluralize(nameSize)} in ${packageNamesDetails.d.toString}", opts))
           if (packageNamesDetails.unwantedPackages.nonEmpty) {
             packageNamesDetails.unwantedPackages.foreach(line => {
               out.println(warn(s" package »${line}« is in list of unwanted packages, please avoid this package", opts, limit = lineMax))
             })
+          } else {
+            out.println(info(s"    ${fiFine} no problematic packages found", opts))
           }
         }
         if (sbt.isDefined) {
@@ -821,6 +831,7 @@ object Lint {
           }
         }
 
+        out.println()
         out.println()
         rootFolderFiles.sortBy(_.toString)
           .take(5).foreach(f => out.println(f.toPath.normalize().toAbsolutePath.toFile.getAbsolutePath))

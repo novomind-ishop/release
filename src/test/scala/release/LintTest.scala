@@ -43,16 +43,19 @@ class LintTest extends AssertionsForJUnit {
     val testee = PackageResult(names = Seq(
       "package a.bl",
       "package a.bl.ba",
+      "package oi.io;",
       "package   a.j; ",
       " package a.s",
     ), Duration.ZERO,
-      """a.bl
+      """a.bl;
+        |oi.
         |package a.j;
         |package a.s
         |""".stripMargin)
     Assert.assertEquals(Seq(
       "a.bl",
-      "a.j",
+      "oi.io;",
+      "a.j;",
       "a.s",
     ), testee.unwantedPackages)
   }
@@ -126,6 +129,7 @@ class LintTest extends AssertionsForJUnit {
     Assert.assertFalse(Lint.versionMissmatches("master-SNAPSHOT", br("master")))
     Assert.assertTrue(Lint.versionMissmatches("main-SNAPSHOT", br("master")))
     Assert.assertTrue(Lint.versionMissmatches("1.0.0-M1", br("feature/0x")))
+    Assert.assertTrue(Lint.versionMissmatches("1.3.0-M1", Some(BranchTagMerge(tagName = None, branchName = None))))
 
     Assert.assertTrue(Lint.versionMissmatches("main-SNAPSHOT", tag("master")))
     Assert.assertFalse(Lint.versionMissmatches("1.2.3", tag("v1.2.3")))

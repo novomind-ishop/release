@@ -20,7 +20,7 @@ class LintMavenTest extends AssertionsForJUnit {
   def replaceVarLiterals(in: String): String = {
     in.replaceAll("- $", "-")
       .replaceAll("/junit[0-9]+/", "/junit-REPLACED/")
-      .replaceAll(" package(?:s|) names in PT[0-9]+\\.[0-9]+S", " package names in PT0.0123S")
+      .replaceAll("( package name(?:s|) in) PT[0-9]+\\.[0-9]+S", "$1 PT0.0123S")
       .replaceAll("^\\[..:..:..\\...Z\\] ", "[00:00:00.00Z] ")
       .replaceAll(": git version 2\\.[0-9]+\\.[0-9]+", ": git version 2.999.999")
       .replaceAll("[a-f0-9]{40}$", "affe4533042ef887a5477d73d958814317675be1")
@@ -92,6 +92,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(push))
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
         |[INFO]     ✅ NO SNAPSHOTS in other files found
+        |
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/any.xml
@@ -187,6 +188,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
         |
+        |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
@@ -195,7 +197,7 @@ class LintMavenTest extends AssertionsForJUnit {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org")
-      Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
+      Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/", "https://repo.example.org/"))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
@@ -250,6 +252,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[ERROR]        » ^v[0-9]+\.[0-9]+\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ « ❌ RL1006
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
         |[INFO]     ✅ NO SNAPSHOTS in other files found
+        |
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |[INFO] ----------------------------[ end of lint ]----------------------------
@@ -349,6 +352,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
+        |
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
@@ -533,6 +537,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
         |
+        |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
@@ -685,6 +690,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
         |
+        |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
@@ -805,6 +811,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
         |
+        |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
@@ -912,6 +919,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
+        |
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
@@ -1066,6 +1074,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
         |
+        |
         |/tmp/junit-REPLACED/release-lint-mvn-empty/.git
         |/tmp/junit-REPLACED/release-lint-mvn-empty/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
@@ -1137,6 +1146,14 @@ class LintMavenTest extends AssertionsForJUnit {
     val file1 = new File(folder1, "test.txt")
     Util.write(file1, Seq("content"))
     gitA.add(notes)
+    gitA.add(Util.write(new File(folder1, "Demo.java"), // TODO valid folder
+      """package some;
+        |""".stripMargin.linesIterator.toSeq))
+    val unwantedPackages = new File(file, ".unwanted-packages")
+    Util.write(unwantedPackages,
+      """a.b;
+        |""".stripMargin.linesIterator.toSeq)
+    gitA.add(unwantedPackages)
     gitA.add(file1)
     gitA.commitAll("some")
     gitA.doTag("0.11.0")
@@ -1226,8 +1243,13 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
+        |[INFO] --- unwanted-packages @ ishop ---
+        |[INFO]     found 1 package name in PT0.0123S
+        |[INFO]     ✅ no problematic packages found
+        |
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
+        |/tmp/junit-REPLACED/release-lint-mvn-simple/.unwanted-packages
         |/tmp/junit-REPLACED/release-lint-mvn-simple/folder1
         |/tmp/junit-REPLACED/release-lint-mvn-simple/notes.md
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
@@ -1402,7 +1424,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- unwanted-packages @ ishop ---
         |[INFO]     found 2 package names in PT0.0123S
-        |[WARNING]  package »a.b« is in list of unwanted packages, please avoid this package
+        |[WARNING]  package »a.b;« is in list of unwanted packages, please avoid this package
+        |
         |
         |/tmp/junit-REPLACED/release-lint-mvn-parent/.git
         |/tmp/junit-REPLACED/release-lint-mvn-parent/.unwanted-packages
@@ -1503,6 +1526,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]     skipped because of previous problems - No property replacement found in pom.xmls for: "${non-existing}" - define properties where they are required and not in parent pom.xml. Input is Nil. 😬
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
+        |
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple-fail/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple-fail/.mvn
@@ -1690,6 +1714,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING] --- skip-conf / self / end ---
         |[WARNING]     found unused skips, please remove from your config: RL1003-aaaaaaa
         |[WARNING]     active skips: RL1003-21ee7891
+        |
         |
         |/tmp/junit-REPLACED/release-lint-mvn-deploy-none/.git
         |/tmp/junit-REPLACED/release-lint-mvn-deploy-none/.mvn

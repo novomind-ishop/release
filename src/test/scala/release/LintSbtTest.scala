@@ -90,6 +90,7 @@ class LintSbtTest extends AssertionsForJUnit {
         |[INFO] --- ??? @ sbt ---
         |[INFO]     WIP
         |
+        |
         |/tmp/junit-REPLACED/release-lint-sbt-simple/.git
         |/tmp/junit-REPLACED/release-lint-sbt-simple/build.sbt
         |[INFO] ----------------------------[ end of lint ]----------------------------""".stripMargin

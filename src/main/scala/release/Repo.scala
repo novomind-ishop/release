@@ -41,7 +41,7 @@ import scala.util.{Failure, Success, Try}
 
 trait RepoZ {
   def createAll(allUrls: Seq[String]): Seq[RepoZ] = {
-    allUrls.map(Repo.ofUrl) // TODO cache?
+    allUrls.distinct.map(Repo.ofUrl) // TODO cache?
   }
 
   def tryResolveReqWorkNexus(request: String): Try[(File, String)]

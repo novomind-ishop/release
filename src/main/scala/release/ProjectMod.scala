@@ -834,7 +834,7 @@ object ProjectMod extends LazyLogging {
           .filter(se => {
             se._3.isNegative
           })
-          .foreach(e => updatePrinter.println(s"${e._1} ${e._2.toString}"))
+          .foreach(e => updatePrinter.println(s"NEGATIVE: ${e._1.formatted} ${e._2.toString}"))
       }
       val period = Util.toPeriod(sum)
       updatePrinter.println(s"libyears: ${period.getYears}Y ${period.getMonths}M (${sum.toDays} days)")
