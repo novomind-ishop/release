@@ -1,16 +1,13 @@
 package release
 
-import com.google.googlejavaformat.java.Formatter
-import org.eclipse.aether.repository.RemoteRepository
-import org.junit.{Assert, Ignore, Rule, Test}
 import org.junit.rules.TemporaryFolder
+import org.junit.{Assert, Rule, Test}
 import org.mockito.{ArgumentMatchers, Mockito}
 import org.scalatestplus.junit.AssertionsForJUnit
-import release.Repo.ReachableResult
-import release.Starter.{LintOpts, Opts}
+import release.Starter.Opts
 
 import java.io.File
-import java.time.{Duration, ZonedDateTime}
+import java.time.ZonedDateTime
 
 class LintMavenTest extends AssertionsForJUnit {
   val _temporarayFolder = new TemporaryFolder()
@@ -92,7 +89,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(push))
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
         |[INFO]     ✅ NO SNAPSHOTS in other files found
-        |
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/any.xml
@@ -188,7 +184,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
         |
-        |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
@@ -252,7 +247,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[ERROR]        » ^v[0-9]+\.[0-9]+\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ « ❌ RL1006
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
         |[INFO]     ✅ NO SNAPSHOTS in other files found
-        |
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |[INFO] ----------------------------[ end of lint ]----------------------------
@@ -352,7 +346,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
-        |
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
@@ -537,7 +530,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
         |
-        |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
@@ -583,7 +575,7 @@ class LintMavenTest extends AssertionsForJUnit {
         ))
       Mockito.when(mockRepo2.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("example-maven-plugin"), ArgumentMatchers.anyString()))
         .thenReturn(Seq(
-         "1.10.3", "99.99.99"
+          "1.10.3", "99.99.99"
         ))
       Mockito.when(mockRepo2.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("example2-maven-plugin"), ArgumentMatchers.anyString()))
         .thenReturn(Seq(
@@ -689,7 +681,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
-        |
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
@@ -811,7 +802,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
         |
-        |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
@@ -919,7 +909,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
-        |
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
@@ -1073,7 +1062,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
-        |
         |
         |/tmp/junit-REPLACED/release-lint-mvn-empty/.git
         |/tmp/junit-REPLACED/release-lint-mvn-empty/pom.xml
@@ -1246,7 +1234,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- unwanted-packages @ ishop ---
         |[INFO]     found 1 package name in PT0.0123S
         |[INFO]     ✅ no problematic packages found
-        |
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.unwanted-packages
@@ -1426,7 +1413,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     found 2 package names in PT0.0123S
         |[WARNING]  package »a.b;« is in list of unwanted packages, please avoid this package
         |
-        |
         |/tmp/junit-REPLACED/release-lint-mvn-parent/.git
         |/tmp/junit-REPLACED/release-lint-mvn-parent/.unwanted-packages
         |/tmp/junit-REPLACED/release-lint-mvn-parent/bert
@@ -1526,7 +1512,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]     skipped because of previous problems - No property replacement found in pom.xmls for: "${non-existing}" - define properties where they are required and not in parent pom.xml. Input is Nil. 😬
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
-        |
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple-fail/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple-fail/.mvn
@@ -1714,7 +1699,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING] --- skip-conf / self / end ---
         |[WARNING]     found unused skips, please remove from your config: RL1003-aaaaaaa
         |[WARNING]     active skips: RL1003-21ee7891
-        |
         |
         |/tmp/junit-REPLACED/release-lint-mvn-deploy-none/.git
         |/tmp/junit-REPLACED/release-lint-mvn-deploy-none/.mvn

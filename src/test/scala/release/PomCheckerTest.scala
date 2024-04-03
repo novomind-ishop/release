@@ -1,11 +1,11 @@
 package release
 
 import org.junit.rules.TemporaryFolder
-import org.junit.{Assert, Rule, Test}
+import org.junit.{Assert, Ignore, Rule, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.PomChecker.ValidationException
 import release.PomModTest.{document, pomTestFile, pomfile}
-import release.ProjectMod.{Dep, Gav, PluginDep, PluginExec, SelfRef}
+import release.ProjectMod.{Dep, Gav, Gav2, PluginDep, PluginExec, SelfRef}
 import release.Starter.Opts
 
 import java.io.File
@@ -902,6 +902,8 @@ class PomCheckerTest extends AssertionsForJUnit {
       })
   }
 
+
+
   @Test
   def testCheckOwnArtifacts_5(): Unit = {
     val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:ishop-ba-core:27.0.0-SNAPSHOT:war")
@@ -931,6 +933,29 @@ class PomCheckerTest extends AssertionsForJUnit {
   }
 
   @Test
+  @Ignore
+  def testCheckOwnArtifacts_7(): Unit = {
+    val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:ishop-shop-main:27.0.0-SNAPSHOT:war")
+    val ref2 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:main:27.0.0-SNAPSHOT:jar")
+    val ref3 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:ishop-shop-true:27.0.0-SNAPSHOT:jar")
+
+    val dep1 = ProjectModTest.depOf(pomRef = ref1, groupId = "any.group", artifactId = "some1", version = Some("1.0.0"))
+    val dep2 = ProjectModTest.depOf(pomRef = ref2, groupId = "any.group", artifactId = "some2", version = Some("1.0.0"))
+    val dep3 = ProjectModTest.depOf(pomRef = ref3, groupId = "any.group", artifactId = "some3", version = Some("1.0.0"))
+
+    TestHelper.assertException("" +
+      "»com.novomind.ishop.shops:ishop-licuide« (in a/pom.xml) is too similar to " +
+      "»com.novomind.ishop.shops:ishop-liquid« (in b/pom.xml). Please choose distinguishable names.",
+      classOf[ValidationException], () => {
+        PomChecker.checkOwnArtifactNames(Seq(
+          (dep1, new File("file/a/pom.xml")),
+          (dep2, new File("file/b/pom.xml")),
+          (dep3, new File("file/c/pom.xml"))
+        ), new File("file/"))
+      })
+  }
+
+  @Test
   def testCheckOwnArtifacts(): Unit = {
     val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
     val ref2 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:util:27.0.0-SNAPSHOT:jar")
@@ -948,6 +973,46 @@ class PomCheckerTest extends AssertionsForJUnit {
         (dep3, new File("file/c/pom.xml")),
       ), new File("file/"))
     })
+  }
+  def g2(gav2: Gav2) = {
+    (gav2, new File("file/a/pom.xml"))
+  }
+  @Test
+  def testCommonStripped_1(): Unit = {
+    val result = PomChecker.commonStriped(Seq(
+      g2(Gav2(groupId = "a", artifactId = "b")),
+    ))
+    Assert.assertEquals(
+      Seq(
+        g2(Gav2(groupId = "a", artifactId = "b")),
+      ), result)
+  }
 
+  @Test
+  def testCommonStripped_2(): Unit = {
+    val result = PomChecker.commonStriped(Seq(
+      g2(Gav2(groupId = "a.b", artifactId = "b-a")),
+      g2(Gav2(groupId = "a.b", artifactId = "b-b")),
+    ))
+    Assert.assertEquals(
+      Seq(
+        g2(Gav2(groupId = "", artifactId = "a")),
+        g2(Gav2(groupId = "", artifactId = "b")),
+      ), result)
+  }
+
+  @Test
+  def testCommonStripped_3(): Unit = {
+    val result = PomChecker.commonStriped(Seq(
+      g2(Gav2(groupId = "a.b", artifactId = "b-a")),
+      g2(Gav2(groupId = "a.b", artifactId = "b-b")),
+      g2(Gav2(groupId = "a.c", artifactId = "o-oj")),
+    ))
+    Assert.assertEquals(
+      Seq(
+        g2(Gav2(groupId = "", artifactId = "a")),
+        g2(Gav2(groupId = "", artifactId = "b")),
+        g2(Gav2(groupId = "c", artifactId = "o-oj")),
+      ), result)
   }
 }

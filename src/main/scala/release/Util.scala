@@ -29,14 +29,16 @@ object Util {
   }
 
   object Similarity {
-    private def spl(a:String): Seq[String] =a.toLowerCase.split("[^a-z]").toSeq
+    def spl(a: String): Seq[String] = a.toLowerCase.split("[^a-z]").toSeq
 
     def soundexSplitMax(a: String, b: String) = {
       soundexMax(spl(a), spl(b))
     }
+
     def soundexSplitMin(a: String, b: String) = {
       soundexMin(spl(a), spl(b))
     }
+
     def soundexMin(a: Seq[String], b: Seq[String]) = {
       soundexRange(a, b).min
     }
@@ -52,7 +54,8 @@ object Util {
         a.zip(b).map(t => soundex(t._1, t._2))
       }
     }
-    private val predefScores:Map[(String, String), Int] = Map(
+
+    private val predefScores: Map[(String, String), Int] = Map(
       ("bre", "core") -> 2,
       ("ui", "vue") -> 2,
     )
@@ -216,7 +219,7 @@ object Util {
     }
   }
 
-  def stripUserinfo(url:String):String = {
+  def stripUserinfo(url: String): String = {
     new URIBuilder(Strings.nullToEmpty(url))
       .setUserInfo(null)
       .toString

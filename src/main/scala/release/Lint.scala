@@ -26,8 +26,8 @@ object Lint {
       def nom(in: String) = {
         in.replaceAll("package", "").trim
       }
-      val allNames = unwantedText.linesIterator.toSet.map(nom)
 
+      val allNames = unwantedText.linesIterator.toSet.map(nom)
 
       val normalized = names.map(nom)
       normalized.filter(e => allNames.toSeq.exists(k => {
@@ -272,7 +272,17 @@ object Lint {
   def run(out: PrintStream, err: PrintStream, inopts: Starter.Opts,
           envs: Map[String, String],
           file: File = new File(".").getAbsoluteFile): Int = {
-    out.println()
+    val isGitlab: Boolean = envs.get("CI_COMMIT_SHA").isDefined
+
+    val ws: String = {
+      if (isGitlab) {
+        "\uFEFF\u00A0\u200B"
+      } else {
+        ""
+      }
+    }
+
+    out.println(ws)
 
     // TODO handle --simple-chars
     val opts = inopts.copy(checkOverlapping = false)
@@ -645,7 +655,7 @@ object Lint {
             out.println(info("--- check for preview releases @ maven ---", opts))
             val updatePrinter = new StaticPrinter()
             val updateOpts = opts.depUpOpts.copy(hideStageVersions = true, allowDependencyDowngrades = true, showLibYears = true)
-            val resultTry = mod.tryCollectDependencyUpdates(updateOpts, checkOn = true, updatePrinter)
+            val resultTry = mod.tryCollectDependencyUpdates(updateOpts, checkOn = true, updatePrinter, ws = ws)
             val lookupUpAndDowngrades: Map[Gav3, Seq[String]] = if (resultTry.isSuccess) {
               resultTry.get.map(t => (t._1.gav.simpleGav(), t._2.map(_._1))).toMap
             } else {
@@ -831,8 +841,7 @@ object Lint {
           }
         }
 
-        out.println()
-        out.println()
+        out.println(ws)
         rootFolderFiles.sortBy(_.toString)
           .take(5).foreach(f => out.println(f.toPath.normalize().toAbsolutePath.toFile.getAbsolutePath))
 

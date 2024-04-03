@@ -500,12 +500,12 @@ object ProjectMod extends LazyLogging {
     }
   }
 
-  def checkForUpdates(in: Seq[Gav3], depUpOpts: OptsDepUp, repo: RepoZ, updatePrinter: UpdateCon): Map[Gav3, Seq[(String, Try[ZonedDateTime])]] = {
+  def checkForUpdates(in: Seq[Gav3], depUpOpts: OptsDepUp, repo: RepoZ, updatePrinter: UpdateCon, ws:String): Map[Gav3, Seq[(String, Try[ZonedDateTime])]] = {
 
     val statusLine = StatusLine(in.size, updatePrinter.shellWidth, new StatusPrinter() {
       override def print(string: String): Unit = updatePrinter.println(string)
 
-      override def println(): Unit = updatePrinter.println()
+      override def println(): Unit = updatePrinter.println(ws)
     }, updatePrinter.printProgress)
     val updates: Map[Gav3, Seq[(String, Try[ZonedDateTime])]] = in
       .par
@@ -559,25 +559,16 @@ object ProjectMod extends LazyLogging {
 
     def println(any: String): Unit
 
-    def println(): Unit
-
     def printlnErr(any: String): Unit
 
     def printlnErr(any: Gav3): Unit
-
-    def printlnErr(): Unit
   }
 
   class StaticPrinter extends UpdateCon {
     val result = new StringBuffer()
 
     override def println(any: String): Unit = {
-      result.append(any)
-      println()
-    }
-
-    override def println(): Unit = {
-      result.append("\n")
+      result.append(any).append("\n")
     }
 
     override def printlnErr(any: String): Unit = {
@@ -586,10 +577,6 @@ object ProjectMod extends LazyLogging {
 
     override def printlnErr(any: Gav3): Unit = {
       println(any.toString)
-    }
-
-    override def printlnErr(): Unit = {
-      println()
     }
 
     override val printProgress: Boolean = false
@@ -633,7 +620,7 @@ object ProjectMod extends LazyLogging {
 
   def collectDependencyUpdates(updatePrinter: UpdateCon, depUpOpts: OptsDepUp,
                                rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], repoDelegator: RepoProxy,
-                               checkOnline: Boolean): Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = {
+                               checkOnline: Boolean, ws:String): Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = {
     if (checkOnline) {
       repoDelegator.repos.foreach(repo => {
         val reachableResult = repo.isReachable(false)
@@ -672,7 +659,7 @@ object ProjectMod extends LazyLogging {
 
     val value: Seq[Gav3] = prepared
       .flatMap(ProjectMod.relocateGavs(prepared, repoDelegator))
-    val updates = checkForUpdates(value, depUpOpts, repoDelegator, updatePrinter)
+    val updates = checkForUpdates(value, depUpOpts, repoDelegator, updatePrinter, ws = ws)
     val now = LocalDate.now()
     updatePrinter.println(s"I: checked ${value.size} dependencies in ${stopw.elapsed(TimeUnit.MILLISECONDS)}ms (${now.toString})")
 
@@ -800,20 +787,20 @@ object ProjectMod extends LazyLogging {
           case Nil => "Nil"
           case e => e
         }) + "\n  " + repoDelegator.workNexusUrl() + in._1.slashedMeta).sorted.mkString("\n"))
-      updatePrinter.printlnErr()
+      updatePrinter.printlnErr(ws)
     }
 
     val unmangedVersions = unmanaged(emptyVersions, relevantGav)
     if (unmangedVersions != Nil) {
       updatePrinter.printlnErr("Empty or managed versions found:")
       unmangedVersions.map(_.simpleGav()).foreach(updatePrinter.printlnErr)
-      updatePrinter.printlnErr()
+      updatePrinter.printlnErr(ws)
     }
 
     if (depUpOpts.showLibYears) {
       // https://libyear.com/
       // https://ericbouwers.github.io/papers/icse15.pdf
-      updatePrinter.println()
+      updatePrinter.println(ws)
       val workYears = years.distinct
       val fi = workYears
         .groupBy(_._1)
@@ -868,10 +855,10 @@ trait ProjectMod extends LazyLogging {
   val listProperties: Map[String, String]
   val skipPropertyReplacement: Boolean
 
-  def tryCollectDependencyUpdates(depUpOpts: OptsDepUp, checkOn: Boolean = true, updatePrinter: UpdateCon):
+  def tryCollectDependencyUpdates(depUpOpts: OptsDepUp, checkOn: Boolean = true, updatePrinter: UpdateCon, ws:String):
   Try[Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])]] = {
     try {
-      Success(collectDependencyUpdates(depUpOpts, checkOn, updatePrinter))
+      Success(collectDependencyUpdates(depUpOpts, checkOn, updatePrinter, ws))
     } catch {
       case e: Exception => {
         Failure(e)
@@ -879,14 +866,15 @@ trait ProjectMod extends LazyLogging {
     }
   }
 
-  def collectDependencyUpdates(depUpOpts: OptsDepUp, checkOn: Boolean = true, updatePrinter: UpdateCon):
+  def collectDependencyUpdates(depUpOpts: OptsDepUp, checkOn: Boolean = true, updatePrinter: UpdateCon, ws:String):
   Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])] = {
     val depForCheck: Seq[Dep] = listGavsForCheck()
     val sdm = selfDepsMod
     val allUrls: Seq[String] = repo.allRepoUrls() ++ listRemoteRepoUrls()
     val proxy = new RepoProxy(repo.createAll(allUrls))
     val result = ProjectMod.collectDependencyUpdates(updatePrinter = updatePrinter,
-      depUpOpts = depUpOpts, rootDeps = depForCheck, selfDepsMod = sdm, repoDelegator = proxy, checkOnline = checkOn)
+      depUpOpts = depUpOpts, rootDeps = depForCheck, selfDepsMod = sdm, repoDelegator = proxy, checkOnline = checkOn,
+      ws = ws)
     if (depUpOpts.changeToLatest) {
       val localDepUpFile = new File(file, ".release-dependency-updates")
       val fn: (Gav3, Seq[String]) => String = if (localDepUpFile.canRead) {

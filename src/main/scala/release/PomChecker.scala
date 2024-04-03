@@ -20,12 +20,31 @@ object PomChecker {
       throw new ValidationException(problem.get)
     }
   }
+
+  def commonStriped(in: Seq[(ProjectMod.Gav2, File)]): Seq[(ProjectMod.Gav2, File)] = {
+
+    val ma = in.map(e => ((Util.Similarity.spl(e._1.groupId), Util.Similarity.spl(e._1.artifactId)), e._1, e._2))
+    val g = ma.flatMap(_._1._1).groupBy(a => a).map(k => (k._1, k._2.size)).filter(_._2 > 1).keySet.toSeq.sortBy(-_.length)
+    val aa = ma.flatMap(_._1._2).groupBy(a => a).map(k => (k._1, k._2.size)).filter(_._2 > 1).keySet.toSeq.sortBy(-_.length)
+
+    val regex = "(?<![a-z])[^a-z]|\\b[^a-z](?![a-z])".r
+    val result = ma.map(a => {
+      val str = aa.foldLeft(a._2.artifactId)((z, y) => regex.replaceAllIn(z.replaceFirst(y, ""), ""))
+      val ng = a._2.copy(
+        groupId = g.foldLeft(a._2.groupId)((z, y) => regex.replaceAllIn(z.replaceFirst(y, ""), "")),
+        artifactId = str
+      )
+      (ng, a._3)
+    }).filterNot(a => a._1.artifactId.isBlank && a._1.groupId.isBlank)
+    result
+  }
+
   def getOwnArtifactNames(relevants: Seq[(Dep, File)], rootFile: File): (Seq[ProjectMod.Gav2], Option[String]) = {
     implicit class Crossable[X](xs: Iterable[X]) {
       def cross[Y](ys: Iterable[Y]): Iterable[(X, Y)] = for {x <- xs; y <- ys} yield (x, y)
     }
     val simplified = relevants.map(e => (e._1.pomRef.gav3.toGav2(), e._2))
-    val value1 = simplified.cross(simplified).toSeq
+    val value1 = (simplified ++ commonStriped(simplified)).cross(simplified).toSeq
       .filterNot(k => k._1 == k._2)
       .map(t => {
         val tElementsSorted = Seq(t._1, t._2).sortBy(_.toString)
@@ -152,13 +171,13 @@ object PomChecker {
     }
   }
 
-  def virtualParentRef(listDependecies: Seq[Dep]):Map[SelfRef, Seq[Dep]] = {
-    val parentRefs:Map[SelfRef, Seq[Dep]] = Map(SelfRef.virtualParent -> listDependecies.filter(_.pomPath.contains("parent")).distinctBy(_.gav()))
+  def virtualParentRef(listDependecies: Seq[Dep]): Map[SelfRef, Seq[Dep]] = {
+    val parentRefs: Map[SelfRef, Seq[Dep]] = Map(SelfRef.virtualParent -> listDependecies.filter(_.pomPath.contains("parent")).distinctBy(_.gav()))
     parentRefs
   }
 
   def getDepScopeAndOthers(listDependecies: Seq[Dep], listDependeciesRaw: Seq[Dep]): Seq[String] = {
-    val byRef:Map[SelfRef, Seq[Dep]] = listDependecies.groupBy(_.pomRef)
+    val byRef: Map[SelfRef, Seq[Dep]] = listDependecies.groupBy(_.pomRef)
 
     val msgs = (virtualParentRef(listDependecies) ++ byRef).flatMap(deps => {
       val all = deps._2.map(_.gav())

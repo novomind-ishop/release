@@ -41,7 +41,7 @@ libraryDependencies += "com.github.siom79.japicmp" % "japicmp" % "0.18.3"
 
 libraryDependencies += "com.typesafe" % "config" % "1.4.3"
 
-libraryDependencies += "com.google.googlejavaformat" % "google-java-format" % "1.15.0"
+libraryDependencies += "com.google.googlejavaformat" % "google-java-format" % "1.22.0"
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.15" % "test"
 
@@ -68,6 +68,20 @@ assembly / mainClass := Some("release.Starter")
 assembly / assemblyJarName := "release.jar"
 
 publish / skip := true
+
+val java9Options = Seq(
+  "-XX:+IgnoreUnrecognizedVMOptions",
+  "--add-modules=jdk.compiler",
+  "--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED",
+  "--add-exports=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED",
+  "--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED",
+  "--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED",
+  "--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED",
+  "--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED"
+)
+
+Test / javaOptions ++= java9Options
+run / javaOptions ++= java9Options
 
 // https://github.com/sbt/sbt-dependency-graph
 // sbt 'dependencyTree::toFile dep.tree -f'

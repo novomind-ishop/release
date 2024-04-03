@@ -129,7 +129,7 @@ class ProjectModTest extends AssertionsForJUnit {
 
       val innerResult: Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = ProjectMod.collectDependencyUpdates(
         new UpdatePrinter(100, term, sys, printProgress = true), opts,
-        rootDeps, selfDepsModX, new RepoProxy(Seq(repoMock1, repoMock2)), checkOnline = false)
+        rootDeps, selfDepsModX, new RepoProxy(Seq(repoMock1, repoMock2)), checkOnline = false, ws = "")
 
       val any = GavWithRef(SelfRef.undef, anyDep.gav())
       val scala2 = (any, Seq("1.0.0", "2.13.1", "2.13.2").map((_, Success(now))))
@@ -163,7 +163,7 @@ class ProjectModTest extends AssertionsForJUnit {
 
       val innerResult: Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = ProjectMod.collectDependencyUpdates(
         new UpdatePrinter(100, term, sys, printProgress = true), opts,
-        rootDeps, selfDepsModX, new RepoProxy(Seq(repoMock)), checkOnline = false)
+        rootDeps, selfDepsModX, new RepoProxy(Seq(repoMock)), checkOnline = false, ws = "")
 
       val sca0 = GavWithRef(SelfRef.undef, Gav("org.scala-lang", "scala-library", "2.13.0"))
       val scala0 = (sca0, Seq(
@@ -187,7 +187,7 @@ class ProjectModTest extends AssertionsForJUnit {
         override private[release] def listGavsForCheck() = rootDeps
 
         override val selfDepsMod: Seq[Dep] = selfDepsModX
-      }.collectDependencyUpdates(opts, checkOn = false, updatePrinter)
+      }.collectDependencyUpdates(opts, checkOn = false, updatePrinter, ws = "")
       Assert.assertEquals(tryToString(Seq(scala0, scala3)), tryToString(resultMod))
     })
     Assert.assertEquals("", result.err)
@@ -302,14 +302,14 @@ class ProjectModTest extends AssertionsForJUnit {
     val result = TermTest.withOutErr[Unit]()(sys => {
       val innerResult: Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = ProjectMod.collectDependencyUpdates(
         new UpdatePrinter(100, term, sys, printProgress = true), OptsDepUp(),
-        rootDeps, selfDepsMod, new RepoProxy(Seq(repoMock)), checkOnline = false)
+        rootDeps, selfDepsMod, new RepoProxy(Seq(repoMock)), checkOnline = false, ws = "")
       Assert.assertEquals(Nil, innerResult)
       val updatePrinter = new UpdatePrinter(shellWidth = 100,
         termOs = term,
         sys = sys, printProgress = true)
       val resultMod = new MockMod() {
         override lazy val repo: Repo = repoMock
-      }.collectDependencyUpdates(OptsDepUp(), checkOn = false, updatePrinter)
+      }.collectDependencyUpdates(OptsDepUp(), checkOn = false, updatePrinter, ws = "")
       Assert.assertEquals(Nil, resultMod)
     })
     Assert.assertEquals("", result.err)
