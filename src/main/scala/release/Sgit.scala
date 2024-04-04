@@ -287,7 +287,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     out.map(in => {
       try {
         val splitted = Sgit.splitLineOnWhitespace(in)
-        GitRemote(splitted(0), splitted(1), splitted(2))
+        GitRemote.of(splitted(0), splitted(1), splitted(2))
       } catch {
         case e: Exception => throw new IllegalStateException("invalid line: \"" + in + "\"", e)
       }
@@ -613,7 +613,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     }
   }
 
-  def listTags(): Seq[String] = gitNative(Seq("tag", "--list")).get
+  def listAllTags(): Seq[String] = gitNative(Seq("tag", "--list")).get
 
   def listTagsWithDate(): Seq[GitTagWithDate] = {
     Sgit.parseTagLog(gitNative(Seq("log", "--tags", "--simplify-by-decoration", "--pretty=%aI%d")).get)
@@ -629,7 +629,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
   def deleteTag(tagName: String): Unit = {
     val deleteTag = checkedTagName(tagName)
-    val allTags = listTags()
+    val allTags = listAllTags()
     if (allTags.contains(deleteTag)) {
       gitNative(Seq("tag", "-d", deleteTag))
     } else {
@@ -639,7 +639,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
   def doTag(tagName: String): Unit = {
     val newTag = checkedTagName(tagName)
-    val allTags = listTags()
+    val allTags = listAllTags()
     if (allTags.contains(newTag)) {
       throw new IllegalStateException("tag " + newTag + " already exists")
     }
@@ -745,6 +745,8 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 }
 
 object Sgit {
+
+  def stripVersionPrefix(in:Seq[String]):Seq[String] = in.map(_.replaceFirst("^v(.*)", "$1"))
   def toRawRemoteHead(remoteHead: Try[Option[String]]): Try[Option[String]] = {
     remoteHead.map(_.map(_.replaceFirst("HEAD branch: ", "origin/")))
   }
@@ -795,7 +797,20 @@ object Sgit {
     def matchesGitSha(in: String): Boolean = in.matches("[0-9a-f]{40}")
   }
 
-  case class GitRemote(name: String, position: String, remoteType: String)
+  object GitRemote {
+    def of(name: String, position: String, remoteType: String):GitRemote = {
+      GitRemoteImp(name, Util.stripUserinfo(position), remoteType)
+    }
+  }
+  trait GitRemote {
+    val name: String
+    val position: String
+    val remoteType: String
+  }
+
+  private case class GitRemoteImp private (name: String, position: String, remoteType: String) extends GitRemote {
+    override def toString: String = s"$name  $position $remoteType"
+  }
 
   case class GitTagWithDate(name: String, date: ZonedDateTime)
 

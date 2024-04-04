@@ -150,7 +150,7 @@ class ReleaseTest extends AssertionsForJUnit {
         |3. PATCH version when you make backwards-compatible bug fixes.
         |   see also: http://semver.org/
         |---------
-        |Enter the release version [0.11]:
+        |Enter release version for »0.11-SNAPSHOT« [0.11]:
         |Selected release is 0.11
         |Enter the next version without -SNAPSHOT [0.12.0]:
         |Committing pom changes ... done (f)
@@ -216,7 +216,7 @@ class ReleaseTest extends AssertionsForJUnit {
         |3. PATCH version when you make backwards-compatible bug fixes.
         |   see also: http://semver.org/
         |---------
-        |Enter the release version
+        |Enter release version for »1x-SNAPSHOT«
         |[1] 2.0.0
         |[2] 1.1.0
         |[3] 1.0.1

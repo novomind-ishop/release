@@ -220,9 +220,26 @@ object Util {
   }
 
   def stripUserinfo(url: String): String = {
-    new URIBuilder(Strings.nullToEmpty(url))
-      .setUserInfo(null)
-      .toString
+    val nullSafe = Strings.nullToEmpty(url)
+    try {
+      val missingProto = nullSafe.contains("://") && nullSafe.nonEmpty
+      val work = if (missingProto) {
+        nullSafe
+      } else {
+        "git://" + nullSafe.replaceFirst(":", "/")
+      }
+
+      val result = new URIBuilder(work)
+        .setUserInfo(null)
+        .toString
+      if (missingProto) {
+        result
+      } else {
+        result.replaceFirst("^git://", "").replaceFirst("/", ":")
+      }
+    } catch {
+      case e: Exception => nullSafe
+    }
   }
 
   def recursive(start: File): Seq[File] = {
@@ -273,12 +290,6 @@ object Util {
       case o: Exception => throw o
     }
   }
-
-  def toSet[A](set: java.util.Set[A]): Set[A] = set.asScala.toSet
-
-  def toSeq[A](set: java.util.Collection[A]): Seq[A] = set.asScala.toList
-
-  def toJavaMap[K, V](map: Map[K, V]): java.util.Map[K, V] = map.asJava
 
   def systemEnvs(): Map[String, String] = toScalaMapNonBlank(System.getenv())
 

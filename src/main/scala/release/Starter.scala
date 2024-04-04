@@ -1,9 +1,7 @@
 package release
 
 import com.google.common.base.Strings
-import com.google.common.hash.Hashing
 import com.typesafe.scalalogging.LazyLogging
-import org.apache.commons.codec.digest
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClients
 import org.eclipse.aether.repository.RemoteRepository
@@ -15,13 +13,11 @@ import release.Xpath.InvalidPomXmlException
 import java.awt.Desktop
 import java.io.{File, PrintStream}
 import java.net.URI
-import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeoutException
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
+import java.util.concurrent.atomic.{AtomicBoolean}
 import scala.annotation.tailrec
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
-import scala.util.hashing.MurmurHash3
 import scala.util.matching.Regex
 
 object Starter extends LazyLogging {
@@ -260,15 +256,16 @@ object Starter extends LazyLogging {
       case string :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(invalids = inOpt.depUpOpts.invalids :+ string)))
     }
   }
-object Opts {
-  def newRepoZ(opts:Opts): RepoZ = {
 
-    val mirrorNexus: RemoteRepository = Repo.newDefaultRepository(ReleaseConfig.default(opts.useDefaults).mirrorNexusUrl())
+  object Opts {
+    def newRepoZ(opts: Opts): RepoZ = {
 
-    val workNexus: RemoteRepository = Repo.newDefaultRepository(ReleaseConfig.default(opts.useDefaults).workNexusUrl())
-    new Repo(_mirrorNexus = mirrorNexus, _workNexus = workNexus)
+      val mirrorNexus: RemoteRepository = Repo.newDefaultRepository(ReleaseConfig.default(opts.useDefaults).mirrorNexusUrl())
+
+      val workNexus: RemoteRepository = Repo.newDefaultRepository(ReleaseConfig.default(opts.useDefaults).workNexusUrl())
+      new Repo(_mirrorNexus = mirrorNexus, _workNexus = workNexus)
+    }
   }
-}
 
   case class Opts(simpleChars: Boolean = false, invalids: Seq[String] = Nil, showHelp: Boolean = false,
                   showUpdateCmd: Boolean = false, versionSet: Option[String] = None, shopGA: Option[String] = None,
@@ -279,7 +276,7 @@ object Opts {
                   lintOpts: LintOpts = LintOpts(), checkOverlapping: Boolean = true,
                   checkProjectDeps: Boolean = true,
                   showSelfGa: Boolean = false, showStartupDone: Boolean = true, suggestDockerTag: Boolean = false,
-                  isInteractive: Boolean = true, showOpts: Boolean = false, repoSupplier:Opts => RepoZ = Opts.newRepoZ
+                  isInteractive: Boolean = true, showOpts: Boolean = false, repoSupplier: Opts => RepoZ = Opts.newRepoZ
                  ) {
     def newRepo: RepoZ = {
       repoSupplier.apply(this)
@@ -384,8 +381,8 @@ object Opts {
       .filterNot(_.scope == "test")
       .map(_.simpleGav())
       .sortBy(_.toString).distinct.map(g => {
-      g.copy(groupId = rep(g.groupId), artifactId = rep(g.artifactId), version = g.version.map(rep))
-    })
+        g.copy(groupId = rep(g.groupId), artifactId = rep(g.artifactId), version = g.version.map(rep))
+      })
     val blankVersions = all.filter(e => e.version.isDefined && e.version.get.blank())
     val noBlankVersions = all.filterNot(e => e.version.isDefined && e.version.get.blank()).map(_.copy(version = None))
     val remove = blankVersions.filter(bg => noBlankVersions.contains(bg.copy(version = None)))
@@ -670,8 +667,8 @@ object Opts {
         Release.checkLocalChanges(git, startBranch)
         val mod = PomMod.of(workDirFile, opts, failureCollector = None)
         val version = opts.versionSet.get
-        val versionWithoutSnapshot = Term.removeTrailingSnapshots(version)
-        mod.changeVersion(versionWithoutSnapshot + "-SNAPSHOT")
+        val versionWithoutSnapshot = Version.removeTrailingSnapshots(version)
+        mod.changeVersion(Version.applySnapshot(versionWithoutSnapshot))
         mod.writeTo(workDirFile)
         if (git.localChanges() != Nil) {
           out.println("I: Version successfully changed. You have local changes")
@@ -803,7 +800,12 @@ object Opts {
   }
 
   def signShort(sgit: SgitDiff): String = {
-   Util.hashMurmur3_32_fixed(sgit.diffSafe().mkString("\n"))
+    val value = sgit.diffSafe()
+    if (value.isEmpty) {
+      Util.hashMurmur3_32_fixed(Seq(Util.hashMd5Random()).mkString("\n"))
+    } else {
+      Util.hashMurmur3_32_fixed(value.mkString("\n"))
+    }
   }
 
   def addExitFn(msg: String, fn: () => Unit): Unit = {

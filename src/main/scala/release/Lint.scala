@@ -1,10 +1,9 @@
 package release
 
 import com.google.common.base.{Stopwatch, Strings}
-import com.google.common.hash.Hashing
 import com.google.common.io.{CharSink, CharSource}
 import com.google.googlejavaformat.java.Formatter
-import release.ProjectMod.{Gav, Gav3, StaticPrinter, UpdatePrinter, Version}
+import release.ProjectMod.{Gav, Gav3, StaticPrinter, UpdatePrinter}
 import release.Starter.{Opts, PreconditionsException, init}
 import release.Term._
 
@@ -22,15 +21,16 @@ import release.Util.pluralize
 object Lint {
 
   case class PackageResult(names: Seq[String], d: Duration, private val unwantedText: String) {
-    lazy val unwantedPackages: Seq[String] = {
-      def nom(in: String) = {
-        in.replaceAll("package", "").trim
-      }
 
-      val allNames = unwantedText.linesIterator.toSet.map(nom)
+    private def nom(in: String) = {
+      in.replaceAll("package", "").trim
+    }
+
+    private val allNames = unwantedText.linesIterator.toSet.map(nom).toSeq
+    lazy val unwantedPackages: Seq[String] = {
 
       val normalized = names.map(nom)
-      normalized.filter(e => allNames.toSeq.exists(k => {
+      normalized.filter(e => allNames.exists(k => {
         if (k.endsWith(";")) {
           e.replace(";", "").endsWith(k.replace(";", ""))
         } else {
@@ -38,6 +38,9 @@ object Lint {
         }
 
       }))
+    }
+    lazy val unwantedDefinitionSum: String = {
+      Util.hashMurmur3_32_fixed(allNames.sorted.mkString("\n"))
     }
   }
 
@@ -81,7 +84,7 @@ object Lint {
             case _: Exception => None
           }
 
-        }).distinct.toList.sorted, stopwatch.elapsed(), unwantedText = Util.read(packageScanFile))
+        }).distinct.toList.sorted, stopwatch.elapsed().withNanos(0), unwantedText = Util.read(packageScanFile))
     } else {
       PackageResult(Nil, Duration.ZERO, "")
     }
@@ -139,7 +142,7 @@ object Lint {
   def versionMissmatches(selfVersion: String, tagBranchInfo: Option[BranchTagMerge]): Boolean = {
     val defaultBranchnames = Set("main", "master")
     if (tagBranchInfo.isDefined) {
-      if (tagBranchInfo.get.branchName.isDefined) {
+      if (tagBranchInfo.get.branchName.filterNot(_ == "HEAD").isDefined) {
         val selfVersionParsed = Version.parseSloppy(selfVersion)
         val branchName = tagBranchInfo.get.branchName.get
         if (defaultBranchnames.contains(branchName)) {
@@ -188,13 +191,13 @@ object Lint {
     val merge = Some(BranchTagMerge(tagName = None, branchName = None, info = MERGE_REQUEST))
   }
 
-  def toBranchTag(ciCommitRefName: String, ciCommitTag: String, sgit: Sgit, ciCommitBranch: String): Option[BranchTagMerge] = {
+  def toBranchTag(ciCommitRefName: String, ciCommitTag: String, currentBranchOpt: Option[String], ciCommitBranch: String,
+                  currentTagsIn:Seq[String]): Option[BranchTagMerge] = {
     if (Strings.emptyToNull(ciCommitTag) == null && Strings.emptyToNull(ciCommitBranch) == null &&
       Strings.emptyToNull(ciCommitRefName) != null) {
       return BranchTagMerge.merge
     }
-    val currentBranchOpt = sgit.currentBranchOpt
-    val currentTags = sgit.currentTags.getOrElse(Nil)
+    val currentTags = currentTagsIn
       .filterNot(tagName => tagName.matches(".*-[0-9]+-g[0-9a-f]+$"))
     if (ciCommitRefName == ciCommitTag && currentTags.contains(ciCommitTag) && Strings.emptyToNull(ciCommitBranch) == null) {
       Some(BranchTagMerge(tagName = Some(ciCommitTag), branchName = None))
@@ -219,7 +222,7 @@ object Lint {
   }
 
   def isValidTag(maybeTag: Option[BranchTagMerge]): Boolean = {
-    maybeTag.isDefined && maybeTag.get.tagName.isDefined && maybeTag.get.branchName.isEmpty
+    maybeTag.isDefined && maybeTag.get.tagName.isDefined && maybeTag.get.branchName.filterNot(_ == "HEAD").isEmpty
   }
 
   type UniqCode = String
@@ -228,7 +231,7 @@ object Lint {
   private class CodeGen(code: String) {
     def apply(dyn: Any = null): String = {
       val suffix = if (dyn != ()) {
-        "-" + Hashing.murmur3_32_fixed().hashString(dyn.toString, StandardCharsets.UTF_8)
+        "-" + Util.hashMurmur3_32_fixed(dyn.toString)
       } else {
         ""
       }
@@ -247,6 +250,7 @@ object Lint {
 
   }
 
+  val lineMax = 100_000
   val fiFine = "✅"
 
   val fiCodeNexusUrlSlash = uniqCode(1001)(())
@@ -295,13 +299,12 @@ object Lint {
 
       val warnExitCode = 42
       val errorExitCode = 43
-      val lineMax = 100_000
       // TODO print $HOME
       println(info("    " + file.getAbsolutePath, opts, lineMax))
       val warnExit = new AtomicBoolean(false)
       val errorExit = new AtomicBoolean(false)
       val files = file.listFiles()
-      var usedSkips = Seq.empty[String]
+      var usedSkips = Seq.empty[Lint.UniqCode]
       if (files == null || files.isEmpty) {
         out.println(error(s"E: NO FILES FOUND in ${file.getAbsolutePath}", opts))
         out.println(error(center("[ end of lint ]"), opts))
@@ -448,7 +451,8 @@ object Lint {
         val ciCommitTag = ciTagEnv.orNull
         val ciCommitBranchEnv = envs.get("CI_COMMIT_BRANCH") // not present on gitlab merge requests
         val ciCommitBranch = ciCommitBranchEnv.getOrElse("")
-        val tagBranchInfo = Lint.toBranchTag(ciCommitRefName, ciCommitTag, sgit, ciCommitBranch)
+        val gitTagNames = sgit.currentTags.getOrElse(Nil)
+        val tagBranchInfo = Lint.toBranchTag(ciCommitRefName, ciCommitTag, sgit.currentBranchOpt, ciCommitBranch, gitTagNames)
         val isGitOrCiTag: Boolean = Lint.isValidTag(tagBranchInfo)
         val rootFolderFiles = files.toSeq
         var pomFailures: Seq[Exception] = Nil
@@ -467,6 +471,7 @@ object Lint {
         }
         val dockerTag = SuggestDockerTag.findTagname(ciCommitRefName, ciCommitTag, pompom.flatMap(_.toOption.map(_.selfVersion)))
         val defaultCiFilename = ".gitlab-ci.yml"
+
 
         if (ciconfigpath != null) {
           out.println(info("--- gitlabci.yml @ gitlab ---", opts))
@@ -493,7 +498,7 @@ object Lint {
               s"ciRef: ${ciCommitRefName}, " +
               s"ciTag: ${ciCommitTag}, " +
               s"ciBranch: ${ciCommitBranch}, " +
-              s"gitTags: ${sgit.currentTags.getOrElse(Nil).mkString(",")}, " +
+              s"gitTags: ${gitTagNames.mkString(",")}, " +
               s"gitBranch: ${sgit.currentBranchOpt.getOrElse("")}", opts, limit = lineMax))
             warnExit.set(true)
           }
@@ -609,21 +614,9 @@ object Lint {
               out.println(info("    WIP", opts)) // TODO check extensions present
             }
             out.println(info("--- project version @ maven ---", opts))
-            out.println(info(s"    ${modTry.get.selfVersion}", opts))
-            // TODO non snapshots are only allowed in tags, because if someone install it to its local repo this will lead to problems
-            // TODO check if current version is older then released tags
-            // TODO extract unit test here
-            if (Lint.versionMissmatches(modTry.get.selfVersion, tagBranchInfo)) {
-              val msg = s" ${modTry.get.selfVersion} != ${Util.show(tagBranchInfo)} ${fiWarn} ${fiCodeVersionMismatch}"
-              val bool = opts.lintOpts.skips.contains(fiCodeVersionMismatch)
-              if (bool) {
-                usedSkips = usedSkips :+ fiCodeVersionMismatch
-                out.println(warnSoft(msg, opts, limit = lineMax))
-              } else {
-                out.println(warn(msg, opts, limit = lineMax))
-                warnExit.set(true)
-              }
-            }
+            usedSkips = usedSkips ++ LintMaven.lintProjectVersion(out, opts, modTry.get.selfVersion, warnExit, errorExit, tagBranchInfo,
+              sgit.listAllTags())
+
             out.println(info("--- check for snapshots @ maven ---", opts))
             val snaps = mod.listGavsForCheck()
               .filter(dep => ProjectMod.isUnwanted(dep.gav().simpleGav()))
@@ -826,6 +819,7 @@ object Lint {
           } else {
             out.println(info(s"    ${fiFine} no problematic packages found", opts))
           }
+          out.println(info(s"    .unwanted-packages // checksum ${packageNamesDetails.unwantedDefinitionSum}", opts))
         }
         if (sbt.isDefined) {
           out.println(info("--- ??? @ sbt ---", opts))
@@ -834,7 +828,7 @@ object Lint {
         if (opts.lintOpts.skips.nonEmpty) {
           val unusedSkips = opts.lintOpts.skips.diff(usedSkips)
           if (unusedSkips.nonEmpty) {
-            out.println(warn("--- skip-conf / self / end ---", opts))
+            out.println(info("--- skip-conf / self / end ---", opts))
             out.println(warn(s"    found unused skips, please remove from your config: " + unusedSkips.sorted.mkString(", "), opts, limit = lineMax))
             out.println(warn(s"    active skips: " + opts.lintOpts.skips.diff(unusedSkips).sorted.mkString(", "), opts, limit = lineMax))
             warnExit.set(true)

@@ -28,6 +28,7 @@ class UtilTest extends AssertionsForJUnit {
     Assert.assertEquals("", Util.stripUserinfo(""))
     Assert.assertEquals("", Util.stripUserinfo(null))
     Assert.assertEquals("https://example.org/a?a=b", Util.stripUserinfo("https://username@example.org/a?a=b"))
+    Assert.assertEquals("git.example.com:some/repo.git", Util.stripUserinfo("git@git.example.com:some/repo.git"))
   }
 
   @Test

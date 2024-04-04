@@ -56,8 +56,8 @@ class LintSbtTest extends AssertionsForJUnit {
         |[INFO] --- .gitattributes @ git ---
         |[INFO] --- .gitignore @ git ---
         |[INFO] --- list-remotes @ git ---
-        |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-sbt-simple-init/,(fetch))
-        |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-sbt-simple-init/,(push))
+        |[INFO]       remote: origin  file:/tmp/junit-REPLACED/release-lint-sbt-simple-init/ (fetch)
+        |[INFO]       remote: origin  file:/tmp/junit-REPLACED/release-lint-sbt-simple-init/ (push)
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
         |[INFO]     ✅ NO SNAPSHOTS in other files found
         |[INFO] --- model read @ maven/sbt/gradle ---

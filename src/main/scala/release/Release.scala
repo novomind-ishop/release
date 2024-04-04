@@ -7,7 +7,7 @@ import java.time.LocalDate
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.regex.Pattern
 import com.typesafe.scalalogging.LazyLogging
-import release.ProjectMod.{Dep, Gav, UpdatePrinter, Version}
+import release.ProjectMod.{Dep, Gav, UpdatePrinter}
 import release.Starter.{Opts, PreconditionsException}
 
 import scala.annotation.tailrec
@@ -64,7 +64,7 @@ object Release extends LazyLogging {
       val path = Paths.get(aFileName)
       val lines = if (Files.isRegularFile(path)) {
         val fileLines = Util.readLines(path.toFile)
-        if (fileLines.exists(l => l.contains("-SNAPSHOT"))) {
+        if (fileLines.exists(l => l.contains(Version.snapshot))) {
           fileLines.zipWithIndex
         } else {
           Nil
@@ -265,7 +265,7 @@ object Release extends LazyLogging {
     @tailrec
     def readReleaseVersions: String = {
       val result = PomMod.checkNoSlashesNotEmptyNoZeros(
-        Term.readChooseOneOfOrType(sys, "Enter the release version", suggestedVersions, opts, e => e.last, m => m.last))
+        Term.readChooseOneOfOrType(sys, s"Enter release version for »${mod.selfVersion}«", suggestedVersions, opts, e => e.last, m => m.last))
       if (PomMod.isUnknownVersionPattern(result)) {
         if (mod.isShop) {
           sys.out.println("I: We prefer:")
@@ -302,19 +302,19 @@ object Release extends LazyLogging {
 
     sys.out.println(s"Selected release is ${releaseWithoutSnapshot}")
     val release = if (mod.isShop) {
-      Term.removeTrailingSnapshots(releaseWithoutSnapshot) + "-SNAPSHOT"
+      Version.removeTrailingSnapshots(releaseWithoutSnapshot) + "-SNAPSHOT"
     } else {
       releaseWithoutSnapshot
     }
-    val releaseWitoutSnapshot = Term.removeTrailingSnapshots(release)
-    if (mod.isNoShop && sgit.listTags().contains("v" + releaseWitoutSnapshot)) {
+    val releaseWitoutSnapshot = Version.removeTrailingSnapshots(release)
+    if (mod.isNoShop && sgit.listAllTags().contains("v" + releaseWitoutSnapshot)) {
       // TODO fetch remote and try to read new version again
       throw new IllegalStateException("release " + releaseWitoutSnapshot + " already found; check your repository or change version.")
     }
 
     @tailrec
     def readNextReleaseVersionsWithoutSnapshot: String = {
-      val result = Term.removeTrailingSnapshots(PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(sys, "Enter the next version without -SNAPSHOT",
+      val result = Version.removeTrailingSnapshots(PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(sys, "Enter the next version without -SNAPSHOT",
         newMod.suggestNextRelease(release), opts)))
       if (PomMod.isUnknownVersionPattern(result)) {
         val retryVersionEnter = Term.readFromOneOfYesNo(sys, "Unknown next release version \"" + result + "\". Are you sure to continue?", opts)

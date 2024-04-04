@@ -15,8 +15,8 @@ object FeatureBranch {
     Starter.chooseUpstreamIfUndef(sys, sgit, branch, opts)
     sys.out.println("Featurebranches are NOT recommended if you don't like merge conflicts.")
     val featureName = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(sys, "Enter the feature name", "", opts))
-    val featureWitoutSnapshot = Term.removeTrailingSnapshots(featureName)
-    val featureSnapshot = featureWitoutSnapshot + "-SNAPSHOT"
+    val featureWitoutSnapshot = Version.removeTrailingSnapshots(featureName)
+    val featureSnapshot = Version.applySnapshot(featureWitoutSnapshot)
 
     @tailrec
     def checkFeatureBranch(sys: Term.Sys): Unit = {

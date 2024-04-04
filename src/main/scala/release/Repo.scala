@@ -7,25 +7,21 @@ import org.apache.http.client.methods.{CloseableHttpResponse, HttpGet}
 import org.apache.http.impl.client.HttpClients
 import org.apache.maven.repository.internal.MavenRepositorySystemUtils
 import org.eclipse.aether.artifact.DefaultArtifact
-import org.eclipse.aether.connector.basic.BasicRepositoryConnectorFactory
-import org.eclipse.aether.impl.DefaultServiceLocator
+
 import org.eclipse.aether.metadata.DefaultMetadata
 import org.eclipse.aether.metadata.Metadata.Nature
 import org.eclipse.aether.repository.{LocalRepository, RemoteRepository}
 import org.eclipse.aether.resolution.{ArtifactRequest, MetadataRequest, VersionRangeRequest, VersionRangeResolutionException}
-import org.eclipse.aether.spi.connector.RepositoryConnectorFactory
-import org.eclipse.aether.spi.connector.transport.TransporterFactory
+
 import org.eclipse.aether.supplier.RepositorySystemSupplier
 import org.eclipse.aether.transfer._
-import org.eclipse.aether.transport.file.FileTransporterFactory
-import org.eclipse.aether.transport.http.HttpTransporterFactory
+
 import org.eclipse.aether.version.Version
 import org.eclipse.aether.{DefaultRepositorySystemSession, RepositorySystem}
 import release.ProjectMod.Gav3
-import release.Starter.Opts
 
 import java.io.{File, IOException, PrintStream}
-import java.net.URI
+
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{FileVisitResult, FileVisitor, Files, Path}
 import java.text.{DecimalFormat, DecimalFormatSymbols}
@@ -170,7 +166,7 @@ class Repo(_mirrorNexus: RemoteRepository, _workNexus: RemoteRepository) extends
   }
 
   def latestGav(groupID: String, artifactId: String, version: String): Option[Gav3] = {
-    val in = ProjectMod.Version.parseSloppy(version)
+    val in = release.Version.parseSloppy(version)
     val start = if (in.isMajor()) {
       in.major - 1
     } else {
@@ -178,7 +174,7 @@ class Repo(_mirrorNexus: RemoteRepository, _workNexus: RemoteRepository) extends
     }
     val versions = getVersionsOf(Seq(groupID, artifactId, "[" + start + "," + version + "]").mkString(":"))
     versions
-      .filterNot(_.toString.endsWith("-SNAPSHOT"))
+      .filterNot(_.toString.endsWith(release.Version.snapshot))
       .lastOption.map(v => Gav3(groupID, artifactId, Option(v.toString)))
   }
 
@@ -198,9 +194,9 @@ class Repo(_mirrorNexus: RemoteRepository, _workNexus: RemoteRepository) extends
 object Repo extends LazyLogging {
   def convertNewerAndPrefVersions(groupID: String, artifactId: String, version: String,
                                   function: String => Seq[String]): Seq[String] = {
-    val innerV = ProjectMod.Version.parseSloppy(version)
+    val innerV = release.Version.parseSloppy(version)
     val request = Seq(groupID, artifactId, "[" + (innerV.major - 1) + ",)").mkString(":")
-    val result = function.apply(request).map(ProjectMod.Version.parseSloppy).sorted
+    val result = function.apply(request).map(release.Version.parseSloppy).sorted
 
     val dropped = result.dropWhile(v => {
       v.primarys != innerV.primarys

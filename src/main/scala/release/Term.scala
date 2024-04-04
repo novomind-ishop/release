@@ -48,16 +48,6 @@ object Term {
     }
   }
 
-  @tailrec
-  def removeTrailingSnapshots(str: String): String = {
-    val out = str.replaceFirst("-SNAPSHOT$", "").trim
-    if (out.endsWith("-SNAPSHOT")) {
-      removeTrailingSnapshots(out)
-    } else {
-      out
-    }
-  }
-
   def readFrom(sys: Term.Sys, text: String, defaultValue: String, opts: Opts): String = {
     val line = readLineWithPrompt(sys, text + " [%s]: ".format(defaultValue), opts)
     val result = line match {

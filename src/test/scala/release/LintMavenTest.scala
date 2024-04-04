@@ -4,10 +4,12 @@ import org.junit.rules.TemporaryFolder
 import org.junit.{Assert, Rule, Test}
 import org.mockito.{ArgumentMatchers, Mockito}
 import org.scalatestplus.junit.AssertionsForJUnit
+import release.Lint.BranchTagMerge
 import release.Starter.Opts
 
 import java.io.File
 import java.time.ZonedDateTime
+import java.util.concurrent.atomic.AtomicBoolean
 
 class LintMavenTest extends AssertionsForJUnit {
   val _temporarayFolder = new TemporaryFolder()
@@ -17,7 +19,7 @@ class LintMavenTest extends AssertionsForJUnit {
   def replaceVarLiterals(in: String): String = {
     in.replaceAll("- $", "-")
       .replaceAll("/junit[0-9]+/", "/junit-REPLACED/")
-      .replaceAll("( package name(?:s|) in) PT[0-9]+\\.[0-9]+S", "$1 PT0.0123S")
+      .replaceAll("( package name(?:s|) in) PT[0-9]+S", "$1 PT4S")
       .replaceAll("^\\[..:..:..\\...Z\\] ", "[00:00:00.00Z] ")
       .replaceAll(": git version 2\\.[0-9]+\\.[0-9]+", ": git version 2.999.999")
       .replaceAll("[a-f0-9]{40}$", "affe4533042ef887a5477d73d958814317675be1")
@@ -85,8 +87,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- .gitattributes @ git ---
         |[INFO] --- .gitignore @ git ---
         |[INFO] --- list-remotes @ git ---
-        |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(fetch))
-        |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(push))
+        |[INFO]       remote: origin  file:/tmp/junit-REPLACED/release-lint-mvn-simple-init/ (fetch)
+        |[INFO]       remote: origin  file:/tmp/junit-REPLACED/release-lint-mvn-simple-init/ (push)
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
         |[INFO]     ✅ NO SNAPSHOTS in other files found
         |
@@ -147,8 +149,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- .gitattributes @ git ---
         |[INFO] --- .gitignore @ git ---
         |[INFO] --- list-remotes @ git ---
-        |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(fetch))
-        |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(push))
+        |[INFO]       remote: origin  file:/tmp/junit-REPLACED/release-lint-mvn-simple-init/ (fetch)
+        |[INFO]       remote: origin  file:/tmp/junit-REPLACED/release-lint-mvn-simple-init/ (push)
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
         |[INFO]     ✅ NO SNAPSHOTS in other files found
         |[INFO] --- model read @ maven/sbt/gradle ---
@@ -233,8 +235,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- .gitattributes @ git ---
         |[INFO] --- .gitignore @ git ---
         |[INFO] --- list-remotes @ git ---
-        |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(fetch))
-        |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(push))
+        |[INFO]       remote: origin  file:/tmp/junit-REPLACED/release-lint-mvn-simple-init/ (fetch)
+        |[INFO]       remote: origin  file:/tmp/junit-REPLACED/release-lint-mvn-simple-init/ (push)
         |[INFO] --- gitlabci.yml @ gitlab ---
         |[WARNING]    ci path: a
         |[WARNING]    use .gitlab-ci.yml 😬 RL1005
@@ -311,8 +313,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- .gitattributes @ git ---
         |[INFO] --- .gitignore @ git ---
         |[INFO] --- list-remotes @ git ---
-        |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(fetch))
-        |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(push))
+        |[INFO]       remote: origin  file:/tmp/junit-REPLACED/release-lint-mvn-simple-init/ (fetch)
+        |[INFO]       remote: origin  file:/tmp/junit-REPLACED/release-lint-mvn-simple-init/ (push)
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
         |[INFO]     ✅ NO SNAPSHOTS in other files found
         |[INFO] --- model read @ maven/sbt/gradle ---
@@ -472,8 +474,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- .gitattributes @ git ---
         |[INFO] --- .gitignore @ git ---
         |[INFO] --- list-remotes @ git ---
-        |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(fetch))
-        |[INFO]       remote: GitRemote(origin,file:///tmp/junit-REPLACED/release-lint-mvn-simple-init/,(push))
+        |[INFO]       remote: origin  file:/tmp/junit-REPLACED/release-lint-mvn-simple-init/ (fetch)
+        |[INFO]       remote: origin  file:/tmp/junit-REPLACED/release-lint-mvn-simple-init/ (push)
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
         |[INFO]     ✅ NO SNAPSHOTS in other files found
         |[INFO] --- model read @ maven/sbt/gradle ---
@@ -1232,8 +1234,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
         |[INFO] --- unwanted-packages @ ishop ---
-        |[INFO]     found 1 package name in PT0.0123S
+        |[INFO]     found 1 package name in PT4S
         |[INFO]     ✅ no problematic packages found
+        |[INFO]     .unwanted-packages // checksum f466d6ea
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.unwanted-packages
@@ -1410,8 +1413,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
         |[INFO] --- unwanted-packages @ ishop ---
-        |[INFO]     found 2 package names in PT0.0123S
+        |[INFO]     found 2 package names in PT4S
         |[WARNING]  package »a.b;« is in list of unwanted packages, please avoid this package
+        |[INFO]     .unwanted-packages // checksum b0af4bf2
         |
         |/tmp/junit-REPLACED/release-lint-mvn-parent/.git
         |/tmp/junit-REPLACED/release-lint-mvn-parent/.unwanted-packages
@@ -1535,8 +1539,8 @@ class LintMavenTest extends AssertionsForJUnit {
   def testValidMergeRequest(): Unit = {
     val file = temp.newFolder("release-lint-mvn-valid-branch")
     val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
-    Assert.assertTrue(Lint.isValidMergeRequest(Lint.toBranchTag("work", null, null, null)))
-    Assert.assertTrue(Lint.isValidMergeRequest(Lint.toBranchTag("work", "", null, "")))
+    Assert.assertTrue(Lint.isValidMergeRequest(Lint.toBranchTag("work", null, null, null, currentTagsIn = Nil)))
+    Assert.assertTrue(Lint.isValidMergeRequest(Lint.toBranchTag("work", "", null, "", currentTagsIn = Nil)))
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
     val work = new File(file, "pom.xml")
@@ -1547,19 +1551,19 @@ class LintMavenTest extends AssertionsForJUnit {
     gitA.commitAll("test")
     gitA.createBranch("work")
     gitA.checkout("work")
-    Assert.assertTrue(Lint.isValidMergeRequest(Lint.toBranchTag("work", null, null, null)))
-    Assert.assertTrue(Lint.isValidMergeRequest(Lint.toBranchTag("work", "", null, "")))
+    Assert.assertTrue(Lint.isValidMergeRequest(Lint.toBranchTag("work", null, null, null, currentTagsIn = Nil)))
+    Assert.assertTrue(Lint.isValidMergeRequest(Lint.toBranchTag("work", "", null, "", currentTagsIn = Nil)))
 
-    Assert.assertFalse(Lint.isValidTag(Lint.toBranchTag("work", null, gitA, null)))
-    Assert.assertFalse(Lint.isValidTag(Lint.toBranchTag("work", "", gitA, "")))
+    Assert.assertFalse(Lint.isValidTag(Lint.toBranchTag("work", null, gitA.currentBranchOpt, null, currentTagsIn = gitA.currentTags.getOrElse(Nil))))
+    Assert.assertFalse(Lint.isValidTag(Lint.toBranchTag("work", "", gitA.currentBranchOpt, "", currentTagsIn = gitA.currentTags.getOrElse(Nil))))
   }
 
   @Test
   def testValidBranch(): Unit = {
     val file = temp.newFolder("release-lint-mvn-valid-branch")
     val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
-    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", null, gitA, "work")))
-    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", "", gitA, "work")))
+    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", null, gitA.currentBranchOpt, "work", currentTagsIn = gitA.currentTags.getOrElse(Nil))))
+    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", "", gitA.currentBranchOpt, "work", currentTagsIn = gitA.currentTags.getOrElse(Nil))))
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
     val work = new File(file, "pom.xml")
@@ -1571,27 +1575,27 @@ class LintMavenTest extends AssertionsForJUnit {
     gitA.createBranch("work")
     gitA.checkout("work")
     gitA.checkout("HEAD~0")
-    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", null, gitA, "work")))
-    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", "", gitA, "work")))
+    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", null, gitA.currentBranchOpt, "work", currentTagsIn = gitA.currentTags.getOrElse(Nil))))
+    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", "", gitA.currentBranchOpt, "work", currentTagsIn = gitA.currentTags.getOrElse(Nil))))
 
-    Assert.assertFalse(Lint.isValidTag(Lint.toBranchTag("work", null, gitA, "work")))
-    Assert.assertFalse(Lint.isValidTag(Lint.toBranchTag("work", "", gitA, "work")))
+    Assert.assertFalse(Lint.isValidTag(Lint.toBranchTag("work", null, gitA.currentBranchOpt, "work", currentTagsIn = gitA.currentTags.getOrElse(Nil))))
+    Assert.assertFalse(Lint.isValidTag(Lint.toBranchTag("work", "", gitA.currentBranchOpt, "work", currentTagsIn = gitA.currentTags.getOrElse(Nil))))
 
     gitA.doTag("work-20315-gcb5491b407")
     Assert.assertEquals(Some(Seq("vwork-20315-gcb5491b407")), gitA.currentTags)
 
-    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", "", gitA, "work")))
+    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", "", gitA.currentBranchOpt, "work", currentTagsIn = gitA.currentTags.getOrElse(Nil))))
 
     gitA.doTag("20.0.0.some-6439-g800ef8fee7")
     Assert.assertEquals(Some(Seq("v20.0.0.some-6439-g800ef8fee7")), gitA.currentTags)
-    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", "", gitA, "work")))
+    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", "", gitA.currentBranchOpt, "work", currentTagsIn = gitA.currentTags.getOrElse(Nil))))
 
     gitA.deleteTag("work-20315-gcb5491b407")
     gitA.deleteTag("20.0.0.some-6439-g800ef8fee7")
 
     gitA.doTag("1.2.3")
     Assert.assertEquals(Some(Seq("v1.2.3")), gitA.currentTags)
-    val maybeMerge = Lint.toBranchTag("work", "", gitA, "work")
+    val maybeMerge = Lint.toBranchTag("work", "", gitA.currentBranchOpt, "work", currentTagsIn = gitA.currentTags.getOrElse(Nil))
     Assert.assertFalse(Lint.isValidBranch(maybeMerge))
     Assert.assertFalse(Lint.isValidTag(maybeMerge))
   }
@@ -1610,8 +1614,12 @@ class LintMavenTest extends AssertionsForJUnit {
     gitA.commitAll("test")
     gitA.doTag("1.0.0")
     gitA.checkout("v1.0.0")
-    Assert.assertTrue(Lint.isValidTag(Lint.toBranchTag("v1.0.0", "v1.0.0", gitA, null)))
-    Assert.assertFalse(Lint.isValidBranch(Lint.toBranchTag("v1.0.0", "v1.0.0", gitA, null)))
+    Assert.assertTrue(Lint.isValidTag(Lint.toBranchTag("v1.0.0", "v1.0.0", gitA.currentBranchOpt, null, currentTagsIn = gitA.currentTags.getOrElse(Nil))))
+    val tagDef = Lint.toBranchTag("v1.0.0", "v1.0.0", currentBranchOpt = Some("HEAD"), "HEAD", currentTagsIn = gitA.currentTags.getOrElse(Nil))
+    Assert.assertEquals(Some(BranchTagMerge(tagName = Some("v1.0.0"), branchName = Some("HEAD"), info = "")), tagDef)
+    Assert.assertTrue(Lint.isValidTag(tagDef))
+
+    Assert.assertFalse(Lint.isValidBranch(Lint.toBranchTag("v1.0.0", "v1.0.0", gitA.currentBranchOpt, null, currentTagsIn = gitA.currentTags.getOrElse(Nil))))
   }
 
   @Test
@@ -1696,7 +1704,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
-        |[WARNING] --- skip-conf / self / end ---
+        |[INFO] --- skip-conf / self / end ---
         |[WARNING]     found unused skips, please remove from your config: RL1003-aaaaaaa
         |[WARNING]     active skips: RL1003-21ee7891
         |
@@ -1722,6 +1730,85 @@ class LintMavenTest extends AssertionsForJUnit {
         "CI_COMMIT_TAG" -> "")
       System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), env, file))
 
+    })
+  }
+
+  @Test
+  def testLintProjectVersion_merge(): Unit = {
+    val expected =
+      """
+        |[INFO]     main-SNAPSHOT
+        |""".stripMargin.trim
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+
+      LintMaven.lintProjectVersion(sys.out, opts, "main-SNAPSHOT", new AtomicBoolean(), new AtomicBoolean(),
+        BranchTagMerge.merge, Nil)
+    })
+  }
+
+  @Test
+  def testLintProjectVersion_main(): Unit = {
+    val expected =
+      """
+        |[INFO]     main-SNAPSHOT
+        |""".stripMargin.trim
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+
+      val boolean = new AtomicBoolean()
+      LintMaven.lintProjectVersion(sys.out, opts, "main-SNAPSHOT", warnExit = boolean, new AtomicBoolean(),
+        Some(BranchTagMerge(tagName = None, branchName = Some("main"))), Nil)
+      Assert.assertFalse(boolean.get())
+    })
+  }
+
+  @Test
+  def testLintProjectVersion_main_with_released_version(): Unit = {
+    val expected =
+      """
+        |[INFO]     1.2.3-SNAPSHOT
+        |[WARNING]  tag v1.2.3 is already existing 😬
+        |""".stripMargin.trim
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+      val boolean = new AtomicBoolean()
+      LintMaven.lintProjectVersion(sys.out, opts, "1.2.3-SNAPSHOT", warnExit = boolean, new AtomicBoolean(),
+        Some(BranchTagMerge(tagName = None, branchName = Some("main"))), allGitTags = Seq("v1.2.3"))
+      Assert.assertTrue(boolean.get())
+    })
+  }
+
+  @Test
+  def testLintProjectVersion_tag(): Unit = {
+    val expected =
+      """
+        |[INFO]     1.2.3
+        |""".stripMargin.trim
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+      val boolean = new AtomicBoolean()
+      val btm = Some(BranchTagMerge(tagName = Some("v1.2.3"), branchName = None))
+      Assert.assertTrue(Lint.isValidTag(btm))
+      LintMaven.lintProjectVersion(sys.out, opts, "1.2.3", warnExit = boolean, new AtomicBoolean(),
+        btm, allGitTags = Seq("v1.2.3"))
+      Assert.assertFalse(boolean.get())
+    })
+  }
+
+  @Test
+  def testLintProjectVersion_fail(): Unit = {
+    val expected =
+      """
+        |[INFO]     null
+        |[WARNING]  null != None() 😬 RL1014
+        |""".stripMargin.trim
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+
+      val boolean = new AtomicBoolean()
+      LintMaven.lintProjectVersion(sys.out, opts, "null", warnExit = boolean, new AtomicBoolean(), None, Nil)
+      Assert.assertTrue(boolean.get())
     })
   }
 }

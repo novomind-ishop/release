@@ -845,7 +845,7 @@ object PomMod {
 
         nextNumberedReleaseIfExisting(versionTuples, Version.toVersion(withoutSnapshot).get).map(_.formatAsSnapshot())
       } else {
-        val unSnapshoted = Term.removeTrailingSnapshots(currentVersion)
+        val unSnapshoted = Version.removeTrailingSnapshots(currentVersion)
         unSnapshoted match {
           case Version.shopPatternSloppy(pre, year, week, minor, low) => {
             val version = Version.fromString(pre, year, week, minor, low, "")
@@ -859,9 +859,10 @@ object PomMod {
         }
       }
     } else {
-      val withoutSnapshot = Term.removeTrailingSnapshots(currentVersion)
-      if (tagNames.nonEmpty && Version.toVersion(withoutSnapshot).isEmpty) {
-        val versions = tagNames.map(_.replaceFirst("^v(.*)", "$1")).flatMap(Version.toVersion)
+      val withoutSnapshot = Version.removeTrailingSnapshots(currentVersion)
+      val tagNamesI = Sgit.stripVersionPrefix(tagNames).flatMap(Version.toVersion)
+      if (tagNamesI.nonEmpty && Version.toVersion(withoutSnapshot).isEmpty) {
+        val versions = tagNamesI
         val byMajor = versions.groupBy(_.major)
         val firstP = "[1-9][0-9]*".r
         val fM = firstP.findFirstIn(withoutSnapshot).flatMap(_.toIntOption)
@@ -888,7 +889,14 @@ object PomMod {
           Seq(withoutSnapshot)
         }
       } else {
-        Seq(withoutSnapshot)
+        val sug = Version.parseSloppy(withoutSnapshot)
+        val maybeVersion = tagNamesI.find(v => sug == v)
+        if (maybeVersion.isDefined) {
+          Seq(maybeVersion.get.nextIfKnown(tagNamesI).format())
+        } else {
+          Seq(withoutSnapshot)
+        }
+
       }
     }
   }
@@ -965,11 +973,11 @@ object PomMod {
     } else if (currentVersion == "main-SNAPSHOT" || currentVersion == "main") {
       "main"
     } else if (currentVersion.matches("^[0-9]+x-SNAPSHOT$")) {
-      Term.removeTrailingSnapshots(currentVersion)
+      Version.removeTrailingSnapshots(currentVersion)
     } else if (currentVersion.matches("^[0-9]+x$")) {
       currentVersion
     } else {
-      val withoutSnapshot = Term.removeTrailingSnapshots(releaseVersion)
+      val withoutSnapshot = Version.removeTrailingSnapshots(releaseVersion)
       withoutSnapshot match {
         case Version.stableShop(pre) => pre + "-stable-RELEASE-DEMO-DELETE-ME"
         case Version.semverPatternRCEnd(ma, mi, b, _) => ma + "." + mi + "." + b
@@ -980,24 +988,24 @@ object PomMod {
         case Version.semverPatternNoBugfix(ma, mi) => ma + "." + (mi.toInt + 1) + ".0"
         case Version.semverPatternNoMinor(ma) => s"${ma.toInt + 1}.0.0"
         case Version.shopPatternSloppy(pre, year, week, minor, low) if sloppyShop => {
-          Term.removeTrailingSnapshots(currentVersion) match {
+          Version.removeTrailingSnapshots(currentVersion) match {
             case Version.shopPatternSloppy(_, _, _, _, _) => {
               val verso = Version.fromString(pre, year, week, minor, low, "").plusWeek()
               verso.copy(patch = 0, low = "").formatShop()
             }
             case any => {
-              Term.removeTrailingSnapshots(any)
+              Version.removeTrailingSnapshots(any)
             }
           }
         }
         case Version.shopPattern(pre, year, week, minor, low) if !sloppyShop => {
-          Term.removeTrailingSnapshots(currentVersion) match {
+          Version.removeTrailingSnapshots(currentVersion) match {
             case Version.shopPattern(_, _, _, _, _) => {
               val verso = Version.fromString(pre, year, week, minor, low, "").plusWeek()
               verso.copy(patch = 0, low = "").formatShop()
             }
             case any => {
-              Term.removeTrailingSnapshots(any)
+              Version.removeTrailingSnapshots(any)
             }
           }
         }

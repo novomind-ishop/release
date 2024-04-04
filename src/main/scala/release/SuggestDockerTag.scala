@@ -1,8 +1,7 @@
 package release
 
 import com.google.common.base.Strings
-import com.google.common.hash.Hashing
-import release.ProjectMod.Version
+import release.Version
 import release.Starter.ExitCode
 
 import java.nio.charset.StandardCharsets
@@ -30,11 +29,11 @@ object SuggestDockerTag {
       } else {
         tag
       }
-      if (suggested.matches(ProjectMod.Version.semverGitTagForDockerTagPattern.regex)) {
+      if (suggested.matches(Version.semverGitTagForDockerTagPattern.regex)) {
         Success(Success(tag))
       } else {
         Success(Failure(new IllegalStateException(s"»\u00A0${suggested}\u00A0« is no valid git tag name. This could lead to build problems later. " +
-          s"A git tag must match the pattern »\u00A0${ProjectMod.Version.semverGitTagForDockerTagPattern.regex}\u00A0«")))
+          s"A git tag must match the pattern »\u00A0${Version.semverGitTagForDockerTagPattern.regex}\u00A0«")))
       }
 
     } else {
@@ -65,7 +64,7 @@ object SuggestDockerTag {
   def suggestInner(inn: String, org: String, tagName: String, projectVersion: Option[String]): (String, ExitCode) = {
 
     def fallback(innn: String): (String, Int) = {
-      val suffix = "_" + Hashing.murmur3_32_fixed().hashString(org, StandardCharsets.UTF_8) + "_TEMP"
+      val suffix = "_" + Util.hashMurmur3_32_fixed(org) + "_TEMP"
       val max = 127 - suffix.length
       val str = normlize(innn.replaceAll("[\\:/]+", "-")).toLowerCase()
         .replaceAll("^[-]+", "")
@@ -85,7 +84,7 @@ object SuggestDockerTag {
         k match {
           case "main" => ("latest", 0)
           case "master" => ("latest", 0)
-          case fe if fe.matches(ProjectMod.Version.semverGitTagForDockerTagPattern.regex) => {
+          case fe if fe.matches(Version.semverGitTagForDockerTagPattern.regex) => {
             val withoutLeadingV = fe.substring(1)
             if (projectVersion.isDefined && withoutLeadingV != projectVersion.get) {
               (withoutLeadingV + "_aka_" + akaVersion(projectVersion.get), 0)
@@ -93,10 +92,10 @@ object SuggestDockerTag {
               (withoutLeadingV, 0)
             }
           }
-          case fe if tagName != null && fe.matches(ProjectMod.Version.shopPattern.regex) => {
+          case fe if tagName != null && fe.matches(Version.shopPattern.regex) => {
             (fe + "_TEMP", 0)
           }
-          case fe if tagName != null &&  fe.matches(ProjectMod.Version.betaTagPattern.regex) => {
+          case fe if tagName != null &&  fe.matches(Version.betaTagPattern.regex) => {
             (fe.replaceFirst("BETA-","") + "_TEMP", 0)
           }
           case fe => fallback(fe)

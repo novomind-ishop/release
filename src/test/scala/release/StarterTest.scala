@@ -36,7 +36,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
   @Test
   def testTransformRemoteToBuildUrl_paypal(): Unit = {
     val result = Starter.transformRemoteToBuildUrl(
-      Seq(GitRemote("origin", "ssh://someone@local-gerrit:29418/ishop/ext/ext-paypal.git", "remoteType")),
+      Seq(GitRemote.of("origin", "ssh://someone@local-gerrit:29418/ishop/ext/ext-paypal.git", "remoteType")),
       "https://jenkins-url")
     Assert.assertEquals("https://jenkins-url/job/ishop-ext-ext-paypal-tag/", result.get)
   }
@@ -44,7 +44,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
   @Test
   def testTransformRemoteToBuildUrl_core(): Unit = {
     val result = Starter.transformRemoteToBuildUrl(
-      Seq(GitRemote("origin", "ssh://someone@local-gerrit:29418/ishop/core/ishop-core-projects", "(fetch)")),
+      Seq(GitRemote.of("origin", "ssh://someone@local-gerrit:29418/ishop/core/ishop-core-projects", "(fetch)")),
       "https://jenkins-url")
     Assert.assertEquals("https://jenkins-url/job/ishop-core-ishop-core-projects-tag/", result.get)
   }
@@ -52,17 +52,17 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
   @Test
   def testTransformRemoteToBuildUrl_core_version(): Unit = {
     val result = Starter.transformRemoteToBuildUrlVersion(
-      Seq(GitRemote("origin", "ssh://someone@local-gerrit:29418/ishop/core/ishop-core-projects", "(fetch)")),
+      Seq(GitRemote.of("origin", "ssh://someone@local-gerrit:29418/ishop/core/ishop-core-projects", "(fetch)")),
       "https://jenkins-url", "v4444.43.43")
     Assert.assertEquals("https://jenkins-url/job/ishop-core-ishop-core-projects-tag-4444/", result.get)
   }
 
   @Test
   def testTransformRemoteToBuildUrl_core_version_None(): Unit = {
-    val result = Starter.transformRemoteToBuildUrlVersion(
-      Seq(GitRemote("origin", "ssh://someone@local-gerrit:29418/ishop/core/ishop-core-projects", "(fetch)")),
-      "https://jenkins-url", "v")
+    val origin = GitRemote.of("origin", "ssh://someone@local-gerrit:29418/ishop/core/ishop-core-projects", "(fetch)")
+    val result = Starter.transformRemoteToBuildUrlVersion(Seq(origin), "https://jenkins-url", "v")
     Assert.assertEquals(None, result)
+    Assert.assertEquals("origin  ssh://local-gerrit:29418/ishop/core/ishop-core-projects (fetch)", origin.toString)
   }
 
   @Test
@@ -411,6 +411,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
 
   @Test
   def testLogback(): Unit = {
+    import scala.jdk.CollectionConverters._
     doTest(new File("src/main/resources/logback.xml"))
     doTest(new File("src/test/resources/logback-test.xml"))
 
@@ -422,7 +423,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
 
       val sm = context.getStatusManager.asInstanceOf[BasicStatusManager]
       if (sm.getLevel != Status.INFO) {
-        val statuses: Seq[Status] = Util.toSeq(sm.getCopyOfStatusList)
+        val statuses: Seq[Status] = sm.getCopyOfStatusList.asScala.toList
         val errorMsgs = statuses.filter(_.getLevel != Status.INFO)
         if (errorMsgs != Nil) {
           val allStatuses: String = errorMsgs.mkString("\n")

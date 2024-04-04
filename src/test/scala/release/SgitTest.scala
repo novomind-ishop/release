@@ -464,7 +464,7 @@ class SgitTest extends AssertionsForJUnit {
         gitA.pushHeads("master", "master")
       })
 
-    Assert.assertEquals(Seq(GitRemote("ubglu", "failfail", "(fetch)"), GitRemote("ubglu", "failfail", "(push)")),
+    Assert.assertEquals(Seq(GitRemote.of("ubglu", "failfail", "(fetch)"), GitRemote.of("ubglu", "failfail", "(push)")),
       gitA.listRemotes())
     gitA.removeRemote("ubglu")
     gitA.addRemote("ubglu", "ssh://user@git.example.org/ubglu")
@@ -610,8 +610,8 @@ class SgitTest extends AssertionsForJUnit {
       })
     gitB.resetHard(beforeReverts)
     gitB.pushFor("master", "master")
-    Assert.assertEquals(Nil, gitA.listTags())
-    Assert.assertEquals(Nil, gitB.listTags())
+    Assert.assertEquals(Nil, gitA.listAllTags())
+    Assert.assertEquals(Nil, gitB.listAllTags())
     Assert.assertEquals(None, gitB.currentTags)
     gitB.doTag("0.0.10")
     val beforeBranch = gitB.currentBranch
@@ -684,14 +684,14 @@ class SgitTest extends AssertionsForJUnit {
     gitB.add(v10)
     gitB.commitAll("delete v10")
     gitB.doTag("0.0.8")
-    Assert.assertEquals(Seq("v0.0.10", "v0.0.8", "v0.0.9"), gitB.listTags())
-    Assert.assertEquals(Nil, gitA.listTags())
+    Assert.assertEquals(Seq("v0.0.10", "v0.0.8", "v0.0.9"), gitB.listAllTags())
+    Assert.assertEquals(Nil, gitA.listAllTags())
     Assert.assertEquals(Seq("v0.0.8", "v0.0.9", "v0.0.10"),
       gitB.listTagsWithDate().map(_.name))
     Assert.assertTrue(gitB.hasTagsToPush)
     gitB.pushTag("0.0.9")
     Assert.assertTrue(gitB.hasTagsToPush)
-    Assert.assertEquals(Seq("v0.0.9"), gitA.listTags())
+    Assert.assertEquals(Seq("v0.0.9"), gitA.listAllTags())
     gitB.pushTag("0.0.10")
     gitB.pushTag("0.0.8")
     Assert.assertFalse(gitB.hasTagsToPush)
@@ -760,9 +760,9 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(Seq("refs/heads/master", "refs/remotes/origin/HEAD",
       "refs/remotes/origin/master", "refs/tags/v0.0.10", "refs/tags/v0.0.8", "refs/tags/v0.0.9", "refs/tags/v1.0.0"),
       gitB.listRefNames())
-    Assert.assertEquals(Seq("v0.0.10", "v0.0.8", "v0.0.9", "v1.0.0"), gitB.listTags())
+    Assert.assertEquals(Seq("v0.0.10", "v0.0.8", "v0.0.9", "v1.0.0"), gitB.listAllTags())
     gitB.deleteRef("refs/tags/v1.0.0")
-    Assert.assertEquals(Seq("v0.0.10", "v0.0.8", "v0.0.9"), gitB.listTags())
+    Assert.assertEquals(Seq("v0.0.10", "v0.0.8", "v0.0.9"), gitB.listAllTags())
     Assert.assertEquals(Seq("refs/heads/master", "refs/remotes/origin/HEAD",
       "refs/remotes/origin/master", "refs/tags/v0.0.10", "refs/tags/v0.0.8", "refs/tags/v0.0.9"), gitB.listRefNames())
     gitB.doTag("1.0.0")

@@ -112,10 +112,11 @@ object ReleaseConfig extends LazyLogging {
   )
 
   def parseConfig(str: String): Map[String, String] = {
+    import scala.jdk.CollectionConverters._
     try {
       val properties = new Properties()
       properties.load(new ByteArrayInputStream(str.getBytes(StandardCharsets.ISO_8859_1)))
-      val entries: Set[Entry[String, String]] = Util.toSet(properties.entrySet()).asInstanceOf[Set[Entry[String, String]]]
+      val entries: Set[Entry[String, String]] = properties.entrySet().asScala.toSet.asInstanceOf[Set[Entry[String, String]]]
       entries.foldLeft(Map.empty[String, String])((a, b) => a ++ Map(b.getKey -> b.getValue))
     } catch {
       case e: Exception => {

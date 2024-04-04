@@ -21,7 +21,7 @@ class LintTest extends AssertionsForJUnit {
 
   def br(branchName: String) = Some(BranchTagMerge(tagName = None, branchName = Some(branchName)))
 
-  def tag(tagName: String) = Some(BranchTagMerge(tagName = Some(tagName), branchName = None))
+  def tag(tagName: String, branchName:Option[String] = None) = Some(BranchTagMerge(tagName = Some(tagName), branchName = branchName))
 
   @Test
   def testSelectPackage_blank(): Unit = {
@@ -117,6 +117,7 @@ class LintTest extends AssertionsForJUnit {
 
   @Test
   def testVersionMatches(): Unit = {
+    Assert.assertFalse(Lint.versionMissmatches("1.2.3", tag("v1.2.3", branchName = Some("HEAD"))))
     Assert.assertFalse(Lint.versionMissmatches("45x-SNAPSHOT", br("feature/45x")))
     Assert.assertFalse(Lint.versionMissmatches("0.0.8-SNAPSHOT", br("feature/0x")))
     Assert.assertFalse(Lint.versionMissmatches("0.0.8-SNAPSHOT", br("feature/0.0x")))
@@ -133,6 +134,7 @@ class LintTest extends AssertionsForJUnit {
 
     Assert.assertTrue(Lint.versionMissmatches("main-SNAPSHOT", tag("master")))
     Assert.assertFalse(Lint.versionMissmatches("1.2.3", tag("v1.2.3")))
+
     Assert.assertFalse(Lint.versionMissmatches("main", tag("vmain")))
     Assert.assertFalse(Lint.versionMissmatches("main", BranchTagMerge.merge))
 

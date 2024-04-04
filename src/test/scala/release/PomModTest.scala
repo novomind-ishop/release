@@ -276,6 +276,7 @@ class PomModTest extends AssertionsForJUnit {
   @Test
   def testVersionProjectVersion(): Unit = {
     val k = "{project.version}"
+    // @formatter:off
     val srcPoms: File = pomTestFile(temp, document(<project>
       <modelVersion>4.0.0</modelVersion>
       <groupId>com.novomind.ishop.shops.any</groupId>
@@ -309,7 +310,7 @@ class PomModTest extends AssertionsForJUnit {
       <version>27.0.0-SNAPSHOT</version>
     </project>
     )).create()
-
+    // @formatter:on
     TestHelper.assertException("Project variables are not allowed in external dependencies: org.glassfish.jaxb:jaxb-core:${project.version}",
       classOf[ValidationException], () => {
         PomModTest.withRepoForTests(srcPoms, repo)
@@ -335,7 +336,7 @@ class PomModTest extends AssertionsForJUnit {
       ProjectModTest.parseSelfRef("com.novomind.ishop:ishop-shop-frontend:42.0.0-SNAPSHOT:pom"),
       Gav(groupId = "com.github.eirslett", artifactId = "frontend-maven-plugin", version = Some("1.11.2")))
     val in: Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = Seq((ref, List(
-      ("1.11.3",Success(ZonedDateTime.now())),
+      ("1.11.3", Success(ZonedDateTime.now())),
       ("1.12.0", Success(ZonedDateTime.now())),
     )))
 
@@ -1124,6 +1125,17 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def suggestRelease_knownTags(): Unit = {
+
+    // GIVEN/WHEN
+    val release = PomMod.suggestReleaseBy(LocalDate.now(), currentVersion = "3.43.2-SNAPSHOT",
+      hasShopPom = false, branchNames = Nil, tagNames = Seq("v3.43.2", "v3.43.3"))
+
+    // THEN
+    assert(Seq("3.43.4") === release)
+  }
+
+  @Test
   def suggestRelease_other_lowdash(): Unit = {
 
     // GIVEN/WHEN
@@ -1654,113 +1666,6 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
-  def testVersionParse(): Unit = {
-    Assert.assertEquals(Version("", 1, 2, 3, "", ""), Version.parse("1.2.3"))
-    Assert.assertEquals(Version("", 1, 2, 3, "6", ""), Version.parse("1.2.3_6"))
-    Assert.assertEquals(Version("", 1, 2, 3, "final", ""), Version.parse("1.2.3_final"))
-    Assert.assertEquals(Version("", 3, 2, 1, "", ""), Version.parse("3.2.1-SNAPSHOT"))
-    Assert.assertEquals(Version("", 7, 0, 0, "", ""), Version.parse("7"))
-    Assert.assertEquals(Version("", 8, 43, 0, "", ""), Version.parse("8.43"))
-  }
-
-  @Test
-  def testVersionOrdering(): Unit = {
-    val in = Seq(
-      Version.parseSloppy("alpha"),
-      Version.parseSloppy("1.1.0.1"), // TODO not semver so before 1.0.0
-      Version.parseSloppy("1.1.0-M1"),
-      Version.parseSloppy("1.1.0-M2"),
-      Version.parseSloppy("1.1.0-M3"),
-      Version.parseSloppy("1.1.0"),
-      Version.parseSloppy("1.1.1_emergency-bugfix"),
-      Version.parseSloppy("1.1.1"), // regular 1.1.1
-      Version.parse("1.2.3"),
-      Version.parse("2.2.3"),
-      Version.parse("2.2.4"),
-      Version.parse("2.3.0"),
-      Version.parseSloppy("4.0.0-SNAPSHOT"),
-      Version.parseSloppy("4.0.0"),
-      Version.parse("7"),
-      Version.parse("9.1"),
-      Version.parseSloppy("10-bravo"), // TODO flip with alpha
-      Version.parseSloppy("10-alpha"),
-      Version.parseSloppy("10"),
-      Version.parse("10.2.3"),
-      Version.parse("21.2.3"),
-    )
-    val t = in.sliding(2, 1).map(ts => {
-      if (ts.size != 2) {
-        throw new IllegalStateException("d")
-      } else {
-        ((ts.head, ts.last), Seq(Version.ordering.lt(ts.head, ts.last),
-          Version.ordering.equiv(ts.head, ts.head),
-          Version.ordering.equiv(ts.last, ts.last)))
-      }
-
-    }).toList
-    t.foreach(l => {
-      println(s"${l._1._1.format()} (${l._1._1.rawInput}) <-> ${l._1._2.format()} (${l._1._2.rawInput}) = ${l._2.mkString(", ")}")
-    })
-    Assert.assertEquals(1, t.flatMap(_._2).distinct.size)
-  }
-
-  @Test
-  def testIsMajor(): Unit = {
-    Assert.assertTrue(Version.parse("21.0.0").isMajor())
-    Assert.assertTrue(Version.parse("21.0.0-SNAPSHOT").isMajor())
-    Assert.assertTrue(Version.parse("21").isMajor())
-    Assert.assertTrue(Version.parse("21.0").isMajor())
-    Assert.assertFalse(Version.parse("21.2.3").isMajor())
-    Assert.assertFalse(Version.parse("alpha").isMajor())
-  }
-
-  @Test
-  def testIsOrdinal(): Unit = {
-    Assert.assertTrue(Version.parse("1.0.1-SNAPSHOT").isOrdinalOnly)
-    Assert.assertTrue(Version.parse("1.1.1-SNAPSHOT").isOrdinalOnly)
-    Assert.assertTrue(Version.parse("21.0.0").isOrdinal)
-    Assert.assertTrue(Version.parse("21.0.0").isOrdinalOnly)
-    Assert.assertTrue(Version.parse("21.0.0-SNAPSHOT").isOrdinal)
-    Assert.assertTrue(Version.parse("21.0.0-SNAPSHOT").isOrdinalOnly)
-
-    Assert.assertTrue(Version.parseSloppy("21.0.0-SNAPSHOT").isOrdinalOnly)
-    Assert.assertFalse(Version.parse("alpha").isOrdinal)
-    Assert.assertFalse(Version.parse("alpha").isOrdinalOnly)
-
-    Assert.assertTrue(Version.parseSloppy("210_alpha").isOrdinal)
-    Assert.assertFalse(Version.parseSloppy("210_alpha").isOrdinalOnly)
-    Assert.assertTrue(Version.parse("210.0.0_alpha").isOrdinal)
-    Assert.assertFalse(Version.parse("210.0.0_alpha").isOrdinalOnly)
-  }
-
-  @Test
-  def testLowOrdinal(): Unit = {
-    Assert.assertEquals(Int.MaxValue,Version.parseSloppy("21.0.0-SNAPSHOT").lowOrdinalPart)
-    Assert.assertEquals(1,Version.parseSloppy("21.0.0_1").lowOrdinalPart)
-    Assert.assertEquals(7,Version.parseSloppy("21.0.0_RC7").lowOrdinalPart)
-    Assert.assertEquals(8,Version.parseSloppy("21.0.0_M8").lowOrdinalPart)
-    Assert.assertEquals(20423,Version.parseSloppy("21.0.0_RC-204-23").lowOrdinalPart)
-  }
-
-  @Test
-  def testSame(): Unit = {
-    Assert.assertTrue(Version.parseSloppy("21x-SNAPSHOT").same(21))
-    Assert.assertTrue(Version.parseSloppy("21x-SNAPSHOT").same(Seq(21)))
-    Assert.assertTrue(Version.parse("21.0.0").same(21))
-    Assert.assertFalse(Version.parse("21.0.0").same(2))
-
-    Assert.assertTrue(Version.parse("21.0.0").same(21, 0))
-    Assert.assertFalse(Version.parse("21.0.0").same(21, 1))
-
-    Assert.assertTrue(Version.parse("21.0.0").same(21, 0, 0))
-    Assert.assertFalse(Version.parse("21.0.0").same(21, 0, 1))
-    Assert.assertTrue(Version.parse("21.0.0").same(Seq(21, 0, 0)))
-    Assert.assertFalse(Version.parse("21.0.0").same(Seq(21, 0, 1)))
-    Assert.assertFalse(Version.parse("21.0.0").same(Nil))
-    Assert.assertFalse(Version.parse("21.0.0").same(Seq(21, 0, 0, 0)))
-  }
-
-  @Test
   def testAbbreviate(): Unit = {
     Assert.assertEquals(Nil, PomMod.abbreviate(2)(Nil))
     Assert.assertEquals(Seq("a"), PomMod.abbreviate(2)(Seq("a")))
@@ -1932,7 +1837,7 @@ class PomModTest extends AssertionsForJUnit {
 object PomModTest {
 
   def withRepoForTests(file: File, repo: RepoZ, skipPropertyReplacement: Boolean = false,
-                       withSubPoms: Boolean = true, failureCollector: Option[Exception => Unit] = None, opts:Opts = Opts()): PomMod = {
+                       withSubPoms: Boolean = true, failureCollector: Option[Exception => Unit] = None, opts: Opts = Opts()): PomMod = {
     PomMod(file, repo, opts, skipPropertyReplacement, withSubPoms, failureCollector)
   }
 
