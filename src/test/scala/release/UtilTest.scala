@@ -65,6 +65,7 @@ class UtilTest extends AssertionsForJUnit {
     Assert.assertEquals(2, Util.Similarity.soundexSplitMin("ui", "vue"))
     Assert.assertEquals(2, Util.Similarity.soundexSplitMin("api", "ui"))
     Assert.assertEquals(2, Util.Similarity.soundexSplitMin("cli", "api"))
+    Assert.assertEquals(2, Util.Similarity.soundexSplitMin("web", "api"))
     Assert.assertEquals(3, Util.Similarity.soundexSplitMin("gui", "ui"))
   }
 
