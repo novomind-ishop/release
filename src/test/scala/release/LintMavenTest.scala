@@ -20,13 +20,13 @@ class LintMavenTest extends AssertionsForJUnit {
 
   def replaceAllVarLiterals(in: Seq[String]): Seq[String] = {
     val value1 = in.takeWhile(_ != fakeStackElement)
-    value1
+    in
   }
 
   def replaceVarLiterals(in: String): String = {
     in.replaceAll("- $", "-")
       .replaceAll("/junit[0-9]+/", "/junit-REPLACED/")
-      .replaceAll("\tat .*", fakeStackElement)
+      //.replaceAll("\tat .*", fakeStackElement)
       .replaceAll("( package name(?:s|) in) PT[0-9]+S", "$1 PT4S")
       .replaceAll("^\\[..:..:..\\...Z\\] ", "[00:00:00.00Z] ")
       .replaceAll(": git version 2\\.[0-9]+\\.[0-9]+", ": git version 2.999.999")
@@ -1081,7 +1081,15 @@ class LintMavenTest extends AssertionsForJUnit {
       """java.lang.IllegalArgumentException: invalid empty versions:
         |org.springframework:spring-context-empty
         |org.springframework:spring-context-blank
-        |""".stripMargin.stripTrailing()
+        |	at release.PomMod$.unmanaged(PomMod.scala:636)
+        |	at release.ProjectMod$.collectDependencyUpdates(ProjectMod.scala:606)
+        |	at release.ProjectMod.collectDependencyUpdates(ProjectMod.scala:690)
+        |	at release.ProjectMod.collectDependencyUpdates$(ProjectMod.scala:682)
+        |	at release.PomMod.collectDependencyUpdates(PomMod.scala:27)
+        |	at release.ProjectMod.tryCollectDependencyUpdates(ProjectMod.scala:674)
+        |	at release.ProjectMod.tryCollectDependencyUpdates$(ProjectMod.scala:671)
+        |	at release.PomMod.tryCollectDependencyUpdates(PomMod.scala:27)
+        |	at release.Lint$.run(Lint.scala:651)""".stripMargin.stripTrailing()
     TermTest.testSys(Nil, expected, errorOut, outFn = replaceVarLiterals, outAllFn = replaceAllVarLiterals,
       expectedExitCode = 43)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))

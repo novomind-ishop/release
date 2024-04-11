@@ -790,6 +790,8 @@ object Lint {
                 warnExit.set(true)
               }
               case pce: Exception => {
+                val newStackTrace = filteredStacktrace(pce.getStackTrace)
+                pce.setStackTrace(newStackTrace)
                 pce.printStackTrace(err)
                 out.println(error(pce.getMessage + s" ${fiWarn} ${fiCodePomModException}", opts, limit = lineMax))
                 errorExit.set(true)
@@ -866,6 +868,20 @@ object Lint {
       }
     }
     1
+  }
+
+  def filteredStacktrace(getStackTrace: Array[StackTraceElement]):Array[StackTraceElement] = {
+    getStackTrace
+      .filterNot(_.getClassName.startsWith("jdk.internal."))
+      .filterNot(_.getClassName.startsWith("java.lang."))
+      .filterNot(_.getClassName.startsWith("java.util."))
+      .filterNot(_.getClassName.startsWith("scala."))
+      .filterNot(_.getClassName.startsWith("sbt."))
+      .filterNot(_.getClassName.startsWith("com.novocode.junit."))
+      .filterNot(_.getClassName.startsWith("org.junit."))
+      .filterNot(_.getClassName.startsWith("com.intellij."))
+      .filterNot(k => k.getClassName.startsWith("release.") &&
+        (k.getClassName.endsWith("Test$") || k.getClassName.endsWith("Test")))
   }
 
   def doGoogleFmt(formatter: Formatter, src: File): (Try[Unit], File) = {
