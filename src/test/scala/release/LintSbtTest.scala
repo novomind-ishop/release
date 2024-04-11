@@ -83,7 +83,7 @@ class LintSbtTest extends AssertionsForJUnit {
         |║ ╚═══ 1.0.0 (libyears: ???)
         |║
         |
-        |libyears: 0Y 0M (0 days)
+        |Σ libyears: 0Y 0M (0 days)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP

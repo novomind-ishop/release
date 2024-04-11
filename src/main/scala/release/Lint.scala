@@ -790,6 +790,7 @@ object Lint {
                 warnExit.set(true)
               }
               case pce: Exception => {
+                pce.printStackTrace(err)
                 out.println(error(pce.getMessage + s" ${fiWarn} ${fiCodePomModException}", opts, limit = lineMax))
                 errorExit.set(true)
               }

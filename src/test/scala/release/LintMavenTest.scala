@@ -16,9 +16,17 @@ class LintMavenTest extends AssertionsForJUnit {
 
   @Rule def temp = _temporarayFolder
 
+  val fakeStackElement = "  at release..."
+
+  def replaceAllVarLiterals(in: Seq[String]): Seq[String] = {
+    val value1 = in.takeWhile(_ != fakeStackElement)
+    value1
+  }
+
   def replaceVarLiterals(in: String): String = {
     in.replaceAll("- $", "-")
       .replaceAll("/junit[0-9]+/", "/junit-REPLACED/")
+      .replaceAll("\tat .*", fakeStackElement)
       .replaceAll("( package name(?:s|) in) PT[0-9]+S", "$1 PT4S")
       .replaceAll("^\\[..:..:..\\...Z\\] ", "[00:00:00.00Z] ")
       .replaceAll(": git version 2\\.[0-9]+\\.[0-9]+", ": git version 2.999.999")
@@ -181,7 +189,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |  RepoProxy: https://repo.example.orgorg/springframework/spring-context/maven-metadata.xml
         |
         |
-        |libyears: 0Y 0M (0 days)
+        |Σ libyears: 0Y 0M (0 days)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -344,7 +352,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |║ ╚═══ 1.0.1, .., 1.2.8, 1.2.9 (libyears: 0Y 0M [0 days])
         |║
         |
-        |libyears: 0Y 0M (0 days)
+        |Σ libyears: 0Y 0M (0 days)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -527,7 +535,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |║ ╚═══ 1.0.1, .., 1.2.8, 1.2.9 (libyears: 0Y 0M [0 days])
         |║
         |
-        |libyears: 0Y 0M (0 days)
+        |Σ libyears: 0Y 0M (0 days)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -679,7 +687,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |║ ╚═══ 51.2.5 (libyears: 0Y 0M [0 days])
         |║
         |
-        |libyears: 0Y 0M (0 days)
+        |Σ libyears: 0Y 0M (0 days)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -799,7 +807,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |║ ╚═══ 50.2.3, 50.4.0 (libyears: 0Y 0M [0 days])
         |║
         |
-        |libyears: 0Y 0M (0 days)
+        |Σ libyears: 0Y 0M (0 days)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -907,7 +915,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6 (libyears: 0Y 0M [0 days])
         |║
         |
-        |libyears: 0Y 0M (0 days)
+        |Σ libyears: 0Y 0M (0 days)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -1069,7 +1077,13 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-empty/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[ERROR] exit 43 - because lint found errors, see above ❌""".stripMargin
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 43)(sys => {
+    val errorOut =
+      """java.lang.IllegalArgumentException: invalid empty versions:
+        |org.springframework:spring-context-empty
+        |org.springframework:spring-context-blank
+        |""".stripMargin.stripTrailing()
+    TermTest.testSys(Nil, expected, errorOut, outFn = replaceVarLiterals, outAllFn = replaceAllVarLiterals,
+      expectedExitCode = 43)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
@@ -1227,7 +1241,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |║ ╚═══ 1.0.2 (libyears: 2Y 10M [1049 days])
         |║
         |
-        |libyears: 2Y 10M (1065 days)
+        |Σ libyears: 2Y 10M (1065 days)
         |[WARNING] org.springframework:spring-context:1.0.1-SNAPSHOT is already released, remove '-SNAPSHOT' suffix 😬 RL1009-ea7ea019
         |[WARNING] org.springframework:spring-other:1.0.0-SNAPSHOT is not released, but next release (1.0.1) was found (maybe orphan snapshot) 😬 RL10015-f0a969b5
         |[INFO]     WIP
@@ -1408,7 +1422,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |I: checking dependencies against nexus - please wait
         |I: checked 0 dependencies in 999ms (2000-01-01)
         |
-        |libyears: 0Y 0M (0 days)
+        |Σ libyears: 0Y 0M (0 days)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -1700,7 +1714,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |I: checking dependencies against nexus - please wait
         |I: checked 0 dependencies in 999ms (2000-01-01)
         |
-        |libyears: 0Y 0M (0 days)
+        |Σ libyears: 0Y 0M (0 days)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP

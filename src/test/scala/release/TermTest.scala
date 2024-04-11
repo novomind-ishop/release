@@ -208,7 +208,7 @@ object TermTest extends LazyLogging {
   case class OutErr[T](out: String, err: String, value: T)
 
   def testSys(input: Seq[String], expectedOut: String, expectedErr: String, expectedExitCode: Int,
-              outFn: String => String = a => a)
+              outFn: String => String = a => a, outAllFn: Seq[String] => Seq[String] = a => a)
              (fn: Term.Sys => Unit): Unit = {
     this.synchronized {
       @nowarn
@@ -256,9 +256,11 @@ object TermTest extends LazyLogging {
         @nowarn("cat=deprecation")
         val unit = System.setSecurityManager(oldSecurityManager)
       }
-      Assert.assertEquals(expectedErr, err.toString.linesIterator.toList.mkString("\n"))
-      Assert.assertEquals(expectedOut, out.toString.linesIterator.toList
-        .map(outFn)
+      Assert.assertEquals(expectedErr, outAllFn.apply(err.toString.linesIterator.toList
+        .map(outFn))
+        .mkString("\n"))
+      Assert.assertEquals(expectedOut, outAllFn(out.toString.linesIterator.toList
+        .map(outFn))
         .mkString("\n"))
 
       Assert.assertEquals(expectedExitCode, exitCode)
