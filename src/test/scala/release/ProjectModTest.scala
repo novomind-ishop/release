@@ -1,17 +1,17 @@
 package release
 
 import org.junit.{Assert, Test}
-import org.mockito.ArgumentMatchers.{anyString, argThat}
-import org.mockito.{ArgumentMatchers, Mockito}
+import org.mockito.ArgumentMatchers.anyString
 import org.mockito.MockitoSugar._
+import org.mockito.{ArgumentMatchers, Mockito}
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.ProjectMod.{Dep, Gav, Gav3, GavWithRef, SelfRef, UpdatePrinter}
-import release.ProjectModTest.{MockMod, depOfShort}
+import release.ProjectModTest.MockMod
 import release.SbtModTest.d
 import release.Starter.OptsDepUp
 
 import java.io.File
-import java.time.{Duration, ZonedDateTime}
+import java.time.ZonedDateTime
 import scala.collection.immutable.ListMap
 import scala.util.{Failure, Success, Try}
 

@@ -1,14 +1,10 @@
 package release
 
 import com.google.common.base.Strings
-import release.Version
 import release.Starter.ExitCode
 
-import java.nio.charset.StandardCharsets
 import java.text.Normalizer
-import scala.util.Failure
-import scala.util.Success
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 object SuggestDockerTag {
   val masterPattern = "[a-zA-Z0-9][a-zA-Z0-9_\\-\\.]{0,127}".r

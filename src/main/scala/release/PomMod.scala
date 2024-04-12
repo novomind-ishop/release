@@ -1,17 +1,16 @@
 package release
 
 import com.google.common.base.Strings
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import org.w3c.dom.{Document, Node}
 import release.Conf.Tracer
-import release.PomChecker.ValidationException
 import release.PomMod._
 import release.ProjectMod._
 import release.Starter.{Opts, PreconditionsException}
 import release.Util.pluralize
 
-import java.io.{ByteArrayOutputStream, File, PrintStream}
+import java.io.{ByteArrayOutputStream, File}
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.time.LocalDate
@@ -20,7 +19,7 @@ import java.util.Locale
 import javax.xml.transform.dom.DOMSource
 import javax.xml.transform.stream.StreamResult
 import javax.xml.transform.{OutputKeys, TransformerFactory}
-import scala.annotation.tailrec
+import scala.annotation.{nowarn, tailrec}
 import scala.collection.parallel.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
@@ -124,11 +123,20 @@ case class PomMod(file: File, repo: RepoZ, opts: Opts,
 
     def skip(key: String)(p: (String, String)) = p.copy(_2 = p._2.replace(key, "skip"))
 
+    @nowarn("msg=possible missing interpolator")
+    val projectBasedirt = "${project.basedir}"
+    @nowarn("msg=possible missing interpolator")
+    val projectBuildFinalName = "${project.build.finalName}"
+    @nowarn("msg=possible missing interpolator")
+    val projectBuildDirectory = "${project.build.directory}"
+    @nowarn("msg=possible missing interpolator")
+    val mavenBuildTimestamp = "${maven.build.timestamp}"
+
     val allProps = (result ++ Map("project.version" -> selfVersion.get))
-      .map(skip("${project.basedir}"))
-      .map(skip("${project.build.finalName}"))
-      .map(skip("${project.build.directory}"))
-      .map(skip("${maven.build.timestamp}"))
+      .map(skip(projectBasedirt))
+      .map(skip(projectBuildFinalName))
+      .map(skip(projectBuildDirectory))
+      .map(skip(mavenBuildTimestamp))
     val invalid = allProps.filter(_._2.contains("$"))
     if (invalid.nonEmpty) {
       throw new IllegalStateException("do not use properties in properties: " + invalid)

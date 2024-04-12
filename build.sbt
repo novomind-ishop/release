@@ -2,10 +2,11 @@ name := "release"
 
 version := "1.0"
 
-scalaVersion := "2.13.12"
+scalaVersion := "2.13.13"
 
-scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xfatal-warnings", "--release:11",
-  "-feature", "-language:implicitConversions")
+scalacOptions ++= Seq("-unchecked", "-deprecation", "--release:11",
+  "-feature", "-language:implicitConversions", "-Xfatal-warnings",
+  "-Wconf:cat=deprecation&origin=release\\..*:i", "-Xlint", "-quickfix:any")
 
 logLevel := Level.Warn
 

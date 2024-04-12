@@ -1,14 +1,11 @@
 package release
 
-import org.apache.commons.codec.language.Soundex
-
-import java.io.PrintStream
 import release.ProjectMod.{Dep, Gav, PluginDep, SelfRef}
 import release.Release.findBadLines
 import release.Starter.{Opts, PreconditionsException}
 
+import java.io.{File, PrintStream}
 import java.nio.file.Path
-import java.io.File
 import java.util.regex.Pattern
 import scala.collection.parallel.CollectionConverters._
 

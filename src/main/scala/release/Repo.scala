@@ -7,31 +7,24 @@ import org.apache.http.client.methods.{CloseableHttpResponse, HttpGet}
 import org.apache.http.impl.client.HttpClients
 import org.apache.maven.repository.internal.MavenRepositorySystemUtils
 import org.eclipse.aether.artifact.DefaultArtifact
-
 import org.eclipse.aether.metadata.DefaultMetadata
 import org.eclipse.aether.metadata.Metadata.Nature
 import org.eclipse.aether.repository.{LocalRepository, RemoteRepository}
 import org.eclipse.aether.resolution.{ArtifactRequest, MetadataRequest, VersionRangeRequest, VersionRangeResolutionException}
-
 import org.eclipse.aether.supplier.RepositorySystemSupplier
 import org.eclipse.aether.transfer._
-
 import org.eclipse.aether.version.Version
 import org.eclipse.aether.{DefaultRepositorySystemSession, RepositorySystem}
 import release.ProjectMod.Gav3
 
-import java.io.{File, IOException, PrintStream}
-
+import java.io.{File, IOException}
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{FileVisitResult, FileVisitor, Files, Path}
-import java.text.{DecimalFormat, DecimalFormatSymbols}
 import java.time.format.{DateTimeFormatterBuilder, SignStyle, TextStyle}
 import java.time.temporal.ChronoField
 import java.time.temporal.ChronoField._
 import java.time.{ZoneOffset, ZonedDateTime}
 import java.util
-import java.util.Locale
-import java.util.concurrent.ConcurrentHashMap
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
@@ -111,8 +104,6 @@ class RepoProxy(_repos: Seq[RepoZ]) extends RepoZ {
 
 class Repo(_mirrorNexus: RemoteRepository, _workNexus: RemoteRepository) extends RepoZ with LazyLogging {
 
-  private lazy val newRepositoriesCentral: RemoteRepository = Repo.newDefaultRepository(Repo.centralUrl)
-
   private val mirrorNexus: RemoteRepository = _mirrorNexus
 
   private val workNexus: RemoteRepository = _workNexus
@@ -147,7 +138,7 @@ class Repo(_mirrorNexus: RemoteRepository, _workNexus: RemoteRepository) extends
         if (showTrace) {
           any.printStackTrace()
         }
-        return Repo.ReachableResult(false, any.getClass.getCanonicalName +
+        return Repo.ReachableResult(online = false, any.getClass.getCanonicalName +
           ": " + any.getMessage + " requestConfig: " + config.toString)
       }
     } finally {
@@ -384,10 +375,6 @@ object Repo extends LazyLogging {
     (result.getArtifact.getFile, result.getArtifact.getVersion)
   }
 
-  private class ManualRepositorySystemFactory {
-
-  }
-
   private object ManualRepositorySystemFactory {
     def newRepositorySystem: RepositorySystem = {
       new RepositorySystemSupplier().get()
@@ -458,9 +445,6 @@ object Repo extends LazyLogging {
       delete(localRepo.getBasedir.getAbsoluteFile.toPath)
       session.setLocalRepositoryManager(system.newLocalRepositoryManager(session, localRepo))
       if (!silent) session.setTransferListener(new TraceTransferListener)
-      //   session.setRepositoryListener(new ConsoleRepositoryListener());
-      // uncomment to generate dirty trees
-      // session.setDependencyGraphTransformer( null );
       session
     }
 
@@ -474,118 +458,6 @@ object Repo extends LazyLogging {
         "Downloading"
       }
       logger.trace(message + ": " + event.getResource.getRepositoryUrl + event.getResource.getResourceName)
-    }
-  }
-
-  private class ConsoleTransferListener(_out: PrintStream = null) extends AbstractTransferListener {
-    private var out: PrintStream = null
-    this.out = if (_out != null) {
-      _out
-    } else {
-      System.out
-    }
-    private val downloads = new ConcurrentHashMap[TransferResource, Long]
-    private var lastLength = 0
-
-    override def transferInitiated(event: TransferEvent): Unit = {
-      val message = if (event.getRequestType eq TransferEvent.RequestType.PUT) {
-        "Uploading"
-      } else {
-        "Downloading"
-      }
-      out.println(message + ": " + event.getResource.getRepositoryUrl + event.getResource.getResourceName)
-    }
-
-    override def transferProgressed(event: TransferEvent): Unit = {
-      val resource = event.getResource
-      downloads.put(resource, event.getTransferredBytes)
-      val buffer = new StringBuilder(64)
-      for (entry <- downloads.asScala) {
-        val total = entry._1.getContentLength
-        val complete = entry._2.longValue
-        buffer.append(getStatus(complete, total)).append("  ")
-      }
-      val padV = lastLength - buffer.length
-      lastLength = buffer.length
-      pad(buffer, padV)
-      buffer.append('\r')
-      out.print(buffer)
-    }
-
-    override def transferCorrupted(event: TransferEvent): Unit = {
-      event.getException.printStackTrace(out)
-    }
-
-    override def transferSucceeded(event: TransferEvent): Unit = {
-      transferCompleted(event)
-      val resource = event.getResource
-      val contentLength = event.getTransferredBytes
-      if (contentLength >= 0) {
-        val action = if (event.getRequestType eq TransferEvent.RequestType.PUT) {
-          "Uploaded"
-        } else {
-          "Downloaded"
-        }
-        val len = if (contentLength >= 1024) {
-          s"${toKB(contentLength)} KB"
-        } else {
-          s"${contentLength} B"
-        }
-        var throughput = ""
-        val duration = System.currentTimeMillis - resource.getTransferStartTime
-        if (duration > 0) {
-          val bytes = contentLength - resource.getResumeOffset
-          val format = new DecimalFormat("0.0", new DecimalFormatSymbols(Locale.ENGLISH))
-          val kbPerSec = (bytes / 1024.0) / (duration / 1000.0)
-          throughput = " at " + format.format(kbPerSec) + " KB/sec"
-        }
-        out.println(action + ": " + resource.getRepositoryUrl + resource.getResourceName + " (" + len + throughput + ")")
-      }
-    }
-
-    override def transferFailed(event: TransferEvent): Unit = {
-      transferCompleted(event)
-      if (logStacktrace(event)) {
-        event.getException.printStackTrace(out)
-      }
-    }
-
-    private def logStacktrace(event: TransferEvent) = {
-      val of = Util.toJavaList(Seq(classOf[MetadataNotFoundException], classOf[ArtifactNotFoundException]))
-      if (of.contains(event.getException.getClass)) false
-      else true
-    }
-
-    private def getStatus(complete: Long, total: Long): String = if (total >= 1024) {
-      s"${toKB(complete)} / ${toKB(total)} KB "
-    } else if (total >= 0) {
-      s"$complete / $total B "
-    } else if (complete >= 1024) {
-      s"${toKB(complete)} KB "
-    } else {
-      s"$complete B "
-    }
-
-    private def pad(buffer: StringBuilder, _spaces: Int): Unit = {
-      var spaces = _spaces
-      val block = "                                        "
-      while (spaces > 0) {
-        val n: Int = Math.min(spaces, block.length)
-        buffer.append(block, 0, n)
-        spaces = spaces - n
-      }
-    }
-
-    private def transferCompleted(event: TransferEvent): Unit = {
-      downloads.remove(event.getResource)
-      val buffer: StringBuilder = new StringBuilder(64)
-      pad(buffer, lastLength)
-      buffer.append('\r')
-      out.print(buffer)
-    }
-
-    protected def toKB(bytes: Long): Long = {
-      (bytes + 1023) / 1024
     }
   }
 

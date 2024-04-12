@@ -1,15 +1,15 @@
 package release
 
 import org.junit.rules.TemporaryFolder
-
-import java.io.{BufferedReader, File, InputStreamReader, PrintStream}
-import java.util.regex.Pattern
 import org.junit.{Assert, Rule, Test}
 import org.mockito.{ArgumentMatchers, Mockito}
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.ProjectMod.{Gav3, SelfRef}
 import release.Release.CoreMajoResult
 import release.Starter.Opts
+
+import java.io.File
+import java.util.regex.Pattern
 
 class ReleaseTest extends AssertionsForJUnit {
 
@@ -24,7 +24,7 @@ class ReleaseTest extends AssertionsForJUnit {
 
       override def isDetached: Boolean = false
     }
-    val result = Release.suggestPushCmd(true, sgit,
+    val result = Release.suggestPushCmd(changedVersion = true, sgit,
       Opts(), "main", "new-main",
       () => "peter")
     Assert.assertEquals("git push origin main:refs/for/new-main;", result)
@@ -37,7 +37,7 @@ class ReleaseTest extends AssertionsForJUnit {
 
       override def isDetached: Boolean = false
     }
-    val result = Release.suggestPushCmd(true, sgit,
+    val result = Release.suggestPushCmd(changedVersion = true, sgit,
       Opts().copy(useGerrit = false), "main", "new-main",
       () => "peter")
     Assert.assertEquals("git push origin main:peter-new+main-patch-b269253c;", result)
@@ -480,20 +480,20 @@ class ReleaseTest extends AssertionsForJUnit {
   @Test
   def testCoreMajorResult(): Unit = {
     val result = Release.coreMajorResultOf(relevantDeps = Nil, isNoShop = true, release = None)
-    Assert.assertEquals(CoreMajoResult(false, Nil, "", Nil), result)
+    Assert.assertEquals(CoreMajoResult(hasDifferentMajors = false, Nil, "", Nil), result)
   }
 
   @Test
   def testCoreMajorResult_Release(): Unit = {
     val result = Release.coreMajorResultOf(relevantDeps = Nil, isNoShop = true, release = Some("1.2.3"))
-    Assert.assertEquals(CoreMajoResult(false, Nil, "", Nil), result)
+    Assert.assertEquals(CoreMajoResult(hasDifferentMajors = false, Nil, "", Nil), result)
   }
 
   @Test
   def testCoreMajorResult_Release_deps(): Unit = {
     val deps = Seq(Gav3("g", "a", Some("a")).toDep(SelfRef.undef))
     val result = Release.coreMajorResultOf(relevantDeps = deps, isNoShop = true, release = Some("1.2.3"))
-    Assert.assertEquals(CoreMajoResult(false, Nil, "1", Nil), result)
+    Assert.assertEquals(CoreMajoResult(hasDifferentMajors = false, Nil, "1", Nil), result)
   }
 
   @Test
@@ -503,7 +503,7 @@ class ReleaseTest extends AssertionsForJUnit {
       Gav3("g", "aa", Some("1.2.3")),
     ).map(_.toDep(SelfRef.undef))
     val result = Release.coreMajorResultOf(relevantDeps = deps, isNoShop = true, release = Some("1.2.3"))
-    Assert.assertEquals(CoreMajoResult(false, Seq("1"), "1", Seq(
+    Assert.assertEquals(CoreMajoResult(hasDifferentMajors = false, Seq("1"), "1", Seq(
       ("1", deps(0)),
       ("1", deps(1)),
     )), result)
@@ -517,7 +517,7 @@ class ReleaseTest extends AssertionsForJUnit {
       Gav3("g", "aaa", None),
     ).map(_.toDep(SelfRef.undef))
     val result = Release.coreMajorResultOf(relevantDeps = deps, isNoShop = true, release = Some("1.2.3"))
-    Assert.assertEquals(CoreMajoResult(true, Seq("1", "2"), "1", Seq(
+    Assert.assertEquals(CoreMajoResult(hasDifferentMajors = true, Seq("1", "2"), "1", Seq(
       ("1", deps(0)),
       ("2", deps(1)),
     )), result)
@@ -531,7 +531,7 @@ class ReleaseTest extends AssertionsForJUnit {
       Gav3("g", "aaa", None),
     ).map(_.toDep(SelfRef.undef))
     val result = Release.coreMajorResultOf(relevantDeps = deps, isNoShop = false, release = Some("1.2.3"))
-    Assert.assertEquals(CoreMajoResult(true, Seq("1", "2"), "2", Seq(
+    Assert.assertEquals(CoreMajoResult(hasDifferentMajors = true, Seq("1", "2"), "2", Seq(
       ("1", deps(0)),
       ("2", deps(1)),
     )), result)

@@ -1,12 +1,10 @@
 package release
 
 import release.Lint.{BranchTagMerge, fiCodeVersionMismatch, fiWarn}
-import release.Version
 import release.Term.{info, warn, warnSoft}
 
 import java.io.PrintStream
 import java.util.concurrent.atomic.AtomicBoolean
-import scala.util.Try
 
 object LintMaven {
   def lintProjectVersion(out: PrintStream, opts: Starter.Opts, version: String, warnExit: AtomicBoolean, errorExit: AtomicBoolean,

@@ -5,10 +5,11 @@ import org.junit.{Assert, Ignore, Rule, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.PomChecker.ValidationException
 import release.PomModTest.{document, pomTestFile, pomfile}
-import release.ProjectMod.{Dep, Gav, Gav2, PluginDep, PluginExec, SelfRef}
+import release.ProjectMod.{Dep, Gav, Gav2, PluginDep, PluginExec}
 import release.Starter.Opts
 
 import java.io.File
+import scala.annotation.nowarn
 
 class PomCheckerTest extends AssertionsForJUnit {
 
@@ -207,8 +208,10 @@ class PomCheckerTest extends AssertionsForJUnit {
   @Test
   def testCheckExternalWithProjectScope_selfvar(): Unit = {
     // GIVEN
+    @nowarn("msg=possible missing interpolator")
+    val someVersion = Some("${project.version}")
     val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
-    val a = ProjectModTest.depOf(pomRef = ref1, "com.novomind.ishop.shops", "valid", Some("${project.version}"), "", "test", "", "")
+    val a = ProjectModTest.depOf(pomRef = ref1, "com.novomind.ishop.shops", "valid", someVersion, "", "test", "", "")
     val b = ProjectModTest.depOf(pomRef = ref1, "any.group", "valid", Some("1.0.0"), "", "test", "", "")
 
     // WHEN / THEN
@@ -219,7 +222,9 @@ class PomCheckerTest extends AssertionsForJUnit {
   def testCheckExternalWithProjectScope_selfvar1(): Unit = {
     // GIVEN
     val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
-    val a = ProjectModTest.depOf(pomRef = ref1, "com.novomind.ishop.shops", "valid", Some("${project.version}"), "", "", "", "")
+    @nowarn("msg=possible missing interpolator")
+    val someVersion = Some("${project.version}")
+    val a = ProjectModTest.depOf(pomRef = ref1, "com.novomind.ishop.shops", "valid", someVersion, "", "", "", "")
     val a1 = ProjectModTest.depOf(pomRef = ref1, "com.novomind.ishop.shops", "valid", Some("27.0.0-SNAPSHOT"), "", "", "", "")
     val b = ProjectModTest.depOf(pomRef = ref1, "any.group", "valid", Some("1.0.0"), "", "test", "", "")
 
@@ -231,12 +236,16 @@ class PomCheckerTest extends AssertionsForJUnit {
   def testCheckExternalWithProjectScope_exception(): Unit = {
     // GIVEN
     val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
-    val a = ProjectModTest.depOf(pomRef = ref1, "com.novomind.ishop.shops", "valid", Some("${project.version}"), "", "test", "", "")
-    val b = ProjectModTest.depOf(pomRef = ref1, "any.group", "valid", Some("${project.version}"), "", "test", "", "")
+    @nowarn("msg=possible missing interpolator")
+    val someVersion = Some("${project.version}")
+    val a = ProjectModTest.depOf(pomRef = ref1, "com.novomind.ishop.shops", "valid", someVersion, "", "test", "", "")
+    val b = ProjectModTest.depOf(pomRef = ref1, "any.group", "valid", someVersion, "", "test", "", "")
 
     // WHEN / THEN
+    @nowarn("msg=possible missing interpolator")
+    val msg = "Project variables are not allowed in external dependencies: any.group:valid:${project.version}:test"
     TestHelper.assertException(
-      "Project variables are not allowed in external dependencies: any.group:valid:${project.version}:test",
+      msg,
       classOf[ValidationException], () =>
         PomChecker.checkExternalWithProjectScope(Seq(a, b), Seq(a), Map("project.version" -> "27.0.0-SNAPSHOT")))
   }

@@ -1,15 +1,14 @@
 package release
 
-import com.google.common.base.{Stopwatch, Strings}
+import com.google.common.base.Stopwatch
 import com.typesafe.scalalogging.LazyLogging
-import release.PomMod.{abbreviate, selectFirstVersionFrom, selfDep, unmanaged}
-import release.ProjectMod.{Dep, Gav3, PluginDep, UpdateCon, UpdatePrinter}
+import release.PomMod.{abbreviate, unmanaged}
+import release.ProjectMod.{Dep, Gav3, PluginDep, UpdateCon}
 import release.Starter.{Opts, OptsDepUp, PreconditionsException}
 
-import java.io.{File, PrintStream}
+import java.io.File
 import java.time.{Duration, LocalDate, Period, ZonedDateTime}
 import java.util.concurrent.TimeUnit
-import scala.annotation.tailrec
 import scala.collection.immutable.{ListMap, Seq}
 import scala.collection.parallel.CollectionConverters._
 import scala.util.{Failure, Success, Try}
@@ -303,7 +302,7 @@ object ProjectMod extends LazyLogging {
 
     def ofGav(gav: Gav): SelfRef = SelfRef(gav.formatted, gav.simpleGav())
 
-    @Deprecated
+    @deprecated(message = "do not use this", since = "2024-01-01")
     def parse(id: String): SelfRef = {
       val parts = id.split(":").toSeq
       if (parts.size < 3) {

@@ -1,16 +1,11 @@
 package release
 
-import org.scalatestplus.junit.AssertionsForJUnit
 import com.google.googlejavaformat.java.Formatter
-import org.eclipse.aether.repository.RemoteRepository
-import org.junit.{Assert, Ignore, Rule, Test}
 import org.junit.rules.TemporaryFolder
-import org.mockito.{ArgumentMatchers, Mockito}
+import org.junit.{Assert, Rule, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.Lint.{BranchTagMerge, NePrLa, PackageResult}
 import release.ProjectMod.Gav3
-import release.Repo.ReachableResult
-import release.Starter.{LintOpts, Opts}
 
 import java.time.Duration
 

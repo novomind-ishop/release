@@ -13,7 +13,6 @@ import java.nio.charset.StandardCharsets
 import java.time.ZonedDateTime
 import java.util.concurrent.{Callable, Executors, TimeUnit}
 import scala.annotation.tailrec
-import scala.concurrent.TimeoutException
 import scala.concurrent.duration.Duration
 import scala.io.Source
 import scala.sys.process.ProcessLogger
@@ -775,7 +774,7 @@ object Sgit {
       Seq(in)
     })
     if (result.size >= 2 && GitShaBranch.matchesGitSha(result(1))) {
-      Some(result.head, result(1))
+      Some((result.head, result(1)))
     } else {
       err.println("W: Unknown branch definition (check commit messages for second line empty, first line char limit):" +
         " \"" + in + "\". See: git branch --list --verbose --no-abbrev")
@@ -1147,6 +1146,7 @@ object Sgit {
         }
         case c :: tail => cate(tail, result :+ c.toByte)
         case Nil => result
+        case _ => throw new IllegalStateException("not expected")
       }
     }
 

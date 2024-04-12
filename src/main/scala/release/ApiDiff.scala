@@ -51,7 +51,7 @@ object ApiDiff {
         try {
           val jar = new JarFile(jf)
           val enumEntries = jar.entries
-          Some(jar, enumEntries)
+          Some((jar, enumEntries))
         } catch {
           case e: ZipException => {
             System.err.println("E: ZipException: " + e.getMessage + " " + jf.getAbsolutePath)

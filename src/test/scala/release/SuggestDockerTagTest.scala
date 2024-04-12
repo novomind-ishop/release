@@ -1,7 +1,8 @@
 package release
 
+import org.junit.{Assert, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
-import org.junit.{Assert, Ignore, Rule, Test}
+
 import scala.util.Success
 
 class SuggestDockerTagTest extends AssertionsForJUnit {

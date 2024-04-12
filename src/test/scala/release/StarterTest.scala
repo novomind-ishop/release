@@ -10,12 +10,13 @@ import org.junit.rules.Timeout
 import org.junit.{Assert, Ignore, Rule, Test}
 import org.mockito.MockitoSugar
 import org.scalatestplus.junit.AssertionsForJUnit
-import release.ProjectMod.{Gav3, SelfRef}
+import release.ProjectMod.Gav3
 import release.Sgit.GitRemote
 import release.Starter.{FutureEither, FutureError, LintOpts, Opts, OptsApidiff, OptsDepUp}
 
 import java.io._
 import java.util.concurrent.{TimeUnit, TimeoutException}
+import scala.annotation.unused
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 
@@ -554,9 +555,10 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
         in
       }
     }
-
-    val sF = Starter.futureOf(global, aString("one", false))
-    val s1F = Starter.futureOf(global, aString("two", true))
+    @unused
+    val sF = Starter.futureOf(global, aString("one", fail = false))
+    @unused
+    val s1F = Starter.futureOf(global, aString("two", fail = true))
 
     val s: FutureEither[FutureError, Int] = new FutureEither(Future {
       Right(7)
@@ -566,7 +568,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
       Right(true)
     })
 
-    def toResult(implicit ec: ExecutionContext): FutureEither[FutureError, (Int, Boolean)] = {
+    def toResult(): FutureEither[FutureError, (Int, Boolean)] = {
       val result: FutureEither[FutureError, (Int, Boolean)] = for {
         a <- s
         b <- s2
@@ -575,7 +577,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
     }
 
     try {
-      val v: Either[FutureError, (Int, Boolean)] = Await.result(toResult(global).wrapped, Duration.create(10, TimeUnit.MINUTES))
+      val v: Either[FutureError, (Int, Boolean)] = Await.result(toResult().wrapped, Duration.create(10, TimeUnit.MINUTES))
       Assert.assertEquals((7, true), v.getOrElse(null))
     } catch {
       case _: TimeoutException => throw new TimeoutException("git fetch failed")

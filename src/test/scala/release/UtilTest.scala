@@ -13,7 +13,7 @@ class UtilTest extends AssertionsForJUnit {
   def testDurationPeriods(): Unit = {
     val dDays = Duration.ofDays(39)
     val pDays = Period.ofDays(39)
-    val pMonthYear = Period.ofMonths(3).plusYears(2)
+
     Assert.assertEquals(dDays.toDays, pDays.getDays)
 
     Assert.assertEquals(0, pDays.getMonths)

@@ -1,9 +1,10 @@
 package release
 
 import java.io.{ByteArrayOutputStream, PrintStream}
-
 import org.junit.{Assert, Before, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
+
+import scala.annotation.unused
 
 class StatusLineTest extends AssertionsForJUnit {
   var outContent: ByteArrayOutputStream = _
@@ -22,6 +23,8 @@ class StatusLineTest extends AssertionsForJUnit {
   @Test
   def onlyStart(): Unit = {
     // GIVEN
+
+    @unused
     val status = StatusLine(72, 94, outStream, enabled = true)
     // THEN
     assertMsg("Progress: (000/072)[                                                                        ]")
@@ -30,6 +33,7 @@ class StatusLineTest extends AssertionsForJUnit {
   @Test
   def onlyStart_short(): Unit = {
     // GIVEN
+    @unused
     val status = StatusLine(72, 1, outStream, enabled = true)
     // THEN
     assertMsg("Progress: (000/072)[ ]")

@@ -2,25 +2,22 @@ package release
 
 import com.google.common.base.Strings
 import com.google.common.hash.Hashing
-import com.google.common.net.InetAddresses
 import org.apache.commons.codec.language.Soundex
 import org.apache.http.client.utils.URIBuilder
 
 import java.io.{File, IOException}
 import java.net.URI
 import java.nio.charset.StandardCharsets
-import java.nio.file.{FileSystemException, Files, Path}
+import java.nio.file.attribute.BasicFileAttributes
+import java.nio.file.{FileSystemException, FileVisitResult, FileVisitor, Files, Path}
 import java.security.MessageDigest
+import java.time.{Duration, Period, ZonedDateTime}
+import java.util
 import javax.xml.bind.DatatypeConverter
+import scala.collection.immutable.Iterable
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 import scala.util.Random
-import java.nio.file.attribute.BasicFileAttributes
-import java.nio.file.{FileSystemException, FileVisitResult, FileVisitor, Files, Path}
-import java.time.{Duration, LocalDateTime, Period, ZonedDateTime}
-import java.util
-import scala.collection.immutable.Iterable
-import scala.language.implicitConversions
 
 object Util {
   def toPeriod(d: Duration): Period = {
@@ -69,7 +66,6 @@ object Util {
 
     def levenshtein(s1: String, s2: String): Int = {
       val memorizedCosts = mutable.Map[(Int, Int), Int]()
-      import scala.collection.mutable
       import scala.collection.parallel.ParSeq
       def lev: ((Int, Int)) => Int = {
         case (k1, k2) =>

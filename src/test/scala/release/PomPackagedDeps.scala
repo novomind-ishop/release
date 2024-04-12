@@ -1,6 +1,6 @@
 package release
 
-import release.ProjectMod.{Dep, SelfRef}
+import release.ProjectMod.Dep
 
 object PomPackagedDeps {
   def selfVersion(_version: String): Seq[Dep] = {

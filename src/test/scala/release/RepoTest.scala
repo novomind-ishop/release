@@ -1,10 +1,11 @@
 package release
 
 import java.time.ZonedDateTime
-
 import org.junit.{Assert, Assume, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.Starter.Opts
+
+import scala.annotation.nowarn
 
 class RepoTest extends AssertionsForJUnit {
 
@@ -15,8 +16,11 @@ class RepoTest extends AssertionsForJUnit {
     val repo = Opts(useDefaults = true).newRepo
 
     Assume.assumeTrue(repo.isReachable(false).online)
+    @nowarn
     val g = "javax.servlet.jsp"
+    @nowarn
     val a = "jsp-api"
+    @nowarn
     val v = "2.2"
     // "com.google.guava", "guava","30.0-jre"
     //println("r: " + repo.existsGav(g, a, v))

@@ -3,9 +3,10 @@ package release
 import com.google.common.base.{Stopwatch, Strings}
 import com.google.common.io.{CharSink, CharSource}
 import com.google.googlejavaformat.java.Formatter
-import release.ProjectMod.{Gav, Gav3, StaticPrinter, UpdatePrinter}
-import release.Starter.{Opts, PreconditionsException, init}
+import release.ProjectMod.{Gav, Gav3, StaticPrinter}
+import release.Starter.{Opts, PreconditionsException}
 import release.Term._
+import release.Util.pluralize
 
 import java.io.{File, IOException, PrintStream}
 import java.nio.charset.StandardCharsets
@@ -14,9 +15,8 @@ import java.nio.file.{FileVisitResult, FileVisitor, Files, Path}
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.collection.mutable.ListBuffer
-import scala.util.{Failure, Success, Try, Using}
 import scala.collection.parallel.CollectionConverters._
-import release.Util.pluralize
+import scala.util.{Failure, Success, Try, Using}
 
 object Lint {
 
@@ -92,12 +92,7 @@ object Lint {
   }
 
   def selectPackage(value: Iterator[String]): Option[String] = {
-    for (line <- value) {
-      if (line.trim.startsWith("package")) {
-        return Some(line)
-      }
-    }
-    None
+    value.find(l => l.trim.startsWith("package"))
   }
 
   case class NePrLa(next: Option[Gav3], previous: Option[Gav3], latest: Option[Gav3])

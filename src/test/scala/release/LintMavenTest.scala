@@ -10,6 +10,7 @@ import release.Starter.Opts
 import java.io.File
 import java.time.ZonedDateTime
 import java.util.concurrent.atomic.AtomicBoolean
+import scala.annotation.{nowarn, unused}
 
 class LintMavenTest extends AssertionsForJUnit {
   val _temporarayFolder = new TemporaryFolder()
@@ -60,6 +61,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |""".stripMargin.linesIterator.toSeq)
     gitA.add(any)
     gitA.commitAll("blub")
+    @unused
     val gitB = Sgit.doCloneRemote(remote.toURI.toString.replaceFirst("file:/", "file:///"), fileB, depth = 1)
 
     val expected =
@@ -132,6 +134,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |""".stripMargin.linesIterator.toSeq)
     gitA.add(pom)
     gitA.commitAll("bla")
+    @unused
     val gitB = Sgit.doCloneRemote(remote.toURI.toString.replaceFirst("file:/", "file:///"), fileB)
 
     val expected =
@@ -197,7 +200,7 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org")
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/", "https://repo.example.org/"))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
-      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
+      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(online = true, "200"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
@@ -216,6 +219,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val gitA = Sgit.init(remote, SgitTest.hasCommitMsg)
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
+    @unused
     val gitB = Sgit.doCloneRemote(remote.toURI.toString.replaceFirst("file:/", "file:///"), fileB)
 
     val expected =
@@ -256,6 +260,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[ERROR] exit 43 - because lint found errors, see above ❌""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 43)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+      @unused
       val mockRepo = Mockito.mock(classOf[Repo])
 
       val value = Map(
@@ -296,6 +301,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |""".stripMargin.linesIterator.toSeq)
     gitA.add(pom)
     gitA.commitAll("bla")
+    @unused
     val gitB = Sgit.doCloneRemote(remote.toURI.toString.replaceFirst("file:/", "file:///"), fileB)
 
     val expected =
@@ -364,7 +370,7 @@ class LintMavenTest extends AssertionsForJUnit {
         thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.eq("1.2.9"))).
         thenReturn(None)
-      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
+      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(online = true, "200"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       val mockUpdates = Seq(
@@ -457,6 +463,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |""".stripMargin.linesIterator.toSeq)
     gitA.add(pom)
     gitA.commitAll("bla")
+    @unused
     val gitB = Sgit.doCloneRemote(remote.toURI.toString.replaceFirst("file:/", "file:///"), fileB)
 
     val expected =
@@ -548,8 +555,8 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo2.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo, mockRepo2))
       Mockito.when(mockRepo2.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo, mockRepo2))
-      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
-      Mockito.when(mockRepo2.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
+      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(online = true, "200"))
+      Mockito.when(mockRepo2.isReachable(false)).thenReturn(Repo.ReachableResult(online = true, "200"))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
         thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo2.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
@@ -697,7 +704,7 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq(Repo.centralUrl))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
-      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
+      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(online = true, "200"))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
         thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
@@ -817,7 +824,7 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
-      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
+      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(online = true, "200"))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
         thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
@@ -855,6 +862,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |  </dependencies>
         |</project>
         |""".stripMargin.linesIterator.toSeq)
+    @unused
     val notes = new File(file, "notes.md")
     val expected =
       """
@@ -925,7 +933,7 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq(Repo.centralUrl))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
-      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
+      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(online = true, "200"))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
         thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
@@ -1091,7 +1099,7 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq(Repo.centralUrl))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
-      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
+      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(online = true, "200"))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
         thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
@@ -1267,7 +1275,7 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq(Repo.centralUrl))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
-      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
+      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(online = true, "200"))
       val now = ZonedDateTime.parse("2018-05-31T00:10:52+00:00")
       val now2 = ZonedDateTime.parse("2023-05-31T00:10:52+00:00")
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
@@ -1445,7 +1453,7 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org/")
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
-      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "202"))
+      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(online = true, "202"))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
         thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
@@ -1461,7 +1469,8 @@ class LintMavenTest extends AssertionsForJUnit {
     val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
-    Util.write(new File(file, "pom.xml"),
+    @nowarn("msg=possible missing interpolator")
+    val content =
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -1477,7 +1486,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |    </dependency>
         |  </dependencies>
         |</project>
-        |""".stripMargin.linesIterator.toSeq)
+        |""".stripMargin.linesIterator.toSeq
+    Util.write(new File(file, "pom.xml"), content)
     val notes = new File(file, "notes.md")
     Util.write(notes,
       """
@@ -1498,6 +1508,7 @@ class LintMavenTest extends AssertionsForJUnit {
     gitA.add(notes)
     gitA.add(extension)
     gitA.commitAll("some")
+    @nowarn("msg=possible missing interpolator")
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
@@ -1543,7 +1554,7 @@ class LintMavenTest extends AssertionsForJUnit {
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1012-637a4930", "RL1003-b4b0c08b")))
       val mockRepo = Mockito.mock(classOf[Repo])
-      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "202"))
+      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(online = true, "202"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       System.exit(Lint.run(sys.out, sys.err, opts, Map.empty, file))
@@ -1669,6 +1680,7 @@ class LintMavenTest extends AssertionsForJUnit {
       """<version>0.11-SNAPSHOT</version>
         |""".stripMargin
     )
+    @unused
     val branchName = "feature/bre"
     // gitA.createBranch(branchName)
     //gitA.checkout(branchName)
@@ -1744,7 +1756,7 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org/")
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
-      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "202"))
+      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(online = true, "202"))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
         thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))

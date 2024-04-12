@@ -1,13 +1,14 @@
 package release
 
 import org.junit.rules.TemporaryFolder
-import org.junit.{Assert, Rule, Test}
+import org.junit.{Rule, Test}
 import org.mockito.{ArgumentMatchers, Mockito}
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.Starter.Opts
 
 import java.io.File
 import java.time.ZonedDateTime
+import scala.annotation.unused
 
 class LintSbtTest extends AssertionsForJUnit {
   val _temporarayFolder = new TemporaryFolder()
@@ -38,6 +39,7 @@ class LintSbtTest extends AssertionsForJUnit {
         |""".stripMargin.linesIterator.toSeq)
     gitA.add(sbtFile)
     gitA.commitAll("bla")
+    @unused
     val gitB = Sgit.doCloneRemote(remote.toURI.toString.replaceFirst("file:/", "file:///"), fileB)
 
     val expected =
@@ -98,7 +100,7 @@ class LintSbtTest extends AssertionsForJUnit {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org/")
-      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
+      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(online = true, "200"))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
         thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))

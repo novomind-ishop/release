@@ -165,7 +165,7 @@ object Starter extends LazyLogging {
 
     })
 
-    def toResult(implicit ec: ExecutionContext): FutureEither[FutureError, (Sgit, String)] = {
+    def toResult(): FutureEither[FutureError, (Sgit, String)] = {
       val result: FutureEither[FutureError, (Sgit, String)] = for {
         _ <- gitFetchStatusF
         git <- gitFetchF
@@ -175,7 +175,7 @@ object Starter extends LazyLogging {
     }
 
     val o: Either[FutureError, (Sgit, String)] = try {
-      Await.result(toResult(global).wrapped, Duration.Inf)
+      Await.result(toResult().wrapped, Duration.Inf)
     } catch {
       case _: TimeoutException => throw new TimeoutException("git fetch failed")
     }
@@ -209,6 +209,7 @@ object Starter extends LazyLogging {
       // --
       case string :: Nil => argsApiDiffRead(Nil, inOpt.copy(apiDiff = inOpt.apiDiff.copy(invalids = inOpt.apiDiff.invalids :+ string)))
       case string :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(invalids = inOpt.apiDiff.invalids :+ string)))
+      case _ => throw new IllegalStateException("not expected")
     }
   }
 
@@ -229,6 +230,7 @@ object Starter extends LazyLogging {
       // --
       case string :: Nil => argsLintRead(Nil, inOpt.copy(lintOpts = inOpt.lintOpts.copy(invalids = inOpt.lintOpts.invalids :+ string)))
       case string :: tail => argsLintRead(tail, inOpt.copy(lintOpts = inOpt.lintOpts.copy(invalids = inOpt.lintOpts.invalids :+ string)))
+      case _ => throw new IllegalStateException("not expected")
     }
   }
 
@@ -254,6 +256,7 @@ object Starter extends LazyLogging {
       // --
       case string :: Nil => argsDepRead(Nil, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(invalids = inOpt.depUpOpts.invalids :+ string)))
       case string :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(invalids = inOpt.depUpOpts.invalids :+ string)))
+      case _ => throw new IllegalStateException("not expected")
     }
   }
 
@@ -325,6 +328,7 @@ object Starter extends LazyLogging {
       // --
       case string :: Nil => argsRead(Nil, inOpt.copy(invalids = inOpt.invalids :+ string))
       case string :: tail => argsRead(tail, inOpt.copy(invalids = inOpt.invalids :+ string))
+      case _ => throw new IllegalStateException("not expected")
     }
   }
 
@@ -349,6 +353,7 @@ object Starter extends LazyLogging {
         inOpt.copy(showOpts = Strings.nullToEmpty(k).toBooleanOption.getOrElse(false))
       })
       case (_, _) :: tail => envRead(tail, inOpt)
+      case _ => throw new IllegalStateException("not expected")
     }
   }
 
@@ -376,7 +381,7 @@ object Starter extends LazyLogging {
   }
 
   def compressToGav(self: Seq[ProjectMod.Gav3], properties: Map[String, String])(in: Seq[ProjectMod.Dep]): Seq[ProjectMod.Gav3] = {
-    val rep = PomMod.replaceProperty(properties, true) _
+    val rep = PomMod.replaceProperty(properties, sloppy = true) _
     val all = in.map(_.gav())
       .filterNot(_.scope == "test")
       .map(_.simpleGav())

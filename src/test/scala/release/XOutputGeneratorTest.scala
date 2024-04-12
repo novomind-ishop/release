@@ -9,7 +9,6 @@ import org.junit.{Assert, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
 
 import java.util
-import java.util.Optional
 import scala.jdk.CollectionConverters._
 
 class XOutputGeneratorTest extends AssertionsForJUnit {

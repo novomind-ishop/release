@@ -3,7 +3,6 @@ package release
 import com.typesafe.scalalogging.LazyLogging
 import org.junit._
 import org.scalatestplus.junit.AssertionsForJUnit
-import release.Lint.{fiCodeGitlabCiTagname, fiWarn}
 import release.Starter.Opts
 import release.TermTest.testSys
 
@@ -211,10 +210,10 @@ object TermTest extends LazyLogging {
               outFn: String => String = a => a, outAllFn: Seq[String] => Seq[String] = a => a)
              (fn: Term.Sys => Unit): Unit = {
     this.synchronized {
-      @nowarn
+
       val oldSecurityManager = System.getSecurityManager
       var exitCode = 0
-      @nowarn("cat=deprecation")
+
       val manager = new SecurityManager() {
         override def checkPermission(perm: Permission): Unit = {
           val exitPrefix = "exitVM."
@@ -227,7 +226,7 @@ object TermTest extends LazyLogging {
         }
 
       }
-      @nowarn("cat=deprecation")
+      @nowarn
       val unit = System.setSecurityManager(manager)
 
       val out = new ByteArrayOutputStream()
@@ -253,7 +252,7 @@ object TermTest extends LazyLogging {
         case e: AssertionError => throw e
         case e: Throwable => throw e
       } finally {
-        @nowarn("cat=deprecation")
+        @nowarn
         val unit = System.setSecurityManager(oldSecurityManager)
       }
       Assert.assertEquals(expectedErr, outAllFn.apply(err.toString.linesIterator.toList

@@ -4,7 +4,7 @@ import org.junit.{Assert, Test}
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.MockitoSugar
 import org.scalatestplus.junit.AssertionsForJUnit
-import release.ProjectMod.{Dep, Gav3, SelfRef}
+import release.ProjectMod.Gav3
 import release.SbtModTest.d
 
 object SbtModTest {

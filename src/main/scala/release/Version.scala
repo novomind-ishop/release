@@ -1,7 +1,7 @@
 package release
 
 import com.google.common.base.Strings
-import release.Version.{parseSloppy, removeTrailingSnapshots, toVersion}
+import release.Version.{parseSloppy, removeTrailingSnapshots}
 
 import scala.annotation.tailrec
 

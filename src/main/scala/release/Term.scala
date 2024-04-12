@@ -1,17 +1,14 @@
 package release
 
-import org.apache.commons.lang3.StringUtils
-import org.apache.commons.lang3.text.WordUtils
-
-import java.io.{BufferedReader, IOError, InputStream, InputStreamReader, OutputStream, PrintStream}
 import org.jline.reader._
 import org.jline.terminal.TerminalBuilder
 import release.Starter.Opts
 
-import java.time.{ZoneOffset, ZonedDateTime}
+import java.io.{BufferedReader, IOError, InputStream, InputStreamReader, OutputStream, PrintStream}
 import java.time.format.DateTimeFormatter
+import java.time.{ZoneOffset, ZonedDateTime}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
-import scala.annotation.{nowarn, tailrec}
+import scala.annotation.tailrec
 
 object Term {
 
@@ -189,7 +186,6 @@ object Term {
 
   }
 
-  @nowarn("cat=deprecation")
   def wrapText(str: String, limit: Int): Seq[String] = {
     val indent = str.takeWhile(_ == ' ')
     val indent2 = indent + "  "

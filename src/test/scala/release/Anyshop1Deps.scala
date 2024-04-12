@@ -2,6 +2,8 @@ package release
 
 import ProjectMod.{Dep, PluginDep, PluginExec, SelfRef}
 
+import scala.annotation.nowarn
+
 object Anyshop1Deps {
 
   def plugins(): Seq[PluginDep] = Seq(
@@ -32,7 +34,6 @@ object Anyshop1Deps {
   )
 
   def snapshots(): Seq[Dep] = {
-    val k = Seq("project", "artifactId")
     Seq(
       ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
         "com.novomind.ishop.shops", "ishop-shop-parent", Some("27.0.0-SNAPSHOT"), "", "", "", "", Seq("project", "parent", "artifactId")),
@@ -331,7 +332,7 @@ object Anyshop1Deps {
         "javax.el", "javax.el-api", Some("3.0.0"), "", "test", "", "", pomPath = pomP)
     )
   }
-
+  @nowarn("msg=possible missing interpolator")
   val rootPom = Xpath.newDocument(
     """<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
@@ -647,6 +648,7 @@ object Anyshop1Deps {
       @+- org.aspectj:aspectjweaver:jar:1.8.8:compile
       @\- com.google.code.findbugs:jsr305:jar:3.0.0:compile
       @""".stripMargin('@')
+  @nowarn("msg=possible missing interpolator")
   val anyshopErpPom = Xpath.newDocument(
     """<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
@@ -731,6 +733,7 @@ object Anyshop1Deps {
       @\- com.google.code.findbugs:jsr305:jar:3.0.0:compile
       @""".stripMargin('@')
 
+  @nowarn("msg=possible missing interpolator")
   val anyshopPom = Xpath.newDocument(
     """<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">

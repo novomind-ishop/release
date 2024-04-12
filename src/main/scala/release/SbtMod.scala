@@ -3,7 +3,6 @@ package release
 import com.typesafe.scalalogging.LazyLogging
 import release.ProjectMod.{Gav3, SelfRef}
 import release.SbtMod.SbtModel
-import release.SbtMod.SloppyParser.rep
 import release.Starter.Opts
 
 import java.io.File

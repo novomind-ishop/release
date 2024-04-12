@@ -1,8 +1,8 @@
 package release
 
-import java.io.{File, InputStream, PrintStream}
 import release.Starter.Opts
 
+import java.io.File
 import scala.annotation.tailrec
 
 object FeatureBranch {

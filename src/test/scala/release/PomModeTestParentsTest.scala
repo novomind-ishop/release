@@ -1,12 +1,13 @@
 package release
 
-import java.io.File
 import org.junit.rules.TemporaryFolder
 import org.junit.{Assert, Rule, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
-import release.ProjectMod.{Dep, PluginDep, SelfRef}
 import release.PomModTest._
+import release.ProjectMod.{PluginDep, SelfRef}
 import release.Starter.Opts
+
+import java.io.File
 
 class PomModeTestParentsTest extends AssertionsForJUnit {
 

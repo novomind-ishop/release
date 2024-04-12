@@ -13,7 +13,8 @@ import release.Util.linuxPath
 
 import java.io.{BufferedWriter, File, FileWriter}
 import java.nio.file.Paths
-import java.time.{Duration, LocalDate, Month, ZonedDateTime}
+import java.time.{LocalDate, Month, ZonedDateTime}
+import scala.annotation.{nowarn, unused}
 import scala.util.{Success, Try}
 import scala.xml.Elem
 
@@ -311,7 +312,9 @@ class PomModTest extends AssertionsForJUnit {
     </project>
     )).create()
     // @formatter:on
-    TestHelper.assertException("Project variables are not allowed in external dependencies: org.glassfish.jaxb:jaxb-core:${project.version}",
+    @nowarn("msg=possible missing interpolator")
+    val msg = "Project variables are not allowed in external dependencies: org.glassfish.jaxb:jaxb-core:${project.version}"
+    TestHelper.assertException(msg,
       classOf[ValidationException], () => {
         PomModTest.withRepoForTests(srcPoms, repo)
       })
@@ -350,6 +353,7 @@ class PomModTest extends AssertionsForJUnit {
 
   @Test
   def testMavenUpdateFormat(): Unit = {
+    @unused // TODO later
     val mavenRuleset = <ruleset comparisonMethod="maven"
                                 xmlns="http://mojo.codehaus.org/versions-maven-plugin/rule/2.0.0"
                                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -392,7 +396,7 @@ class PomModTest extends AssertionsForJUnit {
     val nodes: Seq[Node] = pomMod.findNodes("com.novomind.ishop.shops.anyshop", "anyshop-erp", "27.0.0-SNAPSHOT")
 
     // THEN
-
+    @nowarn("msg=possible missing interpolator")
     val baseVersion = Map(
       "groupId" -> "com.novomind.ishop.shops.anyshop",
       "artifactId" -> "anyshop-erp",

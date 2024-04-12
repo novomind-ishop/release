@@ -14,12 +14,12 @@ import scala.concurrent.duration.Duration
 class SgitTest extends AssertionsForJUnit {
 
   @Test
-  def testVersionOnly: Unit = {
+  def testVersionOnly(): Unit = {
     println(Sgit.versionOnly().version())
   }
 
   @Test
-  def testSplitLineOnWhitespace: Unit = {
+  def testSplitLineOnWhitespace(): Unit = {
     Assert.assertEquals(Seq("a", "b"), Sgit.splitLineOnWhitespace("a b"))
   }
 

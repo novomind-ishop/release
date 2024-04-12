@@ -1,15 +1,15 @@
 package release
 
-import java.io.{File, InputStream, PrintStream}
+import com.typesafe.scalalogging.LazyLogging
+import release.ProjectMod.{Dep, Gav, UpdatePrinter}
+import release.Starter.{Opts, PreconditionsException}
+
+import java.io.File
 import java.nio.charset.MalformedInputException
 import java.nio.file.{Files, InvalidPathException, Path, Paths}
 import java.time.LocalDate
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.regex.Pattern
-import com.typesafe.scalalogging.LazyLogging
-import release.ProjectMod.{Dep, Gav, UpdatePrinter}
-import release.Starter.{Opts, PreconditionsException}
-
 import scala.annotation.tailrec
 import scala.collection.parallel.CollectionConverters._
 
@@ -170,7 +170,7 @@ object Release extends LazyLogging {
       val (sortedMajors: Seq[String], hasDiff: Boolean, coreMajorVersions: Seq[(String, Dep)]) = Release.findDiff(releaseMajorVersion, coreVersions)
       CoreMajoResult(hasDiff, sortedMajors, releaseMajorVersion, coreMajorVersions)
     } else {
-      CoreMajoResult(false, Nil, "", Nil)
+      CoreMajoResult(hasDifferentMajors = false, Nil, "", Nil)
     }
 
   }
