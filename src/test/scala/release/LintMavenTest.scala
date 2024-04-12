@@ -1,7 +1,7 @@
 package release
 
 import org.junit.rules.TemporaryFolder
-import org.junit.{Assert, Rule, Test}
+import org.junit.{Assert, Ignore, Rule, Test}
 import org.mockito.{ArgumentMatchers, Mockito}
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.Lint.BranchTagMerge
@@ -16,17 +16,10 @@ class LintMavenTest extends AssertionsForJUnit {
 
   @Rule def temp = _temporarayFolder
 
-  val fakeStackElement = "  at release..."
-
-  def replaceAllVarLiterals(in: Seq[String]): Seq[String] = {
-    val value1 = in.takeWhile(_ != fakeStackElement)
-    in
-  }
-
   def replaceVarLiterals(in: String): String = {
     in.replaceAll("- $", "-")
       .replaceAll("/junit[0-9]+/", "/junit-REPLACED/")
-      //.replaceAll("\tat .*", fakeStackElement)
+      .replaceAll("\\.scala:[0-9]+", ".scala:???")
       .replaceAll("( package name(?:s|) in) PT[0-9]+S", "$1 PT4S")
       .replaceAll("^\\[..:..:..\\...Z\\] ", "[00:00:00.00Z] ")
       .replaceAll(": git version 2\\.[0-9]+\\.[0-9]+", ": git version 2.999.999")
@@ -349,7 +342,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |I: checked 1 dependencies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
         |╠═╦═ org.springframework:spring-context:1.0.0
-        |║ ╚═══ 1.0.1, .., 1.2.8, 1.2.9 (libyears: 0Y 0M [0 days])
+        |║ ╚═══ 1.0.1, .., 1.2.8, 1.2.9 (libyears: ?? no date found for org.springframework:spring-context:1.2.9)
         |║
         |
         |Σ libyears: 0Y 0M (0 days)
@@ -369,6 +362,8 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
         thenReturn(Some(ZonedDateTime.now()))
+      Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.eq("1.2.9"))).
+        thenReturn(None)
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(true, "200"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
@@ -1081,17 +1076,16 @@ class LintMavenTest extends AssertionsForJUnit {
       """java.lang.IllegalArgumentException: invalid empty versions:
         |org.springframework:spring-context-empty
         |org.springframework:spring-context-blank
-        |	at release.PomMod$.unmanaged(PomMod.scala:636)
-        |	at release.ProjectMod$.collectDependencyUpdates(ProjectMod.scala:606)
-        |	at release.ProjectMod.collectDependencyUpdates(ProjectMod.scala:690)
-        |	at release.ProjectMod.collectDependencyUpdates$(ProjectMod.scala:682)
-        |	at release.PomMod.collectDependencyUpdates(PomMod.scala:27)
-        |	at release.ProjectMod.tryCollectDependencyUpdates(ProjectMod.scala:674)
-        |	at release.ProjectMod.tryCollectDependencyUpdates$(ProjectMod.scala:671)
-        |	at release.PomMod.tryCollectDependencyUpdates(PomMod.scala:27)
-        |	at release.Lint$.run(Lint.scala:651)""".stripMargin.stripTrailing()
-    TermTest.testSys(Nil, expected, errorOut, outFn = replaceVarLiterals, outAllFn = replaceAllVarLiterals,
-      expectedExitCode = 43)(sys => {
+        |	at release.PomMod$.unmanaged(PomMod.scala:???)
+        |	at release.ProjectMod$.collectDependencyUpdates(ProjectMod.scala:???)
+        |	at release.ProjectMod.collectDependencyUpdates(ProjectMod.scala:???)
+        |	at release.ProjectMod.collectDependencyUpdates$(ProjectMod.scala:???)
+        |	at release.PomMod.collectDependencyUpdates(PomMod.scala:???)
+        |	at release.ProjectMod.tryCollectDependencyUpdates(ProjectMod.scala:???)
+        |	at release.ProjectMod.tryCollectDependencyUpdates$(ProjectMod.scala:???)
+        |	at release.PomMod.tryCollectDependencyUpdates(PomMod.scala:???)
+        |	at release.Lint$.run(Lint.scala:???)""".stripMargin.stripTrailing()
+    TermTest.testSys(Nil, expected, errorOut, outFn = replaceVarLiterals, expectedExitCode = 43)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
@@ -1554,6 +1548,15 @@ class LintMavenTest extends AssertionsForJUnit {
         .thenReturn(None)
       System.exit(Lint.run(sys.out, sys.err, opts, Map.empty, file))
 
+    })
+  }
+
+  @Test
+  @Ignore
+  def testOnLocal(): Unit = {
+    val file = new File("/path/to/maven-project")
+    TermTest.testSys(Nil, "", "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
+      System.exit(Lint.run(sys.out, sys.err, Opts().copy(colors = false), Map.empty, file))
     })
   }
 

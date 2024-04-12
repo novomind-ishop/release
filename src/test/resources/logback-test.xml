@@ -6,7 +6,7 @@
       <pattern>%d{"HH:mm:ss.SSS"} %-5level %c - %m%n</pattern>
     </encoder>
   </appender>
-
+  <logger name="org.eclipse.aether.internal.impl.WarnChecksumPolicy" level="ERROR" additivity="false" />
   <root>
     <level value="warn" />
     <appender-ref ref="CONSOLE" />

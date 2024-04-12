@@ -870,8 +870,8 @@ object Lint {
     1
   }
 
-  def filteredStacktrace(getStackTrace: Array[StackTraceElement]):Array[StackTraceElement] = {
-    getStackTrace
+  def filteredStacktrace(in: Array[StackTraceElement]):Array[StackTraceElement] = {
+    in
       .filterNot(_.getClassName.startsWith("jdk.internal."))
       .filterNot(_.getClassName.startsWith("java.lang."))
       .filterNot(_.getClassName.startsWith("java.util."))

@@ -341,7 +341,7 @@ object ProjectMod extends LazyLogging {
           newerVersions
         }
 
-        def df(gav2: Gav2, v: String): Try[ZonedDateTime] = {
+        def selectReleaseDate(gav2: Gav2, v: String): Try[ZonedDateTime] = {
           if (depUpOpts.showLibYears && selectedVersions.nonEmpty) {
             val latestDate = repo.depDate(gav2.groupId, gav2.artifactId, v)
             if (latestDate.isDefined) {
@@ -356,7 +356,7 @@ object ProjectMod extends LazyLogging {
         }
 
         statusLine.end()
-        selectedVersions.map(ke => (ke, df(dep.toGav2(), ke)))
+        selectedVersions.map(version => (version, selectReleaseDate(dep.toGav2(), version)))
       }))
       .seq
       .toMap
@@ -543,44 +543,48 @@ object ProjectMod extends LazyLogging {
       updatePrinter.println(ch("║", "|"))
 
       def libyear(currentGav: Gav3, major: Option[String], versionTimestamps: Seq[(String, Try[ZonedDateTime])]): String = {
-        if (depUpOpts.showLibYears) {
-          if (versionTimestamps.size > 1) {
-            val currentVersionWithTimestamp = versionTimestamps.find(s => s._1 == currentGav.version.get)
-            if (currentVersionWithTimestamp.isDefined) {
-              val maybeInt = major.flatMap(_.toIntOption)
-              val lastSelection = if (major.isDefined) {
-                val r = versionTimestamps.filter(v => {
-                  Version.parseSloppy(v._1).major == maybeInt.getOrElse(-1)
-                }).lastOption
-                if (r.nonEmpty) {
-                  r
+        try {
+          if (depUpOpts.showLibYears) {
+            if (versionTimestamps.size > 1) {
+              val currentVersionWithTimestamp = versionTimestamps.find(s => s._1 == currentGav.version.get)
+              if (currentVersionWithTimestamp.isDefined) {
+                val maybeInt = major.flatMap(_.toIntOption)
+                val lastSelection = if (major.isDefined) {
+                  val r = versionTimestamps.filter(v => {
+                    Version.parseSloppy(v._1).major == maybeInt.getOrElse(-1)
+                  }).lastOption
+                  if (r.nonEmpty) {
+                    r
+                  } else {
+                    versionTimestamps.lastOption
+                  }
+
                 } else {
                   versionTimestamps.lastOption
                 }
+                if (currentVersionWithTimestamp.isDefined && currentVersionWithTimestamp.get._2.isSuccess) {
+                  val dur = Duration.between(currentVersionWithTimestamp.get._2.get, lastSelection.get._2.get)
+
+                  years = years :+ (currentGav, maybeInt, dur)
+                  val period: Period = Util.toPeriod(dur)
+                  s" (libyears: ${period.getYears}Y ${period.getMonths}M [${dur.toDays} days])"
+                } else {
+                  " (libyears: ?????)"
+                }
 
               } else {
-                versionTimestamps.lastOption
-              }
-              if (currentVersionWithTimestamp.isDefined && currentVersionWithTimestamp.get._2.isSuccess) {
-                val dur = Duration.between(currentVersionWithTimestamp.get._2.get, lastSelection.get._2.get)
-
-                years = years :+ (currentGav, maybeInt, dur)
-                val period: Period = Util.toPeriod(dur)
-                s" (libyears: ${period.getYears}Y ${period.getMonths}M [${dur.toDays} days])"
-              } else {
-                " (libyears: ?????)"
+                " (libyears: ????)"
               }
 
             } else {
-              " (libyears: ????)"
+              " (libyears: ???)"
             }
 
           } else {
-            " (libyears: ???)"
+            ""
           }
-
-        } else {
-          ""
+        } catch {
+          case e:Exception =>  s" (libyears: ?? ${e.getMessage})"
         }
       }
     })
