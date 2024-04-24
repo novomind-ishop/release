@@ -10,11 +10,17 @@ object LintMaven {
   def lintProjectVersion(out: PrintStream, opts: Starter.Opts, version: String, warnExit: AtomicBoolean, errorExit: AtomicBoolean,
                          tagBranchInfo: Option[BranchTagMerge], allGitTags: Seq[String]): Seq[Lint.UniqCode] = {
     out.println(info(s"    $version", opts))
-    // TODO non snapshots are only allowed in tags, because if someone install it to its local repo this will lead to problems
     // TODO check if current version is older then released tags
     if (!Lint.isValidTag(tagBranchInfo)) {
       val as = Sgit.stripVersionPrefix(allGitTags)
-      val asVersion = Version.parseSloppy(version).removeSnapshot()
+      val v = Version.parseSloppy(version)
+      if (!v.isSnapshot) {
+        // TODO non snapshots are only allowed in tags, because if someone install it to its local repo this will lead to problems
+        out.println(warn(s" version »${version}« must be a SNAPSHOT; non snapshots are only allowed in tags ${fiWarn}", opts, limit = Lint.lineMax))
+        warnExit.set(true)
+        // TODO skip
+      }
+      val asVersion = v.removeSnapshot()
       if (as.contains(asVersion.rawInput)) {
         out.println(warn(s" tag v${asVersion.rawInput} is already existing ${fiWarn}", opts, limit = Lint.lineMax))
         warnExit.set(true)

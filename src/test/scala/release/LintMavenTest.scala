@@ -1834,10 +1834,52 @@ class LintMavenTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testLintProjectVersion_tag_fail_branch(): Unit = {
+    val expected =
+      """
+        |[INFO]     main
+        |[WARNING]  version »main« must be a SNAPSHOT; non snapshots are only allowed in tags 😬
+        |[WARNING]  main != Some(value = BranchTagMerge(tagName = None(), branchName = Some(value = "main"), info = "")) 😬 RL1014
+        |""".stripMargin.trim
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+      val boolean = new AtomicBoolean()
+      val btm = Some(BranchTagMerge(tagName = None, branchName = Some("main")))
+      Assert.assertFalse(Lint.isValidTag(btm))
+      Assert.assertTrue(Lint.isValidBranch(btm))
+      Assert.assertFalse(Lint.isValidMergeRequest(btm))
+      LintMaven.lintProjectVersion(sys.out, opts, "main", warnExit = boolean, new AtomicBoolean(),
+        btm, allGitTags = Seq("v1.2.3"))
+      Assert.assertTrue(boolean.get())
+    })
+  }
+
+  @Test
+  def testLintProjectVersion_tag_fail_merge(): Unit = {
+    val expected =
+      """
+        |[INFO]     main
+        |[WARNING]  version »main« must be a SNAPSHOT; non snapshots are only allowed in tags 😬
+        |""".stripMargin.trim
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+      val boolean = new AtomicBoolean()
+      val btm = BranchTagMerge.merge
+      Assert.assertFalse(Lint.isValidTag(btm))
+      Assert.assertFalse(Lint.isValidBranch(btm))
+      Assert.assertTrue(Lint.isValidMergeRequest(btm))
+      LintMaven.lintProjectVersion(sys.out, opts, "main", warnExit = boolean, new AtomicBoolean(),
+        btm, allGitTags = Seq("v1.2.3"))
+      Assert.assertTrue(boolean.get())
+    })
+  }
+
+  @Test
   def testLintProjectVersion_fail(): Unit = {
     val expected =
       """
         |[INFO]     null
+        |[WARNING]  version »null« must be a SNAPSHOT; non snapshots are only allowed in tags 😬
         |[WARNING]  null != None() 😬 RL1014
         |""".stripMargin.trim
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
