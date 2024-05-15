@@ -67,6 +67,8 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO] --- skip-conf / self / env:RELEASE_LINT_SKIP ---
+        |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
@@ -140,6 +142,8 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO] --- skip-conf / self / env:RELEASE_LINT_SKIP ---
+        |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
@@ -225,6 +229,8 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO] --- skip-conf / self / env:RELEASE_LINT_SKIP ---
+        |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
@@ -307,6 +313,8 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO] --- skip-conf / self / env:RELEASE_LINT_SKIP ---
+        |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
@@ -469,7 +477,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self ---
+        |[INFO] --- skip-conf / self / env:RELEASE_LINT_SKIP ---
         |[INFO]     skips: RL10015-aa71e948, RL1017-ab101a0e, RL1018-ceefe9c6
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -632,6 +640,8 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO] --- skip-conf / self / env:RELEASE_LINT_SKIP ---
+        |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
@@ -755,6 +765,8 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO] --- skip-conf / self / env:RELEASE_LINT_SKIP ---
+        |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
@@ -867,7 +879,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self ---
+        |[INFO] --- skip-conf / self / env:RELEASE_LINT_SKIP ---
         |[INFO]     skips: RL1003-467ad8bc
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -1007,6 +1019,8 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO] --- skip-conf / self / env:RELEASE_LINT_SKIP ---
+        |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
@@ -1179,7 +1193,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self ---
+        |[INFO] --- skip-conf / self / env:RELEASE_LINT_SKIP ---
         |[INFO]     skips: RL1012-d3421ec9, RL1003-8a73d4ae
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -1384,6 +1398,8 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO] --- skip-conf / self / env:RELEASE_LINT_SKIP ---
+        |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
@@ -1512,7 +1528,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self ---
+        |[INFO] --- skip-conf / self / env:RELEASE_LINT_SKIP ---
         |[INFO]     skips: RL1012-637a4930, RL1003-b4b0c08b
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -1565,7 +1581,7 @@ class LintMavenTest extends AssertionsForJUnit {
   @Test
   @Ignore
   def testOnLocal(): Unit = {
-    val file = new File("/path/to/maven-project")
+    val file = new File("/mnt/c/Users/tstock/git/cbr")
     TermTest.testSys(Nil, "", "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       System.exit(Lint.run(sys.out, sys.err, Opts().copy(colors = false), Map.empty, file))
     })
@@ -1687,7 +1703,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self ---
+        |[INFO] --- skip-conf / self / env:RELEASE_LINT_SKIP ---
         |[INFO]     skips: RL1003-21ee7891, RL1003-aaaaaaa
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999

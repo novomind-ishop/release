@@ -305,9 +305,11 @@ object Lint {
         out.println(error(center("[ end of lint ]"), opts))
         return 1
       } else {
+        out.println(info("--- skip-conf / self / env:RELEASE_LINT_SKIP ---", opts))
         if (opts.lintOpts.skips.nonEmpty) {
-          out.println(info("--- skip-conf / self ---", opts))
           out.println(info(s"    skips: " + opts.lintOpts.skips.mkString(", "), opts, limit = lineMax))
+        } else {
+          out.println(info(s"    no skips", opts))
         }
         val sgit = Sgit(file, doVerify = false, out = out, err = err, checkExisting = true, gitBin = None, opts = Opts())
         out.println(info("--- version / git ---", opts))

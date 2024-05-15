@@ -45,6 +45,8 @@ class LintSbtTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO] --- skip-conf / self / env:RELEASE_LINT_SKIP ---
+        |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
