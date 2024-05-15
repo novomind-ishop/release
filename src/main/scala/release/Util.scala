@@ -56,6 +56,7 @@ object Util {
       ("bre", "core") -> 2,
       ("ui", "vue") -> 2,
       ("api", "web") -> 2,
+      ("app", "sba") -> 2,
     )
 
     def soundex(a: String, b: String) = {
