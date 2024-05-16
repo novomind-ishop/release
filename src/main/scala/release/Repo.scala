@@ -368,9 +368,9 @@ object Repo extends LazyLogging {
 
   def httpCause(mr: MetadataResult): Option[HttpResponseException] = {
     try {
-      Some(mr.getException.getCause.asInstanceOf[HttpResponseException])
+      Option(mr.getException.getCause.asInstanceOf[HttpResponseException])
     } catch {
-      case e: Exception => None
+      case _: Exception => None
     }
   }
 
