@@ -603,7 +603,7 @@ object Lint {
             if (mod.isInstanceOf[PomMod]) {
               out.println(info("--- artifactnames @ maven ---", opts))
               val checkResult = PomChecker.getOwnArtifactNames(mod.depInFiles, mod.file)
-              checkResult._1.foreach(name => out.println(info("    " + name.formatted, opts)))
+              checkResult._1.foreach(name => out.println(info("    " + name.formatted, opts, limit = lineMax)))
               if (checkResult._2.isDefined) {
                 Term.wrap(out, Term.warn, "   " + checkResult._2.get, opts)
               }
