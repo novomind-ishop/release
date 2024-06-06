@@ -134,18 +134,55 @@ object Lint {
     }
   }
 
-  def versionMissmatches(selfVersion: String, tagBranchInfo: Option[BranchTagMerge]): Boolean = {
+  object MismatchResult {
+
+
+    val valid = MismatchResult(isMismatch = false, msg = "valid")
+
+    def of(invalid: Boolean, msg: String): MismatchResult = {
+      if (invalid) {
+        problem(msg)
+      } else {
+        valid
+      }
+    }
+    def problem(msg:String) = MismatchResult(isMismatch = true, msg = msg)
+  }
+  case class MismatchResult(isMismatch: Boolean, msg:String)
+
+  def versionMismatches(selfVersion: String, tagBranchInfo: Option[BranchTagMerge]): MismatchResult = {
     val defaultBranchnames = Set("main", "master")
+
     if (tagBranchInfo.isDefined) {
-      if (tagBranchInfo.get.branchName.filterNot(_ == "HEAD").isDefined) {
+      val branchN = tagBranchInfo.get.branchName
+      val tagN = tagBranchInfo.get.tagName
+      val tagMsg = if (tagN.isDefined) {
+        s" tag: »${tagN.get}«"
+      } else {
+        ""
+      }
+      val branchMsg = if (branchN.isDefined) {
+        s" branch: »${branchN.get}«"
+      } else {
+        ""
+      }
+
+
+
+      if (branchN.filterNot(_ == "HEAD").isDefined) {
         val selfVersionParsed = Version.parseSloppy(selfVersion)
-        val branchName = tagBranchInfo.get.branchName.get
+        val branchName = branchN.get
         if (defaultBranchnames.contains(branchName)) {
           if (selfVersionParsed.isOrdinal) {
-            false
+            MismatchResult.valid
           } else {
             val str = branchName + "-SNAPSHOT"
-            selfVersionParsed.rawInput != str
+            val msg = s" project.version »$selfVersion« does not relate to git${branchMsg}. " +
+              s"Please use an plausible version marker and git marker combination like: " +
+              s"(project.version: $selfVersion -> git branch:${selfVersionParsed.removeSnapshot().rawInput}), " +
+              s"... " +
+              s"${fiWarn} ${fiCodeVersionMismatch}"
+            MismatchResult.of(selfVersionParsed.rawInput != str, msg = msg)
           }
         } else {
           if (selfVersionParsed.isSnapshot) {
@@ -156,23 +193,62 @@ object Lint {
 
               val value = digitsOnly.flatMap(_.toIntOption)
               val bool = selfVersionParsed.same(value)
-              !bool
+              val textSuggest = if (selfVersionParsed.text.length >= 3) {
+                s", (project.version: ${selfVersionParsed.text}-SNAPSHOT -> git branch: feature/${selfVersionParsed.text}), "
+              } else {
+                ", "
+              }
+              val msg = s" »$selfVersion« does not relate to git${branchMsg}. " +
+                s"Please use an plausible version marker and git marker combination like: " +
+                s"(project.version: ${selfVersionParsed.rawInput} -> git branch: feature/${selfVersionParsed.primarys._1}x)" +
+                textSuggest +
+                s"... " +
+                s"${fiWarn} ${fiCodeVersionMismatch}"
+              MismatchResult.of(!bool, msg = msg)
             } else {
-              false
+              MismatchResult.valid
             }
           } else {
-            true
+            val msg = s" »$selfVersion« does not relate to git${tagMsg}${branchMsg}. " +
+              s"Please use an plausible version marker and git marker combination like: " +
+              s"(project.version: 1.2.3 -> git tag:v1.2.3), " +
+              s"... " +
+              s"${fiWarn} ${fiCodeVersionMismatch}"
+            MismatchResult.problem(msg)
           }
         }
-      } else if (tagBranchInfo.get.tagName.isDefined) {
-        tagBranchInfo.get.tagName.get.replaceFirst("^v", "") != selfVersion
+      } else if (tagN.isDefined) {
+        val msg = s" »$selfVersion« does not relate to git${tagMsg}${branchMsg}. " +
+          s"Please use an plausible version marker and git marker combination like: " +
+          s"(project.version: 1.2.3 -> git tag:v1.2.3), " +
+          s"... " +
+          s"${fiWarn} ${fiCodeVersionMismatch}"
+        MismatchResult.of(tagN.get.replaceFirst("^v", "") != selfVersion, msg = msg)
       } else if (tagBranchInfo.get.isMergeRequest) {
-        false
+        MismatchResult.valid
       } else {
-        true
+        if (branchN.isEmpty && tagN.isEmpty) {
+          val msg = s" project.version »$selfVersion« is detached. Maybe add a ref. ${fiWarn} ${fiCodeVersionMismatch}"
+          MismatchResult.problem(msg)
+        } else if (branchN.contains("HEAD") && tagN.isEmpty) {
+          val msg = s" project.version »$selfVersion« is detached (HEAD). Maybe add a ref. ${fiWarn} ${fiCodeVersionMismatch}"
+          MismatchResult.problem(msg)
+        } else {
+          val msg = s" b»$selfVersion« does not relate to git${tagMsg}${branchMsg}. " +
+            s"Please use an plausible version marker and git marker combination like: " +
+            s"(project.version: 1.2.3 -> git tag:v1.2.3), " +
+            s"(project.version: 1.2.3-SNAPSHOT -> git branch:main), " +
+            s"(project.version: main-SNAPSHOT -> git branch:main), " +
+            s"(project.version: some-SNAPSHOT -> git branch:feature/some), " +
+            s"... " +
+            s"${fiWarn} ${fiCodeVersionMismatch}"
+          MismatchResult.problem(msg)
+        }
+
       }
     } else {
-      true
+      val msg = s" project.version »$selfVersion« has no git. Please add some .git folder. ${fiWarn} ${fiCodeVersionMismatch}"
+      MismatchResult.problem(msg)
     }
   }
 
@@ -187,7 +263,7 @@ object Lint {
   }
 
   def toBranchTag(ciCommitRefName: String, ciCommitTag: String, currentBranchOpt: Option[String], ciCommitBranch: String,
-                  currentTagsIn:Seq[String]): Option[BranchTagMerge] = {
+                  currentTagsIn: Seq[String]): Option[BranchTagMerge] = {
     if (Strings.emptyToNull(ciCommitTag) == null && Strings.emptyToNull(ciCommitBranch) == null &&
       Strings.emptyToNull(ciCommitRefName) != null) {
       return BranchTagMerge.merge
@@ -305,7 +381,7 @@ object Lint {
         out.println(error(center("[ end of lint ]"), opts))
         return 1
       } else {
-        out.println(info("--- skip-conf / self / env:RELEASE_LINT_SKIP ---", opts))
+        out.println(info("--- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---", opts))
         if (opts.lintOpts.skips.nonEmpty) {
           out.println(info(s"    skips: " + opts.lintOpts.skips.mkString(", "), opts, limit = lineMax))
         } else {
@@ -469,7 +545,6 @@ object Lint {
         val dockerTag = SuggestDockerTag.findTagname(ciCommitRefName, ciCommitTag, pompom.flatMap(_.toOption.map(_.selfVersion)))
         val defaultCiFilename = ".gitlab-ci.yml"
 
-
         if (ciconfigpath != null) {
           out.println(info("--- gitlabci.yml @ gitlab ---", opts))
           if (ciconfigpath != defaultCiFilename) {
@@ -595,6 +670,7 @@ object Lint {
               if (!opts.lintOpts.skips.contains(code1)) {
                 warnExit.set(true)
               } else {
+                usedSkips = usedSkips :+ code1
                 usedSkips = usedSkips :+ code1
               }
             } else {
@@ -867,7 +943,7 @@ object Lint {
     1
   }
 
-  def filteredStacktrace(in: Array[StackTraceElement]):Array[StackTraceElement] = {
+  def filteredStacktrace(in: Array[StackTraceElement]): Array[StackTraceElement] = {
     in
       .filterNot(_.getClassName.startsWith("jdk.internal."))
       .filterNot(_.getClassName.startsWith("java.lang."))

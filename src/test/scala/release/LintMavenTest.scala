@@ -67,7 +67,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self / env:RELEASE_LINT_SKIP ---
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -142,7 +142,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self / env:RELEASE_LINT_SKIP ---
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -229,7 +229,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self / env:RELEASE_LINT_SKIP ---
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -255,9 +255,11 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]       CI_COMMIT_REF_NAME : vU
         |[INFO]       CI_COMMIT_BRANCH :
         |[WARNING]    an INVALID branch/tag: ciRef: vU, ciTag: vU, ciBranch: , gitTags: , gitBranch:
-        |[ERROR]      docker tag : » vU « is no valid git tag name. This could lead to
-        |[ERROR]        build problems later. A git tag must match the pattern
-        |[ERROR]        » ^v[0-9]+\.[0-9]+\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ « ❌ RL1006
+        |[ERROR]      docker tag : auto suggested docker tag » vU « is no valid docker tag
+        |[ERROR]        name. This could lead to build problems later. A git tag must match
+        |[ERROR]        the pattern » ^v[0-9]+\.[0-9]+\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ « to
+        |[ERROR]        suggest valid docker tags. It is also possible to export an
+        |[ERROR]        environment variable e.g. HARBOR_TAG ❌ RL1006
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
         |[INFO]     ✅ NO SNAPSHOTS in other files found
         |
@@ -313,7 +315,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self / env:RELEASE_LINT_SKIP ---
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -477,7 +479,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self / env:RELEASE_LINT_SKIP ---
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     skips: RL10015-aa71e948, RL1017-ab101a0e, RL1018-ceefe9c6
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -640,7 +642,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self / env:RELEASE_LINT_SKIP ---
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -673,7 +675,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
         |[INFO]     0.11-SNAPSHOT
-        |[WARNING]  0.11-SNAPSHOT != None() 😬 RL1014
+        |[WARNING]  project.version »0.11-SNAPSHOT« has no git. Please add some .git folder. 😬 RL1014
         |[INFO] --- check for snapshots @ maven ---
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
@@ -765,7 +767,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self / env:RELEASE_LINT_SKIP ---
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -798,7 +800,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
         |[INFO]     0.11-SNAPSHOT
-        |[WARNING]  0.11-SNAPSHOT != None() 😬 RL1014
+        |[WARNING]  project.version »0.11-SNAPSHOT« has no git. Please add some .git folder. 😬 RL1014
         |[INFO] --- check for snapshots @ maven ---
         |[warning]   found snapshot: com.novomind.ishop.core.other:other-context:50x-SNAPSHOT 😬 RL1011-08f0f8bf
         |[warning]   found snapshot: com.novomind.ishop.core.some:core-some-context:50x-SNAPSHOT 😬 RL1011-9f269959
@@ -879,7 +881,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self / env:RELEASE_LINT_SKIP ---
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     skips: RL1003-467ad8bc
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -910,7 +912,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
         |[INFO]     0.14-SNAPSHOT
-        |[WARNING]  0.14-SNAPSHOT != None() 😬 RL1014
+        |[WARNING]  project.version »0.14-SNAPSHOT« has no git. Please add some .git folder. 😬 RL1014
         |[INFO] --- check for snapshots @ maven ---
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
@@ -1019,7 +1021,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self / env:RELEASE_LINT_SKIP ---
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -1052,7 +1054,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
         |[INFO]     0.11-SNAPSHOT
-        |[WARNING]  0.11-SNAPSHOT != None() 😬 RL1014
+        |[WARNING]  project.version »0.11-SNAPSHOT« has no git. Please add some .git folder. 😬 RL1014
         |[INFO] --- check for snapshots @ maven ---
         |[warning]   found snapshot: org.springframework:spring-context:1.0.1-SNAPSHOT 😬 RL1011-ea7ea019
         |[INFO] --- check for GAV format @ maven ---
@@ -1103,10 +1105,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |	at release.ProjectMod.collectDependencyUpdates(ProjectMod.scala:???)
         |	at release.ProjectMod.collectDependencyUpdates$(ProjectMod.scala:???)
         |	at release.PomMod.collectDependencyUpdates(PomMod.scala:???)
-        |	at release.ProjectMod.tryCollectDependencyUpdates(ProjectMod.scala:???)
-        |	at release.ProjectMod.tryCollectDependencyUpdates$(ProjectMod.scala:???)
-        |	at release.PomMod.tryCollectDependencyUpdates(PomMod.scala:???)
-        |	at release.Lint$.run(Lint.scala:???)""".stripMargin.stripTrailing()
+        |	at release.ProjectMod.$anonfun$tryCollectDependencyUpdates$1(ProjectMod.scala:???)""".stripMargin.stripTrailing()
     TermTest.testSys(Nil, expected, errorOut, outFn = replaceVarLiterals, expectedExitCode = 43)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
@@ -1193,7 +1192,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self / env:RELEASE_LINT_SKIP ---
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     skips: RL1012-d3421ec9, RL1003-8a73d4ae
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -1398,7 +1397,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self / env:RELEASE_LINT_SKIP ---
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -1528,7 +1527,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self / env:RELEASE_LINT_SKIP ---
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     skips: RL1012-637a4930, RL1003-b4b0c08b
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -1703,7 +1702,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self / env:RELEASE_LINT_SKIP ---
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     skips: RL1003-21ee7891, RL1003-aaaaaaa
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -1855,7 +1854,7 @@ class LintMavenTest extends AssertionsForJUnit {
       """
         |[INFO]     main
         |[WARNING]  version »main« must be a SNAPSHOT; non snapshots are only allowed in tags 😬
-        |[WARNING]  main != Some(value = BranchTagMerge(tagName = None(), branchName = Some(value = "main"), info = "")) 😬 RL1014
+        |[WARNING]  project.version »main« does not relate to git branch: »main«. Please use an plausible version marker and git marker combination like: (project.version: main -> git branch:main), ... 😬 RL1014
         |""".stripMargin.trim
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
@@ -1896,7 +1895,7 @@ class LintMavenTest extends AssertionsForJUnit {
       """
         |[INFO]     null
         |[WARNING]  version »null« must be a SNAPSHOT; non snapshots are only allowed in tags 😬
-        |[WARNING]  null != None() 😬 RL1014
+        |[WARNING]  project.version »null« has no git. Please add some .git folder. 😬 RL1014
         |""".stripMargin.trim
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))

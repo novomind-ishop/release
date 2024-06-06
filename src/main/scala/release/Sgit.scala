@@ -7,16 +7,12 @@ import release.Sgit._
 import release.Starter.{Opts, PreconditionsException}
 
 import java.io.{File, PrintStream}
-import java.math.BigInteger
 import java.net.URI
-import java.nio.charset.StandardCharsets
 import java.time.ZonedDateTime
 import java.util.concurrent.{Callable, Executors, TimeUnit}
-import scala.annotation.tailrec
 import scala.concurrent.duration.Duration
 import scala.io.Source
 import scala.sys.process.ProcessLogger
-import scala.util.parsing.combinator.RegexParsers
 import scala.util.{Failure, Success, Try}
 
 trait SgitVersion {
@@ -32,6 +28,8 @@ trait SgitDetached {
 
   def isDetached: Boolean
 }
+
+case class SlogLine(branchNames: Seq[String], tagNames: Seq[String], sha1: String, date: ZonedDateTime)
 
 case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStream,
                 checkExisting: Boolean = true, checkGitRoot: Boolean = true,
@@ -248,7 +246,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   }
 
   def lsFiles(): Seq[String] = gitNative(Seq("ls-files")).get.map(_.trim).map(in => if (in.startsWith("\"") && in.endsWith("\"")) {
-    Sgit.unescape(in.substring(1).dropRight(1))
+    SgitParsers.unescape(in.substring(1).dropRight(1))
   } else {
     in
   })
@@ -306,7 +304,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
         Some(in)
       })
       .map(parts => {
-        GitShaBranch(parts._2, "refs/heads/" + parts._1)
+        GitShaBranch(parts._2, "refs/heads/" + parts._1, ZonedDateTime.now())
       }).toList
   }
 
@@ -314,7 +312,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     listBranchNamesRemote().map(_.replaceFirst("origin/", "")).sorted
   }
 
-  def remoteHead(timeout: Duration = Duration(10, TimeUnit.SECONDS), debugFn:() => Unit = () => ()): Try[Option[String]] = {
+  def remoteHead(timeout: Duration = Duration(10, TimeUnit.SECONDS), debugFn: () => Unit = () => ()): Try[Option[String]] = {
     val executor = Executors.newSingleThreadExecutor() // TODO reuse executor later
     val call = new Callable[Try[Seq[String]]] {
       override def call(): Try[Seq[String]] = {
@@ -368,15 +366,22 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   }
 
   private[release] def listBranchRemoteRaw(): Seq[GitShaBranch] = {
-    gitNative(Seq("branch", "--list", "--verbose", "--no-abbrev", "--remote")).get
-      .flatMap(in => in match {
-        case l: String if l.trim.startsWith("origin/HEAD") => None
-        case l: String if l.trim.startsWith("origin/") => {
-          val parts = l.replaceFirst("^\\*", "").trim.split("[ \t]+")
-          Some(GitShaBranch(parts(1), parts(0)))
+    val value = gitNative(Seq("log", "--branches", "--remotes", "--simplify-by-decoration", "--pretty=format:'%d %H %cI'")).get
+    val slogs: Seq[SlogLine] = value.flatMap(line => SgitParsers.LogParser.doParse(line, value))
+    val branchT = slogs.flatMap(s => s.branchNames.map((_, s.sha1, s.date)))
+
+    if (branchT.nonEmpty) {
+      branchT.flatMap(in => in match {
+        case (name:String, _:String, _:ZonedDateTime) if name.startsWith("origin/HEAD") => None
+        case (name:String, sha1:String, date:ZonedDateTime) if name.startsWith("origin/") => {
+          val remoteName = name.replaceFirst("^\\*", "").trim
+          Some(GitShaBranch(sha1, remoteName, date))
         }
-        case _: String => None
+        case _ => None
       }).toList
+    } else {
+      Nil
+    }
   }
 
   def listRefNames(): Seq[String] = listRefs().map(_.branchName)
@@ -385,7 +390,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     gitNative(Seq("show-ref")).get
       .map(in => {
         val parts = in.replaceFirst("^\\*", "").trim.split("[ \t]+")
-        GitShaBranch(parts(0), parts(1))
+        GitShaBranch(parts(0), parts(1), ZonedDateTime.now())
       }).sortBy(_.branchName).toList
   }
 
@@ -745,7 +750,8 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
 object Sgit {
 
-  def stripVersionPrefix(in:Seq[String]):Seq[String] = in.map(_.replaceFirst("^v(.*)", "$1"))
+  def stripVersionPrefix(in: Seq[String]): Seq[String] = in.map(_.replaceFirst("^v(.*)", "$1"))
+
   def toRawRemoteHead(remoteHead: Try[Option[String]]): Try[Option[String]] = {
     remoteHead.map(_.map(_.replaceFirst("HEAD branch: ", "origin/")))
   }
@@ -782,7 +788,7 @@ object Sgit {
     }
   }
 
-  sealed case class GitShaBranch(commitId: String, branchName: String) {
+  sealed case class GitShaBranch(commitId: String, branchName: String, date: ZonedDateTime) {
     if (commitId.length != 40) {
       throw new IllegalStateException("invalid commit id length: " + commitId.length + " (" + commitId + ")")
     }
@@ -797,17 +803,18 @@ object Sgit {
   }
 
   object GitRemote {
-    def of(name: String, position: String, remoteType: String):GitRemote = {
+    def of(name: String, position: String, remoteType: String): GitRemote = {
       GitRemoteImp(name, Util.stripUserinfo(position), remoteType)
     }
   }
+
   trait GitRemote {
     val name: String
     val position: String
     val remoteType: String
   }
 
-  private case class GitRemoteImp private (name: String, position: String, remoteType: String) extends GitRemote {
+  private case class GitRemoteImp private(name: String, position: String, remoteType: String) extends GitRemote {
     override def toString: String = s"$name  $position $remoteType"
   }
 
@@ -953,6 +960,7 @@ object Sgit {
         case v: String if v.startsWith("git version 2.42.") => // do nothing (2023-08-21) (tag: v2.42.0)
         case v: String if v.startsWith("git version 2.43.") => // do nothing (2023-11-20) (tag: v2.43.0)
         case v: String if v.startsWith("git version 2.44.") => // do nothing (2024-02-22) (tag: v2.44.0)
+        case v: String if v.startsWith("git version 2.45.") => // do nothing (2024-05-30) (tag: v2.45.2)
         case v: String => out.println("W: unknown/untested git version: \"" + v + "\". Please create a ticket at ISBO.");
         //  if (!ReleaseConfig.isTravisCi()) {
         //    if (Sgit.getOs == Os.Darwin) {
@@ -1094,67 +1102,7 @@ object Sgit {
   }
 
   def parseTagLog(in: Seq[String]): Seq[GitTagWithDate] = {
-    object TagLogParser extends RegexParsers with LazyLogging {
-      override val skipWhitespace = false
-
-      def doParse(s: String): Seq[GitTagWithDate] = {
-        def parts = " (" ~> "[^\\)]+".r <~ ")" ^^ (term => term.split(", ").toSeq)
-
-        def isoDate = "[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[+-][0-9]{2}:[0-9]{2}".r ^^ (term => parseIsoDateOpt(term))
-
-        val p = isoDate ~ parts
-
-        parseAll(p, s) match {
-          case Success(vp, v) => {
-            val isoDate = vp._1
-
-            val tagNames = vp._2
-              .filter(_.startsWith("tag: "))
-              .map(_.replaceFirst("^tag: ", ""))
-            if (isoDate.isDefined) {
-              tagNames.map(name => GitTagWithDate(name, isoDate.get))
-            } else {
-              Nil
-            }
-          }
-          case f: Failure => {
-            logger.warn("", new IllegalStateException("failure: " + f.toString() + " >" + in + "<"))
-            Nil
-
-          }
-          case Error(msg, next) => {
-            logger.warn("", new IllegalStateException("Syntax error - " + msg + " >" + in + "<"))
-            Nil
-
-          }
-        }
-      }
-    }
-    in.flatMap(line => {
-      TagLogParser.doParse(line)
-    })
-
-  }
-
-  def unescape(str: String): String = {
-    @tailrec
-    def cate(in: Seq[Char], result: Seq[Byte] = Nil): Seq[Byte] = {
-      in match {
-        case '\\' :: c0 :: c1 :: c2 :: tail => {
-          val b = new BigInteger(new String(Array(c0, c1, c2)), 8).byteValue()
-          cate(tail, result :+ b)
-        }
-        case c :: tail => cate(tail, result :+ c.toByte)
-        case Nil => result
-        case _ => throw new IllegalStateException("not expected")
-      }
-    }
-
-    if (str.matches(".*\\\\[0-9]{3}.*")) {
-      new String(cate(str.toList).toArray, StandardCharsets.UTF_8)
-    } else {
-      str
-    }
+    in.flatMap(line => SgitParsers.TagLogParser.doParse(line, in))
   }
 
   class MissingCommitHookException(msg: String) extends RuntimeException(msg)

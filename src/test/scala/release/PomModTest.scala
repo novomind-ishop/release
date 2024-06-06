@@ -1002,7 +1002,27 @@ class PomModTest extends AssertionsForJUnit {
     val next = suggestNextReleaseBy("28.0.0_tc8.5.58")
 
     // THEN
-    assert("28.0.1_tc8.5.58" === next)
+    assert("28.0.0_tc8.5.58-UNDEF" === next)
+  }
+
+  @Test
+  def suggestNextRelease_lowdash_with_letters_valid(): Unit = {
+
+    // GIVEN/WHEN
+    val next = suggestNextReleaseBy("28.0.0_tc8_5_58")
+
+    // THEN
+    assert("28.0.1_tc8_5_58" === next)
+  }
+
+  @Test
+  def suggestNextRelease_dash_with_letters(): Unit = {
+
+    // GIVEN/WHEN
+    val next = suggestNextReleaseBy("28.0.0-tc8_5_58")
+
+    // THEN
+    assert("28.0.0-tc8_5_58-UNDEF" === next)
   }
 
   @Test
@@ -1023,16 +1043,6 @@ class PomModTest extends AssertionsForJUnit {
 
     // THEN
     assert("28.0.0" === next)
-  }
-
-  @Test
-  def suggestNextRelease_dash_with_letters(): Unit = {
-
-    // GIVEN/WHEN
-    val next = suggestNextReleaseBy("28.0.0-tc8.5.58")
-
-    // THEN
-    assert("28.0.1-tc8.5.58" === next)
   }
 
   @Test
@@ -1309,6 +1319,7 @@ class PomModTest extends AssertionsForJUnit {
 
   @Test
   def testIsUnknownReleasePattern(): Unit = {
+    Assert.assertTrue(PomMod.isUnknownVersionPattern("1.10.26-RC.1"))
     Assert.assertTrue(PomMod.isUnknownVersionPattern("RC-2018.8"))
     Assert.assertFalse(PomMod.isUnknownVersionPattern("RC-2018.08-SNAPSHOT"))
     Assert.assertFalse(PomMod.isUnknownVersionPattern("RC-2018.08.1-SNAPSHOT"))

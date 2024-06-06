@@ -28,8 +28,10 @@ object SuggestDockerTag {
       if (suggested.matches(Version.semverGitTagForDockerTagPattern.regex)) {
         Success(Success(tag))
       } else {
-        Success(Failure(new IllegalStateException(s"»\u00A0${suggested}\u00A0« is no valid git tag name. This could lead to build problems later. " +
-          s"A git tag must match the pattern »\u00A0${Version.semverGitTagForDockerTagPattern.regex}\u00A0«")))
+        Success(Failure(new IllegalStateException(s"auto suggested docker tag »\u00A0${suggested}\u00A0« is no valid docker tag name. " +
+          s"This could lead to build problems later. " +
+          s"A git tag must match the pattern »\u00A0${Version.semverGitTagForDockerTagPattern.regex}\u00A0« to suggest valid docker tags. " +
+          "It is also possible to export an environment variable e.g. HARBOR_TAG")))
       }
 
     } else {

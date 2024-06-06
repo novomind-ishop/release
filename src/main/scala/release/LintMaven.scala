@@ -28,14 +28,14 @@ object LintMaven {
       }
     }
 
-    if (Lint.versionMissmatches(version, tagBranchInfo)) {
-      val msg = s" $version != ${Util.show(tagBranchInfo)} ${fiWarn} ${fiCodeVersionMismatch}"
+    val mismatchResult = Lint.versionMismatches(version, tagBranchInfo)
+    if (mismatchResult.isMismatch) {
       val bool = opts.lintOpts.skips.contains(fiCodeVersionMismatch)
       if (bool) {
-        out.println(warnSoft(msg, opts, limit = Lint.lineMax))
+        out.println(warnSoft(mismatchResult.msg, opts, limit = Lint.lineMax))
         Seq(fiCodeVersionMismatch)
       } else {
-        out.println(warn(msg, opts, limit = Lint.lineMax))
+        out.println(warn(mismatchResult.msg, opts, limit = Lint.lineMax))
         warnExit.set(true)
         Nil
       }

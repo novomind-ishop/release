@@ -238,23 +238,28 @@ class SuggestDockerTagTest extends AssertionsForJUnit {
   @Test
   def testFindTagname_invalidVersion(): Unit = {
     val tuple = SuggestDockerTag.findTagname("v1.0.0-M1", "v1.0.0-M1", Some("1.0.0-SNAPSHOT"))
-    Assert.assertEquals("» v1.0.0-M1_aka_1_0_0_SNAPSHOT « is no valid git tag name. This could lead to build problems later. " +
-      "A git tag must match the pattern » ^v[0-9]+\\.[0-9]+\\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ «", tuple.get.failed.get.getMessage)
+    Assert.assertEquals("auto suggested docker tag » v1.0.0-M1_aka_1_0_0_SNAPSHOT « is no valid docker tag name. " +
+      "This could lead to build problems later. " +
+      "A git tag must match the pattern » ^v[0-9]+\\.[0-9]+\\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ « to suggest valid docker tags. " +
+      "It is also possible to export an environment variable e.g. HARBOR_TAG", tuple.get.failed.get.getMessage)
   }
 
   @Test
   def testFindTagname_invalidTag(): Unit = {
     val tuple = SuggestDockerTag.findTagname("main", "main", None)
-    Assert.assertEquals("» main « is no valid git tag name. This could lead to build problems later. " +
-      "A git tag must match the pattern » ^v[0-9]+\\.[0-9]+\\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ «", tuple.get.failed.get.getMessage)
+    Assert.assertEquals("auto suggested docker tag » main « is no valid docker tag name. " +
+      "This could lead to build problems later. " +
+      "A git tag must match the pattern » ^v[0-9]+\\.[0-9]+\\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ « to suggest valid docker tags. " +
+      "It is also possible to export an environment variable e.g. HARBOR_TAG", tuple.get.failed.get.getMessage)
   }
 
   @Test
   def testFindTagname_versionMissmatch(): Unit = {
     val tuple = SuggestDockerTag.findTagname("v2.0.0", "v2.0.0", Some("2.0.0-SNAPSHOT"))
-    Assert.assertEquals("» v2.0.0_aka_2_0_0_SNAPSHOT « is no valid git tag name." +
-      " This could lead to build problems later." +
-      " A git tag must match the pattern » ^v[0-9]+\\.[0-9]+\\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ «", tuple.get.failed.get.getMessage)
+    Assert.assertEquals("auto suggested docker tag » v2.0.0_aka_2_0_0_SNAPSHOT « is no valid docker tag name. " +
+      "This could lead to build problems later. " +
+      "A git tag must match the pattern » ^v[0-9]+\\.[0-9]+\\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ « to suggest valid docker tags. " +
+      "It is also possible to export an environment variable e.g. HARBOR_TAG", tuple.get.failed.get.getMessage)
   }
 
   @Test

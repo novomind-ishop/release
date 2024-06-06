@@ -483,6 +483,7 @@ class SgitTest extends AssertionsForJUnit {
           gitA.fetchAll()
         })
     }
+
     Assert.assertEquals("after 1 millisecond to ssh://git.example.org/ubglu", gitA.remoteHead(timeout = Duration(1, TimeUnit.MILLISECONDS), debugFn = () => {
       Thread.sleep(10_000)
     }).failed.get.getMessage)
@@ -850,16 +851,6 @@ class SgitTest extends AssertionsForJUnit {
     val expectedMailboxes = Seq("Your Name <you@example.com>")
     Assert.assertEquals(expectedMailboxes, gitA.listContributorMailboxes())
     Assert.assertEquals(expectedMailboxes, gitB.listContributorMailboxes())
-  }
-
-  @Test
-  def testUnescape(): Unit = {
-    Assert.assertEquals("On Windows try JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8 sbt assembly",
-      "UTF-8", System.getProperty("file.encoding"))
-    Assert.assertEquals("test", Sgit.unescape("test"))
-    Assert.assertEquals("Präsentation", Sgit.unescape("Pr\\303\\244sentation"))
-    Assert.assertEquals("\uA64A", Sgit.unescape("\\352\\231\\212"))
-    Assert.assertEquals("\uD802\uDD25", Sgit.unescape("\\360\\220\\244\\245"))
   }
 
   @Test

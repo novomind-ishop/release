@@ -16,7 +16,7 @@ class LintTest extends AssertionsForJUnit {
 
   def br(branchName: String) = Some(BranchTagMerge(tagName = None, branchName = Some(branchName)))
 
-  def tag(tagName: String, branchName:Option[String] = None) = Some(BranchTagMerge(tagName = Some(tagName), branchName = branchName))
+  def tag(tagName: String, branchName: Option[String] = None) = Some(BranchTagMerge(tagName = Some(tagName), branchName = branchName))
 
   @Test
   def testSelectPackage_blank(): Unit = {
@@ -112,27 +112,61 @@ class LintTest extends AssertionsForJUnit {
 
   @Test
   def testVersionMatches(): Unit = {
-    Assert.assertFalse(Lint.versionMissmatches("1.2.3", tag("v1.2.3", branchName = Some("HEAD"))))
-    Assert.assertFalse(Lint.versionMissmatches("45x-SNAPSHOT", br("feature/45x")))
-    Assert.assertFalse(Lint.versionMissmatches("0.0.8-SNAPSHOT", br("feature/0x")))
-    Assert.assertFalse(Lint.versionMissmatches("0.0.8-SNAPSHOT", br("feature/0.0x")))
-    Assert.assertTrue(Lint.versionMissmatches("1.0.0-M1-SNAPSHOT", br("feature/0x")))
-    Assert.assertTrue(Lint.versionMissmatches("1.0.0-M1-SNAPSHOT", br("feature/1.1x")))
-    Assert.assertTrue(Lint.versionMissmatches("master-SNAPSHOT", None))
-    Assert.assertTrue(Lint.versionMissmatches("", Some(BranchTagMerge(tagName = None, branchName = None))))
-    Assert.assertFalse(Lint.versionMissmatches("1.1.1-SNAPSHOT", br("main")))
-    Assert.assertFalse(Lint.versionMissmatches("3.2.1-SNAPSHOT", br("master")))
-    Assert.assertFalse(Lint.versionMissmatches("master-SNAPSHOT", br("master")))
-    Assert.assertTrue(Lint.versionMissmatches("main-SNAPSHOT", br("master")))
-    Assert.assertTrue(Lint.versionMissmatches("1.0.0-M1", br("feature/0x")))
-    Assert.assertTrue(Lint.versionMissmatches("1.3.0-M1", Some(BranchTagMerge(tagName = None, branchName = None))))
+    Assert.assertEquals(Lint.MismatchResult.valid,
+      Lint.versionMismatches("1.2.3", tag("v1.2.3", branchName = Some("HEAD"))))
+    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("45x-SNAPSHOT", br("feature/45x")))
+    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("0.0.8-SNAPSHOT", br("feature/0x")))
+    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("0.0.8-SNAPSHOT", br("feature/0.0x")))
+    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("1.1.1-SNAPSHOT", br("main")))
+    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("3.2.1-SNAPSHOT", br("master")))
+    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("master-SNAPSHOT", br("master")))
+    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("1.2.3", tag("v1.2.3")))
+    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("main", tag("vmain")))
+    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("main", BranchTagMerge.merge))
 
-    Assert.assertTrue(Lint.versionMissmatches("main-SNAPSHOT", tag("master")))
-    Assert.assertFalse(Lint.versionMissmatches("1.2.3", tag("v1.2.3")))
+    Assert.assertEquals(
+      Lint.MismatchResult.problem(" project.version »master« has no git. Please add some .git folder. \uD83D\uDE2C RL1014"),
+      Lint.versionMismatches("master", None))
+    Assert.assertEquals(Lint.MismatchResult.problem(" project.version »master« is detached. Maybe add a ref. \uD83D\uDE2C RL1014"),
+      Lint.versionMismatches("master", Some(BranchTagMerge(tagName = None, branchName = None))))
+    Assert.assertEquals(Lint.MismatchResult.problem(" project.version »« is detached. Maybe add a ref. \uD83D\uDE2C RL1014"),
+      Lint.versionMismatches("", Some(BranchTagMerge(tagName = None, branchName = None))))
+    Assert.assertEquals(
+      Lint.MismatchResult.problem(" »1.0.0-M1-SNAPSHOT« does not relate to git branch: »feature/0x«." +
+        " Please use an plausible version marker and git marker combination like:" +
+        " (project.version: 1.0.0-M1-SNAPSHOT -> git branch: feature/1x), ... \uD83D\uDE2C RL1014"),
+      Lint.versionMismatches("1.0.0-M1-SNAPSHOT", br("feature/0x")))
+    Assert.assertEquals(Lint.MismatchResult.problem(" »1.0.0-M1-SNAPSHOT« does not relate to git branch: »feature/1.1x«." +
+      " Please use an plausible version marker and git marker combination like:" +
+      " (project.version: 1.0.0-M1-SNAPSHOT -> git branch: feature/1x), ... \uD83D\uDE2C RL1014"),
+      Lint.versionMismatches("1.0.0-M1-SNAPSHOT", br("feature/1.1x")))
 
-    Assert.assertFalse(Lint.versionMissmatches("main", tag("vmain")))
-    Assert.assertFalse(Lint.versionMissmatches("main", BranchTagMerge.merge))
+    Assert.assertEquals(Lint.MismatchResult.problem(" »main-SNAPSHOT« does not relate to git tag: »master«." +
+      " Please use an plausible version marker and git marker combination like:" +
+      " (project.version: 1.2.3 -> git tag:v1.2.3), ... \uD83D\uDE2C RL1014"), Lint.versionMismatches("main-SNAPSHOT", tag("master")))
+    Assert.assertEquals(Lint.MismatchResult.problem(" project.version »main-SNAPSHOT« does not relate to git branch: »master«." +
+      " Please use an plausible version marker and git marker combination like:" +
+      " (project.version: main-SNAPSHOT -> git branch:main), ... \uD83D\uDE2C RL1014"),
+      Lint.versionMismatches("main-SNAPSHOT", br("master")))
+    Assert.assertEquals(
+      Lint.MismatchResult.problem(" »1.0.0-M1« does not relate to git branch: »feature/0x«." +
+        " Please use an plausible version marker and git marker combination like:" +
+        " (project.version: 1.2.3 -> git tag:v1.2.3), ... \uD83D\uDE2C RL1014"), Lint.versionMismatches("1.0.0-M1", br("feature/0x")))
+    Assert.assertEquals(Lint.MismatchResult.problem(" project.version »RC-2024.25-SNAPSHOT« is detached (HEAD). Maybe add a ref. \uD83D\uDE2C RL1014"),
+      Lint.versionMismatches("RC-2024.25-SNAPSHOT", Some(BranchTagMerge(tagName = None, branchName = Some("HEAD")))))
 
+  }
+
+  @Test
+  def testVersionMismatchMsgTagLikeInFeatureBranchWithVersion(): Unit = {
+
+    val result = Lint.versionMismatches("1.0.1-management-SNAPSHOT",
+      Some(BranchTagMerge(tagName = None, branchName = Some("feature/management"))))
+    Assert.assertTrue(result.isMismatch)
+    Assert.assertEquals(" »1.0.1-management-SNAPSHOT« does not relate to git branch: »feature/management«." +
+      " Please use an plausible version marker and git marker combination like:" +
+      " (project.version: 1.0.1-management-SNAPSHOT -> git branch: feature/1x)," +
+      " (project.version: management-SNAPSHOT -> git branch: feature/management), ... \uD83D\uDE2C RL1014", result.msg)
   }
 
   @Test

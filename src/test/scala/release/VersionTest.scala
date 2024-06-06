@@ -19,17 +19,23 @@ class VersionTest extends AssertionsForJUnit {
   def testIsOrdinal(): Unit = {
     Assert.assertTrue(Version.parse("1.0.1-SNAPSHOT").isOrdinalOnly)
     Assert.assertTrue(Version.parse("1.1.1-SNAPSHOT").isOrdinalOnly)
-    Assert.assertTrue(Version.parse("21.0.0").isOrdinal)
-    Assert.assertTrue(Version.parse("21.0.0").isOrdinalOnly)
-    Assert.assertTrue(Version.parse("21.0.0-SNAPSHOT").isOrdinal)
-    Assert.assertTrue(Version.parse("21.0.0-SNAPSHOT").isOrdinalOnly)
+    val aa = Version.parse("21.0.0")
+    Assert.assertTrue(aa.isOrdinal)
+    Assert.assertTrue(aa.isOrdinalOnly)
+    Assert.assertEquals("", aa.text)
+    val a = Version.parse("21.0.0-SNAPSHOT")
+    Assert.assertTrue(a.isOrdinal)
+    Assert.assertTrue(a.isOrdinalOnly)
+    Assert.assertEquals("", a.text)
 
     Assert.assertTrue(Version.parseSloppy("21.0.0-SNAPSHOT").isOrdinalOnly)
     Assert.assertFalse(Version.parse("alpha").isOrdinal)
     Assert.assertFalse(Version.parse("alpha").isOrdinalOnly)
 
-    Assert.assertTrue(Version.parseSloppy("210_alpha").isOrdinal)
-    Assert.assertFalse(Version.parseSloppy("210_alpha").isOrdinalOnly)
+    val alpha2 = Version.parseSloppy("210_alpha")
+    Assert.assertTrue(alpha2.isOrdinal)
+    Assert.assertFalse(alpha2.isOrdinalOnly)
+    Assert.assertEquals("alpha", alpha2.text)
     Assert.assertTrue(Version.parse("210.0.0_alpha").isOrdinal)
     Assert.assertFalse(Version.parse("210.0.0_alpha").isOrdinalOnly)
   }
@@ -114,9 +120,9 @@ class VersionTest extends AssertionsForJUnit {
 
   @Test
   def testRemoveSnapshot(): Unit = {
-    Assert.assertEquals(Version.parseSloppy("4.0.0"),Version.parseSloppy("4.0.0-SNAPSHOT").removeSnapshot())
-    Assert.assertEquals(Version.parseSloppy("4.0.0"),Version.parseSloppy("4.0.0").removeSnapshot())
-    Assert.assertEquals(Version.parseSloppy("main"),Version.parseSloppy("main-SNAPSHOT").removeSnapshot())
+    Assert.assertEquals(Version.parseSloppy("4.0.0"), Version.parseSloppy("4.0.0-SNAPSHOT").removeSnapshot())
+    Assert.assertEquals(Version.parseSloppy("4.0.0"), Version.parseSloppy("4.0.0").removeSnapshot())
+    Assert.assertEquals(Version.parseSloppy("main"), Version.parseSloppy("main-SNAPSHOT").removeSnapshot())
   }
 
   @Test

@@ -17,6 +17,14 @@ case class Version(pre: String, major: Int, minor: Int, patch: Int, low: String,
     isOrdinal && lowF.replaceFirst("_-SNAPSHOT", "") == "" && pre == ""
   }
   lazy val isSnapshot: Boolean = rawInput.endsWith("-SNAPSHOT")
+  lazy val text:String = {
+    if (isOrdinalOnly) {
+      ""
+    } else {
+      rawInput.replaceFirst("-SNAPSHOT", "").toLowerCase.replaceAll("[^a-z]+", "")
+    }
+
+  }
 
   def same(major: Int): Boolean = {
     this.major == major
@@ -118,7 +126,7 @@ object Version {
   private[release] val semverPatternLowdashString = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)_(.+)$".r
   private[release] val semverPatternRCEnd = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)-((?:RC|M)[1-9][0-9]*)$".r
   private[release] val semverGitTagForDockerTagPattern = "^v[0-9]+\\.[0-9]+\\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$".r
-  private[release] val semverPatternLetterEnd = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)-([0-9a-zA-Z\\.]+)$".r
+  private[release] val semverPatternLetterEnd = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)-([0-9a-zA-Z]+)$".r
   private[release] val stableShop = "^([0-9]+x)-stable.*$".r
   private[release] val shopPattern = "^(RC-)([1-9][0-9]{3})\\.([0-9][0-9])?(?:\\.([1-9]+[0-9]*))?(?:_([1-9]+[0-9]*))?$".r
   private[release] val betaTagPattern = "^(BETA-)(.+)$".r

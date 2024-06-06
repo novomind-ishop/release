@@ -11,6 +11,7 @@ import java.time.{Duration, LocalDate, Period, ZonedDateTime}
 import java.util.concurrent.TimeUnit
 import scala.collection.immutable.{ListMap, Seq}
 import scala.collection.parallel.CollectionConverters._
+import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success, Try}
 
 object ProjectMod extends LazyLogging {
@@ -312,7 +313,7 @@ object ProjectMod extends LazyLogging {
     }
   }
 
-  def checkForUpdates(in: Seq[Gav3], depUpOpts: OptsDepUp, repo: RepoZ, updatePrinter: UpdateCon, ws:String): Map[Gav3, Seq[(String, Try[ZonedDateTime])]] = {
+  def checkForUpdates(in: Seq[Gav3], depUpOpts: OptsDepUp, repo: RepoZ, updatePrinter: UpdateCon, ws: String): Map[Gav3, Seq[(String, Try[ZonedDateTime])]] = {
 
     val statusLine = StatusLine(in.size, updatePrinter.shellWidth, new StatusPrinter() {
       override def print(string: String): Unit = updatePrinter.println(string)
@@ -432,7 +433,7 @@ object ProjectMod extends LazyLogging {
 
   def collectDependencyUpdates(updatePrinter: UpdateCon, depUpOpts: OptsDepUp,
                                rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], repoDelegator: RepoProxy,
-                               checkOnline: Boolean, ws:String): Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = {
+                               checkOnline: Boolean, ws: String): Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = {
     if (checkOnline) {
       repoDelegator.repos.foreach(repo => {
         val reachableResult = repo.isReachable(false)
@@ -583,7 +584,7 @@ object ProjectMod extends LazyLogging {
             ""
           }
         } catch {
-          case e:Exception =>  s" (libyears: ?? ${e.getMessage})"
+          case e: Exception => s" (libyears: ?? ${e.getMessage})"
         }
       }
     })
@@ -671,18 +672,31 @@ trait ProjectMod extends LazyLogging {
   val listProperties: Map[String, String]
   val skipPropertyReplacement: Boolean
 
-  def tryCollectDependencyUpdates(depUpOpts: OptsDepUp, checkOn: Boolean = true, updatePrinter: UpdateCon, ws:String):
+  def tryCollectDependencyUpdates(depUpOpts: OptsDepUp, checkOn: Boolean = true, updatePrinter: UpdateCon, ws: String):
   Try[Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])]] = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    import scala.concurrent.duration._
+    val futureTask = Future {
+      try {
+        Success(collectDependencyUpdates(depUpOpts, checkOn, updatePrinter, ws))
+      } catch {
+        case e: Exception => {
+          Failure(e)
+        }
+      }
+    }
+    val timeoutDuration = 1.minute
     try {
-      Success(collectDependencyUpdates(depUpOpts, checkOn, updatePrinter, ws))
+      Await.result(futureTask, timeoutDuration)
     } catch {
       case e: Exception => {
         Failure(e)
       }
     }
+
   }
 
-  def collectDependencyUpdates(depUpOpts: OptsDepUp, checkOn: Boolean = true, updatePrinter: UpdateCon, ws:String):
+  def collectDependencyUpdates(depUpOpts: OptsDepUp, checkOn: Boolean = true, updatePrinter: UpdateCon, ws: String):
   Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])] = {
     val depForCheck: Seq[Dep] = listGavsForCheck()
     val sdm = selfDepsMod
