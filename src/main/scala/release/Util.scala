@@ -66,23 +66,33 @@ object Util {
     }
 
     def levenshtein(s1: String, s2: String): Int = {
-      val memorizedCosts = mutable.Map[(Int, Int), Int]()
-      import scala.collection.parallel.ParSeq
-      def lev: ((Int, Int)) => Int = {
-        case (k1, k2) =>
-          memorizedCosts.getOrElseUpdate((k1, k2), (k1, k2) match {
-            case (i, 0) => i
-            case (0, j) => j
-            case (i, j) =>
-              ParSeq(1 + lev((i - 1, j)),
-                1 + lev((i, j - 1)),
-                lev((i - 1, j - 1))
-                  + (if (s1(i - 1) != s2(j - 1)) 1 else 0)).min
-          })
+      val lenStr1 = s1.length
+      val lenStr2 = s2.length
+
+      if (lenStr1 == 0) return lenStr2
+      if (lenStr2 == 0) return lenStr1
+
+      if (lenStr1 < lenStr2) return levenshtein(s2, s1)
+
+      var previousRow = new Array[Int](lenStr2 + 1)
+      var currentRow = new Array[Int](lenStr2 + 1)
+
+      for (j <- 0 to lenStr2) previousRow(j) = j
+
+      for (i <- 1 to lenStr1) {
+        currentRow(0) = i
+        for (j <- 1 to lenStr2) {
+          val substitutionCost = if (s1(i - 1) == s2(j - 1)) 0 else 1
+          currentRow(j) = math.min(math.min(previousRow(j) + 1, currentRow(j - 1) + 1), previousRow(j - 1) + substitutionCost)
+        }
+        val temp = previousRow
+        previousRow = currentRow
+        currentRow = temp
       }
 
-      lev((s1.length, s2.length))
+      previousRow(lenStr2)
     }
+
   }
 
   class PluralString(in: String) {

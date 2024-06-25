@@ -911,8 +911,6 @@ class PomCheckerTest extends AssertionsForJUnit {
       })
   }
 
-
-
   @Test
   def testCheckOwnArtifacts_5(): Unit = {
     val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:ishop-ba-core:27.0.0-SNAPSHOT:war")
@@ -983,9 +981,11 @@ class PomCheckerTest extends AssertionsForJUnit {
       ), new File("file/"))
     })
   }
+
   def g2(gav2: Gav2) = {
     (gav2, new File("file/a/pom.xml"))
   }
+
   @Test
   def testCommonStripped_1(): Unit = {
     val result = PomChecker.commonStriped(Seq(
