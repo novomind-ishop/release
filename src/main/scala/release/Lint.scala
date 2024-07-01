@@ -867,7 +867,12 @@ object Lint {
                 pce.setStackTrace(newStackTrace)
                 pce.printStackTrace(err)
                 out.println(error(pce.getMessage + s" ${fiWarn} ${fiCodePomModException}", opts, limit = lineMax))
-                errorExit.set(true)
+                if (!opts.lintOpts.skips.contains(fiCodePomModException) ) {
+                  errorExit.set(true)
+                } else {
+                  usedSkips = usedSkips :+ fiCodePomModException
+                  warnExit.set(true)
+                }
               }
             }
 
