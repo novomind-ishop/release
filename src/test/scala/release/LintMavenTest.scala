@@ -77,6 +77,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     active contributor count: 1
         |[INFO]       Your Name <you@example.com>
         |[INFO]     active branch count: 1 - master
+        |[INFO]     approx. a new branch each: P0D, approx. a new tag each: P0D
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[WARNING]  shallow clone detected 😬
         |[WARNING]    % git rev-parse --is-shallow-repository # returns true
@@ -152,6 +153,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     active contributor count: 1
         |[INFO]       Your Name <you@example.com>
         |[INFO]     active branch count: 1 - master
+        |[INFO]     approx. a new branch each: P0D, approx. a new tag each: P0D
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -325,6 +327,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     active contributor count: 1
         |[INFO]       Your Name <you@example.com>
         |[INFO]     active branch count: 1 - master
+        |[INFO]     approx. a new branch each: P0D, approx. a new tag each: P0D
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -489,6 +492,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     active contributor count: 1
         |[INFO]       Your Name <you@example.com>
         |[INFO]     active branch count: 1 - master
+        |[INFO]     approx. a new branch each: P0D, approx. a new tag each: P0D
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -1205,6 +1209,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     active contributor count: 1
         |[INFO]       Your Name <you@example.com>
         |[INFO]     active branch count: 1 - master
+        |[INFO]     approx. a new branch each: P0D, approx. a new tag each: P0D
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO]     current git tags: v0.11.0
@@ -1410,6 +1415,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     active contributor count: 1
         |[INFO]       Your Name <you@example.com>
         |[INFO]     active branch count: 1 - master
+        |[INFO]     approx. a new branch each: P0D, approx. a new tag each: P0D
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -1540,6 +1546,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     active contributor count: 1
         |[INFO]       Your Name <you@example.com>
         |[INFO]     active branch count: 1 - master
+        |[INFO]     approx. a new branch each: P0D, approx. a new tag each: P0D
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---

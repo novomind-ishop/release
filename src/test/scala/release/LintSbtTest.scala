@@ -55,6 +55,7 @@ class LintSbtTest extends AssertionsForJUnit {
         |[INFO]     active contributor count: 1
         |[INFO]       Your Name <you@example.com>
         |[INFO]     active branch count: 1 - master
+        |[INFO]     approx. a new branch each: P0D, approx. a new tag each: P0D
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---

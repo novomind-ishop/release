@@ -8,7 +8,9 @@ import release.Starter.{Opts, PreconditionsException}
 
 import java.io.File
 import java.nio.file.{Files, StandardCopyOption}
+import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.duration.Duration
 
 class SgitTest extends AssertionsForJUnit {
@@ -387,6 +389,33 @@ class SgitTest extends AssertionsForJUnit {
 
   private def testFailIllegal(expectedMsg: String, fn: () => Unit): Unit = {
     TestHelper.assertException(expectedMsg, classOf[IllegalStateException], fn)
+  }
+
+  @Test
+  def testRefFrequency(): Unit = {
+    val testRepoA = SgitTest.ensureAbsent("fq")
+    val gitA = Sgit.init(testRepoA, SgitTest.hasCommitMsg)
+    gitA.configSetLocal("user.email", "you@example.com")
+    gitA.configSetLocal("user.name", "Your Name")
+    val counter = new AtomicInteger(0)
+
+    gitA.add(SgitTest.testFile(testRepoA, Util.hashMd5Random()))
+    gitA.commitAll(s"c${counter.getAndIncrement()}", Some(ZonedDateTime.parse("2005-04-07T22:13:13Z")))
+    gitA.createBranch("feature/a")
+    gitA.add(SgitTest.testFile(testRepoA, Util.hashMd5Random()))
+    gitA.commitAll(s"c${counter.getAndIncrement()}", Some(ZonedDateTime.parse("2006-04-07T22:13:13Z")))
+    gitA.doTag("1.2.3")
+    gitA.checkout("feature/a")
+    gitA.doTag("1.2.4")
+    gitA.add(SgitTest.testFile(testRepoA, Util.hashMd5Random()))
+    gitA.commitAll(s"c${counter.getAndIncrement()}", Some(ZonedDateTime.parse("2007-04-07T22:13:13Z")))
+    Assert.assertEquals(Seq("feature/a", "master"), gitA.listBranchNamesAll())
+    Assert.assertEquals(Seq(
+      ("refs/heads/feature/a", ZonedDateTime.parse("2007-04-07T22:13:13Z")),
+      ("refs/heads/master", ZonedDateTime.parse("2005-04-07T22:13:13Z")),
+      ("refs/tags/v1.2.3", ZonedDateTime.parse("2006-04-07T22:13:13Z")),
+      ("refs/tags/v1.2.4", ZonedDateTime.parse("2005-04-07T22:13:13Z")),
+    ), gitA.listRefs().map(r => (r.refName, r.date)))
   }
 
   @Test
@@ -861,11 +890,11 @@ class SgitTest extends AssertionsForJUnit {
       "2019-09-99T15:99:31+02:00 (tag: v3)")
     val result = Sgit.parseTagLog(o)
     Assert.assertEquals(Seq(
-      GitTagWithDate("v0.0.8", Sgit.parseIsoDate("2019-09-25T15:47:39+02:00")),
-      GitTagWithDate("v0.0.9", Sgit.parseIsoDate("2019-09-25T15:47:30+02:00")),
-      GitTagWithDate("v0.0.10", Sgit.parseIsoDate("2019-09-25T15:47:30+02:00")),
-      GitTagWithDate("v0.0,7", Sgit.parseIsoDate("2019-09-25T15:47:31+02:00")),
-      GitTagWithDate("v0.0.6", Sgit.parseIsoDate("2019-09-25T15:47:31+02:00")),
+      GitTagWithDate("v0.0.8", SgitParsers.parseIsoDate("2019-09-25T15:47:39+02:00")),
+      GitTagWithDate("v0.0.9", SgitParsers.parseIsoDate("2019-09-25T15:47:30+02:00")),
+      GitTagWithDate("v0.0.10", SgitParsers.parseIsoDate("2019-09-25T15:47:30+02:00")),
+      GitTagWithDate("v0.0,7", SgitParsers.parseIsoDate("2019-09-25T15:47:31+02:00")),
+      GitTagWithDate("v0.0.6", SgitParsers.parseIsoDate("2019-09-25T15:47:31+02:00")),
     ), result)
   }
 

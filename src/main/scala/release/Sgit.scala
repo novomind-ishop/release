@@ -127,7 +127,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     addByString(f.getAbsolutePath)
   }
 
-  private[release] def commitAll(message: String): Unit = {
+  private[release] def commitAll(message: String, fakeDate: Option[ZonedDateTime] = None): Unit = {
     val lines = message.replaceAll("\r", "").linesIterator.toList
     val msx = if (lines.size == 1) {
       lines ++ Seq("")
@@ -157,10 +157,12 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     //   _gen_ChangeIdInput |
     //     git hash-object -t commit --stdin
     // }
+    val dateChanger: Seq[String] = fakeDate.map(d => Seq("--date", d.toString)).getOrElse(Nil)
 
     def doCommit(changeId: String): Seq[String] = {
+
       gitNative(Seq("commit", "--no-verify", "-m",
-        ms.map(_.replaceFirst("^Change-Id:", "Change-Id: I" + changeId)).mkString("\n").trim)).get
+        ms.map(_.replaceFirst("^Change-Id:", "Change-Id: I" + changeId)).mkString("\n").trim) ++ dateChanger).get
     }
 
     if (oldComitId.isDefined) {
@@ -304,7 +306,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
         Some(in)
       })
       .map(parts => {
-        GitShaBranch(parts._2, "refs/heads/" + parts._1, ZonedDateTime.now())
+        GitShaBranch(parts._2, "refs/heads/" + parts._1, () => ZonedDateTime.now())
       }).toList
   }
 
@@ -372,10 +374,10 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
     if (branchT.nonEmpty) {
       branchT.flatMap(in => in match {
-        case (name:String, _:String, _:ZonedDateTime) if name.startsWith("origin/HEAD") => None
-        case (name:String, sha1:String, date:ZonedDateTime) if name.startsWith("origin/") => {
+        case (name: String, _: String, _: ZonedDateTime) if name.startsWith("origin/HEAD") => None
+        case (name: String, sha1: String, date: ZonedDateTime) if name.startsWith("origin/") => {
           val remoteName = name.replaceFirst("^\\*", "").trim
-          Some(GitShaBranch(sha1, remoteName, date))
+          Some(GitShaBranch(sha1, remoteName, () => date))
         }
         case _ => None
       }).toList
@@ -384,14 +386,40 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     }
   }
 
-  def listRefNames(): Seq[String] = listRefs().map(_.branchName)
+  def listRefNames(): Seq[String] = listRefs().map(_.refName)
 
-  def listRefs(): Seq[GitShaBranch] = {
-    gitNative(Seq("show-ref")).get
-      .map(in => {
-        val parts = in.replaceFirst("^\\*", "").trim.split("[ \t]+")
-        GitShaBranch(parts(0), parts(1), ZonedDateTime.now())
-      }).sortBy(_.branchName).toList
+  case class CdAd(commitDate: ZonedDateTime, authorDate: ZonedDateTime)
+
+  def listRefs(fn: CdAd => ZonedDateTime = e => e.authorDate): Seq[GitShaRefTime] = {
+    val value = gitNativeOpt(Seq("show-ref")).getOrElse(Nil)
+    if (value.nonEmpty) {
+      val temp = value
+        .map(in => {
+          val parts = in.replaceFirst("^\\*", "").trim.split("[ \t]+")
+          (parts(0), parts(1))
+        }).sortBy(_._2).toList
+        .map(e => {
+          if (e._2.startsWith("refs/heads/")) {
+            val nR = gitNative(Seq("merge-base", "HEAD", e._2))
+            e.copy(_1 = nR.getOrElse(Nil).headOption.getOrElse(e._1))
+          } else {
+            e
+          }
+        })
+      val nD = gitNative(Seq("show", "-s", "--format=%H|%cd|%ad", "--date=iso-strict") ++ temp.map(_._1))
+
+      val shaToDates: Map[String, CdAd] = nD.getOrElse(Nil).map(line => {
+        val oar = line.split("\\|").toList
+        (oar.head, CdAd(SgitParsers.parseIsoDate(oar(1)), SgitParsers.parseIsoDate(oar(2))))
+      }).toMap
+      temp.map(t => {
+        GitShaBranch(commitId = t._1, branchName = t._2, () => fn.apply(shaToDates(t._1)))
+      })
+    } else {
+      Nil
+    }
+
+
   }
 
   def deleteRef(refname: String): Unit = {
@@ -788,7 +816,19 @@ object Sgit {
     }
   }
 
-  sealed case class GitShaBranch(commitId: String, branchName: String, date: ZonedDateTime) {
+  sealed trait GitShaRefTime {
+    val sha1: String
+    val refName: String
+    val date: ZonedDateTime
+  }
+
+  sealed case class GitShaTag(sha1: String, tagName: String, dateSupplier: () => ZonedDateTime) extends GitShaRefTime {
+    lazy val date: ZonedDateTime = dateSupplier.apply()
+    val refName = tagName
+  }
+
+  sealed case class GitShaBranch(commitId: String, branchName: String, dateSupplier: () => ZonedDateTime) extends GitShaRefTime {
+    lazy val date: ZonedDateTime = dateSupplier.apply()
     if (commitId.length != 40) {
       throw new IllegalStateException("invalid commit id length: " + commitId.length + " (" + commitId + ")")
     }
@@ -796,6 +836,9 @@ object Sgit {
     if (!GitShaBranch.matchesGitSha(commitId)) {
       throw new IllegalStateException("invalid commit id: " + commitId + "")
     }
+
+    val refName: String = branchName
+    val sha1: String = commitId
   }
 
   object GitShaBranch {
@@ -1086,18 +1129,6 @@ object Sgit {
         }
       }
       Success(gitCmd)
-    }
-  }
-
-  def parseIsoDate(in: String): ZonedDateTime = {
-    ZonedDateTime.parse(in)
-  }
-
-  def parseIsoDateOpt(in: String): Option[ZonedDateTime] = {
-    try {
-      Some(parseIsoDate(in))
-    } catch {
-      case e: Exception => None
     }
   }
 

@@ -12,13 +12,16 @@ import java.io.{File, IOException, PrintStream}
 import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{FileVisitResult, FileVisitor, Files, Path}
-import java.time.Duration
+import java.time.{Duration, Period}
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.CollectionConverters._
 import scala.util.{Failure, Success, Try, Using}
 
 object Lint {
+  def reque(refs: Seq[Sgit.GitShaRefTime]): (Period, Period) = {
+    (Period.ZERO, Period.ZERO)
+  }
 
   case class PackageResult(names: Seq[String], d: Duration, private val unwantedText: String) {
 
@@ -430,6 +433,11 @@ object Lint {
           s" - ${branchNames.mkString(", ")}"
         }
         out.println(info(s"    active branch count: ${branchNames.size}${branchMsg}", opts, limit = lineMax)) // TODO limits?
+        val refs = sgit.listRefs(_.commitDate)
+        if (refs.nonEmpty) {
+          val ssd:(Period, Period) = Lint.reque(refs)
+          out.println(info(s"    approx. a new branch each: ${ssd._1}, approx. a new tag each: ${ssd._2}", opts, limit = lineMax))
+        }
         out.println(info("--- check clone config / no shallow clone @ git ---", opts))
         if (sgit.isShallowClone) {
           Term.wrap(out, Term.warn,

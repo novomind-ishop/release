@@ -1,7 +1,7 @@
 package release
 
 import com.typesafe.scalalogging.LazyLogging
-import release.Sgit.{GitTagWithDate, parseIsoDateOpt}
+import release.Sgit.GitTagWithDate
 
 import java.math.BigInteger
 import java.nio.charset.StandardCharsets
@@ -33,6 +33,19 @@ object SgitParsers {
   }
 
   val isoDateR = "[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:[+-][0-9]{2}:[0-9]{2}|Z)".r
+
+
+  def parseIsoDate(in: String): ZonedDateTime = {
+    ZonedDateTime.parse(in)
+  }
+
+  def parseIsoDateOpt(in: String): Option[ZonedDateTime] = {
+    try {
+      Some(parseIsoDate(in))
+    } catch {
+      case e: Exception => None
+    }
+  }
 
   object LogParser extends RegexParsers with LazyLogging {
     override val skipWhitespace = false
