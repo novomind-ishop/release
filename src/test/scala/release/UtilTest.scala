@@ -6,6 +6,14 @@ import org.scalatestplus.junit.AssertionsForJUnit
 
 import java.time.{Duration, Period}
 import java.util
+import scala.util.Random
+
+
+object  UtilTest {
+  def randomSha1():String = {
+    Util.hashSha1(Random.nextLong().toString)
+  }
+}
 
 class UtilTest extends AssertionsForJUnit {
 

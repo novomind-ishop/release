@@ -6,8 +6,9 @@ import org.junit.{Assert, Rule, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.Lint.{BranchTagMerge, NePrLa, PackageResult}
 import release.ProjectMod.Gav3
+import release.Sgit.{GitShaBranch, GitShaTag}
 
-import java.time.Duration
+import java.time.{Duration, Period, ZonedDateTime}
 
 class LintTest extends AssertionsForJUnit {
   val _temporarayFolder = new TemporaryFolder()
@@ -168,6 +169,56 @@ class LintTest extends AssertionsForJUnit {
       " (project.version: 1.0.1-management-SNAPSHOT -> git branch: feature/1x)," +
       " (project.version: management-SNAPSHOT -> git branch: feature/management), ... \uD83D\uDE2C RL1014", result.msg)
   }
+
+  def tag(name: String, dateTime: ZonedDateTime) = {
+    GitShaTag(sha1 = UtilTest.randomSha1(), tagName = "refs/tags/" + name, dateSupplier = () => Option(dateTime))
+  }
+
+  def brn(name: String, dateTime: ZonedDateTime) = {
+    GitShaBranch(commitId = UtilTest.randomSha1(), branchName = "refs/heads/" + name, dateSupplier = () => Option(dateTime))
+  }
+
+  @Test
+  def testRefFreq_single(): Unit = {
+    val result = Lint.refFreqBranchTag(Seq(
+      brn("develop", null),
+      tag("v1.2.3", ZonedDateTime.parse("2024-02-13T08:19:20+01:00")),
+      brn("main", ZonedDateTime.parse("2024-02-14T08:19:20+01:00")),
+    ), currentDate = ZonedDateTime.parse("2024-03-13T08:19:20+01:00"))
+    Assert.assertEquals((Period.ZERO, Period.ZERO), result)
+  }
+
+  @Test
+  def testRefFreq_branch_2(): Unit = {
+    val result = Lint.refFreqBranchTag(Seq(
+      brn("feature/a", ZonedDateTime.parse("2024-02-13T08:19:20+01:00")),
+      brn("main", ZonedDateTime.parse("2024-02-14T08:19:20+01:00")),
+    ), currentDate = ZonedDateTime.parse("2024-03-13T08:19:20+01:00"))
+    Assert.assertEquals((Period.parse("P1D"), Period.ZERO), result)
+  }
+
+  @Test
+  def testRefFreq_branch_3(): Unit = {
+    val result = Lint.refFreqBranchTag(Seq(
+      brn("feature/a", ZonedDateTime.parse("2024-02-15T08:19:20+01:00")),
+      brn("feature/b", ZonedDateTime.parse("2024-02-13T08:19:20+01:00")),
+      brn("main", ZonedDateTime.parse("2024-02-14T08:19:20+01:00")),
+    ), currentDate = ZonedDateTime.parse("2024-03-13T08:19:20+01:00"))
+    Assert.assertEquals((Period.parse("P1D"), Period.ZERO), result)
+  }
+
+  @Test
+  def testRefFreq_branch_tag(): Unit = {
+    val result = Lint.refFreqBranchTag(Seq(
+      brn("feature/a", ZonedDateTime.parse("2024-02-10T08:19:20+01:00")),
+      brn("feature/forgotten", ZonedDateTime.parse("1909-02-20T08:19:20+01:00")),
+      brn("main", ZonedDateTime.parse("2024-02-20T08:19:20+01:00")),
+      tag("v1.2.3", ZonedDateTime.parse("2024-02-13T08:19:20+01:00")),
+      tag("v1.2.4", ZonedDateTime.parse("2024-02-14T08:19:20+01:00")),
+    ), currentDate = ZonedDateTime.parse("2024-03-13T08:19:20+01:00"))
+    Assert.assertEquals((Period.parse("P10D"), Period.parse("P1D")), result)
+  }
+
 
   @Test
   def testGoogleFmt(): Unit = {

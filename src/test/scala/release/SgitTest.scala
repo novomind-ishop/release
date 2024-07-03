@@ -406,18 +406,17 @@ class SgitTest extends AssertionsForJUnit {
     gitA.commitAll(s"c${counter.getAndIncrement()}", Some(ZonedDateTime.parse("2006-04-07T22:13:13Z")))
     gitA.doTag("1.2.3")
     gitA.checkout("feature/a")
-    gitA.doTag("1.2.4")
+    gitA.doTag("1.2.4", msg = "annotated")
     gitA.add(SgitTest.testFile(testRepoA, Util.hashMd5Random()))
     gitA.commitAll(s"c${counter.getAndIncrement()}", Some(ZonedDateTime.parse("2007-04-07T22:13:13Z")))
     Assert.assertEquals(Seq("feature/a", "master"), gitA.listBranchNamesAll())
     Assert.assertEquals(Seq(
-      ("refs/heads/feature/a", ZonedDateTime.parse("2007-04-07T22:13:13Z")),
-      ("refs/heads/master", ZonedDateTime.parse("2005-04-07T22:13:13Z")),
-      ("refs/tags/v1.2.3", ZonedDateTime.parse("2006-04-07T22:13:13Z")),
-      ("refs/tags/v1.2.4", ZonedDateTime.parse("2005-04-07T22:13:13Z")),
-    ), gitA.listRefs().map(r => (r.refName, r.date)))
+      ("refs/heads/feature/a", Some(ZonedDateTime.parse("2007-04-07T22:13:13Z"))),
+      ("refs/heads/master", Some(ZonedDateTime.parse("2005-04-07T22:13:13Z"))),
+      ("refs/tags/v1.2.3", Some(ZonedDateTime.parse("2006-04-07T22:13:13Z"))),
+      ("refs/tags/v1.2.4", None), // TODO anotated tags later
+    ), gitA.listRefs().map(r => (r.refName, r.dateOpt)))
   }
-
   @Test
   def testInitCloneCommitPoms(): Unit = {
     // GIVEN

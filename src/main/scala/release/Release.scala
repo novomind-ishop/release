@@ -141,7 +141,15 @@ object Release extends LazyLogging {
       val releaseMajorVersion = if (isNoShop && release.isDefined) {
         release.get.replaceAll("\\..*", "")
       } else {
-        relevantDeps.filterNot(_.version.isEmpty).map(_.version.get).maxBy(Version.parse).replaceAll("\\..*", "")
+        val value = relevantDeps.filterNot(_.version.isEmpty).map(_.version.get)
+        if (value.isEmpty && release.isDefined) {
+          release.get.replaceAll("\\..*", "")
+        } else if (value.isEmpty && release.isEmpty) {
+          ""
+        } else {
+          value.maxBy(Version.parse).replaceAll("\\..*", "")
+        }
+
       }
       val relevantFilteredDeps = (if (releaseMajorVersion.matches("[0-9]+")) {
         if (releaseMajorVersion.toInt > 36) {

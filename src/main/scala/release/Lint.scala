@@ -4,6 +4,7 @@ import com.google.common.base.{Stopwatch, Strings}
 import com.google.common.io.{CharSink, CharSource}
 import com.google.googlejavaformat.java.Formatter
 import release.ProjectMod.{Gav, Gav3, StaticPrinter}
+import release.Sgit.GitShaRefTime
 import release.Starter.{Opts, PreconditionsException}
 import release.Term._
 import release.Util.pluralize
@@ -12,15 +13,35 @@ import java.io.{File, IOException, PrintStream}
 import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{FileVisitResult, FileVisitor, Files, Path}
-import java.time.{Duration, Period}
+import java.time.temporal.ChronoUnit
+import java.time.{Duration, Period, ZonedDateTime}
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.CollectionConverters._
 import scala.util.{Failure, Success, Try, Using}
 
 object Lint {
-  def reque(refs: Seq[Sgit.GitShaRefTime]): (Period, Period) = {
-    (Period.ZERO, Period.ZERO)
+
+  private def calcFreq(refsr: Seq[Sgit.GitShaRefTime]): Option[Period] = {
+    if (refsr.size < 2) {
+      None
+    } else {
+      val k = refsr.sortBy(_.date).sliding(2)
+        .map(o => ChronoUnit.DAYS.between(o(0).date.toLocalDate, o(1).date.toLocalDate)).toSeq
+
+      val sum = k.sum
+      Some(Period.ofDays((sum.intValue() / k.size)))
+    }
+
+  }
+
+  def refFreqBranchTag(refs: Seq[Sgit.GitShaRefTime], currentDate:ZonedDateTime = ZonedDateTime.now()): (Period, Period) = {
+    val older = currentDate.minusYears(1)
+    val fRefs = refs.filter(_.dateOpt.isDefined).filter(_.date.isAfter(older))
+    val branches = fRefs.collect({ case e: GitShaRefTime if e.refName.startsWith("refs/heads/") => e })
+    val tags = fRefs.collect({ case e: GitShaRefTime if e.refName.startsWith("refs/tags/") => e })
+
+    (calcFreq(branches).getOrElse(Period.ZERO), calcFreq(tags).getOrElse(Period.ZERO))
   }
 
   case class PackageResult(names: Seq[String], d: Duration, private val unwantedText: String) {
@@ -139,7 +160,6 @@ object Lint {
 
   object MismatchResult {
 
-
     val valid = MismatchResult(isMismatch = false, msg = "valid")
 
     def of(invalid: Boolean, msg: String): MismatchResult = {
@@ -149,9 +169,11 @@ object Lint {
         valid
       }
     }
-    def problem(msg:String) = MismatchResult(isMismatch = true, msg = msg)
+
+    def problem(msg: String) = MismatchResult(isMismatch = true, msg = msg)
   }
-  case class MismatchResult(isMismatch: Boolean, msg:String)
+
+  case class MismatchResult(isMismatch: Boolean, msg: String)
 
   def versionMismatches(selfVersion: String, tagBranchInfo: Option[BranchTagMerge]): MismatchResult = {
     val defaultBranchnames = Set("main", "master")
@@ -169,8 +191,6 @@ object Lint {
       } else {
         ""
       }
-
-
 
       if (branchN.filterNot(_ == "HEAD").isDefined) {
         val selfVersionParsed = Version.parseSloppy(selfVersion)
@@ -435,7 +455,7 @@ object Lint {
         out.println(info(s"    active branch count: ${branchNames.size}${branchMsg}", opts, limit = lineMax)) // TODO limits?
         val refs = sgit.listRefs(_.commitDate)
         if (refs.nonEmpty) {
-          val ssd:(Period, Period) = Lint.reque(refs)
+          val ssd: (Period, Period) = Lint.refFreqBranchTag(refs)
           out.println(info(s"    approx. a new branch each: ${ssd._1}, approx. a new tag each: ${ssd._2}", opts, limit = lineMax))
         }
         out.println(info("--- check clone config / no shallow clone @ git ---", opts))
@@ -875,7 +895,7 @@ object Lint {
                 pce.setStackTrace(newStackTrace)
                 pce.printStackTrace(err)
                 out.println(error(pce.getMessage + s" ${fiWarn} ${fiCodePomModException}", opts, limit = lineMax))
-                if (!opts.lintOpts.skips.contains(fiCodePomModException) ) {
+                if (!opts.lintOpts.skips.contains(fiCodePomModException)) {
                   errorExit.set(true)
                 } else {
                   usedSkips = usedSkips :+ fiCodePomModException
