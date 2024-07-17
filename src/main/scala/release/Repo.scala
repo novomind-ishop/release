@@ -1,5 +1,6 @@
 package release
 
+import com.google.common.cache.{Cache, CacheBuilder}
 import com.google.common.collect.ImmutableList
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.http.client.HttpResponseException
@@ -118,8 +119,9 @@ class Repo(_mirrorNexus: RemoteRepository, _workNexus: RemoteRepository) extends
 
   private def getVersionsOf(req: String) = Repo.getVersions(workNexus)(req)
 
-  def depDate(groupId: String, artifactId: String, version: String): Option[ZonedDateTime] =
-    Repo.depDate(workNexus)(groupId, artifactId, version)
+  def depDate(groupId: String, artifactId: String, version: String): Option[ZonedDateTime] = {
+    Repo.depDate(workNexus, Repo.cache)(groupId, artifactId, version)
+  }
 
   def isReachable(showTrace: Boolean = true): Repo.ReachableResult = {
     val config = RequestConfig.custom()
@@ -185,6 +187,8 @@ class Repo(_mirrorNexus: RemoteRepository, _workNexus: RemoteRepository) extends
 }
 
 object Repo extends LazyLogging {
+
+  val cache: Cache[(String, String, String), Option[ZonedDateTime]] = CacheBuilder.newBuilder().maximumSize(10_000).build()
 
   private val fmtbNexus: DateTimeFormatter = {
     val dow: util.Map[Long, String] = new util.HashMap[Long, String]
@@ -374,32 +378,41 @@ object Repo extends LazyLogging {
     }
   }
 
-  private[release] def depDate(repository: RemoteRepository)(groupId: String, artifactId: String, version: String, retry: Boolean = true): Option[ZonedDateTime] = {
-    val system = ArtifactRepos.newRepositorySystem
-    val session = ArtifactRepos.newRepositorySystemSession(system, silent = false)
-    val req = new MetadataRequest()
-    req.setMetadata(new DefaultMetadata(groupId, artifactId, version, "", Nature.RELEASE_OR_SNAPSHOT))
-    req.setRepository(repository)
+  private[release] def depDate(repository: RemoteRepository, cache: Cache[(String, String, String), Option[ZonedDateTime]])
+                              (groupId: String, artifactId: String, version: String, retry: Boolean = true): Option[ZonedDateTime] = {
+    val result = cache.getIfPresent((groupId, artifactId, version))
+    val r = if (result != null) {
+      result
+    } else {
+      val system = ArtifactRepos.newRepositorySystem
+      val session = ArtifactRepos.newRepositorySystemSession(system, silent = false)
+      val req = new MetadataRequest()
+      req.setMetadata(new DefaultMetadata(groupId, artifactId, version, "", Nature.RELEASE_OR_SNAPSHOT))
+      req.setRepository(repository)
 
-    val owet = system.resolveMetadata(session, ImmutableList.of(req))
-    owet.asScala.flatMap(e => {
-      if (!e.isResolved) {
-        val httpResponse = httpCause(e)
-        if (httpResponse.isDefined && httpResponse.get.getStatusCode == 401) {
-          Nil
-        } else if (retry) {
-          tryResolveReq(repository)(groupId + ":" + artifactId + ":pom:" + version)
-          depDate(repository)(groupId, artifactId, version, retry = false)
+      val owet = system.resolveMetadata(session, ImmutableList.of(req))
+      val r = owet.asScala.flatMap(e => {
+        if (!e.isResolved) {
+          val httpResponse = httpCause(e)
+          if (httpResponse.isDefined && httpResponse.get.getStatusCode == 401) {
+            Nil
+          } else if (retry) {
+            tryResolveReq(repository)(groupId + ":" + artifactId + ":pom:" + version)
+            depDate(repository, cache)(groupId, artifactId, version, retry = false)
+          } else {
+            Nil
+          }
         } else {
-          Nil
+          val file = e.getMetadata.getFile
+          Util.readLines(file)
+            .flatMap(extractDate)
+            .distinct
         }
-      } else {
-        val file = e.getMetadata.getFile
-        Util.readLines(file)
-          .flatMap(extractDate)
-          .distinct
-      }
-    }).toSeq.minOption
+      }).toSeq.minOption
+      cache.put((groupId, artifactId, version), r)
+      r
+    }
+    r
   }
 
   def extractDate(line: String): Option[ZonedDateTime] = {

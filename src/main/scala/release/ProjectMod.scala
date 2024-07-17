@@ -356,7 +356,11 @@ object ProjectMod extends LazyLogging {
         }
 
         statusLine.end()
-        selectedVersions.map(version => (version, selectReleaseDate(dep.toGav2(), version)))
+        val x: Seq[(String, Try[ZonedDateTime])] = selectedVersions
+          .par
+          .map(version => (version, selectReleaseDate(dep.toGav2(), version)))
+          .seq
+        x
       }))
       .seq
       .toMap
@@ -685,7 +689,7 @@ trait ProjectMod extends LazyLogging {
         }
       }
     }
-    val timeoutDuration = 1.minute
+    val timeoutDuration:FiniteDuration = FiniteDuration(90, TimeUnit.SECONDS)
     try {
       Await.result(futureTask, timeoutDuration)
     } catch {
