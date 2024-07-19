@@ -15,9 +15,11 @@ import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{FileVisitResult, FileVisitor, Files, Path}
 import java.time.temporal.ChronoUnit
 import java.time.{Duration, Period, ZonedDateTime}
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.CollectionConverters._
+import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success, Try, Using}
 
 object Lint {
@@ -35,22 +37,22 @@ object Lint {
 
   }
 
-  def refFreqBranchTag(refs: Seq[Sgit.GitShaRefTime], currentDate:ZonedDateTime = ZonedDateTime.now()): (Period, Period) = {
+  def refFreqBranchTag(refs: Seq[Sgit.GitShaRefTime], currentDate: ZonedDateTime = ZonedDateTime.now()): (Period, Period) = {
     val older = currentDate.minusYears(1)
     val fRefs = refs.filter(_.dateOpt.isDefined).filter(_.date.isAfter(older))
-    val branches = fRefs.collect({ case e: GitShaRefTime if e.refName.startsWith("refs/heads/") => e })
+    val branches = fRefs.collect({ case e: GitShaRefTime if e.refName.startsWith("refs/heads/") => e }) // TODO filter branch pattern
     val tags = fRefs.collect({ case e: GitShaRefTime if e.refName.startsWith("refs/tags/") => e })
-
-    (calcFreq(branches).getOrElse(Period.ZERO), calcFreq(tags).getOrElse(Period.ZERO))
+    val negativ = Period.ofDays(-1)
+    (calcFreq(branches).getOrElse(negativ), calcFreq(tags).getOrElse(negativ))
   }
 
-  case class PackageResult(names: Seq[String], d: Duration, private val unwantedText: String) {
+  case class PackageResult(names: Seq[String], d: Duration, private val unwantedText: String, msg:String) {
 
     private def nom(in: String) = {
       in.replaceAll("package", "").trim
     }
 
-    private val allNames = unwantedText.linesIterator.toSet.map(nom).toSeq
+    val allNames = unwantedText.linesIterator.toSet.map(nom).toSeq
     lazy val unwantedPackages: Seq[String] = {
 
       val normalized = names.map(nom)
@@ -71,46 +73,62 @@ object Lint {
   def findAllPackagenames(rootFile: File, check: Boolean): PackageResult = {
     val packageScanFile = new File(rootFile, ".unwanted-packages")
     if (check && packageScanFile.canRead) {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      import scala.concurrent.duration._
       val stopwatch = Stopwatch.createStarted()
-      val na = ListBuffer.empty[Path]
-      val skipDirNames = Set(".git", "target")
-      Files.walkFileTree(rootFile.toPath, new FileVisitor[Path] {
-        override def preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult = {
-          if (skipDirNames.contains(dir.getFileName.toString)) {
-            FileVisitResult.SKIP_SUBTREE
-          } else {
+      val futureTask = Future {
+        val na = ListBuffer.empty[Path]
+        val skipDirNames = Set(".git", "target")
+        Files.walkFileTree(rootFile.toPath, new FileVisitor[Path] {
+          override def preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult = {
+            if (skipDirNames.contains(dir.getFileName.toString)) {
+              FileVisitResult.SKIP_SUBTREE
+            } else {
+              FileVisitResult.CONTINUE
+            }
+          }
+
+          override def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
+            na += file
+            FileVisitResult.CONTINUE
+
+          }
+
+          override def visitFileFailed(file: Path, exc: IOException): FileVisitResult = {
             FileVisitResult.CONTINUE
           }
-        }
 
-        override def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
-          na += file
-          FileVisitResult.CONTINUE
+          override def postVisitDirectory(dir: Path, exc: IOException): FileVisitResult = {
 
-        }
-
-        override def visitFileFailed(file: Path, exc: IOException): FileVisitResult = {
-          FileVisitResult.CONTINUE
-        }
-
-        override def postVisitDirectory(dir: Path, exc: IOException): FileVisitResult = {
-
-          FileVisitResult.CONTINUE
-        }
-      })
-      val suffix = Set("java", "scala")
-      PackageResult(na.par
-        .filter(p => suffix.contains(com.google.common.io.Files.getFileExtension(p.toFile.getName)))
-        .flatMap(f => {
-          try {
-            Using.resource(scala.io.Source.fromFile(f.toFile)) { r => selectPackage(r.getLines()) }
-          } catch {
-            case _: Exception => None
+            FileVisitResult.CONTINUE
           }
+        })
+        val suffix = Set("java", "scala")
+        PackageResult(na.par
+          .filter(p => suffix.contains(com.google.common.io.Files.getFileExtension(p.toFile.getName)))
+          .flatMap(f => {
+            try {
+              Using.resource(scala.io.Source.fromFile(f.toFile)) { r => selectPackage(r.getLines()) }
+            } catch {
+              case _: Exception => None
+            }
 
-        }).distinct.toList.sorted, stopwatch.elapsed().withNanos(0), unwantedText = Util.read(packageScanFile))
+          }).distinct.toList.sorted, stopwatch.elapsed().withNanos(0), unwantedText = Util.read(packageScanFile), msg = "")
+
+      }
+      val timeoutDuration: FiniteDuration = FiniteDuration(90, TimeUnit.SECONDS)
+
+      try {
+        Await.result(futureTask, timeoutDuration)
+      } catch {
+        case e: Exception => {
+          val w = PackageResult(Nil, stopwatch.elapsed(), Util.read(packageScanFile), msg= e.getMessage)
+          w.copy(names = w.unwantedPackages.headOption.toList)
+        }
+      }
+
     } else {
-      PackageResult(Nil, Duration.ZERO, "")
+      PackageResult(Nil, Duration.ZERO, "", "")
     }
 
   }
@@ -919,6 +937,9 @@ object Lint {
         val packageNamesDetails = Lint.findAllPackagenames(file, opts.lintOpts.checkPackages)
         if (packageNamesDetails.names.nonEmpty) {
           out.println(info("--- unwanted-packages @ ishop ---", opts))
+          if (packageNamesDetails.msg.nonEmpty) {
+            out.println(warn(packageNamesDetails.msg, opts, limit = lineMax))
+          }
           val nameSize = packageNamesDetails.names.size
           out.println(info(s"    found $nameSize package ${"name".pluralize(nameSize)} in ${packageNamesDetails.d.toString}", opts))
           if (packageNamesDetails.unwantedPackages.nonEmpty) {

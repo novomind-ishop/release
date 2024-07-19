@@ -47,7 +47,7 @@ class LintTest extends AssertionsForJUnit {
         |oi.
         |package a.j;
         |package a.s
-        |""".stripMargin)
+        |""".stripMargin, msg = "")
     Assert.assertEquals(Seq(
       "a.bl",
       "oi.io;",
@@ -185,7 +185,7 @@ class LintTest extends AssertionsForJUnit {
       tag("v1.2.3", ZonedDateTime.parse("2024-02-13T08:19:20+01:00")),
       brn("main", ZonedDateTime.parse("2024-02-14T08:19:20+01:00")),
     ), currentDate = ZonedDateTime.parse("2024-03-13T08:19:20+01:00"))
-    Assert.assertEquals((Period.ZERO, Period.ZERO), result)
+    Assert.assertEquals((Period.parse("P-1D"), Period.parse("P-1D")), result)
   }
 
   @Test
@@ -194,7 +194,7 @@ class LintTest extends AssertionsForJUnit {
       brn("feature/a", ZonedDateTime.parse("2024-02-13T08:19:20+01:00")),
       brn("main", ZonedDateTime.parse("2024-02-14T08:19:20+01:00")),
     ), currentDate = ZonedDateTime.parse("2024-03-13T08:19:20+01:00"))
-    Assert.assertEquals((Period.parse("P1D"), Period.ZERO), result)
+    Assert.assertEquals((Period.parse("P1D"), Period.parse("P-1D")), result)
   }
 
   @Test
@@ -204,7 +204,7 @@ class LintTest extends AssertionsForJUnit {
       brn("feature/b", ZonedDateTime.parse("2024-02-13T08:19:20+01:00")),
       brn("main", ZonedDateTime.parse("2024-02-14T08:19:20+01:00")),
     ), currentDate = ZonedDateTime.parse("2024-03-13T08:19:20+01:00"))
-    Assert.assertEquals((Period.parse("P1D"), Period.ZERO), result)
+    Assert.assertEquals((Period.parse("P1D"),Period.parse("P-1D")), result)
   }
 
   @Test
@@ -218,7 +218,6 @@ class LintTest extends AssertionsForJUnit {
     ), currentDate = ZonedDateTime.parse("2024-03-13T08:19:20+01:00"))
     Assert.assertEquals((Period.parse("P10D"), Period.parse("P1D")), result)
   }
-
 
   @Test
   def testGoogleFmt(): Unit = {
