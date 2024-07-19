@@ -46,7 +46,7 @@ object Lint {
     (calcFreq(branches).getOrElse(negativ), calcFreq(tags).getOrElse(negativ))
   }
 
-  case class PackageResult(names: Seq[String], d: Duration, private val unwantedText: String, msg:String) {
+  case class PackageResult(names: Seq[String], d: Duration, private val unwantedText: String, msg: String) {
 
     private def nom(in: String) = {
       in.replaceAll("package", "").trim
@@ -122,8 +122,8 @@ object Lint {
         Await.result(futureTask, timeoutDuration)
       } catch {
         case e: Exception => {
-          val w = PackageResult(Nil, stopwatch.elapsed(), Util.read(packageScanFile), msg= e.getMessage)
-          w.copy(names = w.unwantedPackages.headOption.toList)
+          val w = PackageResult(Nil, stopwatch.elapsed(), Util.read(packageScanFile), msg = e.getMessage)
+          w.copy(names = w.allNames.headOption.toList)
         }
       }
 
