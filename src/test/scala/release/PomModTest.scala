@@ -1789,6 +1789,20 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testOnlySelfAndRangeLast(): Unit = {
+    val gav = Gav3("some.group", "artifcat", "1.0.0-M1")
+    val result = ProjectMod.onlySelfAndRangeLast(gav,
+      Seq(
+        "a", "beta", "3.0.2-rc",
+        "0.0.9",
+        "1.0.0-M1", "1.0.0-M2"))
+    Assert.assertEquals(Seq(
+      "3.0.2-rc",
+      "1.0.0-M1", "1.0.0-M2",
+    ), result)
+  }
+
+  @Test
   def testUrlsFromSettingsXml_null(): Unit = {
     val urls = PomMod.extractUrlsFromSettings(null: String)
     Assert.assertEquals(Nil, urls)

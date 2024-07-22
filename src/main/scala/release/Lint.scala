@@ -19,7 +19,6 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.CollectionConverters._
-import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success, Try, Using}
 
 object Lint {
@@ -46,10 +45,16 @@ object Lint {
     (calcFreq(branches).getOrElse(negativ), calcFreq(tags).getOrElse(negativ))
   }
 
+  object PackageResult {
+    def timeout(d: Duration, msg: String) = {
+      PackageResult(Seq("timeout"), d, "timeout", msg = msg)
+    }
+  }
+
   case class PackageResult(names: Seq[String], d: Duration, private val unwantedText: String, msg: String) {
 
     private def nom(in: String) = {
-      in.replaceAll("package", "").trim
+      in.replaceFirst("package ", "").trim
     }
 
     val allNames = unwantedText.linesIterator.toSet.map(nom).toSeq
@@ -73,10 +78,9 @@ object Lint {
   def findAllPackagenames(rootFile: File, check: Boolean): PackageResult = {
     val packageScanFile = new File(rootFile, ".unwanted-packages")
     if (check && packageScanFile.canRead) {
-      import scala.concurrent.ExecutionContext.Implicits.global
-      import scala.concurrent.duration._
-      val stopwatch = Stopwatch.createStarted()
-      val futureTask = Future {
+
+      def toResult(stopwatch: Stopwatch): PackageResult = {
+
         val na = ListBuffer.empty[Path]
         val skipDirNames = Set(".git", "target")
         Files.walkFileTree(rootFile.toPath, new FileVisitor[Path] {
@@ -116,16 +120,10 @@ object Lint {
           }).distinct.toList.sorted, stopwatch.elapsed().withNanos(0), unwantedText = Util.read(packageScanFile), msg = "")
 
       }
-      val timeoutDuration: FiniteDuration = FiniteDuration(90, TimeUnit.SECONDS)
 
-      try {
-        Await.result(futureTask, timeoutDuration)
-      } catch {
-        case e: Exception => {
-          val w = PackageResult(Nil, stopwatch.elapsed(), Util.read(packageScanFile), msg = e.getMessage)
-          w.copy(names = w.allNames.headOption.toList)
-        }
-      }
+      Util.timeout(20, TimeUnit.SECONDS, toResult, (e, d) => {
+        PackageResult.timeout(d, e.getMessage + ". Big projects with more then 10k files took ~2 seconds")
+      })._1
 
     } else {
       PackageResult(Nil, Duration.ZERO, "", "")
@@ -576,7 +574,6 @@ object Lint {
         val rootFolderFiles = files.toSeq
         var pomFailures: Seq[Exception] = Nil
         val pompom: Option[Try[ProjectMod]] = if (rootFolderFiles.exists(_.getName == "pom.xml")) {
-          // new RepoProxy()
           Some(PomMod.withRepoTry(file, opts, opts.newRepo, failureCollector = Some(e => {
             pomFailures = pomFailures :+ e
           })))
@@ -769,7 +766,7 @@ object Lint {
             val updateOpts = opts.depUpOpts.copy(hideStageVersions = true, allowDependencyDowngrades = true, showLibYears = true)
             val resultTry = mod.tryCollectDependencyUpdates(updateOpts, checkOn = true, updatePrinter, ws = ws)
             val lookupUpAndDowngrades: Map[Gav3, Seq[String]] = if (resultTry.isSuccess) {
-              resultTry.get.map(t => (t._1.gav.simpleGav(), t._2.map(_._1))).toMap
+              resultTry.get._1.map(t => (t._1.gav.simpleGav(), t._2.map(_._1))).toMap
             } else {
               Map.empty
             }
@@ -853,7 +850,8 @@ object Lint {
 
             try {
               out.println(updatePrinter.result.toString.trim)
-              val updateResult = ProjectMod.removeOlderVersions(resultTry.get)
+              out.println(Util.show(resultTry.get._2.getMetrics)) // TODO improve format
+              val updateResult = ProjectMod.removeOlderVersions(resultTry.get._1)
               val snapUpdates = updateResult.filter(e => snaps.map(_.gav().simpleGav()).contains(e._1.gav.simpleGav()))
               val releaseOfSnapshotPresent = snapUpdates
                 // TODO flatmap

@@ -1,5 +1,6 @@
 package release
 
+import com.google.common.base.Stopwatch
 import com.google.common.cache.{Cache, CacheBuilder}
 import com.google.common.collect.ImmutableList
 import com.typesafe.scalalogging.LazyLogging
@@ -26,12 +27,26 @@ import java.nio.file.{FileVisitResult, FileVisitor, Files, Path}
 import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder, SignStyle, TextStyle}
 import java.time.temporal.ChronoField
 import java.time.temporal.ChronoField._
-import java.time.{ZoneOffset, ZonedDateTime}
+import java.time.{Duration, ZoneOffset, ZonedDateTime}
 import java.util
+import java.util.concurrent.CopyOnWriteArrayList
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
+case class RepoMetrics(dateCollection: Duration, dateCollectionCount: Int,
+                       versionCollection: Duration, versionCollectionCount: Int)
+
+object RepoMetrics {
+  def empty(): RepoMetrics = {
+    RepoMetrics(dateCollection = Duration.ZERO, dateCollectionCount = 0,
+      versionCollection = Duration.ZERO, versionCollectionCount = 0)
+  }
+}
+
 trait RepoZ {
+
+  def getMetrics: RepoMetrics
+
   def createAll(allUrls: Seq[String]): Seq[RepoZ] = {
     allUrls.distinct.map(Repo.ofUrl) // TODO cache?
   }
@@ -65,6 +80,17 @@ class RepoProxy(_repos: Seq[RepoZ]) extends RepoZ {
     } else {
       t
     }
+  }
+
+  override def getMetrics: RepoMetrics = {
+    repos.foldLeft(RepoMetrics.empty())((a, b) => {
+      val add = b.getMetrics
+        a.copy(dateCollection = a.dateCollection.plus(add.dateCollection),
+          dateCollectionCount = a.dateCollectionCount + add.dateCollectionCount,
+          versionCollection = a.versionCollection.plus(add.versionCollection),
+          versionCollectionCount = a.versionCollectionCount + add.versionCollectionCount
+        )
+    })
   }
 
   override def allRepoUrls(): Seq[String] = {
@@ -105,11 +131,13 @@ class RepoProxy(_repos: Seq[RepoZ]) extends RepoZ {
 
 }
 
-class Repo(_mirrorNexus: RemoteRepository, _workNexus: RemoteRepository) extends RepoZ with LazyLogging {
-
+class Repo private(_mirrorNexus: RemoteRepository, _workNexus: RemoteRepository) extends RepoZ with LazyLogging {
   private val mirrorNexus: RemoteRepository = _mirrorNexus
 
   private val workNexus: RemoteRepository = _workNexus
+
+  private val dateDurations = new CopyOnWriteArrayList[Duration]()
+  private val versionDurations = new CopyOnWriteArrayList[Duration]()
 
   def workNexusUrl(): String = workNexus.getUrl
 
@@ -117,10 +145,27 @@ class Repo(_mirrorNexus: RemoteRepository, _workNexus: RemoteRepository) extends
 
   override def allRepoUrls(): Seq[String] = allRepos.map(_.getUrl)
 
-  private def getVersionsOf(req: String) = Repo.getVersions(workNexus)(req)
+  private def getVersionsOf(req: String) = {
+    val w = Stopwatch.createStarted()
+    val r = Repo.getVersions(workNexus, Repo.versionCache)(req)
+    versionDurations.add(w.elapsed())
+    r
+  }
+
+  override def getMetrics: RepoMetrics = {
+    RepoMetrics(
+      dateCollection = dateDurations.asScala.foldLeft(Duration.ZERO)((a, b) => a.plus(b)),
+      dateCollectionCount = dateDurations.size(),
+      versionCollection = versionDurations.asScala.foldLeft(Duration.ZERO)((a, b) => a.plus(b)),
+      versionCollectionCount = versionDurations.size()
+    )
+  }
 
   def depDate(groupId: String, artifactId: String, version: String): Option[ZonedDateTime] = {
-    Repo.depDate(workNexus, Repo.cache)(groupId, artifactId, version)
+    val w = Stopwatch.createStarted()
+    val r = Repo.depDate(workNexus, Repo.dateCache)(groupId, artifactId, version)
+    dateDurations.add(w.elapsed())
+    r
   }
 
   def isReachable(showTrace: Boolean = true): Repo.ReachableResult = {
@@ -188,7 +233,9 @@ class Repo(_mirrorNexus: RemoteRepository, _workNexus: RemoteRepository) extends
 
 object Repo extends LazyLogging {
 
-  val cache: Cache[(String, String, String), Option[ZonedDateTime]] = CacheBuilder.newBuilder().maximumSize(10_000).build()
+  val dateCache: Cache[(String, String, String, String), Option[ZonedDateTime]] = CacheBuilder.newBuilder().maximumSize(10_000).build()
+  val versionCache: Cache[(String, String), Seq[Version]] = CacheBuilder.newBuilder().maximumSize(10_000).build()
+  private var repos: Map[(String, String), Repo] = Map.empty
 
   private val fmtbNexus: DateTimeFormatter = {
     val dow: util.Map[Long, String] = new util.HashMap[Long, String]
@@ -276,7 +323,19 @@ object Repo extends LazyLogging {
 
   def ofUrl(url: String): Repo = {
     val repositorySystem: RemoteRepository = Repo.newDefaultRepository(url)
-    new Repo(_mirrorNexus = repositorySystem, _workNexus = repositorySystem)
+    of(mirrorNexus = repositorySystem, workNexus = repositorySystem)
+  }
+
+  def of(mirrorNexus: RemoteRepository, workNexus: RemoteRepository): Repo = synchronized {
+    val existing = repos.get((mirrorNexus.getUrl, workNexus.getUrl))
+    if (existing.isDefined) {
+      existing.get
+    } else {
+      val r = new Repo(_mirrorNexus = mirrorNexus, _workNexus = workNexus)
+      repos = repos + ((mirrorNexus.getUrl, workNexus.getUrl) -> r)
+      r
+    }
+
   }
 
   case class ReachableResult(online: Boolean, msg: String)
@@ -300,15 +359,24 @@ object Repo extends LazyLogging {
   }
 
   @throws[VersionRangeResolutionException]
-  private def getVersions(repository: RemoteRepository)(request: String): Seq[Version] = {
-    val system = ArtifactRepos.newRepositorySystem
-    val session = ArtifactRepos.newRepositorySystemSession(system)
-    val artifact = new DefaultArtifact(request)
-    val rangeRequest = new VersionRangeRequest
-    rangeRequest.setArtifact(artifact)
-    rangeRequest.setRepositories(Util.toJavaList(Seq(repository)))
-    val rangeResult = system.resolveVersionRange(session, rangeRequest)
-    rangeResult.getVersions.asScala.toList
+  private def getVersions(repository: RemoteRepository, cache: Cache[(String, String), Seq[Version]])(request: String): Seq[Version] = {
+
+    val result = cache.getIfPresent((repository.getUrl, request))
+    val r = if (result != null) {
+      result
+    } else {
+      val system = ArtifactRepos.newRepositorySystem
+      val session = ArtifactRepos.newRepositorySystemSession(system)
+      val artifact = new DefaultArtifact(request)
+      val rangeRequest = new VersionRangeRequest
+      rangeRequest.setArtifact(artifact)
+      rangeRequest.setRepositories(Util.toJavaList(Seq(repository)))
+      val rangeResult = system.resolveVersionRange(session, rangeRequest)
+      val o = rangeResult.getVersions.asScala.toList
+      cache.put((repository.getUrl, request), o)
+      o
+    }
+    r
   }
 
   def parseArtifactoryDate(line: String): Option[ZonedDateTime] = {
@@ -378,9 +446,9 @@ object Repo extends LazyLogging {
     }
   }
 
-  private[release] def depDate(repository: RemoteRepository, cache: Cache[(String, String, String), Option[ZonedDateTime]])
+  private[release] def depDate(repository: RemoteRepository, cache: Cache[(String, String, String, String), Option[ZonedDateTime]])
                               (groupId: String, artifactId: String, version: String, retry: Boolean = true): Option[ZonedDateTime] = {
-    val result = cache.getIfPresent((groupId, artifactId, version))
+    val result = cache.getIfPresent((repository.getUrl, groupId, artifactId, version))
     val r = if (result != null) {
       result
     } else {
@@ -409,7 +477,7 @@ object Repo extends LazyLogging {
             .distinct
         }
       }).toSeq.minOption
-      cache.put((groupId, artifactId, version), r)
+      cache.put((repository.getUrl, groupId, artifactId, version), r)
       r
     }
     r

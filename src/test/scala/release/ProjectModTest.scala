@@ -132,9 +132,16 @@ class ProjectModTest extends AssertionsForJUnit {
         rootDeps, selfDepsModX, new RepoProxy(Seq(repoMock1, repoMock2)), checkOnline = false, ws = "")
 
       val any = GavWithRef(SelfRef.undef, anyDep.gav())
-      val scala2 = (any, Seq("1.0.0", "2.13.1", "2.13.2").map((_, Success(now))))
+      val scala2 = (any, Seq(
+        ("1.0.0", Success(now)),
+        ("2.13.1", Failure(new UnsupportedOperationException("libyears are not computed for org.example:any-library:2.13.1"))),
+        ("2.13.2", Success(now)),
+      ))
 
-      Assert.assertEquals(Seq(scala2), innerResult)
+      Assert.assertEquals(Seq(scala2).map(_._1), innerResult.map(_._1))
+      Assert.assertEquals(Seq(scala2).map(_._2.filter(_._2.isSuccess)), innerResult.map(_._2.filter(_._2.isSuccess)))
+      Assert.assertEquals(Seq(scala2).map(_._2.filter(_._2.isFailure).map(_._2.failed.get.getMessage))
+        , innerResult.map(_._2.filter(_._2.isFailure).map(_._2.failed.get.getMessage)))
     })
     Assert.assertEquals("", result.err)
   }
@@ -188,12 +195,12 @@ class ProjectModTest extends AssertionsForJUnit {
 
         override val selfDepsMod: Seq[Dep] = selfDepsModX
       }.collectDependencyUpdates(opts, checkOn = false, updatePrinter, ws = "")
-      Assert.assertEquals(tryToString(Seq(scala0, scala3)), tryToString(resultMod))
+      Assert.assertEquals(tryToString(Seq(scala0, scala3)), tryToString(resultMod._1))
     })
     Assert.assertEquals("", result.err)
   }
 
-  def tryToString(e:Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])]):Seq[(GavWithRef, Seq[(String, String)])] = {
+  def tryToString(e: Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])]): Seq[(GavWithRef, Seq[(String, String)])] = {
     val r = e.map(t => (t._1, t._2.map(k => (k._1, k._2.toString))))
     r
   }
@@ -310,13 +317,13 @@ class ProjectModTest extends AssertionsForJUnit {
       val resultMod = new MockMod() {
         override lazy val repo: Repo = repoMock
       }.collectDependencyUpdates(OptsDepUp(), checkOn = false, updatePrinter, ws = "")
-      Assert.assertEquals(Nil, resultMod)
+      Assert.assertEquals(Nil, resultMod._1)
     })
     Assert.assertEquals("", result.err)
     val filteredOut = result.out
       .linesIterator
       .map(line => {
-        if (line.matches(".* dependencies in [0-9]+ms \\(20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]\\)$")) {
+        if (line.matches(".* dependencies in [0-9\\.]+ [mμs]+ \\(20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]\\)$")) {
           line.replaceFirst(" in.*", " in ...")
         } else {
           line
@@ -331,6 +338,47 @@ class ProjectModTest extends AssertionsForJUnit {
         |I: checked 0 dependencies in ...
         |""".stripMargin.trim, filteredOut)
 
+  }
+
+  @Test
+  def test_libyear_more(): Unit = {
+    val timestamps: Seq[(String, Try[ZonedDateTime])] = Seq(
+      ("1.0.9", Success(ZonedDateTime.parse("2024-02-13T08:19:20+01:00"))),
+      ("1.0.7", Success(ZonedDateTime.parse("2024-02-14T08:19:20+01:00"))),
+      ("2.0.4", Success(ZonedDateTime.parse("2024-02-10T08:19:20+01:00"))),
+      ("2.0.5", Success(ZonedDateTime.parse("2024-02-13T08:19:20+01:00"))),
+      ("2.0.7", Success(ZonedDateTime.parse("2024-02-15T08:19:20+01:00"))),
+      ("2.0.9", Success(ZonedDateTime.parse("2024-02-16T08:19:20+01:00"))),
+    )
+
+    val gav = Gav3(groupId = "org.example", artifactId = "some", version = "2.0.7")
+    Assert.assertEquals(" (libyears: 0Y 0M [-2 days])",
+      ProjectMod.libyear(showYear = true, gav, major = Some("1"), timestamps, _ => {}))
+    Assert.assertEquals(" (libyears: 0Y 0M [1 days])",
+      ProjectMod.libyear(showYear = true, gav, major = Some("2"), timestamps, _ => {}))
+  }
+
+  @Test
+  def test_libyear_two(): Unit = {
+    val timestamps: Seq[(String, Try[ZonedDateTime])] = Seq(
+      ("1.0.9", Success(ZonedDateTime.parse("2024-02-14T08:19:20+01:00"))),
+      ("1.0.7", Success(ZonedDateTime.parse("2024-02-13T08:19:20+01:00"))),
+    )
+
+    val gav = Gav3(groupId = "org.example", artifactId = "some", version = "1.0.7")
+    val result = ProjectMod.libyear(showYear = true, gav, major = Some("1"), timestamps, _ => {})
+    Assert.assertEquals(" (libyears: 0Y 0M [1 days])", result)
+  }
+
+  @Test
+  def test_libyear_one(): Unit = {
+    val timestamps: Seq[(String, Try[ZonedDateTime])] = Seq(
+      ("1.0.7", Success(ZonedDateTime.parse("2024-02-13T08:19:20+01:00"))),
+    )
+
+    val gav = Gav3(groupId = "org.example", artifactId = "some", version = "1.0.7")
+    val result = ProjectMod.libyear(showYear = true, gav, major = Some("1"), timestamps, _ => {})
+    Assert.assertEquals(" (libyears: ???)", result)
   }
 
 }

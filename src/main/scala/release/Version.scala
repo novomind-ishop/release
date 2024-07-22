@@ -17,13 +17,29 @@ case class Version(pre: String, major: Int, minor: Int, patch: Int, low: String,
     isOrdinal && lowF.replaceFirst("_-SNAPSHOT", "") == "" && pre == ""
   }
   lazy val isSnapshot: Boolean = rawInput.endsWith("-SNAPSHOT")
-  lazy val text:String = {
+  lazy val text: String = {
     if (isOrdinalOnly) {
       ""
     } else {
       rawInput.replaceFirst("-SNAPSHOT", "").toLowerCase.replaceAll("[^a-z]+", "")
     }
 
+  }
+
+  def isLowerEquals(in: Version): Boolean = {
+    Seq(in, this).sorted.reverse.head == in
+  }
+
+  def isLowerEqualsOpt(in: Option[Version]): Boolean = {
+    in.exists(isLowerEquals)
+  }
+
+  def isGreaterEquals(in: Version): Boolean = {
+    Seq(in, this).sorted.head == in
+  }
+
+  def isGreaterEqualsOpt(in: Option[Version]): Boolean = {
+    in.exists(isGreaterEquals)
   }
 
   def same(major: Int): Boolean = {
@@ -153,8 +169,11 @@ object Version {
   } else {
     -1
   }
+
   val snapshot = "-SNAPSHOT"
-  def applySnapshot(in:String):String = in + snapshot
+
+  def applySnapshot(in: String): String = in + snapshot
+
   @tailrec
   def removeTrailingSnapshots(str: String): String = {
     val out = str.replaceFirst("-SNAPSHOT$", "").trim
@@ -164,6 +183,7 @@ object Version {
       out
     }
   }
+
   def fromStringOpt(pre: String, major: String, minor: String, patch: String, low: String, original: String): Option[Version] = {
     Some(fromString(pre, major, minor, patch, low, original))
   }

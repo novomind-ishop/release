@@ -12,21 +12,26 @@ import java.time.ZonedDateTime
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.annotation.{nowarn, unused}
 
+object LintMavenTest {
+  def replaceVarLiterals(in: String): String = {
+    in.replaceAll("- $", "-")
+      .replaceAll("/junit[0-9]+/", "/junit-REPLACED/")
+      .replaceAll("\\.scala:[0-9]+", ".scala:???")
+      .replaceAll("\t", "  ")
+      .replaceAll("( package name(?:s|) in) PT[0-9]+S", "$1 PT4S")
+      .replaceAll("^\\[..:..:..\\...Z\\] ", "[00:00:00.00Z] ")
+      .replaceAll(": git version 2\\.[0-9]+\\.[0-9]+", ": git version 2.999.999")
+      .replaceAll("[a-f0-9]{40}$", "affe4533042ef887a5477d73d958814317675be1")
+      .replaceAll("dependencies in [0-9\\.]+ [mμs]+ \\([0-9]{4}-[0-9]{2}-[0-9]{2}\\)", "dependencies in 999ms (2000-01-01)")
+  }
+}
+
 class LintMavenTest extends AssertionsForJUnit {
   val _temporarayFolder = new TemporaryFolder()
 
   @Rule def temp = _temporarayFolder
 
-  def replaceVarLiterals(in: String): String = {
-    in.replaceAll("- $", "-")
-      .replaceAll("/junit[0-9]+/", "/junit-REPLACED/")
-      .replaceAll("\\.scala:[0-9]+", ".scala:???")
-      .replaceAll("( package name(?:s|) in) PT[0-9]+S", "$1 PT4S")
-      .replaceAll("^\\[..:..:..\\...Z\\] ", "[00:00:00.00Z] ")
-      .replaceAll(": git version 2\\.[0-9]+\\.[0-9]+", ": git version 2.999.999")
-      .replaceAll("[a-f0-9]{40}$", "affe4533042ef887a5477d73d958814317675be1")
-      .replaceAll("dependencies in [0-9]+ms \\([0-9]{4}-[0-9]{2}-[0-9]{2}\\)", "dependencies in 999ms (2000-01-01)")
-  }
+  def replaceVarLiterals(in: String): String = LintMavenTest.replaceVarLiterals(in)
 
   @Test
   def testRunEmpty(): Unit = {
@@ -183,6 +188,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org # (no ip)
         |[WARNING]  nexus work url must end with a '/' - https://repo.example.org 😬 RL1001
+        |... https://repo.example.org/
         |I: checking dependencies against nexus - please wait
         |
         |I: checked 1 dependencies in 999ms (2000-01-01)
@@ -192,6 +198,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |
         |
         |Σ libyears: 0Y 0M (0 days)
+        |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -203,6 +210,7 @@ class LintMavenTest extends AssertionsForJUnit {
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
+      Mockito.when(mockRepo.getMetrics).thenReturn(RepoMetrics.empty())
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org")
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/", "https://repo.example.org/"))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
@@ -356,6 +364,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)
+        |... https://repo.example.org/
         |I: checking dependencies against nexus - please wait
         |
         |I: checked 1 dependencies in 999ms (2000-01-01)
@@ -365,6 +374,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |║
         |
         |Σ libyears: 0Y 0M (0 days)
+        |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -376,6 +386,7 @@ class LintMavenTest extends AssertionsForJUnit {
       val opts1 = Opts().lintOpts.copy(showTimer = false)
       val opts = Opts(colors = false, lintOpts = opts1)
       val mockRepo = Mockito.mock(classOf[Repo])
+      Mockito.when(mockRepo.getMetrics).thenReturn(RepoMetrics.empty())
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org/")
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
@@ -532,6 +543,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)
+        |... https://repo.example.org/
         |I: checking dependencies against nexus - please wait
         |
         |I: checked 7 dependencies in 999ms (2000-01-01)
@@ -552,6 +564,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |║
         |
         |Σ libyears: 0Y 0M (0 days)
+        |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -564,6 +577,8 @@ class LintMavenTest extends AssertionsForJUnit {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL10015-aa71e948", "RL1017-ab101a0e", "RL1018-ceefe9c6")))
       val mockRepo = Mockito.mock(classOf[Repo])
       val mockRepo2 = Mockito.mock(classOf[Repo])
+      Mockito.when(mockRepo.getMetrics).thenReturn(RepoMetrics.empty())
+      Mockito.when(mockRepo2.getMetrics).thenReturn(RepoMetrics.empty())
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org/")
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
       Mockito.when(mockRepo2.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
@@ -694,6 +709,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002
         |[INFO]     RELEASE_NEXUS_WORK_URL=null # (no ip)
+        |... https://repo1.maven.org/maven2/
         |I: checking dependencies against nexus - please wait
         |
         |I: checked 2 dependencies in 999ms (2000-01-01)
@@ -706,6 +722,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |║
         |
         |Σ libyears: 0Y 0M (0 days)
+        |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -717,6 +734,7 @@ class LintMavenTest extends AssertionsForJUnit {
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
+      Mockito.when(mockRepo.getMetrics).thenReturn(RepoMetrics.empty())
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq(Repo.centralUrl))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
@@ -817,17 +835,19 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002
         |[INFO]     RELEASE_NEXUS_WORK_URL=null # (no ip)
+        |... https://repo.example.org/
         |I: checking dependencies against nexus - please wait
         |
         |I: checked 2 dependencies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
         |╠═╦═ com.novomind.ishop.core.other:other-context:50x-SNAPSHOT
-        |║ ╚═══ 50.2.3, 50.4.0 (libyears: 0Y 0M [0 days])
+        |║ ╚═══ 50.2.3, 50.4.0 (libyears: ?? libyears are not computed for com.novomind.ishop.core.other:other-context:50.4.0)
         |╠═╦═ com.novomind.ishop.core.some:core-some-context:50x-SNAPSHOT
-        |║ ╚═══ 50.2.3, 50.4.0 (libyears: 0Y 0M [0 days])
+        |║ ╚═══ 50.2.3, 50.4.0 (libyears: ?? libyears are not computed for com.novomind.ishop.core.some:core-some-context:50.4.0)
         |║
         |
         |Σ libyears: 0Y 0M (0 days)
+        |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -839,6 +859,7 @@ class LintMavenTest extends AssertionsForJUnit {
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
+      Mockito.when(mockRepo.getMetrics).thenReturn(RepoMetrics.empty())
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
@@ -927,6 +948,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002
         |[INFO]     RELEASE_NEXUS_WORK_URL=null # (no ip)
+        |... https://repo1.maven.org/maven2/
         |I: checking dependencies against nexus - please wait
         |
         |I: checked 1 dependencies in 999ms (2000-01-01)
@@ -937,6 +959,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |║
         |
         |Σ libyears: 0Y 0M (0 days)
+        |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -948,6 +971,7 @@ class LintMavenTest extends AssertionsForJUnit {
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1003-467ad8bc")))
       val mockRepo = Mockito.mock(classOf[Repo])
+      Mockito.when(mockRepo.getMetrics).thenReturn(RepoMetrics.empty())
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq(Repo.centralUrl))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
@@ -1075,6 +1099,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002
         |[INFO]     RELEASE_NEXUS_WORK_URL=null # (no ip)
+        |... https://repo1.maven.org/maven2/
         |I: checking dependencies against nexus - please wait
         |
         |I: checked 4 dependencies in 999ms (2000-01-01)
@@ -1104,15 +1129,17 @@ class LintMavenTest extends AssertionsForJUnit {
       """java.lang.IllegalArgumentException: invalid empty versions:
         |org.springframework:spring-context-empty
         |org.springframework:spring-context-blank
-        |	at release.PomMod$.unmanaged(PomMod.scala:???)
-        |	at release.ProjectMod$.collectDependencyUpdates(ProjectMod.scala:???)
-        |	at release.ProjectMod.collectDependencyUpdates(ProjectMod.scala:???)
-        |	at release.ProjectMod.collectDependencyUpdates$(ProjectMod.scala:???)
-        |	at release.PomMod.collectDependencyUpdates(PomMod.scala:???)
-        |	at release.ProjectMod.$anonfun$tryCollectDependencyUpdates$1(ProjectMod.scala:???)""".stripMargin.stripTrailing()
+        |  at release.PomMod$.unmanaged(PomMod.scala:???)
+        |  at release.ProjectMod$.collectDependencyUpdates(ProjectMod.scala:???)
+        |  at release.ProjectMod.collectDependencyUpdates(ProjectMod.scala:???)
+        |  at release.ProjectMod.collectDependencyUpdates$(ProjectMod.scala:???)
+        |  at release.PomMod.collectDependencyUpdates(PomMod.scala:???)
+        |  at release.ProjectMod.$anonfun$tryCollectDependencyUpdates$1(ProjectMod.scala:???)
+        |  at release.Util$.$anonfun$timeout$1(Util.scala:???)""".stripMargin.stripTrailing()
     TermTest.testSys(Nil, expected, errorOut, outFn = replaceVarLiterals, expectedExitCode = 43)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
+      Mockito.when(mockRepo.getMetrics).thenReturn(RepoMetrics.empty())
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq(Repo.centralUrl))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
@@ -1256,6 +1283,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002
         |[INFO]     RELEASE_NEXUS_WORK_URL=null # (no ip)
+        |... https://repo1.maven.org/maven2/
         |I: checking dependencies against nexus - please wait
         |
         |I: checked 3 dependencies in 999ms (2000-01-01)
@@ -1271,6 +1299,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |║
         |
         |Σ libyears: 2Y 10M (1065 days)
+        |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[WARNING] org.springframework:spring-context:1.0.1-SNAPSHOT is already released, remove '-SNAPSHOT' suffix 😬 RL1009-ea7ea019
         |[WARNING] org.springframework:spring-other:1.0.0-SNAPSHOT is not released, but next release (1.0.1) was found (maybe orphan snapshot) 😬 RL10015-f0a969b5
         |[INFO]     WIP
@@ -1291,6 +1320,7 @@ class LintMavenTest extends AssertionsForJUnit {
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1012-d3421ec9", "RL1003-8a73d4ae")))
       val mockRepo = Mockito.mock(classOf[Repo])
+      Mockito.when(mockRepo.getMetrics).thenReturn(RepoMetrics.empty())
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq(Repo.centralUrl))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
@@ -1451,10 +1481,12 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)
+        |... https://repo.example.org/
         |I: checking dependencies against nexus - please wait
         |I: checked 0 dependencies in 999ms (2000-01-01)
         |
         |Σ libyears: 0Y 0M (0 days)
+        |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -1472,6 +1504,8 @@ class LintMavenTest extends AssertionsForJUnit {
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
+      Mockito.when(mockRepo.getMetrics).thenReturn(RepoMetrics.empty())
+      Mockito.when(mockRepo.getMetrics).thenReturn(RepoMetrics.empty())
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org/")
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
@@ -1589,7 +1623,7 @@ class LintMavenTest extends AssertionsForJUnit {
   @Ignore
   def testOnLocal(): Unit = {
     val file = new File("/mnt/c/Users/tstock/git/cbr")
-    TermTest.testSys(Nil, "", "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
+    TermTest.testSys(Nil, "", "", expectedExitCode = 42)(sys => {
       System.exit(Lint.run(sys.out, sys.err, Opts().copy(colors = false), Map.empty, file))
     })
   }
@@ -1757,10 +1791,12 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)
+        |... https://repo.example.org/
         |I: checking dependencies against nexus - please wait
         |I: checked 0 dependencies in 999ms (2000-01-01)
         |
         |Σ libyears: 0Y 0M (0 days)
+        |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -1776,6 +1812,8 @@ class LintMavenTest extends AssertionsForJUnit {
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1003-21ee7891", "RL1003-aaaaaaa")))
       val mockRepo = Mockito.mock(classOf[Repo])
+      Mockito.when(mockRepo.getMetrics).thenReturn(RepoMetrics.empty())
+      Mockito.when(mockRepo.getMetrics).thenReturn(RepoMetrics.empty())
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org/")
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))

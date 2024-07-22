@@ -15,13 +15,7 @@ class LintSbtTest extends AssertionsForJUnit {
 
   @Rule def temp = _temporarayFolder
 
-  def outT(in: String): String = {
-    in.replaceAll("- $", "-")
-      .replaceAll("/junit[0-9]+/", "/junit-REPLACED/")
-      .replaceAll(": git version 2\\.[0-9]+\\.[0-9]+", ": git version 2.999.999")
-      .replaceAll("[a-f0-9]{40}$", "affe4533042ef887a5477d73d958814317675be1")
-      .replaceAll("dependencies in [0-9]+ms \\([0-9]{4}-[0-9]{2}-[0-9]{2}\\)", "dependencies in 999ms (2000-01-01)")
-  }
+  def outT(in: String): String = LintMavenTest.replaceVarLiterals(in)
 
   @Test
   def testWorkUrl(): Unit = {
@@ -80,6 +74,7 @@ class LintSbtTest extends AssertionsForJUnit {
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)
+        |... https://repo.example.org/
         |I: checking dependencies against nexus - please wait
         |
         |I: checked 2 dependencies in 999ms (2000-01-01)
@@ -89,6 +84,7 @@ class LintSbtTest extends AssertionsForJUnit {
         |║
         |
         |Σ libyears: 0Y 0M (0 days)
+        |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -102,6 +98,7 @@ class LintSbtTest extends AssertionsForJUnit {
     TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 0)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
+      Mockito.when(mockRepo.getMetrics).thenReturn(RepoMetrics.empty())
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org/")
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(online = true, "200"))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).

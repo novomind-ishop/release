@@ -266,7 +266,8 @@ object Starter extends LazyLogging {
       val mirrorNexus: RemoteRepository = Repo.newDefaultRepository(ReleaseConfig.default(opts.useDefaults).mirrorNexusUrl())
 
       val workNexus: RemoteRepository = Repo.newDefaultRepository(ReleaseConfig.default(opts.useDefaults).workNexusUrl())
-      new Repo(_mirrorNexus = mirrorNexus, _workNexus = workNexus)
+
+      Repo.of(mirrorNexus, workNexus)
     }
   }
 

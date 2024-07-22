@@ -68,6 +68,17 @@ class VersionTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testAfterBefore(): Unit = {
+    Assert.assertTrue(Version.parse("21.0.0").isGreaterEqualsOpt(Some(Version.parse("20.0.0"))))
+    Assert.assertTrue(Version.parse("21.0.0").isGreaterEqualsOpt(Some(Version.parse("21.0.0"))))
+    Assert.assertFalse(Version.parse("21.0.0").isGreaterEqualsOpt(Some(Version.parse("21.0.1"))))
+
+    Assert.assertFalse(Version.parse("21.0.0").isLowerEqualsOpt(Some(Version.parse("20.0.0"))))
+    Assert.assertTrue(Version.parse("21.0.0").isLowerEqualsOpt(Some(Version.parse("21.0.0"))))
+    Assert.assertTrue(Version.parse("21.0.0").isLowerEqualsOpt(Some(Version.parse("21.0.1"))))
+  }
+
+  @Test
   def testVersionParse(): Unit = {
     Assert.assertEquals(Version("", 1, 2, 3, "", ""), Version.parse("1.2.3"))
     Assert.assertEquals(Version("", 1, 2, 3, "6", ""), Version.parse("1.2.3_6"))

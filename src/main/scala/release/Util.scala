@@ -1,6 +1,6 @@
 package release
 
-import com.google.common.base.Strings
+import com.google.common.base.{Stopwatch, Strings}
 import com.google.common.hash.Hashing
 import org.apache.commons.codec.language.Soundex
 import org.apache.http.client.utils.URIBuilder
@@ -13,9 +13,12 @@ import java.nio.file.{FileSystemException, FileVisitResult, FileVisitor, Files, 
 import java.security.MessageDigest
 import java.time.{Duration, Period, ZonedDateTime}
 import java.util
+import java.util.concurrent.TimeUnit
 import javax.xml.bind.DatatypeConverter
 import scala.collection.immutable.Iterable
 import scala.collection.mutable
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.{Await, Future}
 import scala.jdk.CollectionConverters._
 import scala.util.Random
 
@@ -182,6 +185,25 @@ object Util {
   lazy val localWork: File = new File(".").getAbsoluteFile match {
     case f: File if f.getParentFile.getName == "modules" => f.getParentFile.getParentFile.getParentFile
     case f: File => f
+  }
+
+  def timeout[T](k: Int, timeUnit: TimeUnit, fn: (Stopwatch) => T, fallbackFn: (Exception, Duration) => T): (T, Duration) = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val stopwatch = Stopwatch.createStarted()
+    val futureTask = Future {
+      fn.apply(stopwatch)
+    }
+    val timeoutDuration: FiniteDuration = FiniteDuration(k, timeUnit)
+
+    try {
+      (Await.result(futureTask, timeoutDuration), stopwatch.elapsed())
+    } catch {
+      case e: Exception => {
+        val last = stopwatch.elapsed()
+        (fallbackFn.apply(e, last), last)
+      }
+    }
+
   }
 
   def distinctOn[A, K](in: Seq[A], fn: A => K): Seq[A] = {

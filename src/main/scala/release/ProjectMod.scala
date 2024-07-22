@@ -11,7 +11,6 @@ import java.time.{Duration, LocalDate, Period, ZonedDateTime}
 import java.util.concurrent.TimeUnit
 import scala.collection.immutable.{ListMap, Seq}
 import scala.collection.parallel.CollectionConverters._
-import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success, Try}
 
 object ProjectMod extends LazyLogging {
@@ -64,6 +63,54 @@ object ProjectMod extends LazyLogging {
   def rangeFnOf(in: String): (Gav3, Seq[String]) => String = {
     // TODO later
     (a, b) => b.last
+  }
+
+  def libyear(showYear: Boolean, currentGav: Gav3, major: Option[String], versionTimestamps: Seq[(String, Try[ZonedDateTime])],
+              yearsFn: ((Gav3, Option[Int], Duration)) => Unit): String = {
+    try {
+      if (showYear) {
+        val workStamps = versionTimestamps.sortBy(k => Version.parseSloppy(k._1))
+        if (workStamps.size > 1) {
+          val currentVersionWithTimestamp = workStamps.find(s => s._1 == currentGav.version.get)
+          if (currentVersionWithTimestamp.isDefined) {
+            val majorInt = major.flatMap(_.toIntOption)
+            val lastSelection = if (major.isDefined) {
+              val r = workStamps.filter(v => {
+                Version.parseSloppy(v._1).major == majorInt.getOrElse(-1)
+              }).lastOption
+              if (r.nonEmpty) {
+                r
+              } else {
+                workStamps.lastOption
+              }
+
+            } else {
+              workStamps.lastOption
+            }
+            if (currentVersionWithTimestamp.isDefined && currentVersionWithTimestamp.get._2.isSuccess) {
+              val dur = Duration.between(currentVersionWithTimestamp.get._2.get, lastSelection.get._2.get)
+
+              yearsFn.apply((currentGav, majorInt, dur))
+              val period: Period = Util.toPeriod(dur)
+              s" (libyears: ${period.getYears}Y ${period.getMonths}M [${dur.toDays} days])"
+            } else {
+              " (libyears: ?????)"
+            }
+
+          } else {
+            " (libyears: ????)"
+          }
+
+        } else {
+          " (libyears: ???)"
+        }
+
+      } else {
+        ""
+      }
+    } catch {
+      case e: Exception => s" (libyears: ?? ${e.getMessage})"
+    }
   }
 
   case class GavWithRef(pomRef: SelfRef, gav: Gav)
@@ -185,6 +232,15 @@ object ProjectMod extends LazyLogging {
       versionLiteral.matches("^[1-9][0-9]{3}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}.*$") || // com.graphql-java:graphql-java
       (versionLiteral.contains("android") && gav == Gav2(groupId = "com.google.guava", artifactId = "guava"))
 
+  }
+
+  def onlySelfAndRangeLast(self: Gav3, versionsToNormalize: Seq[String]): Seq[String] = {
+    val sorted = versionsToNormalize.map(Version.parseSloppy)
+    val g: Seq[String] = sorted.groupBy(_.primarysOpt.map(_._1)).flatMap(t => t._2.lastOption)
+      .filter(v => v.isGreaterEqualsOpt(self.versionSloppy()))
+      .map(_.rawInput).toSeq ++ self.version.toSeq
+
+    versionsToNormalize.filter(g.contains)
   }
 
   def normalizeUnwantedVersions(gav: Gav3, versionsToNormalize: Seq[String]): Seq[String] = {
@@ -341,8 +397,10 @@ object ProjectMod extends LazyLogging {
           newerVersions
         }
 
+        val reduced = ProjectMod.onlySelfAndRangeLast(dep.toGav().simpleGav(), selectedVersions)
+
         def selectReleaseDate(gav2: Gav2, v: String): Try[ZonedDateTime] = {
-          if (depUpOpts.showLibYears && selectedVersions.nonEmpty) {
+          if (depUpOpts.showLibYears && reduced.nonEmpty && reduced.contains(v)) {
             val latestDate = repo.depDate(gav2.groupId, gav2.artifactId, v)
             if (latestDate.isDefined) {
               Success(latestDate.get)
@@ -350,7 +408,7 @@ object ProjectMod extends LazyLogging {
               Failure(new UnsupportedOperationException(s"no date found for ${gav2.formatted}:${v}"))
             }
           } else {
-            Failure(new UnsupportedOperationException("libyears are not computed"))
+            Failure(new UnsupportedOperationException(s"libyears are not computed for ${gav2.formatted}:${v}"))
           }
 
         }
@@ -474,11 +532,10 @@ object ProjectMod extends LazyLogging {
         }
       })
 
-    val value: Seq[Gav3] = prepared
-      .flatMap(ProjectMod.relocateGavs(prepared, repoDelegator))
+    val value: Seq[Gav3] = prepared.flatMap(ProjectMod.relocateGavs(prepared, repoDelegator))
     val updates = checkForUpdates(value, depUpOpts, repoDelegator, updatePrinter, ws = ws)
     val now = LocalDate.now()
-    updatePrinter.println(s"I: checked ${value.size} dependencies in ${stopw.elapsed(TimeUnit.MILLISECONDS)}ms (${now.toString})")
+    updatePrinter.println(s"I: checked ${value.size} dependencies in ${stopw.toString} (${now.toString})")
 
     val checkedUpdates: Map[Gav3, Seq[(String, Try[ZonedDateTime])]] = if (depUpOpts.allowDependencyDowngrades) {
       updates
@@ -527,17 +584,20 @@ object ProjectMod extends LazyLogging {
         }).filterNot(_._2.isEmpty)
         if (majorVersionWithoutSelf.size == 1) {
 
-          val year = libyear(subElement._1.gav.simpleGav(), None, subElement._2)
+          val year = libyear(depUpOpts.showLibYears, subElement._1.gav.simpleGav(), None, subElement._2,
+            yearsFn = y => years = years :+ y)
           updatePrinter.println(ch("║ ╚═══ ", "| +--- ") +
             abbreviate(depUpOpts.versionRangeLimit)(majorVersionWithoutSelf.head._2).mkString(", ") + year)
         } else {
           if (majorVersionWithoutSelf != Nil) {
             majorVersionWithoutSelf.tail.reverse.foreach(el => {
-              val year = libyear(subElement._1.gav.simpleGav(), Some(el._1), subElement._2)
+              val year = libyear(depUpOpts.showLibYears, subElement._1.gav.simpleGav(), Some(el._1), subElement._2,
+                yearsFn = y => years = years :+ y)
               updatePrinter.println(ch("║ ╠═══ ", "| +--- ") + "(" + el._1 + ") " +
                 abbreviate(depUpOpts.versionRangeLimit)(el._2).mkString(", ") + year)
             })
-            val year = libyear(subElement._1.gav.simpleGav(), Some(majorVersionWithoutSelf.head._1), subElement._2)
+            val year = libyear(depUpOpts.showLibYears, subElement._1.gav.simpleGav(), Some(majorVersionWithoutSelf.head._1), subElement._2,
+              yearsFn = y => years = years :+ y)
             updatePrinter.println(ch("║ ╚═══ ", "| +--- ") + "(" + majorVersionWithoutSelf.head._1 + ") " +
               abbreviate(depUpOpts.versionRangeLimit)(majorVersionWithoutSelf.head._2).mkString(", ") + year)
           }
@@ -545,52 +605,6 @@ object ProjectMod extends LazyLogging {
 
       })
       updatePrinter.println(ch("║", "|"))
-
-      def libyear(currentGav: Gav3, major: Option[String], versionTimestamps: Seq[(String, Try[ZonedDateTime])]): String = {
-        try {
-          if (depUpOpts.showLibYears) {
-            if (versionTimestamps.size > 1) {
-              val currentVersionWithTimestamp = versionTimestamps.find(s => s._1 == currentGav.version.get)
-              if (currentVersionWithTimestamp.isDefined) {
-                val maybeInt = major.flatMap(_.toIntOption)
-                val lastSelection = if (major.isDefined) {
-                  val r = versionTimestamps.filter(v => {
-                    Version.parseSloppy(v._1).major == maybeInt.getOrElse(-1)
-                  }).lastOption
-                  if (r.nonEmpty) {
-                    r
-                  } else {
-                    versionTimestamps.lastOption
-                  }
-
-                } else {
-                  versionTimestamps.lastOption
-                }
-                if (currentVersionWithTimestamp.isDefined && currentVersionWithTimestamp.get._2.isSuccess) {
-                  val dur = Duration.between(currentVersionWithTimestamp.get._2.get, lastSelection.get._2.get)
-
-                  years = years :+ (currentGav, maybeInt, dur)
-                  val period: Period = Util.toPeriod(dur)
-                  s" (libyears: ${period.getYears}Y ${period.getMonths}M [${dur.toDays} days])"
-                } else {
-                  " (libyears: ?????)"
-                }
-
-              } else {
-                " (libyears: ????)"
-              }
-
-            } else {
-              " (libyears: ???)"
-            }
-
-          } else {
-            ""
-          }
-        } catch {
-          case e: Exception => s" (libyears: ?? ${e.getMessage})"
-        }
-      }
     })
 
     // TODO check versions before
@@ -677,10 +691,8 @@ trait ProjectMod extends LazyLogging {
   val skipPropertyReplacement: Boolean
 
   def tryCollectDependencyUpdates(depUpOpts: OptsDepUp, checkOn: Boolean = true, updatePrinter: UpdateCon, ws: String):
-  Try[Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])]] = {
-    import scala.concurrent.ExecutionContext.Implicits.global
-    import scala.concurrent.duration._
-    val futureTask = Future {
+  Try[(Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])], RepoProxy)] = {
+    Util.timeout(90, TimeUnit.SECONDS, _ => {
       try {
         Success(collectDependencyUpdates(depUpOpts, checkOn, updatePrinter, ws))
       } catch {
@@ -688,24 +700,20 @@ trait ProjectMod extends LazyLogging {
           Failure(e)
         }
       }
-    }
-    val timeoutDuration:FiniteDuration = FiniteDuration(90, TimeUnit.SECONDS)
-    try {
-      Await.result(futureTask, timeoutDuration)
-    } catch {
-      case e: Exception => {
-        Failure(e)
-      }
-    }
+    }, (e, _) => Failure(e))._1
 
   }
 
   def collectDependencyUpdates(depUpOpts: OptsDepUp, checkOn: Boolean = true, updatePrinter: UpdateCon, ws: String):
-  Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])] = {
+  (Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])], RepoProxy) = {
     val depForCheck: Seq[Dep] = listGavsForCheck()
     val sdm = selfDepsMod
     val allUrls: Seq[String] = repo.allRepoUrls() ++ listRemoteRepoUrls()
     val proxy = new RepoProxy(repo.createAll(allUrls))
+    val allRepoUrls = proxy.repos.flatMap(_.allRepoUrls()).distinct
+    if (allRepoUrls.nonEmpty) {
+      updatePrinter.println("... " + allRepoUrls.mkString(", "))
+    }
     val result = ProjectMod.collectDependencyUpdates(updatePrinter = updatePrinter,
       depUpOpts = depUpOpts, rootDeps = depForCheck, selfDepsMod = sdm, repoDelegator = proxy, checkOnline = checkOn,
       ws = ws)
@@ -719,7 +727,7 @@ trait ProjectMod extends LazyLogging {
       changeDependecyVersion(ProjectMod.toUpdats(result, fn))
       writeTo(file)
     }
-    result
+    (result, proxy)
   }
 
   private[release] def listDeps(): Seq[ProjectMod.Dep] = {

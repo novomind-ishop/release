@@ -35,22 +35,31 @@ class LintTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testUnwantedPackage_timeout(): Unit = {
+    val result = PackageResult.timeout(Duration.ofMillis(10), "hallo")
+    Assert.assertEquals(Seq("timeout"), result.unwantedPackages)
+  }
+
+  @Test
   def testUnwantedPackage(): Unit = {
     val testee = PackageResult(names = Seq(
       "package a.bl",
       "package a.bl.ba",
       "package oi.io;",
+      "package oi.package.io;",
       "package   a.j; ",
       " package a.s",
     ), Duration.ZERO,
       """a.bl;
         |oi.
         |package a.j;
+        |package oi.package.io;
         |package a.s
         |""".stripMargin, msg = "")
     Assert.assertEquals(Seq(
       "a.bl",
       "oi.io;",
+      "oi.package.io;",
       "a.j;",
       "a.s",
     ), testee.unwantedPackages)
