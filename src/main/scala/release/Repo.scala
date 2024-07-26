@@ -85,9 +85,9 @@ class RepoProxy(_repos: Seq[RepoZ]) extends RepoZ {
   override def getMetrics: RepoMetrics = {
     repos.foldLeft(RepoMetrics.empty())((a, b) => {
       val add = b.getMetrics
-        a.copy(dateCollection = a.dateCollection.plus(add.dateCollection),
+        a.copy(dateCollection = Util.roundDuration(a.dateCollection.plus(add.dateCollection)),
           dateCollectionCount = a.dateCollectionCount + add.dateCollectionCount,
-          versionCollection = a.versionCollection.plus(add.versionCollection),
+          versionCollection = Util.roundDuration(a.versionCollection.plus(add.versionCollection)),
           versionCollectionCount = a.versionCollectionCount + add.versionCollectionCount
         )
     })

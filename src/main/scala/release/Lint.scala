@@ -257,10 +257,16 @@ object Lint {
           }
         }
       } else if (tagN.isDefined) {
+        val snapi = if (selfVersion.contains("SNAPSHOT")) {
+          "(hint: a git tag should not be a SNAPSHOT) "
+        } else {
+          ""
+        }
         val msg = s" »$selfVersion« does not relate to git${tagMsg}${branchMsg}. " +
           s"Please use an plausible version marker and git marker combination like: " +
           s"(project.version: 1.2.3 -> git tag:v1.2.3), " +
           s"... " +
+          snapi +
           s"${fiWarn} ${fiCodeVersionMismatch}"
         MismatchResult.of(tagN.get.replaceFirst("^v", "") != selfVersion, msg = msg)
       } else if (tagBranchInfo.get.isMergeRequest) {

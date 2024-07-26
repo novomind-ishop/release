@@ -153,7 +153,13 @@ class LintTest extends AssertionsForJUnit {
 
     Assert.assertEquals(Lint.MismatchResult.problem(" »main-SNAPSHOT« does not relate to git tag: »master«." +
       " Please use an plausible version marker and git marker combination like:" +
-      " (project.version: 1.2.3 -> git tag:v1.2.3), ... \uD83D\uDE2C RL1014"), Lint.versionMismatches("main-SNAPSHOT", tag("master")))
+      " (project.version: 1.2.3 -> git tag:v1.2.3), ... (hint: a git tag should not be a SNAPSHOT) \uD83D\uDE2C RL1014"), Lint.versionMismatches("main-SNAPSHOT", tag("master")))
+    Assert.assertEquals(Lint.MismatchResult.problem(" »main-SNAPSHOT« does not relate to git tag: »main«." +
+      " Please use an plausible version marker and git marker combination like:" +
+      " (project.version: 1.2.3 -> git tag:v1.2.3), ... (hint: a git tag should not be a SNAPSHOT) \uD83D\uDE2C RL1014"), Lint.versionMismatches("main-SNAPSHOT", tag("main")))
+    Assert.assertEquals(Lint.MismatchResult.problem(" »main« does not relate to git tag: »master«." +
+      " Please use an plausible version marker and git marker combination like:" +
+      " (project.version: 1.2.3 -> git tag:v1.2.3), ... \uD83D\uDE2C RL1014"), Lint.versionMismatches("main", tag("master")))
     Assert.assertEquals(Lint.MismatchResult.problem(" project.version »main-SNAPSHOT« does not relate to git branch: »master«." +
       " Please use an plausible version marker and git marker combination like:" +
       " (project.version: main-SNAPSHOT -> git branch:main), ... \uD83D\uDE2C RL1014"),

@@ -1,7 +1,8 @@
 package release
 
-import java.time.ZonedDateTime
+import java.time.{Duration, ZonedDateTime}
 import org.junit.{Assert, Assume, Test}
+import org.mockito.Mockito
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.Starter.Opts
 
@@ -127,6 +128,18 @@ class RepoTest extends AssertionsForJUnit {
     val input = "<a href=\"jfrog-20240515.115211-1.data\">jfrog-20240515.115211-1.data</a>                         15-May-2024 11:59  268 bytes"
     val out = Repo.extractDate(input)
     Assert.assertEquals(ZonedDateTime.parse("2024-05-15T11:59:00+00:00"), out.get)
+  }
+
+  @Test
+  def testRepoMetrics(): Unit = {
+    val mock1 = Mockito.mock(classOf[RepoZ])
+    Mockito.when(mock1.getMetrics).thenReturn(
+      RepoMetrics(dateCollection = Duration.parse("PT18.845438003S"), dateCollectionCount = 1,
+        versionCollection = Duration.parse("PT1.135438003S"), versionCollectionCount = 2))
+    val out = new RepoProxy(Seq(mock1))
+
+    Assert.assertEquals(Duration.parse("PT1.14S"), out.getMetrics.versionCollection)
+    Assert.assertEquals(Duration.parse("PT18.85S"), out.getMetrics.dateCollection)
   }
 
 }

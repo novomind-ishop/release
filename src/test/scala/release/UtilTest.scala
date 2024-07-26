@@ -8,14 +8,20 @@ import java.time.{Duration, Period}
 import java.util
 import scala.util.Random
 
-
-object  UtilTest {
-  def randomSha1():String = {
+object UtilTest {
+  def randomSha1(): String = {
     Util.hashSha1(Random.nextLong().toString)
   }
 }
 
 class UtilTest extends AssertionsForJUnit {
+
+  @Test
+  def testRoundDuration(): Unit = {
+    Assert.assertEquals(Duration.parse("PT0S"), Util.roundDuration(Duration.parse("PT0S")))
+    Assert.assertEquals(Duration.parse("PT18.85S"), Util.roundDuration(Duration.parse("PT18.845438003S")))
+    Assert.assertEquals(Duration.parse("PT1H30M18.85S"), Util.roundDuration(Duration.parse("PT1H30M18.845438003S")))
+  }
 
   @Test
   def testDurationPeriods(): Unit = {
@@ -60,7 +66,6 @@ class UtilTest extends AssertionsForJUnit {
     Assert.assertEquals(3, Util.Similarity.soundex("Anger", "Ranger"))
     Assert.assertEquals(0, Util.Similarity.soundex("Otto", "Ranger"))
 
-
     Assert.assertEquals(0, Util.Similarity.soundexMax(Seq("Otto"), Seq("Ranger")))
     Assert.assertEquals(0, Util.Similarity.soundexMax(Seq("Otto", "o"), Seq("Otto")))
     Assert.assertEquals(4, Util.Similarity.soundexMax(Seq("Otto", "o"), Seq("Otto", "u")))
@@ -77,7 +82,6 @@ class UtilTest extends AssertionsForJUnit {
     Assert.assertEquals(3, Util.Similarity.soundexSplitMin("gui", "ui"))
     Assert.assertEquals(2, Util.Similarity.soundexSplitMin("app", "sba"))
   }
-
 
   @Test
   def testSymmetricDiff(): Unit = {
@@ -245,7 +249,7 @@ class UtilTest extends AssertionsForJUnit {
 
   @Test
   def testShow(): Unit = {
-    case class Bert(name: String, s: Seq[Int], otherNames:List[String], innerBerts: Seq[Bert])
+    case class Bert(name: String, s: Seq[Int], otherNames: List[String], innerBerts: Seq[Bert])
     Assert.assertEquals(
       """Bert(name = "Bert", s = Seq(1, 2), otherNames = Seq("otto", "man"), innerBerts = List(Bert(name = "Treb", s = List(), otherNames = List(), innerBerts = List())))
         |""".stripMargin.trim, Util.show(Bert(name = "Bert", s = Seq(1, 2), otherNames = List("otto", "man"),

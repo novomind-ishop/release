@@ -20,12 +20,24 @@ import scala.collection.mutable
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{Await, Future}
 import scala.jdk.CollectionConverters._
+import scala.math.BigDecimal.RoundingMode
 import scala.util.Random
 
 object Util {
   def toPeriod(d: Duration): Period = {
     val aDate = ZonedDateTime.parse("2018-05-31T00:10:52+00:00").toLocalDate
     Period.between(aDate, aDate.plusDays(d.toDays))
+  }
+
+  def roundDuration(d:Duration):Duration = {
+    val fractionalSeconds = BigDecimal(d.getNano, 9)
+    val totalSeconds = BigDecimal(d.getSeconds) + fractionalSeconds
+
+    val roundedSeconds = totalSeconds.setScale(2, RoundingMode.HALF_UP)
+    val roundedDuration = Duration.ofSeconds(roundedSeconds.longValue,
+      (roundedSeconds.remainder(BigDecimal(1)) * BigDecimal(1000000000)).intValue)
+
+    roundedDuration
   }
 
   object Similarity {
