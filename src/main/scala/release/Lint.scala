@@ -245,11 +245,15 @@ object Lint {
                 s"${fiWarn} ${fiCodeVersionMismatch}"
               MismatchResult.of(!bool, msg = msg)
             } else {
-              val msg = s" »$selfVersion« does not relate to git${branchMsg}. " +
-                s"Please use a plausible version marker and git marker combination." +
-                // TODO improve suggestions later
-                s"${fiWarn} ${fiCodeVersionMismatch}"
-              MismatchResult.problem(msg)
+              if (selfVersion.replaceFirst("-SNAPSHOT", "") == branchName.replaceFirst("^feature/", "").replaceFirst("^release/", "")) {
+                MismatchResult.valid
+              } else {
+                val msg = s" »$selfVersion« does not relate to git${branchMsg}. " +
+                  s"Please use a plausible version marker and git marker combination." +
+                  // TODO improve suggestions later
+                  s"${fiWarn} ${fiCodeVersionMismatch}"
+                MismatchResult.problem(msg)
+              }
             }
           } else {
             val msg = s" »$selfVersion« does not relate to git${tagMsg}${branchMsg}. " +
