@@ -217,7 +217,7 @@ object Lint {
           } else {
             val str = branchName + "-SNAPSHOT"
             val msg = s" project.version »$selfVersion« does not relate to git${branchMsg}. " +
-              s"Please use an plausible version marker and git marker combination like: " +
+              s"Please use a plausible version marker and git marker combination like: " +
               s"(project.version: $selfVersion -> git branch:${selfVersionParsed.removeSnapshot().rawInput}), " +
               s"... " +
               s"${fiWarn} ${fiCodeVersionMismatch}"
@@ -238,7 +238,7 @@ object Lint {
                 ", "
               }
               val msg = s" »$selfVersion« does not relate to git${branchMsg}. " +
-                s"Please use an plausible version marker and git marker combination like: " +
+                s"Please use a plausible version marker and git marker combination like: " +
                 s"(project.version: ${selfVersionParsed.rawInput} -> git branch: feature/${selfVersionParsed.primarys._1}x)" +
                 textSuggest +
                 s"... " +
@@ -246,14 +246,14 @@ object Lint {
               MismatchResult.of(!bool, msg = msg)
             } else {
               val msg = s" »$selfVersion« does not relate to git${branchMsg}. " +
-                s"Please use an plausible version marker and git marker combination." +
+                s"Please use a plausible version marker and git marker combination." +
                 // TODO improve suggestions later
                 s"${fiWarn} ${fiCodeVersionMismatch}"
               MismatchResult.problem(msg)
             }
           } else {
             val msg = s" »$selfVersion« does not relate to git${tagMsg}${branchMsg}. " +
-              s"Please use an plausible version marker and git marker combination like: " +
+              s"Please use a plausible version marker and git marker combination like: " +
               s"(project.version: 1.2.3 -> git tag:v1.2.3), " +
               s"... " +
               s"${fiWarn} ${fiCodeVersionMismatch}"
@@ -267,7 +267,7 @@ object Lint {
           ""
         }
         val msg = s" »$selfVersion« does not relate to git${tagMsg}${branchMsg}. " +
-          s"Please use an plausible version marker and git marker combination like: " +
+          s"Please use a plausible version marker and git marker combination like: " +
           s"(project.version: 1.2.3 -> git tag:v1.2.3), " +
           s"... " +
           snapi +
@@ -284,7 +284,7 @@ object Lint {
           MismatchResult.problem(msg)
         } else {
           val msg = s" b»$selfVersion« does not relate to git${tagMsg}${branchMsg}. " +
-            s"Please use an plausible version marker and git marker combination like: " +
+            s"Please use a plausible version marker and git marker combination like: " +
             s"(project.version: 1.2.3 -> git tag:v1.2.3), " +
             s"(project.version: 1.2.3-SNAPSHOT -> git branch:main), " +
             s"(project.version: main-SNAPSHOT -> git branch:main), " +

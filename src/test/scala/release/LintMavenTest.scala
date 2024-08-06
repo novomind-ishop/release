@@ -1900,7 +1900,7 @@ class LintMavenTest extends AssertionsForJUnit {
       """
         |[INFO]     main
         |[WARNING]  version »main« must be a SNAPSHOT; non snapshots are only allowed in tags 😬
-        |[WARNING]  project.version »main« does not relate to git branch: »main«. Please use an plausible version marker and git marker combination like: (project.version: main -> git branch:main), ... 😬 RL1014
+        |[WARNING]  project.version »main« does not relate to git branch: »main«. Please use a plausible version marker and git marker combination like: (project.version: main -> git branch:main), ... 😬 RL1014
         |""".stripMargin.trim
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))

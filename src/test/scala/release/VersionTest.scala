@@ -38,6 +38,8 @@ class VersionTest extends AssertionsForJUnit {
     Assert.assertEquals("alpha", alpha2.text)
     Assert.assertTrue(Version.parse("210.0.0_alpha").isOrdinal)
     Assert.assertFalse(Version.parse("210.0.0_alpha").isOrdinalOnly)
+    Assert.assertTrue(Version.parse("RC-2024.31-SNAPSHOT").isOrdinal)
+    Assert.assertTrue(Version.parseSloppy("RC-2024.31-SNAPSHOT").isOrdinal)
   }
 
   @Test

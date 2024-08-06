@@ -124,6 +124,7 @@ class LintTest extends AssertionsForJUnit {
   def testVersionMatches(): Unit = {
     Assert.assertEquals(Lint.MismatchResult.valid,
       Lint.versionMismatches("1.2.3", tag("v1.2.3", branchName = Some("HEAD"))))
+    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("RC-2024.31-SNAPSHOT", br("release/RC-2024.31")))
     Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("45x-SNAPSHOT", br("feature/45x")))
     Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("0.0.8-SNAPSHOT", br("feature/0x")))
     Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("0.0.8-SNAPSHOT", br("feature/0.0x")))
@@ -143,35 +144,35 @@ class LintTest extends AssertionsForJUnit {
       Lint.versionMismatches("", Some(BranchTagMerge(tagName = None, branchName = None))))
     Assert.assertEquals(
       Lint.MismatchResult.problem(" »1.0.0-M1-SNAPSHOT« does not relate to git branch: »feature/0x«." +
-        " Please use an plausible version marker and git marker combination like:" +
+        " Please use a plausible version marker and git marker combination like:" +
         " (project.version: 1.0.0-M1-SNAPSHOT -> git branch: feature/1x), ... \uD83D\uDE2C RL1014"),
       Lint.versionMismatches("1.0.0-M1-SNAPSHOT", br("feature/0x")))
     Assert.assertEquals(Lint.MismatchResult.problem(" »1.0.0-M1-SNAPSHOT« does not relate to git branch: »feature/1.1x«." +
-      " Please use an plausible version marker and git marker combination like:" +
+      " Please use a plausible version marker and git marker combination like:" +
       " (project.version: 1.0.0-M1-SNAPSHOT -> git branch: feature/1x), ... \uD83D\uDE2C RL1014"),
       Lint.versionMismatches("1.0.0-M1-SNAPSHOT", br("feature/1.1x")))
 
     Assert.assertEquals(Lint.MismatchResult.problem(" »main-SNAPSHOT« does not relate to git tag: »master«." +
-      " Please use an plausible version marker and git marker combination like:" +
+      " Please use a plausible version marker and git marker combination like:" +
       " (project.version: 1.2.3 -> git tag:v1.2.3), ... (hint: a git tag should not be a SNAPSHOT) \uD83D\uDE2C RL1014"), Lint.versionMismatches("main-SNAPSHOT", tag("master")))
     Assert.assertEquals(Lint.MismatchResult.problem(" »main-SNAPSHOT« does not relate to git tag: »main«." +
-      " Please use an plausible version marker and git marker combination like:" +
+      " Please use a plausible version marker and git marker combination like:" +
       " (project.version: 1.2.3 -> git tag:v1.2.3), ... (hint: a git tag should not be a SNAPSHOT) \uD83D\uDE2C RL1014"), Lint.versionMismatches("main-SNAPSHOT", tag("main")))
     Assert.assertEquals(Lint.MismatchResult.problem(" »main« does not relate to git tag: »master«." +
-      " Please use an plausible version marker and git marker combination like:" +
+      " Please use a plausible version marker and git marker combination like:" +
       " (project.version: 1.2.3 -> git tag:v1.2.3), ... \uD83D\uDE2C RL1014"), Lint.versionMismatches("main", tag("master")))
     Assert.assertEquals(Lint.MismatchResult.problem(" project.version »main-SNAPSHOT« does not relate to git branch: »master«." +
-      " Please use an plausible version marker and git marker combination like:" +
+      " Please use a plausible version marker and git marker combination like:" +
       " (project.version: main-SNAPSHOT -> git branch:main), ... \uD83D\uDE2C RL1014"),
       Lint.versionMismatches("main-SNAPSHOT", br("master")))
     Assert.assertEquals(
       Lint.MismatchResult.problem(" »1.0.0-M1« does not relate to git branch: »feature/0x«." +
-        " Please use an plausible version marker and git marker combination like:" +
+        " Please use a plausible version marker and git marker combination like:" +
         " (project.version: 1.2.3 -> git tag:v1.2.3), ... \uD83D\uDE2C RL1014"), Lint.versionMismatches("1.0.0-M1", br("feature/0x")))
     Assert.assertEquals(Lint.MismatchResult.problem(" project.version »RC-2024.25-SNAPSHOT« is detached (HEAD). Maybe add a ref. \uD83D\uDE2C RL1014"),
       Lint.versionMismatches("RC-2024.25-SNAPSHOT", Some(BranchTagMerge(tagName = None, branchName = Some("HEAD")))))
     Assert.assertEquals(Lint.MismatchResult.problem(" »master-SNAPSHOT« does not relate to git branch: »feature/core44«. " +
-      "Please use an plausible version marker and git marker combination.\uD83D\uDE2C RL1014"),
+      "Please use a plausible version marker and git marker combination.\uD83D\uDE2C RL1014"),
       Lint.versionMismatches("master-SNAPSHOT", br("feature/core44")))
 
   }
@@ -183,7 +184,7 @@ class LintTest extends AssertionsForJUnit {
       Some(BranchTagMerge(tagName = None, branchName = Some("feature/management"))))
     Assert.assertTrue(result.isMismatch)
     Assert.assertEquals(" »1.0.1-management-SNAPSHOT« does not relate to git branch: »feature/management«." +
-      " Please use an plausible version marker and git marker combination like:" +
+      " Please use a plausible version marker and git marker combination like:" +
       " (project.version: 1.0.1-management-SNAPSHOT -> git branch: feature/1x)," +
       " (project.version: management-SNAPSHOT -> git branch: feature/management), ... \uD83D\uDE2C RL1014", result.msg)
   }
