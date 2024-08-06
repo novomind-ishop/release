@@ -170,6 +170,9 @@ class LintTest extends AssertionsForJUnit {
         " (project.version: 1.2.3 -> git tag:v1.2.3), ... \uD83D\uDE2C RL1014"), Lint.versionMismatches("1.0.0-M1", br("feature/0x")))
     Assert.assertEquals(Lint.MismatchResult.problem(" project.version »RC-2024.25-SNAPSHOT« is detached (HEAD). Maybe add a ref. \uD83D\uDE2C RL1014"),
       Lint.versionMismatches("RC-2024.25-SNAPSHOT", Some(BranchTagMerge(tagName = None, branchName = Some("HEAD")))))
+    Assert.assertEquals(Lint.MismatchResult.problem(" »master-SNAPSHOT« does not relate to git branch: »feature/core44«. " +
+      "Please use an plausible version marker and git marker combination.\uD83D\uDE2C RL1014"),
+      Lint.versionMismatches("master-SNAPSHOT", br("feature/core44")))
 
   }
 

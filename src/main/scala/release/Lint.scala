@@ -245,7 +245,11 @@ object Lint {
                 s"${fiWarn} ${fiCodeVersionMismatch}"
               MismatchResult.of(!bool, msg = msg)
             } else {
-              MismatchResult.valid
+              val msg = s" »$selfVersion« does not relate to git${branchMsg}. " +
+                s"Please use an plausible version marker and git marker combination." +
+                // TODO improve suggestions later
+                s"${fiWarn} ${fiCodeVersionMismatch}"
+              MismatchResult.problem(msg)
             }
           } else {
             val msg = s" »$selfVersion« does not relate to git${tagMsg}${branchMsg}. " +
