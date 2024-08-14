@@ -372,6 +372,10 @@ object Repo extends LazyLogging {
       rangeRequest.setArtifact(artifact)
       rangeRequest.setRepositories(Util.toJavaList(Seq(repository)))
       val rangeResult = system.resolveVersionRange(session, rangeRequest)
+      val status401 = rangeResult.getExceptions.asScala.filter(_.getMessage.contains("401"))
+      if (status401.nonEmpty) {
+        throw status401.head
+      }
       val o = rangeResult.getVersions.asScala.toList
       cache.put((repository.getUrl, request), o)
       o
@@ -527,7 +531,10 @@ object Repo extends LazyLogging {
     artifactRequest.setArtifact(artifact)
     artifactRequest.setRepositories(Util.toJavaList(Seq(repository)))
     val result = system.resolveArtifact(session, artifactRequest)
-
+    val status401 = result.getExceptions.asScala.filter(_.getMessage.contains("401"))
+    if (status401.nonEmpty) {
+      throw status401.head
+    }
     (result.getArtifact.getFile, result.getArtifact.getVersion)
   }
 

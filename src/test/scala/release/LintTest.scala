@@ -8,6 +8,7 @@ import release.Lint.{BranchTagMerge, NePrLa, PackageResult}
 import release.ProjectMod.Gav3
 import release.Sgit.{GitShaBranch, GitShaTag}
 
+import java.nio.file.Paths
 import java.time.{Duration, Period, ZonedDateTime}
 
 class LintTest extends AssertionsForJUnit {
@@ -42,20 +43,22 @@ class LintTest extends AssertionsForJUnit {
 
   @Test
   def testUnwantedPackage(): Unit = {
-    val testee = PackageResult(names = Seq(
+    val g = Seq(
       "package a.bl",
       "package a.bl.ba",
       "package oi.io;",
       "package oi.package.io;",
       "package   a.j; ",
       " package a.s",
-    ), Duration.ZERO,
+    )
+    val testee = PackageResult(namesAndPath = g.map(p => (p, Paths.get("a"))), Duration.ZERO,
       """a.bl;
         |oi.
         |package a.j;
         |package oi.package.io;
         |package a.s
         |""".stripMargin, msg = "")
+    Assert.assertEquals(g, testee.names)
     Assert.assertEquals(Seq(
       "a.bl",
       "oi.io;",
@@ -63,6 +66,7 @@ class LintTest extends AssertionsForJUnit {
       "a.j;",
       "a.s",
     ), testee.unwantedPackages)
+    Assert.assertEquals(Some("List((package a.bl,a))"), testee.select("a.bl"))
   }
 
   @Test

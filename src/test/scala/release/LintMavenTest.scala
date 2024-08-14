@@ -193,7 +193,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |
         |I: checked 1 dependencies in 999ms (2000-01-01)
         |Non existing dependencies for:
-        |org.springframework:spring-context:1.0.0->Nil
+        |»org.springframework:spring-context:1.0.0« -> Nil
         |  RepoProxy: https://repo.example.orgorg/springframework/spring-context/maven-metadata.xml
         |
         |
@@ -1086,9 +1086,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for snapshots @ maven ---
         |[warning]   found snapshot: org.springframework:spring-context:1.0.1-SNAPSHOT 😬 RL1011-ea7ea019
         |[INFO] --- check for GAV format @ maven ---
-        |[WARNING] org.springframework:spring-context-range:(,1.0],[1.2,) uses unusual format, please repair 😬 RL1010-92f68063
-        |[WARNING] org.springframework:spring-context-release:RELEASE uses unusual format, please repair 😬 RL1010-d484eb4f
-        |[WARNING] org.springframework:spring-context-latest:LATEST uses unusual format, please repair 😬 RL1010-94d64e99
+        |[WARNING] »org.springframework:spring-context-range:(,1.0],[1.2,)« uses unusual format, please repair 😬 RL1010-92f68063
+        |[WARNING] »org.springframework:spring-context-release:RELEASE« uses unusual format, please repair 😬 RL1010-d484eb4f
+        |[WARNING] »org.springframework:spring-context-latest:LATEST« uses unusual format, please repair 😬 RL1010-94d64e99
         |[WARNING] known scopes are: compile, import, provided, runtime, system, test
         |[WARNING] version ranges are not allowed
         |[WARNING] unstable marker like LATEST and RELEASE are not allowed
@@ -1190,6 +1190,11 @@ class LintMavenTest extends AssertionsForJUnit {
         |      <version>1.0.0-SNAPSHOT</version>
         |      <scope>bert</scope>
         |    </dependency>
+        |    <dependency>
+        |      <groupId>org.springframework</groupId>
+        |      <artifactId>spring-other2</artifactId>
+        |      <version>1.0.0-SNAPSHOT </version>
+        |    </dependency>
         |  </dependencies>
         |</project>
         |""".stripMargin.linesIterator.toSeq)
@@ -1272,7 +1277,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]   found snapshot: org.springframework:spring-context:1.0.1-SNAPSHOT 😬 RL1011-ea7ea019
         |[WARNING]   found snapshot: org.springframework:spring-other:1.0.0-SNAPSHOT:bert 😬 RL1011-bd849fd4
         |[INFO] --- check for GAV format @ maven ---
-        |[WARNING] org.springframework:spring-other:1.0.0-SNAPSHOT:bert uses unusual format, please repair 😬 RL1010-bd849fd4
+        |[WARNING] »org.springframework:spring-other:1.0.0-SNAPSHOT:bert« uses unusual format, please repair 😬 RL1010-bd849fd4
+        |[WARNING] »org.springframework:spring-other2:1.0.0-SNAPSHOT « uses unusual format, please repair 😬 RL1010-def91957
         |[WARNING] known scopes are: compile, import, provided, runtime, system, test
         |[WARNING] version ranges are not allowed
         |[WARNING] unstable marker like LATEST and RELEASE are not allowed
@@ -1286,7 +1292,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |... https://repo1.maven.org/maven2/
         |I: checking dependencies against nexus - please wait
         |
-        |I: checked 3 dependencies in 999ms (2000-01-01)
+        |I: checked 4 dependencies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.11.0
         |╠═╦═ org.springframework:spring-context:1.0.1-SNAPSHOT
         |║ ╠═══ (1) 1.0.1, .., 1.2.8, 1.2.9 (libyears: 0Y 0M [1 days])
@@ -1297,6 +1303,10 @@ class LintMavenTest extends AssertionsForJUnit {
         |╠═╦═ org.springframework:spring-single:1.0.1
         |║ ╚═══ 1.0.2 (libyears: 2Y 10M [1049 days])
         |║
+        |Non existing dependencies for:
+        |»org.springframework:spring-other2:1.0.0-SNAPSHOT « -> Nil
+        |  RepoProxy: https://repo1.maven.org/maven2/org/springframework/spring-other2/maven-metadata.xml
+        |
         |
         |Σ libyears: 2Y 10M (1065 days)
         |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
@@ -1347,11 +1357,18 @@ class LintMavenTest extends AssertionsForJUnit {
         .thenReturn(Some(now2.plusDays(1049)))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+        .thenReturn(Nil)
 
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-single"), ArgumentMatchers.anyString()))
         .thenReturn(Seq(
           "1.0.1",
           "1.0.2",
+        ))
+
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.eq("org.springframework"), ArgumentMatchers.eq("spring-other2"), ArgumentMatchers.anyString()))
+        .thenReturn(Seq(
+          "1.0.0-SNAPSHOT",
         ))
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-other"), ArgumentMatchers.anyString()))
         .thenReturn(Seq(
@@ -1359,12 +1376,14 @@ class LintMavenTest extends AssertionsForJUnit {
           "0.0.2", "1.0.1", "1.0.2", "1.2.8", "1.2.9",
           "2.0", "2.1.1", "2.5.5", "2.5.6",
         ))
+
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-context"), ArgumentMatchers.anyString()))
         .thenReturn(Seq(
           "1.0.1-SNAPSHOT",
           "0.0.2", "1.0.1", "1.0.2", "1.2.8", "1.2.9",
           "2.0", "2.1.1", "2.5.5", "2.5.6",
         ))
+
       val value = Map(
         "CI_CONFIG_PATH" -> ".gitlab-ci.yml",
         "CI_COMMIT_REF_NAME" -> "v0.11.0",
@@ -1492,7 +1511,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- unwanted-packages @ ishop ---
         |[INFO]     found 2 package names in PT4S
-        |[WARNING]  package »a.b;« is in list of unwanted packages, please avoid this package
+        |[WARNING]  package »a.b;« is in list of unwanted packages, please avoid this package 😬 RL1019-e215bd6f
         |[INFO]     .unwanted-packages // checksum b0af4bf2
         |
         |/tmp/junit-REPLACED/release-lint-mvn-parent/.git

@@ -152,6 +152,8 @@ object ProjectMod extends LazyLogging {
 
   def relocateGavs(gavs: Seq[Gav3], repo: RepoZ)(gav: Gav3): Seq[Gav3] = {
     // TODO plugins.sbt - name ?
+    // [INFO] --- dependency:3.3.0:tree (pre-build-validate-tree) ---
+    // [WARNING] The artifact com.atlassian.commonmark:commonmark:jar:0.17.0 has been relocated to org.commonmark:commonmark:jar:0.17.0
     val maybeGav = repo.getRelocationOf(gav.groupId, gav.artifactId, gav.version.get)
     if (maybeGav.isDefined) {
       // TODO handle remote relocation
@@ -618,7 +620,7 @@ object ProjectMod extends LazyLogging {
     if (versionNotFound.nonEmpty) {
       // TODO throw new PreconditionsException
       updatePrinter.printlnErr("Non existing dependencies for:\n" +
-        versionNotFound.toList.map(in => in._1.formatted + "->" + (in._2 match {
+        versionNotFound.toList.map(in => s"»${in._1.formatted}« -> " + (in._2 match {
           case Nil => "Nil"
           case e => e
         }) + "\n  " + repoDelegator.workNexusUrl() + in._1.slashedMeta).sorted.mkString("\n"))

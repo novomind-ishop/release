@@ -47,14 +47,20 @@ object Lint {
 
   object PackageResult {
     def timeout(d: Duration, msg: String) = {
-      PackageResult(Seq("timeout"), d, "timeout", msg = msg)
+      PackageResult(Seq(("timeout", Path.of("timeout"))), d, "timeout", msg = msg)
     }
   }
 
-  case class PackageResult(names: Seq[String], d: Duration, private val unwantedText: String, msg: String) {
+  case class PackageResult(namesAndPath: Seq[(String, Path)], d: Duration, private val unwantedText: String, msg: String) {
+    val names = namesAndPath.map(_._1).distinct.toList
+    private val namesPathIndex = namesAndPath.groupBy(k => nom(k._1))
 
     private def nom(in: String) = {
       in.replaceFirst("package ", "").trim
+    }
+
+    def select(in: String): Option[Any] = {
+     namesPathIndex.get(in).map(_.toString())
     }
 
     val allNames = unwantedText.linesIterator.toSet.map(nom).toSeq
@@ -108,16 +114,18 @@ object Lint {
           }
         })
         val suffix = Set("java", "scala")
-        PackageResult(na.par
+        val packageLines: List[(String, Path)] = na.par
           .filter(p => suffix.contains(com.google.common.io.Files.getFileExtension(p.toFile.getName)))
           .flatMap(f => {
             try {
-              Using.resource(scala.io.Source.fromFile(f.toFile)) { r => selectPackage(r.getLines()) }
+              val rel = rootFile.toPath.relativize(f)
+              Using.resource(scala.io.Source.fromFile(f.toFile)) { r => selectPackage(r.getLines()) }.map(e => (e, rel))
             } catch {
               case _: Exception => None
             }
 
-          }).distinct.toList.sorted, stopwatch.elapsed().withNanos(0), unwantedText = Util.read(packageScanFile), msg = "")
+          }).distinct.toList.sorted
+        PackageResult(packageLines, stopwatch.elapsed().withNanos(0), unwantedText = Util.read(packageScanFile), msg = "")
 
       }
 
@@ -394,6 +402,7 @@ object Lint {
   val fiCodeVersionMismatch = uniqCode(1014)(())
   val fiCodeDependencyScopesCopiesOverlapping = uniqCode(1017)
   val fiCodePreviouRelease = uniqCode(1018)
+  val fiCodeUnwantedPackage = uniqCode(1019)
   val fiWarn = "\uD83D\uDE2C"
   val fiError = "❌"
 
@@ -766,7 +775,7 @@ object Lint {
             val unusualGavs = mod.listGavsWithUnusualScope()
             if (unusualGavs.nonEmpty) {
               unusualGavs.foreach(found => {
-                out.println(warn(s"${found.formatted} uses unusual format, please repair ${fiWarn} ${fiCodeUnusualGav.apply(found)}", opts, limit = lineMax))
+                out.println(warn(s"»${found.formatted}« uses unusual format, please repair ${fiWarn} ${fiCodeUnusualGav.apply(found)}", opts, limit = lineMax))
               })
               out.println(warn(s"known scopes are: ${ProjectMod.knownScopes.filterNot(_.isEmpty).toSeq.sorted.mkString(", ")}", opts))
               out.println(warn(s"version ranges are not allowed", opts))
@@ -956,7 +965,7 @@ object Lint {
           out.println(info(s"    found $nameSize package ${"name".pluralize(nameSize)} in ${packageNamesDetails.d.toString}", opts))
           if (packageNamesDetails.unwantedPackages.nonEmpty) {
             packageNamesDetails.unwantedPackages.foreach(line => {
-              out.println(warn(s" package »${line}« is in list of unwanted packages, please avoid this package", opts, limit = lineMax))
+              out.println(warn(s" package »${line}« is in list of unwanted packages, please avoid this package ${fiWarn} ${fiCodeUnwantedPackage(packageNamesDetails.select(line))}", opts, limit = lineMax))
             })
           } else {
             out.println(info(s"    ${fiFine} no problematic packages found", opts))
