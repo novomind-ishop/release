@@ -9,6 +9,7 @@ import org.apache.http.client.config.RequestConfig
 import org.apache.http.client.methods.{CloseableHttpResponse, HttpGet}
 import org.apache.http.impl.client.HttpClients
 import org.apache.maven.repository.internal.MavenRepositorySystemUtils
+import org.codehaus.plexus.util.xml.pull.XmlPullParserException
 import org.eclipse.aether.artifact.DefaultArtifact
 import org.eclipse.aether.metadata.DefaultMetadata
 import org.eclipse.aether.metadata.Metadata.Nature
@@ -372,9 +373,14 @@ object Repo extends LazyLogging {
       rangeRequest.setArtifact(artifact)
       rangeRequest.setRepositories(Util.toJavaList(Seq(repository)))
       val rangeResult = system.resolveVersionRange(session, rangeRequest)
-      val status401 = rangeResult.getExceptions.asScala.filter(_.getMessage.contains("401"))
+      val exceptions:Seq[Exception] = rangeResult.getExceptions.asScala.toSeq.toSeq
+      val status401 = exceptions.filter(e => e.isInstanceOf[MetadataTransferException]).filter(_.getMessage.contains(" 401"))
       if (status401.nonEmpty) {
         throw status401.head
+      }
+      val value = exceptions.find(e => e.isInstanceOf[XmlPullParserException])
+      if (value.isDefined) {
+        throw value.head
       }
       val o = rangeResult.getVersions.asScala.toList
       cache.put((repository.getUrl, request), o)
