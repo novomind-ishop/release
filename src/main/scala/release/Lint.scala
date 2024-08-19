@@ -608,7 +608,8 @@ object Lint {
         } else {
           None
         }
-        val dockerTag = SuggestDockerTag.findTagname(ciCommitRefName, ciCommitTag, pompom.flatMap(_.toOption.map(_.selfVersion)))
+        val hasDockerFiles = rootFolderFiles.exists(_.getName == "Dockerfile") // TODO search in git
+        val dockerTag = SuggestDockerTag.findTagname(ciCommitRefName, ciCommitTag, pompom.flatMap(_.toOption.map(_.selfVersion)), hasDockerFiles)
         val defaultCiFilename = ".gitlab-ci.yml"
 
         if (ciconfigpath != null) {
@@ -965,7 +966,16 @@ object Lint {
           out.println(info(s"    found $nameSize package ${"name".pluralize(nameSize)} in ${packageNamesDetails.d.toString}", opts))
           if (packageNamesDetails.unwantedPackages.nonEmpty) {
             packageNamesDetails.unwantedPackages.foreach(line => {
-              out.println(warn(s" package »${line}« is in list of unwanted packages, please avoid this package ${fiWarn} ${fiCodeUnwantedPackage(packageNamesDetails.select(line))}", opts, limit = lineMax))
+              val code = fiCodeUnwantedPackage(packageNamesDetails.select(line))
+              val msg = s" package »${line}« is in list of unwanted packages, please avoid this package ${fiWarn} $code"
+              val bool = opts.lintOpts.skips.contains(code)
+              if (bool) {
+                usedSkips = usedSkips :+ code
+                out.println(warnSoft(msg, opts, limit = lineMax))
+              } else {
+                out.println(warn(msg, opts, limit = lineMax))
+                warnExit.set(true)
+              }
             })
           } else {
             out.println(info(s"    ${fiFine} no problematic packages found", opts))

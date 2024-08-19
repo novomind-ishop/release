@@ -14,29 +14,34 @@ object SuggestDockerTag {
     .replaceAll("[^\\p{ASCII}]", "")
     .replaceAll("[^a-zA-Z0-9_\\-\\.]+", "")
 
-  def findTagname(refName: String, tagName: String, projectVersion: Option[String]): Try[Try[String]] = {
-    val ref = Strings.nullToEmpty(refName)
-    val tag = Strings.nullToEmpty(tagName)
-    if (ref.isBlank && tag.isBlank) {
-      Failure(new IllegalStateException("nor tag nor ref"))
-    } else if (!ref.isBlank && !tag.isBlank) {
-      val suggested = if (projectVersion.isDefined) {
-        "v" + suggest(refName, tagName, projectVersion)._1
-      } else {
-        tag
-      }
-      if (suggested.matches(Version.semverGitTagForDockerTagPattern.regex)) {
-        Success(Success(tag))
-      } else {
-        Success(Failure(new IllegalStateException(s"auto suggested docker tag »\u00A0${suggested}\u00A0« is no valid docker tag name. " +
-          s"This could lead to build problems later. " +
-          s"A git tag must match the pattern »\u00A0${Version.semverGitTagForDockerTagPattern.regex}\u00A0« to suggest valid docker tags. " +
-          "It is also possible to export an environment variable e.g. HARBOR_TAG")))
-      }
+  def findTagname(refName: String, tagName: String, projectVersion: Option[String], hasDockerfiles:Boolean): Try[Try[String]] = {
+    if (hasDockerfiles) {
+      val ref = Strings.nullToEmpty(refName)
+      val tag = Strings.nullToEmpty(tagName)
+      if (ref.isBlank && tag.isBlank) {
+        Failure(new IllegalStateException("nor tag nor ref"))
+      } else if (!ref.isBlank && !tag.isBlank) {
+        val suggested = if (projectVersion.isDefined) {
+          "v" + suggest(refName, tagName, projectVersion)._1
+        } else {
+          tag
+        }
+        if (suggested.matches(Version.semverGitTagForDockerTagPattern.regex)) {
+          Success(Success(tag))
+        } else {
+          Success(Failure(new IllegalStateException(s"auto suggested docker tag »\u00A0${suggested}\u00A0« is no valid docker tag name. " +
+            s"This could lead to build problems later. " +
+            s"A git tag must match the pattern »\u00A0${Version.semverGitTagForDockerTagPattern.regex}\u00A0« to suggest valid docker tags. " +
+            "It is also possible to export an environment variable e.g. HARBOR_TAG")))
+        }
 
+      } else {
+        Failure(new IllegalStateException("no tag"))
+      }
     } else {
-      Failure(new IllegalStateException("no tag"))
+      Failure(new IllegalStateException("no Dockerfiles"))
     }
+
   }
 
   def suggest(commitRef: String, tagName: String, projectVersion: Option[String], externalTag: String = ""): (String, ExitCode) = {

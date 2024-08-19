@@ -235,6 +235,11 @@ class LintMavenTest extends AssertionsForJUnit {
     gitA.configSetLocal("user.name", "Your Name")
     @unused
     val gitB = Sgit.doCloneRemote(remote.toURI.toString.replaceFirst("file:/", "file:///"), fileB)
+    val dockerile = new File(fileB, "Dockerfile")
+    Util.write(dockerile,
+      """
+        |FROM
+        |""".stripMargin.linesIterator.toSeq)
 
     val expected =
       """
@@ -255,6 +260,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
         |[INFO] --- .gitignore @ git ---
+        |[WARNING]  Found local changes 😬 RL1003-914782d6
+        |[WARNING]  ?? Dockerfile 😬 RL1003-8faf89d2
         |[INFO] --- list-remotes @ git ---
         |[INFO]       remote: origin  file:/tmp/junit-REPLACED/release-lint-mvn-simple-init/ (fetch)
         |[INFO]       remote: origin  file:/tmp/junit-REPLACED/release-lint-mvn-simple-init/ (push)
@@ -274,6 +281,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     ✅ NO SNAPSHOTS in other files found
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
+        |/tmp/junit-REPLACED/release-lint-mvn-simple/Dockerfile
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[ERROR] exit 43 - because lint found errors, see above ❌""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 43)(sys => {
@@ -1157,11 +1165,11 @@ class LintMavenTest extends AssertionsForJUnit {
 
   @Test
   def testSnapUpdateWithDates(): Unit = {
-    val file = temp.newFolder("release-lint-mvn-simple")
-    val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
+    val root = temp.newFolder("release-lint-mvn-simple")
+    val gitA = Sgit.init(root, SgitTest.hasCommitMsg)
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
-    Util.write(new File(file, "pom.xml"),
+    Util.write(new File(root, "pom.xml"),
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -1198,21 +1206,27 @@ class LintMavenTest extends AssertionsForJUnit {
         |  </dependencies>
         |</project>
         |""".stripMargin.linesIterator.toSeq)
-    val notes = new File(file, "notes.md")
+    val notes = new File(root, "notes.md")
     Util.write(notes,
       """
         |This is the documentation for 0.11-SNAPSHOT
         |This is the documentation for 0.11-SNAPSHOT
         |""".stripMargin.linesIterator.toSeq)
-    val folder1 = new File(file, "folder1")
+    val dockerile = new File(root, "Dockerfile")
+    Util.write(dockerile,
+      """
+        |FROM
+        |""".stripMargin.linesIterator.toSeq)
+    val folder1 = new File(root, "folder1")
     folder1.mkdir()
     val file1 = new File(folder1, "test.txt")
     Util.write(file1, Seq("content"))
     gitA.add(notes)
+    gitA.add(dockerile)
     gitA.add(Util.write(new File(folder1, "Demo.java"), // TODO valid folder
       """package some;
         |""".stripMargin.linesIterator.toSeq))
-    val unwantedPackages = new File(file, ".unwanted-packages")
+    val unwantedPackages = new File(root, ".unwanted-packages")
     Util.write(unwantedPackages,
       """a.b;
         |""".stripMargin.linesIterator.toSeq)
@@ -1322,9 +1336,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.unwanted-packages
+        |/tmp/junit-REPLACED/release-lint-mvn-simple/Dockerfile
         |/tmp/junit-REPLACED/release-lint-mvn-simple/folder1
         |/tmp/junit-REPLACED/release-lint-mvn-simple/notes.md
-        |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
@@ -1389,7 +1403,7 @@ class LintMavenTest extends AssertionsForJUnit {
         "CI_COMMIT_REF_NAME" -> "v0.11.0",
         "CI_COMMIT_TAG" -> "v0.11.0",
       )
-      System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), value, file))
+      System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), value, root))
     })
 
   }
@@ -1788,7 +1802,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]       CI_COMMIT_REF_NAME : feature/bre
         |[INFO]       CI_COMMIT_BRANCH :
         |[INFO]       a valid merge request : feature/bre
-        |[warning]    no docker tag : no tag
+        |[warning]    no docker tag : no Dockerfiles
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
         |[INFO]     ✅ NO SNAPSHOTS in other files found
         |[INFO] --- model read @ maven/sbt/gradle ---

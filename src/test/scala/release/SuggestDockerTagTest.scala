@@ -206,38 +206,44 @@ class SuggestDockerTagTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testFindTagname_noDockerfiles(): Unit = {
+    val tuple = SuggestDockerTag.findTagname(null, null, None, hasDockerfiles = false)
+    Assert.assertEquals("no Dockerfiles", tuple.failed.get.getMessage)
+  }
+
+  @Test
   def testFindTagname_null(): Unit = {
-    val tuple = SuggestDockerTag.findTagname(null, null, None)
+    val tuple = SuggestDockerTag.findTagname(null, null, None, hasDockerfiles = true)
     Assert.assertEquals("nor tag nor ref", tuple.failed.get.getMessage)
   }
 
   @Test
   def testFindTagname_branch(): Unit = {
-    val tuple = SuggestDockerTag.findTagname("main", null, None)
+    val tuple = SuggestDockerTag.findTagname("main", null, None, hasDockerfiles = true)
     Assert.assertEquals("no tag", tuple.failed.get.getMessage)
   }
 
   @Test
   def testFindTagname_validTag(): Unit = {
-    val tuple = SuggestDockerTag.findTagname("v1.0.0", "v1.0.0", None)
+    val tuple = SuggestDockerTag.findTagname("v1.0.0", "v1.0.0", None, hasDockerfiles = true)
     Assert.assertEquals(Success("v1.0.0"), tuple.get)
   }
 
   @Test
   def testFindTagname_validTag_milestone(): Unit = {
-    val tuple = SuggestDockerTag.findTagname("v1.0.0-M1", "v1.0.0-M1", None)
+    val tuple = SuggestDockerTag.findTagname("v1.0.0-M1", "v1.0.0-M1", None, hasDockerfiles = true)
     Assert.assertEquals(Success("v1.0.0-M1"), tuple.get)
   }
 
   @Test
   def testFindTagname_validTag_milestone_withProject(): Unit = {
-    val tuple = SuggestDockerTag.findTagname("v1.0.0-M1", "v1.0.0-M1", Some("1.0.0-M1"))
+    val tuple = SuggestDockerTag.findTagname("v1.0.0-M1", "v1.0.0-M1", Some("1.0.0-M1"), hasDockerfiles = true)
     Assert.assertEquals(Success("v1.0.0-M1"), tuple.get)
   }
 
   @Test
   def testFindTagname_invalidVersion(): Unit = {
-    val tuple = SuggestDockerTag.findTagname("v1.0.0-M1", "v1.0.0-M1", Some("1.0.0-SNAPSHOT"))
+    val tuple = SuggestDockerTag.findTagname("v1.0.0-M1", "v1.0.0-M1", Some("1.0.0-SNAPSHOT"), hasDockerfiles = true)
     Assert.assertEquals("auto suggested docker tag » v1.0.0-M1_aka_1_0_0_SNAPSHOT « is no valid docker tag name. " +
       "This could lead to build problems later. " +
       "A git tag must match the pattern » ^v[0-9]+\\.[0-9]+\\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ « to suggest valid docker tags. " +
@@ -246,7 +252,7 @@ class SuggestDockerTagTest extends AssertionsForJUnit {
 
   @Test
   def testFindTagname_invalidTag(): Unit = {
-    val tuple = SuggestDockerTag.findTagname("main", "main", None)
+    val tuple = SuggestDockerTag.findTagname("main", "main", None, hasDockerfiles = true)
     Assert.assertEquals("auto suggested docker tag » main « is no valid docker tag name. " +
       "This could lead to build problems later. " +
       "A git tag must match the pattern » ^v[0-9]+\\.[0-9]+\\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ « to suggest valid docker tags. " +
@@ -255,7 +261,7 @@ class SuggestDockerTagTest extends AssertionsForJUnit {
 
   @Test
   def testFindTagname_versionMissmatch(): Unit = {
-    val tuple = SuggestDockerTag.findTagname("v2.0.0", "v2.0.0", Some("2.0.0-SNAPSHOT"))
+    val tuple = SuggestDockerTag.findTagname("v2.0.0", "v2.0.0", Some("2.0.0-SNAPSHOT"), hasDockerfiles = true)
     Assert.assertEquals("auto suggested docker tag » v2.0.0_aka_2_0_0_SNAPSHOT « is no valid docker tag name. " +
       "This could lead to build problems later. " +
       "A git tag must match the pattern » ^v[0-9]+\\.[0-9]+\\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ « to suggest valid docker tags. " +
