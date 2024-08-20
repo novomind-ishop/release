@@ -1,6 +1,6 @@
 #!/bin/bash
 unset JAVA_TOOL_OPTIONS
-set -eu
+set -eu${RELEASE_SET_OPT:-}
 : $HOME
 export TERM=${TERM:-dumb}
 trace_setup() {
