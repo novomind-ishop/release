@@ -23,10 +23,11 @@ COPY --from=0 /latest-git/git /usr/bin/git
 COPY --from=0 /usr/libexec/git-core /usr/libexec/git-core
 RUN git --version
 RUN curl --version
-RUN git config --global core.autocrlf input
+RUN git config --global core.autocrlf input && git config --global --add safe.directory *
 COPY release /root/release
 COPY release.jar /root/release.jar
 ENV RELEASE_DOCKER=true
 RUN chmod +x /root/release
 RUN /root/release --help
 RUN /root/release --check-git
+
