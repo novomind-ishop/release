@@ -204,6 +204,10 @@ class LintTest extends AssertionsForJUnit {
     GitShaBranch(commitId = UtilTest.randomSha1(), branchName = "refs/heads/" + name, dateSupplier = () => Option(dateTime))
   }
 
+  def rbrn(name: String, dateTime: ZonedDateTime) = {
+    GitShaBranch(commitId = UtilTest.randomSha1(), branchName = "refs/remotes/" + name, dateSupplier = () => Option(dateTime))
+  }
+
   @Test
   def testRefFreq_single(): Unit = {
     val result = Lint.refFreqBranchTag(Seq(
@@ -236,7 +240,7 @@ class LintTest extends AssertionsForJUnit {
   @Test
   def testRefFreq_branch_tag(): Unit = {
     val result = Lint.refFreqBranchTag(Seq(
-      brn("feature/a", ZonedDateTime.parse("2024-02-10T08:19:20+01:00")),
+      rbrn("origin/feature/a", ZonedDateTime.parse("2024-02-10T08:19:20+01:00")),
       brn("feature/forgotten", ZonedDateTime.parse("1909-02-20T08:19:20+01:00")),
       brn("main", ZonedDateTime.parse("2024-02-20T08:19:20+01:00")),
       tag("v1.2.3", ZonedDateTime.parse("2024-02-13T08:19:20+01:00")),

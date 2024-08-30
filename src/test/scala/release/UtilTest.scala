@@ -37,6 +37,13 @@ class UtilTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testByteToMb(): Unit = {
+    Assert.assertEquals(0L, Util.byteToMb(1_000L))
+    Assert.assertEquals(1L, Util.byteToMb(1_048_576L))
+    Assert.assertEquals(1L, Util.byteToMb(2_000_000L))
+  }
+
+  @Test
   def testUserdata(): Unit = {
     Assert.assertEquals("A", Util.stripUserinfo("A"))
     Assert.assertEquals("", Util.stripUserinfo(""))

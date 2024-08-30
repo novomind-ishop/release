@@ -10,6 +10,7 @@ import release.Term._
 import release.Util.pluralize
 
 import java.io.{File, IOException, PrintStream}
+import java.lang.management.ManagementFactory
 import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{FileVisitResult, FileVisitor, Files, Path}
@@ -39,7 +40,10 @@ object Lint {
   def refFreqBranchTag(refs: Seq[Sgit.GitShaRefTime], currentDate: ZonedDateTime = ZonedDateTime.now()): (Period, Period) = {
     val older = currentDate.minusYears(1)
     val fRefs = refs.filter(_.dateOpt.isDefined).filter(_.date.isAfter(older))
-    val branches = fRefs.collect({ case e: GitShaRefTime if e.refName.startsWith("refs/heads/") => e }) // TODO filter branch pattern
+    val branches = fRefs.collect({
+      case e: GitShaRefTime if e.refName.startsWith("refs/heads/") => e // TODO filter branch pattern
+      case e: GitShaRefTime if e.refName.startsWith("refs/remotes/origin/") => e // TODO filter branch pattern
+    })
     val tags = fRefs.collect({ case e: GitShaRefTime if e.refName.startsWith("refs/tags/") => e })
     val negativ = Period.ofDays(-1)
     (calcFreq(branches).getOrElse(negativ), calcFreq(tags).getOrElse(negativ))
@@ -444,6 +448,8 @@ object Lint {
         return 1
       } else {
         out.println(info("--- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---", opts))
+        val mem = ManagementFactory.getMemoryMXBean.getHeapMemoryUsage
+        out.println(info(s"    -Xms: ${Util.byteToMb(mem.getInit)}m -Xmx: ${Util.byteToMb(mem.getMax)}m", opts))
         if (opts.lintOpts.skips.nonEmpty) {
           out.println(info(s"    skips: " + opts.lintOpts.skips.mkString(", "), opts, limit = lineMax))
         } else {

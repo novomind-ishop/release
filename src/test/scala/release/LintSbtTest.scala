@@ -40,6 +40,7 @@ class LintSbtTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -49,7 +50,7 @@ class LintSbtTest extends AssertionsForJUnit {
         |[INFO]     active contributor count: 1
         |[INFO]       Your Name <you@example.com>
         |[INFO]     active branch count: 1 - master
-        |[INFO]     approx. a new branch each: P-1D, approx. a new tag each: P-1D
+        |[INFO]     approx. a new branch each: P0D, approx. a new tag each: P-1D
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---

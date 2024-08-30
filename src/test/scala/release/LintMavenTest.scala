@@ -16,6 +16,7 @@ object LintMavenTest {
   def replaceVarLiterals(in: String): String = {
     in.replaceAll("- $", "-")
       .replaceAll("/junit[0-9]+/", "/junit-REPLACED/")
+      .replaceAll("-Xms: [0-9]+m -Xmx: [0-9]+m", "-Xms: 123m -Xmx: 321m")
       .replaceAll("\\.scala:[0-9]+", ".scala:???")
       .replaceAll("\t", "  ")
       .replaceAll("( package name(?:s|) in) PT[0-9]+S", "$1 PT4S")
@@ -73,6 +74,7 @@ class LintMavenTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -82,7 +84,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     active contributor count: 1
         |[INFO]       Your Name <you@example.com>
         |[INFO]     active branch count: 1 - master
-        |[INFO]     approx. a new branch each: P-1D, approx. a new tag each: P-1D
+        |[INFO]     approx. a new branch each: P0D, approx. a new tag each: P-1D
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[WARNING]  shallow clone detected 😬
         |[WARNING]    % git rev-parse --is-shallow-repository # returns true
@@ -149,6 +151,7 @@ class LintMavenTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -158,7 +161,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     active contributor count: 1
         |[INFO]       Your Name <you@example.com>
         |[INFO]     active branch count: 1 - master
-        |[INFO]     approx. a new branch each: P-1D, approx. a new tag each: P-1D
+        |[INFO]     approx. a new branch each: P0D, approx. a new tag each: P-1D
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -245,6 +248,7 @@ class LintMavenTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -334,6 +338,7 @@ class LintMavenTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -343,7 +348,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     active contributor count: 1
         |[INFO]       Your Name <you@example.com>
         |[INFO]     active branch count: 1 - master
-        |[INFO]     approx. a new branch each: P-1D, approx. a new tag each: P-1D
+        |[INFO]     approx. a new branch each: P0D, approx. a new tag each: P-1D
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -502,6 +507,7 @@ class LintMavenTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     skips: RL10015-aa71e948, RL1017-ab101a0e, RL1018-ceefe9c6
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -511,7 +517,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     active contributor count: 1
         |[INFO]       Your Name <you@example.com>
         |[INFO]     active branch count: 1 - master
-        |[INFO]     approx. a new branch each: P-1D, approx. a new tag each: P-1D
+        |[INFO]     approx. a new branch each: P0D, approx. a new tag each: P-1D
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
         |[INFO] --- .gitattributes @ git ---
@@ -670,6 +676,7 @@ class LintMavenTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -798,6 +805,7 @@ class LintMavenTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -915,6 +923,7 @@ class LintMavenTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     skips: RL1003-467ad8bc
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -1058,6 +1067,7 @@ class LintMavenTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -1244,6 +1254,7 @@ class LintMavenTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     skips: RL1012-d3421ec9, RL1003-8a73d4ae
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -1467,6 +1478,7 @@ class LintMavenTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -1602,6 +1614,7 @@ class LintMavenTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     skips: RL1012-637a4930, RL1003-b4b0c08b
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
@@ -1778,6 +1791,7 @@ class LintMavenTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     skips: RL1003-21ee7891, RL1003-aaaaaaa
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999

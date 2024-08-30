@@ -393,11 +393,21 @@ class SgitTest extends AssertionsForJUnit {
 
   @Test
   def testRefFrequency(): Unit = {
+    val counter = new AtomicInteger(0)
     val testRepoA = SgitTest.ensureAbsent("fq")
-    val gitA = Sgit.init(testRepoA, SgitTest.hasCommitMsg)
+    val testRepoB = SgitTest.ensureAbsent("fqb")
+
+    val gitB = Sgit.init(testRepoB, SgitTest.hasCommitMsg)
+    gitB.configSetLocal("user.email", "you@example.com")
+    gitB.configSetLocal("user.name", "Your Name")
+
+    gitB.add(SgitTest.testFile(testRepoB, Util.hashMd5Random()))
+    gitB.commitAll(s"c${counter.getAndIncrement()}", Some(ZonedDateTime.parse("2005-04-07T22:13:13Z")))
+    gitB.createBranch("feature/r/a")
+
+    val gitA = Sgit.doClone(testRepoB, testRepoA, SgitTest.hasCommitMsg)
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
-    val counter = new AtomicInteger(0)
 
     gitA.add(SgitTest.testFile(testRepoA, Util.hashMd5Random()))
     gitA.commitAll(s"c${counter.getAndIncrement()}", Some(ZonedDateTime.parse("2005-04-07T22:13:13Z")))
@@ -409,14 +419,18 @@ class SgitTest extends AssertionsForJUnit {
     gitA.doTag("1.2.4", msg = "annotated")
     gitA.add(SgitTest.testFile(testRepoA, Util.hashMd5Random()))
     gitA.commitAll(s"c${counter.getAndIncrement()}", Some(ZonedDateTime.parse("2007-04-07T22:13:13Z")))
-    Assert.assertEquals(Seq("feature/a", "master"), gitA.listBranchNamesAll())
+    Assert.assertEquals(Seq("feature/a", "feature/r/a", "master"), gitA.listBranchNamesAll())
     Assert.assertEquals(Seq(
       ("refs/heads/feature/a", Some(ZonedDateTime.parse("2007-04-07T22:13:13Z"))),
       ("refs/heads/master", Some(ZonedDateTime.parse("2005-04-07T22:13:13Z"))),
+      ("refs/remotes/origin/HEAD", Some(ZonedDateTime.parse("2005-04-07T22:13:13Z"))),
+      ("refs/remotes/origin/feature/r/a", Some(ZonedDateTime.parse("2005-04-07T22:13:13Z"))),
+      ("refs/remotes/origin/master", Some(ZonedDateTime.parse("2005-04-07T22:13:13Z"))),
       ("refs/tags/v1.2.3", Some(ZonedDateTime.parse("2006-04-07T22:13:13Z"))),
       ("refs/tags/v1.2.4", None), // TODO anotated tags later
     ), gitA.listRefs().map(r => (r.refName, r.dateOpt)))
   }
+
   @Test
   def testInitCloneCommitPoms(): Unit = {
     // GIVEN

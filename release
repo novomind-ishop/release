@@ -70,12 +70,12 @@ if [[ -f ${release_bin} ]]; then
   set -e
 elif [[ "${os}" = "Cygwin" ]]; then
   set +e
-  $java_bin -Dfile.encoding=UTF-8 ${release_opts} -jar $(cygpath -aw ${release_jar}) "$(cygpath -aw $(dirname $0))" "$(cygpath -aw $(pwd))" "${os}" "${TERM}" "${terminal_cols}" "${interactive}" "${HOME}" ${argLine}
+  $java_bin -Dfile.encoding=UTF-8 -Xms512m -Xmx2048m ${release_opts} -jar $(cygpath -aw ${release_jar}) "$(cygpath -aw $(dirname $0))" "$(cygpath -aw $(pwd))" "${os}" "${TERM}" "${terminal_cols}" "${interactive}" "${HOME}" ${argLine}
   java_exit=$?
   set -e
 else
   set +e
-  $java_bin -Dfile.encoding=UTF-8 ${release_opts} -jar ${release_jar} "$(dirname $0)" "$(pwd)" "${os}" "${TERM}" "${terminal_cols}" "${interactive}" "${HOME}" ${argLine}
+  $java_bin -Dfile.encoding=UTF-8 -Xms512m -Xmx2048m ${release_opts} -jar ${release_jar} "$(dirname $0)" "$(pwd)" "${os}" "${TERM}" "${terminal_cols}" "${interactive}" "${HOME}" ${argLine}
   java_exit=$?
   set -e
 fi
@@ -100,4 +100,3 @@ if [[ ${java_exit} -eq 99 ]]; then
 else
   exit ${java_exit}
 fi
-

@@ -24,6 +24,10 @@ import scala.math.BigDecimal.RoundingMode
 import scala.util.Random
 
 object Util {
+  def byteToMb(value: Long):Long = {
+    value / (1024 * 1024)
+  }
+
   def toPeriod(d: Duration): Period = {
     val aDate = ZonedDateTime.parse("2018-05-31T00:10:52+00:00").toLocalDate
     Period.between(aDate, aDate.plusDays(d.toDays))
