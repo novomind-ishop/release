@@ -407,6 +407,7 @@ object Lint {
   val fiCodeDependencyScopesCopiesOverlapping = uniqCode(1017)
   val fiCodePreviouRelease = uniqCode(1018)
   val fiCodeUnwantedPackage = uniqCode(1019)
+  val fiCodeVersionMismatchNoTag = uniqCode(1020)(())
   val fiWarn = "\uD83D\uDE2C"
   val fiError = "❌"
 

@@ -6,6 +6,8 @@ import org.junit.rules.TemporaryFolder
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.ReleaseConfig.WorkAndMirror
 
+import scala.annotation.nowarn
+
 class ReleaseConfigTest extends AssertionsForJUnit {
 
   val _temporarayFolder = new TemporaryFolder()
@@ -163,5 +165,54 @@ class ReleaseConfigTest extends AssertionsForJUnit {
     val result = ReleaseConfig.fromSettings(settings.getParentFile)
     Assert.assertEquals("https://work-nexus.example.org/content/repositories/public", result.workNexusUrl())
     Assert.assertEquals("https://work-nexus.example.org/content/repositories/public", result.mirrorNexusUrl())
+  }
+
+  @Test
+  def testFromSettingsWithCredentials(): Unit = {
+    @nowarn("msg=possible missing interpolator")
+    val content =
+      """
+        |<settings>
+        |  <servers>
+        |    <server>
+        |      <id>any</id>
+        |      <username>${env.ANY_USER}</username>
+        |      <password>${env.ANY_PASSWORD}</password>
+        |    </server>
+        |    <server>
+        |      <id>example1</id>
+        |      <username>${env.EXAMPLE1_USER}</username>
+        |      <password>${env.EXAMPLE1_PASSWORD}</password>
+        |    </server>
+        |    <server>
+        |      <id>example2</id>
+        |      <password>${env.EXAMPLE1_PASSWORD}</password>
+        |    </server>
+        |    <server>
+        |      <id>example3</id>
+        |      <username>${env.EXAMPLE1_USER}</username>
+        |    </server>
+        |    <server>
+        |      <id>example4</id>
+        |    </server>
+        |    <server>
+        |    </server>
+        |  </servers>
+        |  <mirrors>
+        |    <mirror>
+        |      <url>http://0.0.0.0/</url>
+        |    </mirror>
+        |    <mirror>
+        |      <id>example1</id>
+        |      <url>https://work-nexus.example.org/content/repositories/public</url>
+        |    </mirror>
+        |  </mirrors>
+        |</settings>
+        |""".stripMargin
+    val settings = temp.newFile("settings.xml")
+    Util.write(settings, content)
+    val result = ReleaseConfig.fromSettings(settings.getParentFile, Map("EXAMPLE1_USER" -> "user@example.org", "EXAMPLE1_PASSWORD" -> "pw"))
+    Assert.assertEquals("https://user%40example.org:pw@work-nexus.example.org/content/repositories/public", result.workNexusUrl())
+    Assert.assertEquals("https://user%40example.org:pw@work-nexus.example.org/content/repositories/public", result.mirrorNexusUrl())
   }
 }

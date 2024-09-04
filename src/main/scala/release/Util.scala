@@ -3,10 +3,9 @@ package release
 import com.google.common.base.{Stopwatch, Strings}
 import com.google.common.hash.Hashing
 import org.apache.commons.codec.language.Soundex
-import org.apache.http.client.utils.URIBuilder
 
 import java.io.{File, IOException}
-import java.net.URI
+import java.net.{URI, URLEncoder}
 import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{FileSystemException, FileVisitResult, FileVisitor, Files, Path}
@@ -24,7 +23,7 @@ import scala.math.BigDecimal.RoundingMode
 import scala.util.Random
 
 object Util {
-  def byteToMb(value: Long):Long = {
+  def byteToMb(value: Long): Long = {
     value / (1024 * 1024)
   }
 
@@ -33,7 +32,7 @@ object Util {
     Period.between(aDate, aDate.plusDays(d.toDays))
   }
 
-  def roundDuration(d:Duration):Duration = {
+  def roundDuration(d: Duration): Duration = {
     val fractionalSeconds = BigDecimal(d.getNano, 9)
     val totalSeconds = BigDecimal(d.getSeconds) + fractionalSeconds
 
@@ -259,10 +258,66 @@ object Util {
 
   def ipFromUrl(in: String): Option[String] = {
     try {
-      Some(java.net.InetAddress.getByName(URI.create(Strings.emptyToNull(in)).getHost).getHostAddress)
+      val host = URI.create(Strings.emptyToNull(in)).getHost
+      if (host == null) {
+        None
+      } else {
+        val address = java.net.InetAddress.getByName(host).getHostAddress
+        Some(address)
+      }
     } catch {
       case e: Exception => None
     }
+  }
+
+  case class UrlUserInfo(url: String, username: Option[String], passwd: Option[String])
+
+  def extractedUserInfoUrl(url: String): UrlUserInfo = {
+    val t: (Option[String], Option[String]) = try {
+      val ui = createUri(url).getUserInfo
+      val parts = ui.split(":").toSeq
+      (parts.headOption, parts.drop(1).headOption)
+    } catch {
+      case _: Exception => {
+        (None, None)
+      }
+    }
+    UrlUserInfo(stripUserinfo(url), t._1, t._2)
+  }
+
+  def urlEncode(in: String): String = {
+    URLEncoder.encode(in, "UTF-8")
+  }
+
+  def createUri(in: String): URI = {
+    if (in.count(_ == '@') > 1) {
+      val ats = in.split('@').toSeq
+      val userInfoWithProto = ats.dropRight(1).mkString("@")
+      val last = in.replace(userInfoWithProto, "")
+      val splitOn = userInfoWithProto.split("://").toSeq
+      val proto = splitOn.head
+      val uinfo = urlEncode(splitOn.drop(1).mkString)
+      URI.create(proto + "://" + uinfo + last)
+    } else {
+      URI.create(in)
+    }
+  }
+
+  def removeUserinfo(uriWithUserInfo: URI): URI = {
+    setUserinfo(uriWithUserInfo, null)
+  }
+
+  def setUserinfo(uri: URI, userinfo: String): URI = {
+    val result = new URI(
+      uri.getScheme(),
+      userinfo,
+      uri.getHost(),
+      uri.getPort(),
+      uri.getPath(),
+      uri.getQuery(),
+      uri.getFragment()
+    )
+    result
   }
 
   def stripUserinfo(url: String): String = {
@@ -274,9 +329,7 @@ object Util {
       } else {
         "git://" + nullSafe.replaceFirst(":", "/")
       }
-
-      val result = new URIBuilder(work)
-        .setUserInfo(null)
+      val result = removeUserinfo(createUri(work))
         .toString
       if (missingProto) {
         result

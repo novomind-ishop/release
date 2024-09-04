@@ -90,7 +90,7 @@ class ProjectModTest extends AssertionsForJUnit {
   @Test
   def testFilterCentral(): Unit = {
     val repo = Repo.ofUrl("http://localhost")
-    Assert.assertEquals(Seq(repo), new RepoProxy(Seq(Repo.ofUrl("http://central"), Repo.ofUrl(":"), repo)).repos)
+    Assert.assertEquals(Seq(repo), RepoProxy(Seq(Repo.ofUrl("http://central"), Repo.ofUrl(":"), repo)).repos)
   }
 
   @Test

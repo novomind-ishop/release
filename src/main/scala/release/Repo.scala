@@ -71,7 +71,7 @@ trait RepoZ {
   def latestGav(groupID: String, artifactId: String, version: String): Option[Gav3]
 }
 
-class RepoProxy(_repos: Seq[RepoZ]) extends RepoZ {
+case class RepoProxy(_repos: Seq[RepoZ]) extends RepoZ {
   val repos = {
     val t = _repos.filter(r => {
       Util.ipFromUrl(r.workNexusUrl()).isDefined
@@ -86,11 +86,11 @@ class RepoProxy(_repos: Seq[RepoZ]) extends RepoZ {
   override def getMetrics: RepoMetrics = {
     repos.foldLeft(RepoMetrics.empty())((a, b) => {
       val add = b.getMetrics
-        a.copy(dateCollection = Util.roundDuration(a.dateCollection.plus(add.dateCollection)),
-          dateCollectionCount = a.dateCollectionCount + add.dateCollectionCount,
-          versionCollection = Util.roundDuration(a.versionCollection.plus(add.versionCollection)),
-          versionCollectionCount = a.versionCollectionCount + add.versionCollectionCount
-        )
+      a.copy(dateCollection = Util.roundDuration(a.dateCollection.plus(add.dateCollection)),
+        dateCollectionCount = a.dateCollectionCount + add.dateCollectionCount,
+        versionCollection = Util.roundDuration(a.versionCollection.plus(add.versionCollection)),
+        versionCollectionCount = a.versionCollectionCount + add.versionCollectionCount
+      )
     })
   }
 
@@ -132,7 +132,7 @@ class RepoProxy(_repos: Seq[RepoZ]) extends RepoZ {
 
 }
 
-class Repo private(_mirrorNexus: RemoteRepository, _workNexus: RemoteRepository) extends RepoZ with LazyLogging {
+case class Repo private(_mirrorNexus: RemoteRepository, _workNexus: RemoteRepository) extends RepoZ with LazyLogging {
   private val mirrorNexus: RemoteRepository = _mirrorNexus
 
   private val workNexus: RemoteRepository = _workNexus
@@ -323,7 +323,7 @@ object Repo extends LazyLogging {
   }
 
   def ofUrl(url: String): Repo = {
-    val repositorySystem: RemoteRepository = Repo.newDefaultRepository(url)
+    val repositorySystem: RemoteRepository = Repo.newDefaultRepositoryU(url)
     of(mirrorNexus = repositorySystem, workNexus = repositorySystem)
   }
 
@@ -345,8 +345,13 @@ object Repo extends LazyLogging {
 
   val centralUrl = "https://repo1.maven.org/maven2/"
 
-  def newDefaultRepository(url: String, username: Option[String] = None, password: Option[String] = None): RemoteRepository = {
-    val builder = new RemoteRepository.Builder("central", "default", url)
+  def newDefaultRepositoryU(url: String): RemoteRepository = {
+    val u = Util.extractedUserInfoUrl(url)
+    newDefaultRepository(u.url, u.username, u.passwd)
+  }
+
+  def newDefaultRepository(url: String, username: Option[String], password: Option[String]): RemoteRepository = {
+    val builder = new RemoteRepository.Builder("central", "default", Util.stripUserinfo(url))
     if (username.isDefined && password.isDefined) {
       builder
         .setAuthentication(new AuthenticationBuilder()
@@ -373,10 +378,14 @@ object Repo extends LazyLogging {
       rangeRequest.setArtifact(artifact)
       rangeRequest.setRepositories(Util.toJavaList(Seq(repository)))
       val rangeResult = system.resolveVersionRange(session, rangeRequest)
-      val exceptions:Seq[Exception] = rangeResult.getExceptions.asScala.toSeq.toSeq
+      val exceptions: Seq[Exception] = rangeResult.getExceptions.asScala.toSeq
       val status401 = exceptions.filter(e => e.isInstanceOf[MetadataTransferException]).filter(_.getMessage.contains(" 401"))
       if (status401.nonEmpty) {
         throw status401.head
+      }
+      val status403 = exceptions.filter(e => e.isInstanceOf[MetadataTransferException]).filter(_.getMessage.contains(" 403"))
+      if (status403.nonEmpty) {
+        throw status403.head
       }
       val value = exceptions.find(e => e.isInstanceOf[XmlPullParserException])
       if (value.isDefined) {

@@ -3,10 +3,12 @@ package release
 import java.io.File
 import org.junit.{Assert, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
+import release.Util.UrlUserInfo
 
 import java.time.{Duration, Period}
 import java.util
 import scala.util.Random
+import java.net.URI
 
 object UtilTest {
   def randomSha1(): String = {
@@ -49,7 +51,25 @@ class UtilTest extends AssertionsForJUnit {
     Assert.assertEquals("", Util.stripUserinfo(""))
     Assert.assertEquals("", Util.stripUserinfo(null))
     Assert.assertEquals("https://example.org/a?a=b", Util.stripUserinfo("https://username@example.org/a?a=b"))
+    Assert.assertEquals("https://example.org/a?a=b", Util.stripUserinfo("https://username@example.org@example.org/a?a=b"))
     Assert.assertEquals("git.example.com:some/repo.git", Util.stripUserinfo("git@git.example.com:some/repo.git"))
+  }
+
+
+  @Test
+  def testCreateURI(): Unit = {
+    Assert.assertEquals(URI.create("as"), Util.createUri("as"))
+    Assert.assertEquals(URI.create(s"https://${Util.urlEncode("user@name:pw")}@example.org/a?a=b"), Util.createUri("https://user@name:pw@example.org/a?a=b"))
+    Assert.assertEquals(URI.create(s"http://${Util.urlEncode("user@na@:;me:pw")}@e"), Util.createUri("http://user@na@:;me:pw@e"))
+  }
+  @Test
+  def testExtractUserdata(): Unit = {
+    Assert.assertEquals(UrlUserInfo("A", None, None), Util.extractedUserInfoUrl("A"))
+    Assert.assertEquals(UrlUserInfo("", None, None), Util.extractedUserInfoUrl(""))
+    Assert.assertEquals(UrlUserInfo("", None, None), Util.extractedUserInfoUrl(null))
+    Assert.assertEquals(UrlUserInfo("https://example.org/a?a=b", Some("username"), None), Util.extractedUserInfoUrl("https://username@example.org/a?a=b"))
+    Assert.assertEquals(UrlUserInfo("https://example.org/a?a=b", Some("user@name"), Some("pw")), Util.extractedUserInfoUrl("https://user@name:pw@example.org/a?a=b"))
+    Assert.assertEquals(UrlUserInfo("git.example.com:some/repo.git", None, None), Util.extractedUserInfoUrl("git@git.example.com:some/repo.git"))
   }
 
   @Test

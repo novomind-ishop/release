@@ -1,6 +1,6 @@
 package release
 
-import release.Lint.{BranchTagMerge, fiCodeVersionMismatch, fiWarn}
+import release.Lint.{BranchTagMerge, fiCodeVersionMismatch, fiCodeVersionMismatchNoTag, fiWarn}
 import release.Term.{info, warn, warnSoft}
 
 import java.io.PrintStream
@@ -11,7 +11,7 @@ object LintMaven {
                          tagBranchInfo: Option[BranchTagMerge], allGitTags: Seq[String]): Seq[Lint.UniqCode] = {
     out.println(info(s"    $version", opts))
     // TODO check if current version is older then released tags
-    if (!Lint.isValidTag(tagBranchInfo)) {
+    val usedSkips: Seq[Lint.UniqCode] = if (!Lint.isValidTag(tagBranchInfo)) {
       val as = Sgit.stripVersionPrefix(allGitTags)
       val v = Version.parseSloppy(version)
       if (!v.isSnapshot) {
@@ -19,13 +19,24 @@ object LintMaven {
         out.println(warn(s" version »${version}« must be a SNAPSHOT; non snapshots are only allowed in tags ${fiWarn}", opts, limit = Lint.lineMax))
         warnExit.set(true)
         // TODO skip
+        Nil
       }
       val asVersion = v.removeSnapshot()
       if (as.contains(asVersion.rawInput)) {
-        out.println(warn(s" tag v${asVersion.rawInput} is already existing ${fiWarn}", opts, limit = Lint.lineMax))
-        warnExit.set(true)
-        // TODO skip
+        val msg = s" tag v${asVersion.rawInput} is already existing ${fiWarn} ${fiCodeVersionMismatchNoTag}"
+        if (opts.lintOpts.skips.contains(fiCodeVersionMismatchNoTag)) {
+          out.println(warnSoft(msg, opts, limit = Lint.lineMax))
+          Seq(fiCodeVersionMismatchNoTag)
+        } else {
+          out.println(warn(msg, opts, limit = Lint.lineMax))
+          warnExit.set(true)
+          Nil
+        }
+      } else {
+        Nil
       }
+    } else {
+      Nil
     }
 
     val mismatchResult = Lint.versionMismatches(version, tagBranchInfo)
@@ -33,14 +44,14 @@ object LintMaven {
       val bool = opts.lintOpts.skips.contains(fiCodeVersionMismatch)
       if (bool) {
         out.println(warnSoft(mismatchResult.msg, opts, limit = Lint.lineMax))
-        Seq(fiCodeVersionMismatch)
+        Seq(fiCodeVersionMismatch) ++ usedSkips
       } else {
         out.println(warn(mismatchResult.msg, opts, limit = Lint.lineMax))
         warnExit.set(true)
-        Nil
+        usedSkips
       }
     } else {
-      Nil
+      usedSkips
     }
   }
 

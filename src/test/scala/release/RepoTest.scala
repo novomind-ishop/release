@@ -16,7 +16,7 @@ class RepoTest extends AssertionsForJUnit {
   def testExistsGav(): Unit = {
     val repo = Opts(useDefaults = true).newRepo
 
-    Assume.assumeTrue(repo.isReachable(false).online)
+    Assume.assumeTrue(repo.isReachable().online)
     @nowarn
     val g = "javax.servlet.jsp"
     @nowarn

@@ -5,12 +5,12 @@ import java.nio.charset.StandardCharsets
 import java.util.Map.Entry
 import java.util.Properties
 import java.util.concurrent.TimeUnit
-
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.http.client.config.RequestConfig
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClientBuilder
 import org.apache.http.util.EntityUtils
+import java.net.URI
 
 import scala.io.Source
 
@@ -77,11 +77,19 @@ sealed class ReleaseConfig(map: Map[String, String]) {
 }
 
 object ReleaseConfig extends LazyLogging {
+  trait Get[K, V] {
+    def get(key: K): Option[V]
+  }
+
   private val RELEASE_NEXUS_WORK_URL = "RELEASE_NEXUS_WORK_URL"
 
-  def releaseNexusEnv() = scala.util.Properties.envOrNone(RELEASE_NEXUS_WORK_URL)
+  def releaseNexusGet(get: Get[String, String]): Option[String] = {
+    get.get(RELEASE_NEXUS_WORK_URL)
+  }
 
-  def releaseNexusEnv(envs: Map[String, String]) = envs.get(RELEASE_NEXUS_WORK_URL)
+  def releaseNexusEnv(): Option[String] = releaseNexusGet(k => scala.util.Properties.envOrNone(k))
+
+  def releaseNexusEnv(envs: Map[String, String]): Option[String] = releaseNexusGet(k => envs.get(k))
 
   case class WorkAndMirror(workUrl: String, mirrorUrl: String)
 
@@ -175,10 +183,42 @@ object ReleaseConfig extends LazyLogging {
   def extractWorkAndMirror(in: String): Option[WorkAndMirror] = {
     try {
       val doc = Xpath.newDocument(in)
-      val uEl = Xpath.toSeq(doc, "//url").flatMap(n => Xpath.nodeElementValue(n, "."))
+      val servers = Xpath.toSeq(doc, "//server")
+      val serverCredentials: Map[String, (Option[String], Option[String])] = servers.flatMap(n => {
+        val id = Xpath.nodeElementValue(n, "id")
+        if (id.isDefined) {
+          val username = Xpath.nodeElementValue(n, "username")
+          val password = Xpath.nodeElementValue(n, "password")
+          Some((id.getOrElse(""), (username, password)))
+        } else {
+          None
+        }
+      }).toMap
+      val value = Xpath.toSeq(doc, "//repository | //pluginRepository | //mirror")
+      val distinct = value.flatMap(n => {
+          val xUrl = Xpath.nodeElementValue(n, "url")
+          val url = xUrl.getOrElse("")
+          if (url.contains("0.0.0.0")) {
+            None
+          } else if (url.contains("//central")) {
+            None
+          } else {
+            val id = Xpath.nodeElementValue(n, "id")
+            if (id.isDefined) {
+              val credentials = serverCredentials.get(id.get)
+
+              val username = credentials.get._1.getOrElse("")
+              val pw = credentials.get._2.getOrElse("")
+              val userinfo = Seq(username, pw).filterNot(_.isBlank).mkString(":")
+              Some(Util.setUserinfo(URI.create(url), userinfo).toString)
+            } else {
+              Some(s"$url")
+            }
+          }
+
+        })
         .distinct
-        .filterNot(_.contains("0.0.0.0"))
-        .filterNot(_.contains("//central"))
+      val uEl: Seq[String] = distinct
       if (uEl.size == 1) {
         Some(WorkAndMirror(workUrl = uEl(0), mirrorUrl = uEl(0)))
       } else if (uEl.size == 2) {
@@ -231,10 +271,11 @@ object ReleaseConfig extends LazyLogging {
 
   }
 
-  def fromSettings(root: File = new File(".")): ReleaseConfig = {
+  def fromSettings(root: File = new File("."), envs: Map[String, String] = Util.systemEnvs()): ReleaseConfig = {
     val settings = new File(root, "settings.xml")
     if (settings.canRead) {
-      val mir = ReleaseConfig.extractWorkAndMirror(Util.read(settings))
+      val str = Util.read(settings)
+      val mir = ReleaseConfig.extractWorkAndMirror(envs.toSeq.foldLeft(str)((str, key) => str.replaceAll("\\$\\{env\\." + key._1 + "\\}", key._2)))
       if (mir.isDefined) {
         new ReleaseConfig(defaults + (keyNexusWorkUrl -> mir.get.workUrl) + (keyNexusMirrorUrl -> mir.get.mirrorUrl))
       } else {

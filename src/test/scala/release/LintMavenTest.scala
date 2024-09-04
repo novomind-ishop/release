@@ -1913,7 +1913,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO]     1.2.3-SNAPSHOT
-        |[WARNING]  tag v1.2.3 is already existing 😬
+        |[WARNING]  tag v1.2.3 is already existing 😬 RL1020
         |""".stripMargin.trim
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
@@ -1921,6 +1921,24 @@ class LintMavenTest extends AssertionsForJUnit {
       LintMaven.lintProjectVersion(sys.out, opts, "1.2.3-SNAPSHOT", warnExit = boolean, new AtomicBoolean(),
         Some(BranchTagMerge(tagName = None, branchName = Some("main"))), allGitTags = Seq("v1.2.3"))
       Assert.assertTrue(boolean.get())
+    })
+  }
+
+  @Test
+  def testLintProjectVersion_main_with_released_version_skipped(): Unit = {
+    val expected =
+      """
+        |[INFO]     1.2.3-SNAPSHOT
+        |[warning]  tag v1.2.3 is already existing 😬 RL1020
+        |""".stripMargin.trim
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1020", "ö")))
+      val boolean = new AtomicBoolean()
+     val skips =  LintMaven.lintProjectVersion(sys.out, opts, "1.2.3-SNAPSHOT", warnExit = boolean, new AtomicBoolean(),
+        Some(BranchTagMerge(tagName = None, branchName = Some("main"))), allGitTags = Seq("v1.2.3"))
+
+      Assert.assertFalse(boolean.get())
+      Assert.assertEquals(Seq("RL1020"), skips)
     })
   }
 
@@ -1976,8 +1994,9 @@ class LintMavenTest extends AssertionsForJUnit {
       Assert.assertFalse(Lint.isValidTag(btm))
       Assert.assertFalse(Lint.isValidBranch(btm))
       Assert.assertTrue(Lint.isValidMergeRequest(btm))
-      LintMaven.lintProjectVersion(sys.out, opts, "main", warnExit = boolean, new AtomicBoolean(),
+      val result = LintMaven.lintProjectVersion(sys.out, opts, "main", warnExit = boolean, new AtomicBoolean(),
         btm, allGitTags = Seq("v1.2.3"))
+      Assert.assertEquals(Nil, result)
       Assert.assertTrue(boolean.get())
     })
   }
