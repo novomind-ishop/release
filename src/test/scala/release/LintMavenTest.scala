@@ -1960,6 +1960,36 @@ class LintMavenTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testLintProjectVersion_unknown_release(): Unit = {
+    val expected =
+      """
+        |[INFO]     ro-SNAPSHOT
+        |[warning]  unknown release/version pattern: ro-SNAPSHOT -
+        |""".stripMargin.trim
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+
+      LintMaven.lintProjectVersion(sys.out, opts, "ro-SNAPSHOT", new AtomicBoolean(), new AtomicBoolean(),
+        Some(BranchTagMerge(tagName = None, branchName = Some("release/ro"))), Nil)
+    })
+  }
+
+  @Test
+  def testLintProjectVersion_unknown_release_suggestion(): Unit = {
+    val expected =
+      """
+        |[INFO]     RC-2024.34.01-bugfix-SNAPSHOT
+        |[warning]  unknown release/version pattern: RC-2024.34.01-bugfix-SNAPSHOT Maybe one of the following versions is what you want: 'RC-2024.34.1'
+        |""".stripMargin.trim
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+
+      LintMaven.lintProjectVersion(sys.out, opts, "RC-2024.34.01-bugfix-SNAPSHOT", new AtomicBoolean(), new AtomicBoolean(),
+        Some(BranchTagMerge(tagName = None, branchName = Some("release/RC-2024.34.01-bugfix"))), Nil)
+    })
+  }
+
+  @Test
   def testLintProjectVersion_tag_fail_branch(): Unit = {
     val expected =
       """

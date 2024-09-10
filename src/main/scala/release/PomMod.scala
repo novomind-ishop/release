@@ -917,7 +917,13 @@ object PomMod {
 
   def trySuggestKnownPattern(in: String): Try[String] = {
     try {
-      Success(suggestKnownPattern(in))
+      val str = suggestKnownPattern(in)
+      if (str.isBlank) {
+        Failure(new IllegalStateException("suggestion is blank"))
+      } else {
+        Success(str)
+      }
+
     } catch {
       case e: Exception => Failure(e)
     }
