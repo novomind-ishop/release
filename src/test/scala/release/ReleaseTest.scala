@@ -53,7 +53,7 @@ class ReleaseTest extends AssertionsForJUnit {
 
     val check = Release.findBadLines(Pattern.compile("-SNAPSHOT"))(testFile.getAbsolutePath)
 
-    Assert.assertEquals(Seq((2, "bert-SNAPSHOT", testFile.toPath), (4, "otto-SNAPSHOT", testFile.toPath)), check)
+    Assert.assertEquals(Seq((3, "bert-SNAPSHOT", testFile.toPath), (5, "otto-SNAPSHOT", testFile.toPath)), check)
   }
 
   @Test

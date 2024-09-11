@@ -141,6 +141,12 @@ class UtilTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testFindInFile(): Unit = {
+    Assert.assertEquals(Seq(("                                 Apache License", 1)),
+      Util.findInFile(new File("LICENSE").toPath, l => (l.contains("  Apache License"), l)))
+  }
+
+  @Test
   def testEmptyToNone(): Unit = {
     Assert.assertEquals(None, Util.emptyToNone(""))
     Assert.assertEquals(None, Util.emptyToNone(" "))

@@ -4,7 +4,7 @@ import com.google.common.base.{Stopwatch, Strings}
 import com.google.common.hash.Hashing
 import org.apache.commons.codec.language.Soundex
 
-import java.io.{File, IOException}
+import java.io.{File, IOException, UncheckedIOException}
 import java.net.{URI, URLEncoder}
 import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.BasicFileAttributes
@@ -19,8 +19,9 @@ import scala.collection.mutable
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{Await, Future}
 import scala.jdk.CollectionConverters._
+import scala.jdk.StreamConverters._
 import scala.math.BigDecimal.RoundingMode
-import scala.util.Random
+import scala.util.{Random, Using}
 
 object Util {
   def byteToMb(value: Long): Long = {
@@ -254,6 +255,27 @@ object Util {
     } else {
       throw new IllegalStateException(f.getAbsolutePath + " is no regular file")
     }
+  }
+
+  def findInFile[T](filePath: Path, selector: String => (Boolean, T)): Seq[(T, Int)] = {
+    Using.resource(Files.lines(filePath))(lines => {
+      val result: LazyList[(T, Int)] = lines.toScala(LazyList).zipWithIndex.flatMap(lineIdx => {
+        val tuple = selector.apply(lineIdx._1)
+        if (tuple._1) {
+          Some((tuple._2, lineIdx._2 + 1))
+        } else {
+          None
+        }
+      })
+      try {
+        result.toList
+      } catch {
+        case _: UncheckedIOException => {
+          Nil
+        }
+      }
+    })
+
   }
 
   def ipFromUrl(in: String): Option[String] = {

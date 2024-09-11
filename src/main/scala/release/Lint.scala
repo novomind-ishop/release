@@ -690,7 +690,7 @@ object Lint {
                 bool
               })
               .foreach(f => {
-                val snapMsg = "  found snapshot in: " + f._3 +
+                val snapMsg = "  found snapshot in: " + f._3 + s" line: ${f._1}" +
                   s" ${fiWarn} ${fiCodeSnapshotText((f._1, f._2, f._3.getFileName))}\n" +
                   "              " + f._2
                 if (isGitOrCiTag) {

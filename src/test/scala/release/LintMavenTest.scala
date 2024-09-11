@@ -1217,11 +1217,12 @@ class LintMavenTest extends AssertionsForJUnit {
         |</project>
         |""".stripMargin.linesIterator.toSeq)
     val notes = new File(root, "notes.md")
-    Util.write(notes,
+    val seq =
       """
         |This is the documentation for 0.11-SNAPSHOT
         |This is the documentation for 0.11-SNAPSHOT
-        |""".stripMargin.linesIterator.toSeq)
+        |""".stripMargin.linesIterator.toSeq
+    Util.write(notes, seq)
     val dockerile = new File(root, "Dockerfile")
     Util.write(dockerile,
       """
@@ -1255,7 +1256,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     -Xms: 123m -Xmx: 321m
-        |[INFO]     skips: RL1012-d3421ec9, RL1003-8a73d4ae
+        |[INFO]     skips: RL1012-587ee13e, RL1003-8a73d4ae
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
@@ -1353,7 +1354,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
-      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1012-d3421ec9", "RL1003-8a73d4ae")))
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1012-587ee13e", "RL1003-8a73d4ae")))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.getMetrics).thenReturn(RepoMetrics.empty())
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
@@ -1615,7 +1616,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     -Xms: 123m -Xmx: 321m
-        |[INFO]     skips: RL1012-637a4930, RL1003-b4b0c08b
+        |[INFO]     skips: RL1012-d143f8dc, RL1003-b4b0c08b
         |[INFO] --- version / git ---
         |[INFO]     ✅ git version: git version 2.999.999
         |[INFO] --- check clone config / remote @ git ---
@@ -1638,9 +1639,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  NO remotes found 😬 RL1004
         |[WARNING]  % git remote -v # returns nothing
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
-        |[warning]   found snapshot in: notes.md 😬 RL1012-d143f8dc
+        |[warning]   found snapshot in: notes.md line: 3 😬 RL1012-1805c642
         |              This is the documentation for 0.11-SNAPSHOT
-        |[warning]   found snapshots: 😬 RL1012-d3421ec9 -- RL1012-d143f8dc
+        |[warning]   found snapshots: 😬 RL1012-587ee13e -- RL1012-1805c642
         |[INFO] --- model read @ maven/sbt/gradle ---
         |[WARNING]     😬 No property replacement found in pom.xmls for: "${non-existing}" - define properties where they are required and not in parent pom.xml. Input is Nil.
         |[WARNING]     skipped because of previous problems - No property replacement found in pom.xmls for: "${non-existing}" - define properties where they are required and not in parent pom.xml. Input is Nil. 😬
@@ -1655,7 +1656,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
-      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1012-637a4930", "RL1003-b4b0c08b")))
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1012-d143f8dc", "RL1003-b4b0c08b")))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(online = true, "202"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
@@ -1934,7 +1935,7 @@ class LintMavenTest extends AssertionsForJUnit {
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1020", "ö")))
       val boolean = new AtomicBoolean()
-     val skips =  LintMaven.lintProjectVersion(sys.out, opts, "1.2.3-SNAPSHOT", warnExit = boolean, new AtomicBoolean(),
+      val skips = LintMaven.lintProjectVersion(sys.out, opts, "1.2.3-SNAPSHOT", warnExit = boolean, new AtomicBoolean(),
         Some(BranchTagMerge(tagName = None, branchName = Some("main"))), allGitTags = Seq("v1.2.3"))
 
       Assert.assertFalse(boolean.get())

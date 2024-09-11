@@ -62,14 +62,8 @@ object Release extends LazyLogging {
   def findBadLines(regexp: Pattern)(aFileName: String): Seq[(Int, String, Path)] = {
     try {
       val path = Paths.get(aFileName)
-      val lines = if (Files.isRegularFile(path)) {
-        val fileLines = Util.readLines(path.toFile)
-        if (fileLines.exists(l => l.contains(Version.snapshot))) {
-          fileLines.zipWithIndex
-        } else {
-          Nil
-        }
-
+      val lines: Seq[(String, Int)] = if (Files.isRegularFile(path)) {
+        Util.findInFile(path, line => (line.contains(Version.snapshot), line))
       } else {
         Nil
       }

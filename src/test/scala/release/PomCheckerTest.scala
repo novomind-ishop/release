@@ -37,13 +37,13 @@ class PomCheckerTest extends AssertionsForJUnit {
     ))
     val foundFiles = PomChecker.getSnapshotsInFiles(Seq(file).map(_.getAbsolutePath))
     Assert.assertEquals(Seq(
-      (0, "42-SNAPSHOT", file.toPath),
-      (1, "some 42.0.0-SNAPSHOT line", file.toPath),
-      (3, "some 42x-SNAPSHOT line", file.toPath),
-      (8, "release gav will be com.novomind.any:artifact:42x-SNAPSHOT", file.toPath),
-      (9, "/42x-SNAPSHOT", file.toPath),
-      (10, "A /42x-SNAPSHOT", file.toPath),
-      (11, "A .42x-SNAPSHOT", file.toPath),
+      (1, "42-SNAPSHOT", file.toPath),
+      (2, "some 42.0.0-SNAPSHOT line", file.toPath),
+      (4, "some 42x-SNAPSHOT line", file.toPath),
+      (9, "release gav will be com.novomind.any:artifact:42x-SNAPSHOT", file.toPath),
+      (10, "/42x-SNAPSHOT", file.toPath),
+      (11, "A /42x-SNAPSHOT", file.toPath),
+      (12, "A .42x-SNAPSHOT", file.toPath),
     ), foundFiles)
   }
 
