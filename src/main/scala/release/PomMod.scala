@@ -641,7 +641,7 @@ object PomMod {
   def unmanaged(emptyVersions: Seq[Gav], relevantGavs: Seq[Gav]): Seq[Gav] = {
     val value = emptyVersions.filterNot(_.version.isEmpty)
     if (value != Nil) {
-      throw new IllegalArgumentException("invalid empty versions:\n" + value.map(_.formatted).mkString("\n"))
+      throw new PreconditionsException("invalid empty versions:\n" + value.map(_.formatted).mkString("\n"))
     } else {
       emptyVersions
         .filterNot(_ == Gav.empty) // e.g. poms with no parent

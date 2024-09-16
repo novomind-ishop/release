@@ -218,11 +218,12 @@ object Starter extends LazyLogging {
                       skips: Seq[String] = Nil, waringsToErrors: Boolean = false, invalids: Seq[String] = Nil)
 
   @tailrec
-  def argsLintRead(params: Seq[String], inOpt: Opts): Opts = {
+  private def argsLintRead(params: Seq[String], inOpt: Opts): Opts = {
     params.filter(in => in.trim.nonEmpty) match {
       case Nil => inOpt.copy(lintOpts = inOpt.lintOpts.copy(doLint = true), showStartupDone = false)
       case "--help" :: tail => argsLintRead(tail, inOpt.copy(lintOpts = inOpt.lintOpts.copy(showHelp = true)))
       case "-h" :: tail => argsLintRead(tail, inOpt.copy(lintOpts = inOpt.lintOpts.copy(showHelp = true)))
+      case "--timeout-secs" :: secs :: tail => argsLintRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(timeoutSec = secs.toIntOption)))
       case "--strict" :: tail => argsLintRead(tail, inOpt.copy(lintOpts = inOpt.lintOpts.copy(waringsToErrors = true)))
       case v :: tail if v.startsWith("--skip-") => argsLintRead(tail, inOpt.copy(lintOpts = {
         inOpt.lintOpts.copy(skips = inOpt.lintOpts.skips :+ v.replaceFirst("^--skip-", ""))
@@ -238,11 +239,12 @@ object Starter extends LazyLogging {
                        hideLatest: Boolean = true, versionRangeLimit: Integer = 3,
                        hideStageVersions: Boolean = true, showLibYears: Boolean = false,
                        changeToLatest: Boolean = false, allowDependencyDowngrades: Boolean = false,
+                       timeoutSec:Option[Int] = None,
                        filter: Option[Regex] = None,
                        invalids: Seq[String] = Nil)
 
   @tailrec
-  def argsDepRead(params: Seq[String], inOpt: Opts): Opts = {
+  private def argsDepRead(params: Seq[String], inOpt: Opts): Opts = {
     params.filter(in => in.trim.nonEmpty) match {
       case Nil => inOpt
       case "--help" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(showHelp = true)))
@@ -596,11 +598,18 @@ object Starter extends LazyLogging {
       return result._2
     }
     if (opts.lintOpts.doLint) {
-      if (false) {
-        println()
-        println(s"is int: ${opts.isInteractive}")
-        println()
-        Term.readFrom(Term.Sys.default, "press enter", "enter", opts)
+
+      if (opts.lintOpts.showHelp || opts.lintOpts.invalids != Nil) {
+        if (opts.lintOpts.invalids != Nil) {
+          out.println("Invalid lint options:")
+          out.println(opts.lintOpts.invalids.mkString(", "))
+          out.println()
+        }
+        out.println("Usage: release lint [OPTION]")
+        out.println()
+        out.println("Possible options:")
+        out.println("--help, -h            => shows this and exits")
+        return 0
       }
       return Lint.run(out, err, opts, Util.systemEnvs())
     }

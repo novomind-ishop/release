@@ -1694,7 +1694,7 @@ class PomModTest extends AssertionsForJUnit {
   @Test
   def testUnmanaged(): Unit = {
     Assert.assertEquals(Nil, PomMod.unmanaged(Nil, Nil))
-    TestHelper.assertException("invalid empty versions:\na.b:a:1.0.0", classOf[IllegalArgumentException],
+    TestHelper.assertException("invalid empty versions:\na.b:a:1.0.0", classOf[PreconditionsException],
       () => PomMod.unmanaged(
         Seq(Gav(groupId = "a.b", artifactId = "a", version = "1.0.0")),
         Seq(Gav(groupId = "a.b", artifactId = "a", version = "1.0.0"))

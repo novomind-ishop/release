@@ -64,7 +64,7 @@ object Lint {
     }
 
     def select(in: String): Option[Any] = {
-     namesPathIndex.get(in).map(_.toString())
+      namesPathIndex.get(in).map(_.toString())
     }
 
     val allNames = unwantedText.linesIterator.toSet.map(nom).toSeq
@@ -881,8 +881,22 @@ object Lint {
 
             try {
               out.println(updatePrinter.result.toString.trim)
-              out.println(Util.show(resultTry.get._2.getMetrics)) // TODO improve format
-              val updateResult = ProjectMod.removeOlderVersions(resultTry.get._1)
+              val updateResult = if (resultTry.isSuccess) {
+                out.println(Util.show(resultTry.get._2.getMetrics)) // TODO improve format\
+                ProjectMod.removeOlderVersions(resultTry.get._1)
+              } else {
+                out.println(warn(" Dependency updated failed", opts))
+                if (resultTry.failed.get.isInstanceOf[PreconditionsException]) {
+                  out.println(error("   " + resultTry.failed.get.getMessage, opts, limit = lineMax)) // TODO improve format
+                  errorExit.set(true)
+                } else {
+                  out.println(warn(" " + resultTry.failed.get.getMessage, opts, limit = lineMax)) // TODO improve format
+                  warnExit.set(true)
+                }
+
+                Nil
+              }
+              // TODO get metrics also on failure
               val snapUpdates = updateResult.filter(e => snaps.map(_.gav().simpleGav()).contains(e._1.gav.simpleGav()))
               val releaseOfSnapshotPresent = snapUpdates
                 // TODO flatmap

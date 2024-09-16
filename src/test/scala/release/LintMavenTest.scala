@@ -217,6 +217,7 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org")
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/", "https://repo.example.org/"))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
+      Mockito.when(mockRepo.allRepoZ()).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(online = true, "200"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
@@ -403,6 +404,7 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org/")
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
+      Mockito.when(mockRepo.allRepoZ()).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
         thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.eq("1.2.9"))).
@@ -598,6 +600,7 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo2.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo, mockRepo2))
       Mockito.when(mockRepo2.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo, mockRepo2))
+      Mockito.when(mockRepo.allRepoZ()).thenReturn(Seq(mockRepo, mockRepo2))
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(online = true, "200"))
       Mockito.when(mockRepo2.isReachable(false)).thenReturn(Repo.ReachableResult(online = true, "200"))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
@@ -753,6 +756,7 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq(Repo.centralUrl))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
+      Mockito.when(mockRepo.allRepoZ()).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(online = true, "200"))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
         thenReturn(Some(ZonedDateTime.now()))
@@ -879,6 +883,7 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
+      Mockito.when(mockRepo.allRepoZ()).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(online = true, "200"))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
         thenReturn(Some(ZonedDateTime.now()))
@@ -992,6 +997,7 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq(Repo.centralUrl))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
+      Mockito.when(mockRepo.allRepoZ()).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(online = true, "200"))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
         thenReturn(Some(ZonedDateTime.now()))
@@ -1132,9 +1138,10 @@ class LintMavenTest extends AssertionsForJUnit {
         |║ ╠═══ (0) 0.0.1 (libyears: ????)
         |║ ╚═══ (1) 1.0.0 (libyears: ????)
         |║
-        |[ERROR] invalid empty versions:
+        |[WARNING]  Dependency updated failed
+        |[ERROR]    invalid empty versions:
         |org.springframework:spring-context-empty
-        |org.springframework:spring-context-blank 😬 RL1008
+        |org.springframework:spring-context-blank
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     WIP
@@ -1143,24 +1150,14 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-empty/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[ERROR] exit 43 - because lint found errors, see above ❌""".stripMargin
-    val errorOut =
-      """java.lang.IllegalArgumentException: invalid empty versions:
-        |org.springframework:spring-context-empty
-        |org.springframework:spring-context-blank
-        |  at release.PomMod$.unmanaged(PomMod.scala:???)
-        |  at release.ProjectMod$.collectDependencyUpdates(ProjectMod.scala:???)
-        |  at release.ProjectMod.collectDependencyUpdates(ProjectMod.scala:???)
-        |  at release.ProjectMod.collectDependencyUpdates$(ProjectMod.scala:???)
-        |  at release.PomMod.collectDependencyUpdates(PomMod.scala:???)
-        |  at release.ProjectMod.$anonfun$tryCollectDependencyUpdates$1(ProjectMod.scala:???)
-        |  at release.Util$.$anonfun$timeout$1(Util.scala:???)""".stripMargin.stripTrailing()
-    TermTest.testSys(Nil, expected, errorOut, outFn = replaceVarLiterals, expectedExitCode = 43)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 43)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.getMetrics).thenReturn(RepoMetrics.empty())
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq(Repo.centralUrl))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
+      Mockito.when(mockRepo.allRepoZ()).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(online = true, "200"))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
         thenReturn(Some(ZonedDateTime.now()))
@@ -1360,6 +1357,7 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq(Repo.centralUrl))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
+      Mockito.when(mockRepo.allRepoZ()).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(online = true, "200"))
       val now = ZonedDateTime.parse("2018-05-31T00:10:52+00:00")
       val now2 = ZonedDateTime.parse("2023-05-31T00:10:52+00:00")
@@ -1555,6 +1553,7 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org/")
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
+      Mockito.when(mockRepo.allRepoZ()).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(online = true, "202"))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
         thenReturn(Some(ZonedDateTime.now()))
@@ -1865,6 +1864,7 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org/")
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
+      Mockito.when(mockRepo.allRepoZ()).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(online = true, "202"))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
         thenReturn(Some(ZonedDateTime.now()))

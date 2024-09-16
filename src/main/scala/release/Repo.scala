@@ -62,6 +62,8 @@ trait RepoZ {
 
   def workNexusUrl(): String
 
+  def allRepoZ(): Seq[RepoZ]
+
   def allRepoUrls(): Seq[String]
 
   def isReachable(showTrace: Boolean = true): Repo.ReachableResult
@@ -74,13 +76,15 @@ trait RepoZ {
 case class RepoProxy(_repos: Seq[RepoZ]) extends RepoZ {
   val repos = {
     val t = _repos.filter(r => {
-      Util.ipFromUrl(r.workNexusUrl()).isDefined
+      val url = r.workNexusUrl()
+      Util.ipFromUrl(url).isDefined
     })
-    if (t.isEmpty) {
+    val tt = (if (t.isEmpty) {
       _repos
     } else {
       t
-    }
+    }).distinctBy(_.workNexusUrl())
+    tt
   }
 
   override def getMetrics: RepoMetrics = {
@@ -97,6 +101,8 @@ case class RepoProxy(_repos: Seq[RepoZ]) extends RepoZ {
   override def allRepoUrls(): Seq[String] = {
     repos.flatMap(_.allRepoUrls())
   }
+
+  override def allRepoZ(): Seq[RepoZ] = repos
 
   override def getRelocationOf(groupID: String, artifactId: String, version: String): Option[Gav3] = {
     repos.flatMap(_.getRelocationOf(groupID, artifactId, version)).headOption
@@ -145,6 +151,8 @@ case class Repo private(_mirrorNexus: RemoteRepository, _workNexus: RemoteReposi
   private val allRepos: Seq[RemoteRepository] = Seq(workNexus, mirrorNexus)
 
   override def allRepoUrls(): Seq[String] = allRepos.map(_.getUrl)
+
+  override def allRepoZ(): Seq[RepoZ] = Seq(this)
 
   private def getVersionsOf(req: String) = {
     val w = Stopwatch.createStarted()

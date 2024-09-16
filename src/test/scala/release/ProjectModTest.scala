@@ -111,6 +111,7 @@ class ProjectModTest extends AssertionsForJUnit {
     val selfDepsModX: Seq[ProjectMod.Dep] = Nil
 
     val repoMock1 = mock[Repo]
+    when(repoMock1.workNexusUrl()).thenReturn("repo1")
     when(repoMock1.getRelocationOf(anyString(), anyString(), anyString())).thenReturn(None)
     when(repoMock1.newerAndPrevVersionsOf(anyDep.groupId, anyDep.artifactId, anyDep.version.get)).thenReturn(Seq(anyDep.version.get, "2.13.1"))
     when(repoMock1.depDate(anyDep.groupId, anyDep.artifactId, anyDep.version.get)).thenReturn(Some(now))
@@ -118,6 +119,7 @@ class ProjectModTest extends AssertionsForJUnit {
     when(repoMock1.depDate(anyDep.groupId, anyDep.artifactId, "2.13.2")).thenReturn(None)
 
     val repoMock2 = mock[Repo]
+    when(repoMock2.workNexusUrl()).thenReturn("repo2")
     when(repoMock2.getRelocationOf(anyString(), anyString(), anyString())).thenReturn(None)
     when(repoMock2.newerAndPrevVersionsOf(anyDep.groupId, anyDep.artifactId, anyDep.version.get)).thenReturn(Seq(anyDep.version.get, "2.13.2"))
     when(repoMock2.depDate(anyDep.groupId, anyDep.artifactId, anyDep.version.get)).thenReturn(Some(now))
@@ -129,7 +131,7 @@ class ProjectModTest extends AssertionsForJUnit {
 
       val innerResult: Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = ProjectMod.collectDependencyUpdates(
         new UpdatePrinter(100, term, sys, printProgress = true), opts,
-        rootDeps, selfDepsModX, new RepoProxy(Seq(repoMock1, repoMock2)), checkOnline = false, ws = "")
+        rootDeps, selfDepsModX, RepoProxy(Seq(repoMock1, repoMock2)), checkOnline = false, ws = "")
 
       val any = GavWithRef(SelfRef.undef, anyDep.gav())
       val scala2 = (any, Seq(
@@ -157,6 +159,7 @@ class ProjectModTest extends AssertionsForJUnit {
     val repoMock = mock[Repo]
     when(repoMock.allRepoUrls()).thenReturn(Nil)
     Mockito.when(repoMock.createAll(ArgumentMatchers.any())).thenReturn(Seq(repoMock))
+    Mockito.when(repoMock.allRepoZ()).thenReturn(Seq(repoMock))
     when(repoMock.getRelocationOf(anyString(), anyString(), anyString())).thenReturn(None)
     when(repoMock.newerAndPrevVersionsOf(scala.groupId, scala.artifactId, scala.version.get)).thenReturn(Seq("2.12.0", scala.version.get, "2.13.1"))
     when(repoMock.depDate(anyString(), anyString(), anyString())).thenReturn(None)
@@ -305,6 +308,7 @@ class ProjectModTest extends AssertionsForJUnit {
     val selfDepsMod: Seq[ProjectMod.Dep] = Nil
     val repoMock = mock[Repo]
     when(repoMock.allRepoUrls()).thenReturn(Nil)
+    Mockito.when(repoMock.allRepoZ()).thenReturn(Seq(repoMock))
     Mockito.when(repoMock.createAll(ArgumentMatchers.any())).thenReturn(Seq(repoMock))
     val result = TermTest.withOutErr[Unit]()(sys => {
       val innerResult: Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = ProjectMod.collectDependencyUpdates(

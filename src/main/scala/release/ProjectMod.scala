@@ -694,7 +694,7 @@ trait ProjectMod extends LazyLogging {
 
   def tryCollectDependencyUpdates(depUpOpts: OptsDepUp, checkOn: Boolean = true, updatePrinter: UpdateCon, ws: String):
   Try[(Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])], RepoProxy)] = {
-    Util.timeout(90, TimeUnit.SECONDS, _ => {
+    Util.timeout(depUpOpts.timeoutSec.getOrElse(90), TimeUnit.SECONDS, _ => {
       try {
         Success(collectDependencyUpdates(depUpOpts, checkOn, updatePrinter, ws))
       } catch {
@@ -710,8 +710,8 @@ trait ProjectMod extends LazyLogging {
   (Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])], RepoProxy) = {
     val depForCheck: Seq[Dep] = listGavsForCheck()
     val sdm = selfDepsMod
-    val allUrls: Seq[String] = repo.allRepoUrls() ++ listRemoteRepoUrls()
-    val proxy = new RepoProxy(repo.createAll(allUrls))
+
+    val proxy = RepoProxy(repo.allRepoZ() ++ repo.createAll(listRemoteRepoUrls()))
     val allRepoUrls = proxy.repos.flatMap(_.allRepoUrls()).distinct
     if (allRepoUrls.nonEmpty) {
       updatePrinter.println("... " + allRepoUrls.mkString(", "))

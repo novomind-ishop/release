@@ -108,6 +108,7 @@ class LintSbtTest extends AssertionsForJUnit {
         .thenReturn(None)
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
+      Mockito.when(mockRepo.allRepoZ()).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(Seq("1.0.0"))
 
