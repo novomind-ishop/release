@@ -9,7 +9,7 @@ import release.PomMod.DepTree
 import release.PomModTest._
 import release.ProjectMod._
 import release.Starter.{Opts, PreconditionsException}
-import release.Util.linuxPath
+import release.FileUtils.linuxPath
 
 import java.io.{BufferedWriter, File, FileWriter}
 import java.nio.file.Paths
@@ -327,7 +327,7 @@ class PomModTest extends AssertionsForJUnit {
 
     // WHEN
     val mod = PomModTest.withRepoForTests(srcPoms, repo)
-    Util.deleteRecursive(srcPoms)
+    FileUtils.deleteRecursive(srcPoms)
     mod.writeTo(srcPoms)
 
   }
@@ -506,7 +506,7 @@ class PomModTest extends AssertionsForJUnit {
         "+- com.novomind.ishop.shops.anyshop:anyshop-erp:jar:27.0.0-SNAPSHOT:compile"))
     Assert.assertEquals(value, depTreeMap(orgMod))
     val targetPoms = TestHelper.testResources("shop4")
-    Util.deleteRecursive(targetPoms)
+    FileUtils.deleteRecursive(targetPoms)
     orgMod.writeTo(targetPoms)
     val targetMod = PomModTest.withRepoForTests(targetPoms, repo)
 

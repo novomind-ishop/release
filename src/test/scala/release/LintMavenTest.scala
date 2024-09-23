@@ -57,12 +57,12 @@ class LintMavenTest extends AssertionsForJUnit {
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
     val any = new File(remote, "any.xml")
-    Util.write(any,
+    FileUtils.write(any,
       """some
         |""".stripMargin.linesIterator.toSeq)
     gitA.add(any)
     gitA.commitAll("bla")
-    Util.write(any,
+    FileUtils.write(any,
       """emos
         |""".stripMargin.linesIterator.toSeq)
     gitA.add(any)
@@ -125,7 +125,7 @@ class LintMavenTest extends AssertionsForJUnit {
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
     val pom = new File(remote, "pom.xml")
-    Util.write(pom,
+    FileUtils.write(pom,
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -240,7 +240,7 @@ class LintMavenTest extends AssertionsForJUnit {
     @unused
     val gitB = Sgit.doCloneRemote(remote.toURI.toString.replaceFirst("file:/", "file:///"), fileB)
     val dockerile = new File(fileB, "Dockerfile")
-    Util.write(dockerile,
+    FileUtils.write(dockerile,
       """
         |FROM
         |""".stripMargin.linesIterator.toSeq)
@@ -313,7 +313,7 @@ class LintMavenTest extends AssertionsForJUnit {
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
     val pom = new File(remote, "pom.xml")
-    Util.write(pom,
+    FileUtils.write(pom,
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -431,7 +431,7 @@ class LintMavenTest extends AssertionsForJUnit {
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
     val pom = new File(remote, "pom.xml")
-    Util.write(pom,
+    FileUtils.write(pom,
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -653,7 +653,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
-    Util.write(new File(file, "pom.xml"),
+    FileUtils.write(new File(file, "pom.xml"),
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -783,7 +783,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
-    Util.write(new File(file, "pom.xml"),
+    FileUtils.write(new File(file, "pom.xml"),
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -905,7 +905,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
-    Util.write(new File(file, "pom.xml"),
+    FileUtils.write(new File(file, "pom.xml"),
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -1022,7 +1022,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
-    Util.write(new File(file, "pom.xml"),
+    FileUtils.write(new File(file, "pom.xml"),
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -1176,7 +1176,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val gitA = Sgit.init(root, SgitTest.hasCommitMsg)
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
-    Util.write(new File(root, "pom.xml"),
+    FileUtils.write(new File(root, "pom.xml"),
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -1219,23 +1219,23 @@ class LintMavenTest extends AssertionsForJUnit {
         |This is the documentation for 0.11-SNAPSHOT
         |This is the documentation for 0.11-SNAPSHOT
         |""".stripMargin.linesIterator.toSeq
-    Util.write(notes, seq)
+    FileUtils.write(notes, seq)
     val dockerile = new File(root, "Dockerfile")
-    Util.write(dockerile,
+    FileUtils.write(dockerile,
       """
         |FROM
         |""".stripMargin.linesIterator.toSeq)
     val folder1 = new File(root, "folder1")
     folder1.mkdir()
     val file1 = new File(folder1, "test.txt")
-    Util.write(file1, Seq("content"))
+    FileUtils.write(file1, Seq("content"))
     gitA.add(notes)
     gitA.add(dockerile)
-    gitA.add(Util.write(new File(folder1, "Demo.java"), // TODO valid folder
+    gitA.add(FileUtils.write(new File(folder1, "Demo.java"), // TODO valid folder
       """package some;
         |""".stripMargin.linesIterator.toSeq))
     val unwantedPackages = new File(root, ".unwanted-packages")
-    Util.write(unwantedPackages,
+    FileUtils.write(unwantedPackages,
       """a.b;
         |""".stripMargin.linesIterator.toSeq)
     gitA.add(unwantedPackages)
@@ -1244,9 +1244,9 @@ class LintMavenTest extends AssertionsForJUnit {
     gitA.doTag("0.11.0")
     gitA.checkout("v0.11.0")
     gitA.createBranch("ref")
-    Util.write(file1, Seq("content1"))
+    FileUtils.write(file1, Seq("content1"))
     val file2 = new File(folder1, "test2.txt")
-    Util.write(file2, Seq("content1"))
+    FileUtils.write(file2, Seq("content1"))
     Assert.assertTrue(gitA.currentTags.isDefined)
     val expected =
       """
@@ -1424,7 +1424,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
-    Util.write(new File(file, "pom.xml"),
+    FileUtils.write(new File(file, "pom.xml"),
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -1442,7 +1442,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val bertFolder = new File(file, "bert")
     bertFolder.mkdir()
     val bertPom = new File(bertFolder, "pom.xml")
-    Util.write(bertPom,
+    FileUtils.write(bertPom,
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -1460,16 +1460,16 @@ class LintMavenTest extends AssertionsForJUnit {
     gitA.add(bertPom)
 
     val unwantedPackages = new File(file, ".unwanted-packages")
-    Util.write(unwantedPackages,
+    FileUtils.write(unwantedPackages,
       """a.b
         |a.b.c
         |""".stripMargin.linesIterator.toSeq)
     gitA.add(unwantedPackages)
-    gitA.add(Util.write(new File(bertFolder, "Demo.java"), // TODO valid folder
+    gitA.add(FileUtils.write(new File(bertFolder, "Demo.java"), // TODO valid folder
       """package a.b;
         |""".stripMargin.linesIterator.toSeq))
 
-    gitA.add(Util.write(new File(bertFolder, "Demo.scala"), // TODO valid folder
+    gitA.add(FileUtils.write(new File(bertFolder, "Demo.scala"), // TODO valid folder
       """package c.b
         |""".stripMargin.linesIterator.toSeq))
     gitA.commitAll("some")
@@ -1588,9 +1588,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |  </dependencies>
         |</project>
         |""".stripMargin.linesIterator.toSeq
-    Util.write(new File(file, "pom.xml"), content)
+    FileUtils.write(new File(file, "pom.xml"), content)
     val notes = new File(file, "notes.md")
-    Util.write(notes,
+    FileUtils.write(notes,
       """
         |This is the documentation for 0.11-SNAPSHOT
         |This is the documentation for 0.11-SNAPSHOT
@@ -1598,11 +1598,11 @@ class LintMavenTest extends AssertionsForJUnit {
     val dotMvnFolder = new File(file, ".mvn")
     dotMvnFolder.mkdir()
     val extension = new File(dotMvnFolder, "extensions.xml")
-    Util.write(extension,
+    FileUtils.write(extension,
       """<version>0.11-SNAPSHOT</version>
         |""".stripMargin
     )
-    Util.write(new File(file, "README.md"),
+    FileUtils.write(new File(file, "README.md"),
       """hello
         |""".stripMargin
     )
@@ -1683,7 +1683,7 @@ class LintMavenTest extends AssertionsForJUnit {
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
     val work = new File(file, "pom.xml")
-    Util.write(work,
+    FileUtils.write(work,
       """<?xml version="1.0" encoding="UTF-8"?>
         |""".stripMargin.linesIterator.toSeq)
     gitA.add(work)
@@ -1706,7 +1706,7 @@ class LintMavenTest extends AssertionsForJUnit {
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
     val work = new File(file, "pom.xml")
-    Util.write(work,
+    FileUtils.write(work,
       """<?xml version="1.0" encoding="UTF-8"?>
         |""".stripMargin.linesIterator.toSeq)
     gitA.add(work)
@@ -1746,7 +1746,7 @@ class LintMavenTest extends AssertionsForJUnit {
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
     val work = new File(file, "pom.xml")
-    Util.write(work,
+    FileUtils.write(work,
       """<?xml version="1.0" encoding="UTF-8"?>
         |""".stripMargin.linesIterator.toSeq)
     gitA.add(work)
@@ -1767,7 +1767,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
-    Util.write(new File(file, "pom.xml"),
+    FileUtils.write(new File(file, "pom.xml"),
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -1779,7 +1779,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |""".stripMargin.linesIterator.toSeq)
     val dotMvnFolder = new File(file, ".mvn")
     dotMvnFolder.mkdir()
-    Util.write(new File(dotMvnFolder, "extensions.xml"),
+    FileUtils.write(new File(dotMvnFolder, "extensions.xml"),
       """<version>0.11-SNAPSHOT</version>
         |""".stripMargin
     )

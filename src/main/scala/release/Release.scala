@@ -63,7 +63,7 @@ object Release extends LazyLogging {
     try {
       val path = Paths.get(aFileName)
       val lines: Seq[(String, Int)] = if (Files.isRegularFile(path)) {
-        Util.findInFile(path, line => (line.contains(Version.snapshot), line))
+        FileUtils.findInFile(path, line => (line.contains(Version.snapshot), line))
       } else {
         Nil
       }

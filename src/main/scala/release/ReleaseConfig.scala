@@ -249,7 +249,7 @@ object ReleaseConfig extends LazyLogging {
       val work = if (localConfig == Map.empty || refresh) {
         val removeConfigUrl = "https://release-ishop.novomind.com/ishop-release.conf"
         val rc = remoteConfig(removeConfigUrl)
-        Util.handleWindowsFilesystem { _ =>
+        FileUtils.handleWindowsFilesystem { _ =>
           defaultUpdateFile.delete()
           defaultUpdateFile.createNewFile()
         }
@@ -274,7 +274,7 @@ object ReleaseConfig extends LazyLogging {
   def fromSettings(root: File = new File("."), envs: Map[String, String] = Util.systemEnvs()): ReleaseConfig = {
     val settings = new File(root, "settings.xml")
     if (settings.canRead) {
-      val str = Util.read(settings)
+      val str = FileUtils.read(settings)
       val mir = ReleaseConfig.extractWorkAndMirror(envs.toSeq.foldLeft(str)((str, key) => str.replaceAll("\\$\\{env\\." + key._1 + "\\}", key._2)))
       if (mir.isDefined) {
         new ReleaseConfig(defaults + (keyNexusWorkUrl -> mir.get.workUrl) + (keyNexusMirrorUrl -> mir.get.mirrorUrl))

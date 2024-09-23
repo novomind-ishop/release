@@ -26,7 +26,7 @@ class LintSbtTest extends AssertionsForJUnit {
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
     val sbtFile = new File(remote, "build.sbt")
-    Util.write(sbtFile,
+    FileUtils.write(sbtFile,
       """scalaVersion := "2.13.10"
         |
         |version := "1.0-SNAPSHOT"

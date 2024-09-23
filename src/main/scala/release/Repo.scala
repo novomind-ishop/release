@@ -499,7 +499,7 @@ object Repo extends LazyLogging {
           }
         } else {
           val file = e.getMetadata.getFile
-          Util.findInFile[Option[ZonedDateTime]](file.toPath, line => {
+          FileUtils.findInFile[Option[ZonedDateTime]](file.toPath, line => {
               val r = extractDate(line)
               (r.isDefined, r)
             }).flatMap(_._1)

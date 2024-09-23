@@ -722,7 +722,7 @@ trait ProjectMod extends LazyLogging {
     if (depUpOpts.changeToLatest) {
       val localDepUpFile = new File(file, ".release-dependency-updates")
       val fn: (Gav3, Seq[String]) => String = if (localDepUpFile.canRead) {
-        ProjectMod.rangeFnOf(Util.read(localDepUpFile))
+        ProjectMod.rangeFnOf(FileUtils.read(localDepUpFile))
       } else {
         (_, b) => b.last
       }

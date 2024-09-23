@@ -9,16 +9,14 @@ import release.Starter.{Opts, PreconditionsException}
 import release.Term._
 import release.Util.pluralize
 
-import java.io.{File, IOException, PrintStream}
+import java.io.{File, PrintStream}
 import java.lang.management.ManagementFactory
 import java.nio.charset.StandardCharsets
-import java.nio.file.attribute.BasicFileAttributes
-import java.nio.file.{FileVisitResult, FileVisitor, Files, Path}
+import java.nio.file.Path
 import java.time.temporal.ChronoUnit
 import java.time.{Duration, Period, ZonedDateTime}
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
-import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.CollectionConverters._
 import scala.util.{Failure, Success, Try, Using}
 
@@ -90,35 +88,8 @@ object Lint {
     if (check && packageScanFile.canRead) {
 
       def toResult(stopwatch: Stopwatch): PackageResult = {
-
-        val na = ListBuffer.empty[Path]
-        val skipDirNames = Set(".git", "target")
-        Files.walkFileTree(rootFile.toPath, new FileVisitor[Path] {
-          override def preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult = {
-            if (skipDirNames.contains(dir.getFileName.toString)) {
-              FileVisitResult.SKIP_SUBTREE
-            } else {
-              FileVisitResult.CONTINUE
-            }
-          }
-
-          override def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
-            na += file
-            FileVisitResult.CONTINUE
-
-          }
-
-          override def visitFileFailed(file: Path, exc: IOException): FileVisitResult = {
-            FileVisitResult.CONTINUE
-          }
-
-          override def postVisitDirectory(dir: Path, exc: IOException): FileVisitResult = {
-
-            FileVisitResult.CONTINUE
-          }
-        })
         val suffix = Set("java", "scala")
-        val packageLines: List[(String, Path)] = na.par
+        val packageLines: List[(String, Path)] = FileUtils.walk(rootFile).par
           .filter(p => suffix.contains(com.google.common.io.Files.getFileExtension(p.toFile.getName)))
           .flatMap(f => {
             try {
@@ -129,7 +100,7 @@ object Lint {
             }
 
           }).distinct.toList.sorted
-        PackageResult(packageLines, stopwatch.elapsed().withNanos(0), unwantedText = Util.read(packageScanFile), msg = "")
+        PackageResult(packageLines, stopwatch.elapsed().withNanos(0), unwantedText = FileUtils.read(packageScanFile), msg = "")
 
       }
 

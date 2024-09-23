@@ -779,8 +779,8 @@ class SgitTest extends AssertionsForJUnit {
 
     Assert.assertTrue(gitB.hasChangesToPush)
     Assert.assertFalse(gitB.hasLocalChanges)
-    Util.write(pomFile, Seq("a"))
-    Util.write(subPomFile, Seq("a", "b"))
+    FileUtils.write(pomFile, Seq("a"))
+    FileUtils.write(subPomFile, Seq("a", "b"))
     Assert.assertTrue(gitB.hasLocalChanges)
     Assert.assertEquals(Seq(
       "diff --git a/pom.xml b/pom.xml", "--- a/pom.xml", "+++ b/pom.xml",
@@ -822,8 +822,8 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(Seq("master"), gitB.listBranchNamesLocal())
     assertMsg(Seq("update pom.xml", "", "Signed-off-by: Signer <signer@example.org>"), gitB)
 
-    Util.write(pomFile, Seq("b"))
-    Util.write(subPomFile, Seq("b"))
+    FileUtils.write(pomFile, Seq("b"))
+    FileUtils.write(subPomFile, Seq("b"))
     gitB.doCommitWithFilter("subset\n\ntest", Seq("pom.xml", "any.xml"))
     assertMsg(Seq("subset", "", "test"), gitB)
     Assert.assertEquals(false, gitB.isDetached)
@@ -841,7 +841,7 @@ class SgitTest extends AssertionsForJUnit {
       gitB.deleteBranch("test")
     })
     Assert.assertEquals(Seq("master"), gitB.listBranchNamesLocal())
-    Util.write(anyFile, Seq("a"))
+    FileUtils.write(anyFile, Seq("a"))
     try {
       gitB.doCommitPomXmls("update pom.xml")
       Assert.fail()
@@ -997,7 +997,7 @@ object SgitTest {
       testFolders = testFolders + gitTestFolderName
       val repoFolder = new File(Util.localWork, "target/" + gitTestFolderName)
       if (repoFolder.isDirectory) {
-        Util.deleteRecursive(repoFolder)
+        FileUtils.deleteRecursive(repoFolder)
       }
       repoFolder
     }

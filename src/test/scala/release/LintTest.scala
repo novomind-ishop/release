@@ -252,7 +252,7 @@ class LintTest extends AssertionsForJUnit {
   @Test
   def testGoogleFmt(): Unit = {
     val file = temp.newFile("Demo.java")
-    Util.write(file,
+    FileUtils.write(file,
       """
         |public class Demo {
         |

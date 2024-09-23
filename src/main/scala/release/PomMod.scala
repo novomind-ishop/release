@@ -33,7 +33,7 @@ case class PomMod(file: File, repo: RepoZ, opts: Opts,
   if (!rootPom.canRead) {
     throw new PreconditionsException(file.toString + " seems to be no maven project")
   }
-  if (rootPom.canRead && Util.read(rootPom).trim.isEmpty) {
+  if (rootPom.canRead && FileUtils.read(rootPom).trim.isEmpty) {
     throw new PreconditionsException(file.toString + " seems to be no maven project // empty file")
   }
   private val allRawPomFiles = Tracer.msgAround("read all poms", logger,
@@ -184,7 +184,7 @@ case class PomMod(file: File, repo: RepoZ, opts: Opts,
   }
 
   private[release] var depTreeFileContents: Map[File, DepTree] = depTreeFiles(depTreeFilename(), rawSub)
-    .map(f => (f, DepTree(Util.read(f))))
+    .map(f => (f, DepTree(FileUtils.read(f))))
     .filterNot(in => in._1.getParentFile.getName == ".")
     .sortBy(_._1)
     .foldLeft(Map.empty[File, DepTree])(_ + _)
@@ -508,7 +508,7 @@ case class RawPomFile(pomFile: File, document: Document, file: File) {
 
 object PomMod {
   def extractUrlsFromSettings(settingsXml: File): Seq[String] = {
-    extractUrlsFromSettings(Util.read(settingsXml))
+    extractUrlsFromSettings(FileUtils.read(settingsXml))
   }
 
   def extractUrlsFromSettings(settingsXmlContent: String): Seq[String] = {
@@ -1223,7 +1223,7 @@ object PomMod {
     if (!file.toPath.toAbsolutePath.normalize().startsWith(parent.toPath.toAbsolutePath().normalize())) {
       throw new IllegalStateException(s"${file.getAbsolutePath} must start with ${parent.getAbsolutePath}")
     }
-    Util.handleWindowsFilesystem { _ =>
+    FileUtils.handleWindowsFilesystem { _ =>
       if (Files.exists(file.toPath)) {
         Files.delete(file.toPath)
       }

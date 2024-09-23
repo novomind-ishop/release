@@ -20,7 +20,7 @@ class PomCheckerTest extends AssertionsForJUnit {
   @Test
   def testCheckSnapshots(): Unit = {
     val file = temp.newFile("some.md")
-    Util.write(file, Seq(
+    FileUtils.write(file, Seq(
       "42-SNAPSHOT",
       "some 42.0.0-SNAPSHOT line",
       "some -SNAPSHOT line",

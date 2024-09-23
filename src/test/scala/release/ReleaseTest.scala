@@ -47,9 +47,9 @@ class ReleaseTest extends AssertionsForJUnit {
   def testLines(): Unit = {
     val testFile = new File(Util.localWork, "target/grep1.txt")
     if (testFile.isFile) {
-      Util.deleteRecursive(testFile)
+      FileUtils.deleteRecursive(testFile)
     }
-    Util.write(testFile, Seq("", "a", "bert-SNAPSHOT", "bert-SNAP", "otto-SNAPSHOT"))
+    FileUtils.write(testFile, Seq("", "a", "bert-SNAPSHOT", "bert-SNAP", "otto-SNAPSHOT"))
 
     val check = Release.findBadLines(Pattern.compile("-SNAPSHOT"))(testFile.getAbsolutePath)
 
@@ -122,7 +122,7 @@ class ReleaseTest extends AssertionsForJUnit {
     gitRemote.configSetLocal("user.name", "Your Name")
 
     val f1 = SgitTest.testFile(gitRemote.file, "pom.xml")
-    Util.write(f1,
+    FileUtils.write(f1,
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -187,7 +187,7 @@ class ReleaseTest extends AssertionsForJUnit {
     gitRemote.configSetLocal("user.name", "Your Name")
 
     val f1 = SgitTest.testFile(gitRemote.file, "pom.xml")
-    Util.write(f1,
+    FileUtils.write(f1,
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -254,7 +254,7 @@ class ReleaseTest extends AssertionsForJUnit {
     gitRemote.configSetLocal("user.name", "Your Name")
 
     val f1 = SgitTest.testFile(gitRemote.file, "pom.xml")
-    Util.write(f1,
+    FileUtils.write(f1,
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -316,7 +316,7 @@ class ReleaseTest extends AssertionsForJUnit {
     gitRemote.configSetLocal("user.name", "Your Name")
 
     val f1 = SgitTest.testFile(gitRemote.file, "pom.xml")
-    Util.write(f1,
+    FileUtils.write(f1,
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -378,7 +378,7 @@ class ReleaseTest extends AssertionsForJUnit {
     gitRemote.configSetLocal("user.name", "Your Name")
 
     val f1 = SgitTest.testFile(gitRemote.file, "pom.xml")
-    Util.write(f1,
+    FileUtils.write(f1,
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">

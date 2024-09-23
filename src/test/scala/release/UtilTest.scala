@@ -135,15 +135,15 @@ class UtilTest extends AssertionsForJUnit {
   def testReadLines(): Unit = {
     TestHelper.assertExceptionWithCheck(msg =>
       Assert.assertEquals("... is no regular file", msg.replaceFirst("^[^ ]+ ", "... ")), classOf[IllegalStateException],
-      () => Util.readLines(new File("fasdf")))
+      () => FileUtils.readLines(new File("fasdf")))
 
-    Assert.assertNotEquals(Nil, Util.readLines(new File(".gitattributes")))
+    Assert.assertNotEquals(Nil, FileUtils.readLines(new File(".gitattributes")))
   }
 
   @Test
   def testFindInFile(): Unit = {
     Assert.assertEquals(Seq(("                                 Apache License", 1)),
-      Util.findInFile(new File("LICENSE").toPath, l => (l.contains("  Apache License"), l)))
+      FileUtils.findInFile(new File("LICENSE").toPath, l => (l.contains("  Apache License"), l)))
   }
 
   @Test
