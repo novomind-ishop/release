@@ -18,7 +18,7 @@ import java.time.{Duration, Period, ZonedDateTime}
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.collection.parallel.CollectionConverters._
-import scala.util.{Failure, Success, Try, Using}
+import scala.util.{Failure, Success, Try}
 
 object Lint {
 
@@ -89,22 +89,27 @@ object Lint {
 
       def toResult(stopwatch: Stopwatch): PackageResult = {
         val suffix = Set("java", "scala")
-        val packageLines: List[(String, Path)] = FileUtils.walk(rootFile).par
+        val both = FileUtils.walk(rootFile).par
           .filter(p => suffix.contains(com.google.common.io.Files.getFileExtension(p.toFile.getName)))
           .flatMap(f => {
             try {
               val rel = rootFile.toPath.relativize(f)
-              Using.resource(scala.io.Source.fromFile(f.toFile)) { r => selectPackage(r.getLines()) }.map(e => (e, rel))
+              val result = FileUtils.findAllInFile(f, sel => {
+                val trimmed = sel.trim
+                (trimmed.startsWith("package") || trimmed.startsWith("import"), trimmed)
+              })
+              result.find(_._1.startsWith("package")).map(e => (e._1, rel))
             } catch {
               case _: Exception => None
             }
 
-          }).distinct.toList.sorted
+          })
+        val packageLines: List[(String, Path)] = both.distinct.toList.sorted
         PackageResult(packageLines, stopwatch.elapsed().withNanos(0), unwantedText = FileUtils.read(packageScanFile), msg = "")
 
       }
 
-      Util.timeout(20, TimeUnit.SECONDS, toResult, (e, d) => {
+      Util.timeout(50, TimeUnit.SECONDS, toResult, (e, d) => {
         PackageResult.timeout(d, e.getMessage + ". Big projects with more then 10k files took ~2 seconds")
       })._1
 
@@ -112,10 +117,6 @@ object Lint {
       PackageResult(Nil, Duration.ZERO, "", "")
     }
 
-  }
-
-  def selectPackage(value: Iterator[String]): Option[String] = {
-    value.find(l => l.trim.startsWith("package"))
   }
 
   case class NePrLa(next: Option[Gav3], previous: Option[Gav3], latest: Option[Gav3])

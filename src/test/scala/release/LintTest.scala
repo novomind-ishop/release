@@ -21,21 +21,6 @@ class LintTest extends AssertionsForJUnit {
   def tag(tagName: String, branchName: Option[String] = None) = Some(BranchTagMerge(tagName = Some(tagName), branchName = branchName))
 
   @Test
-  def testSelectPackage_blank(): Unit = {
-    Assert.assertEquals(None, Lint.selectPackage(
-      """
-        |""".stripMargin.linesIterator))
-  }
-
-  @Test
-  def testSelectPackage(): Unit = {
-    Assert.assertEquals(Some("package a.b;"), Lint.selectPackage(
-      """package a.b;
-        |package c.b;
-        |""".stripMargin.linesIterator))
-  }
-
-  @Test
   def testUnwantedPackage_timeout(): Unit = {
     val result = PackageResult.timeout(Duration.ofMillis(10), "hallo")
     Assert.assertEquals(Seq("timeout"), result.unwantedPackages)
@@ -67,17 +52,6 @@ class LintTest extends AssertionsForJUnit {
       "a.s",
     ), testee.unwantedPackages)
     Assert.assertEquals(Some("List((package a.bl,a))"), testee.select("a.bl"))
-  }
-
-  @Test
-  def testSelectPackage_with_header(): Unit = {
-    Assert.assertEquals(Some("package a.b"), Lint.selectPackage(
-      """
-        |/*
-        | * Copyright (c) 2001, 2018 and/or its affiliates. All rights reserved.
-        |*/
-        |package a.b
-        |""".stripMargin.linesIterator))
   }
 
   @Test

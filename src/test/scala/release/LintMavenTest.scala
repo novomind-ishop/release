@@ -8,6 +8,7 @@ import release.Lint.BranchTagMerge
 import release.Starter.Opts
 
 import java.io.File
+import java.nio.file.Paths
 import java.time.ZonedDateTime
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.annotation.{nowarn, unused}
@@ -1674,6 +1675,43 @@ class LintMavenTest extends AssertionsForJUnit {
     })
   }
 
+
+  @Test
+  def testFindAllPackagenames(): Unit = {
+    val file = temp.newFolder("release-lint-find-packagenames")
+
+    FileUtils.write(new File(file, ".unwanted-packages"),
+      """a
+        |""".stripMargin.linesIterator.toSeq)
+    FileUtils.write(new File(file, "Blank.java"),
+      "".linesIterator.toSeq)
+    FileUtils.write(new File(file, "ATest.java"),
+      """pac
+        |""".stripMargin.linesIterator.toSeq)
+    FileUtils.write(new File(file, "Test.scala"),
+      """package b
+        |""".stripMargin.linesIterator.toSeq)
+    FileUtils.write(new File(file, "Test.java"),
+      """// no
+        |package a;
+        |""".stripMargin.linesIterator.toSeq)
+
+    FileUtils.write(new File(file, "Some.java"),
+      """
+        |package a.b;
+        |package c.b;
+        |""".stripMargin.linesIterator.toSeq)
+
+    val result = Lint.findAllPackagenames(file, check = true)
+    println(result.d)
+    Assert.assertEquals(Seq(
+      ("package a.b;", Paths.get("Some.java")),
+      ("package a;", Paths.get("Test.java")),
+      ("package b", Paths.get("Test.scala")),
+
+    ), result.namesAndPath)
+    Assert.assertEquals(Seq("a.b;", "a;"), result.unwantedPackages)
+  }
   @Test
   def testValidMergeRequest(): Unit = {
     val file = temp.newFolder("release-lint-mvn-valid-branch")

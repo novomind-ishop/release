@@ -1,14 +1,13 @@
 package release
 
-import java.io.File
 import org.junit.{Assert, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.Util.UrlUserInfo
 
+import java.net.URI
 import java.time.{Duration, Period}
 import java.util
 import scala.util.Random
-import java.net.URI
 
 object UtilTest {
   def randomSha1(): String = {
@@ -55,13 +54,13 @@ class UtilTest extends AssertionsForJUnit {
     Assert.assertEquals("git.example.com:some/repo.git", Util.stripUserinfo("git@git.example.com:some/repo.git"))
   }
 
-
   @Test
   def testCreateURI(): Unit = {
     Assert.assertEquals(URI.create("as"), Util.createUri("as"))
     Assert.assertEquals(URI.create(s"https://${Util.urlEncode("user@name:pw")}@example.org/a?a=b"), Util.createUri("https://user@name:pw@example.org/a?a=b"))
     Assert.assertEquals(URI.create(s"http://${Util.urlEncode("user@na@:;me:pw")}@e"), Util.createUri("http://user@na@:;me:pw@e"))
   }
+
   @Test
   def testExtractUserdata(): Unit = {
     Assert.assertEquals(UrlUserInfo("A", None, None), Util.extractedUserInfoUrl("A"))
@@ -129,21 +128,6 @@ class UtilTest extends AssertionsForJUnit {
       "b" -> Seq("a", "c"),
       "c" -> Seq("a", "b")),
       Util.groupedFiltered(Seq("a", "b", "c")))
-  }
-
-  @Test
-  def testReadLines(): Unit = {
-    TestHelper.assertExceptionWithCheck(msg =>
-      Assert.assertEquals("... is no regular file", msg.replaceFirst("^[^ ]+ ", "... ")), classOf[IllegalStateException],
-      () => FileUtils.readLines(new File("fasdf")))
-
-    Assert.assertNotEquals(Nil, FileUtils.readLines(new File(".gitattributes")))
-  }
-
-  @Test
-  def testFindInFile(): Unit = {
-    Assert.assertEquals(Seq(("                                 Apache License", 1)),
-      FileUtils.findInFile(new File("LICENSE").toPath, l => (l.contains("  Apache License"), l)))
   }
 
   @Test

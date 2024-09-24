@@ -42,7 +42,7 @@ object FileUtils {
     }
   }
 
-  def findInFile[T](filePath: Path, selector: String => (Boolean, T)): Seq[(T, Int)] = {
+  def findAllInFile[T](filePath: Path, selector: String => (Boolean, T)): Seq[(T, Int)] = {
     Using.resource(Files.lines(filePath))(lines => {
       val result: LazyList[(T, Int)] = lines.toScala(LazyList).zipWithIndex.flatMap(lineIdx => {
         val tuple = selector.apply(lineIdx._1)
@@ -60,7 +60,35 @@ object FileUtils {
         }
       }
     })
+  }
 
+  def walk(rootFile: File): ListBuffer[Path] = {
+    val na = ListBuffer.empty[Path]
+    val skipDirNames = Set(".git", "target")
+    Files.walkFileTree(rootFile.toPath, new FileVisitor[Path] {
+      override def preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult = {
+        if (skipDirNames.contains(dir.getFileName.toString)) {
+          FileVisitResult.SKIP_SUBTREE
+        } else {
+          FileVisitResult.CONTINUE
+        }
+      }
+
+      override def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
+        na += file
+        FileVisitResult.CONTINUE
+
+      }
+
+      override def visitFileFailed(file: Path, exc: IOException): FileVisitResult = {
+        FileVisitResult.CONTINUE
+      }
+
+      override def postVisitDirectory(dir: Path, exc: IOException): FileVisitResult = {
+        FileVisitResult.CONTINUE
+      }
+    })
+    na
   }
 
   def recursive(start: File): Seq[File] = {
@@ -111,33 +139,6 @@ object FileUtils {
       case o: Exception => throw o
     }
   }
-  def walk(rootFile: File): ListBuffer[Path] = {
-    val na = ListBuffer.empty[Path]
-    val skipDirNames = Set(".git", "target")
-    Files.walkFileTree(rootFile.toPath, new FileVisitor[Path] {
-      override def preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult = {
-        if (skipDirNames.contains(dir.getFileName.toString)) {
-          FileVisitResult.SKIP_SUBTREE
-        } else {
-          FileVisitResult.CONTINUE
-        }
-      }
 
-      override def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
-        na += file
-        FileVisitResult.CONTINUE
-
-      }
-
-      override def visitFileFailed(file: Path, exc: IOException): FileVisitResult = {
-        FileVisitResult.CONTINUE
-      }
-
-      override def postVisitDirectory(dir: Path, exc: IOException): FileVisitResult = {
-        FileVisitResult.CONTINUE
-      }
-    })
-    na
-  }
 
 }
