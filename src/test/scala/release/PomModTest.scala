@@ -1861,6 +1861,20 @@ class PomModTest extends AssertionsForJUnit {
       "http://central2",
     ), urls)
   }
+
+  @Test
+  def testCheckSnapshots_none(): Unit = {
+    PomMod.checkSnapshots(Seq("invalid"))
+    // no exception
+  }
+
+  @Test
+  def testCheckSnapshots_fail(): Unit = {
+    TestHelper.assertException("invalid SNAPSHOT definition in »invalid-snapshot«. SNAPSHOT has to be in upper case.",
+      classOf[PreconditionsException], () => PomMod.checkSnapshots(Seq("invalid-snapshot")))
+    TestHelper.assertException("invalid SNAPSHOT definition in »invalidSnapsHot«. SNAPSHOT has to be in upper case.",
+      classOf[PreconditionsException], () => PomMod.checkSnapshots(Seq("invalidSnapsHot")))
+  }
 }
 
 object PomModTest {

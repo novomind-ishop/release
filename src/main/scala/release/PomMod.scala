@@ -87,7 +87,7 @@ case class PomMod(file: File, repo: RepoZ, opts: Opts,
 
   val selfVersion: String = {
     val v = listSelf.map(_.version.get).distinct
-
+    PomMod.checkSnapshots(v)
     Util.only(v, {
       val selection: String = listSelf.groupBy(_.version.get) match {
         case grouped: Map[String, Seq[Dep]] if grouped.keySet.size == 2 => {
@@ -507,6 +507,13 @@ case class RawPomFile(pomFile: File, document: Document, file: File) {
 }
 
 object PomMod {
+  def checkSnapshots(v: Seq[String]) = {
+    val typos = v.filter(s => s.toUpperCase().contains("SNAPSHOT")).filterNot(_.contains("SNAPSHOT"))
+    if (typos.nonEmpty) {
+      throw new PreconditionsException(s"invalid SNAPSHOT definition in »${typos.mkString(", ")}«. SNAPSHOT has to be in upper case.")
+    }
+  }
+
   def extractUrlsFromSettings(settingsXml: File): Seq[String] = {
     extractUrlsFromSettings(FileUtils.read(settingsXml))
   }

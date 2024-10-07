@@ -1,9 +1,11 @@
 package release
 
+import com.google.common.collect.ImmutableSet
+
 import java.io.{File, IOException, UncheckedIOException}
 import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.BasicFileAttributes
-import java.nio.file.{FileSystemException, FileVisitResult, FileVisitor, Files, Path}
+import java.nio.file.{FileSystemException, FileVisitOption, FileVisitResult, FileVisitor, Files, Path}
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.util.Using
@@ -65,7 +67,7 @@ object FileUtils {
   def walk(rootFile: File): ListBuffer[Path] = {
     val na = ListBuffer.empty[Path]
     val skipDirNames = Set(".git", "target")
-    Files.walkFileTree(rootFile.toPath, new FileVisitor[Path] {
+    Files.walkFileTree(rootFile.toPath, ImmutableSet.of(FileVisitOption.FOLLOW_LINKS), Int.MaxValue, new FileVisitor[Path] {
       override def preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult = {
         if (skipDirNames.contains(dir.getFileName.toString)) {
           FileVisitResult.SKIP_SUBTREE

@@ -4,7 +4,7 @@ import com.google.googlejavaformat.java.Formatter
 import org.junit.rules.TemporaryFolder
 import org.junit.{Assert, Rule, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
-import release.Lint.{BranchTagMerge, NePrLa, PackageResult}
+import release.Lint.{BranchTagMerge, NePrLa, PackageImportResult}
 import release.ProjectMod.Gav3
 import release.Sgit.{GitShaBranch, GitShaTag}
 
@@ -22,7 +22,7 @@ class LintTest extends AssertionsForJUnit {
 
   @Test
   def testUnwantedPackage_timeout(): Unit = {
-    val result = PackageResult.timeout(Duration.ofMillis(10), "hallo")
+    val result = PackageImportResult.timeout(Duration.ofMillis(10), "hallo")
     Assert.assertEquals(Seq("timeout"), result.unwantedPackages)
   }
 
@@ -36,14 +36,14 @@ class LintTest extends AssertionsForJUnit {
       "package   a.j; ",
       " package a.s",
     )
-    val testee = PackageResult(namesAndPath = g.map(p => (p, Paths.get("a"))), Duration.ZERO,
+    val testee = PackageImportResult(packagesWithSrcPath = g.map(p => (p, Paths.get("a"))), Nil, Duration.ZERO,
       """a.bl;
         |oi.
         |package a.j;
         |package oi.package.io;
         |package a.s
         |""".stripMargin, msg = "")
-    Assert.assertEquals(g, testee.names)
+    Assert.assertEquals(g, testee.packages)
     Assert.assertEquals(Seq(
       "a.bl",
       "oi.io;",

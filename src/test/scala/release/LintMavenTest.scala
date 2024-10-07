@@ -720,7 +720,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for preview releases @ maven ---
         |[INFO] --- check major versions @ ishop ---
         |[INFO]     is shop: false
-        |[WARNING]     Found core 50, 51 😬 RL1013-28c40a8a
+        |[WARNING]     Found multiple core major version: »50, 51«, use only one 😬 RL1013-28c40a8a
         |[WARNING]       - 50 -
         |[WARNING]       com.novomind.ishop.core.other:other-context:50.2.3 😬 RL1013-253fb8cd
         |[WARNING]       - 51 -
@@ -1012,6 +1012,80 @@ class LintMavenTest extends AssertionsForJUnit {
       )
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(mockUpdates)
+      System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file))
+    })
+
+  }
+
+  @Test
+  def testSnapshotTypo(): Unit = {
+    val file = temp.newFolder("release-lint-mvn-snapshot")
+    val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
+    gitA.configSetLocal("user.email", "you@example.com")
+    gitA.configSetLocal("user.name", "Your Name")
+    FileUtils.write(new File(file, "pom.xml"),
+      """<?xml version="1.0" encoding="UTF-8"?>
+        |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+        |  <modelVersion>4.0.0</modelVersion>
+        |  <groupId>com.novomind.ishop.any</groupId>
+        |  <artifactId>any</artifactId>
+        |  <version>0.11-snapshot</version>
+        |</project>
+        |""".stripMargin.linesIterator.toSeq)
+
+    val expected =
+      """
+        |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO]     -Xms: 123m -Xmx: 321m
+        |[INFO]     no skips
+        |[INFO] --- version / git ---
+        |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO] --- check clone config / remote @ git ---
+        |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
+        |[WARNING]  😬 if you use gitlab try to
+        |[WARNING]  😬 choose another default branch; save; use the original default branch
+        |[WARNING]  😬 remote call exception: java.lang.RuntimeException message: Nonzero exit value: 128; git --no-pager remote show origin; fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
+        |[INFO] --- check branches / remote @ git ---
+        |[INFO]     active contributor count: 0
+        |[INFO]     active branch count: 0
+        |[INFO] --- check clone config / no shallow clone @ git ---
+        |[INFO]     ✅ NO shallow clone
+        |[INFO] --- .gitattributes @ git ---
+        |[INFO] --- .gitignore @ git ---
+        |[WARNING]  Found local changes 😬 RL1003-3b946499
+        |[WARNING]  ?? pom.xml 😬 RL1003-467ad8bc
+        |[INFO] --- list-remotes @ git ---
+        |[WARNING]  NO remotes found 😬 RL1004
+        |[WARNING]  % git remote -v # returns nothing
+        |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
+        |[INFO]     ✅ NO SNAPSHOTS in other files found
+        |[INFO] --- model read @ maven/sbt/gradle ---
+        |[ERROR]     😬 invalid SNAPSHOT definition in »0.11-snapshot«. SNAPSHOT has to be in upper case.
+        |[WARNING]     skipped because of previous problems - invalid SNAPSHOT definition in »0.11-snapshot«. SNAPSHOT has to be in upper case. 😬
+        |[INFO] --- dep.tree @ maven ---
+        |[INFO]     WIP
+        |
+        |/tmp/junit-REPLACED/release-lint-mvn-snapshot/.git
+        |/tmp/junit-REPLACED/release-lint-mvn-snapshot/pom.xml
+        |[INFO] ----------------------------[ end of lint ]----------------------------
+        |[ERROR] exit 43 - because lint found errors, see above ❌""".stripMargin
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 43)(sys => {
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+      val mockRepo = Mockito.mock(classOf[Repo])
+      Mockito.when(mockRepo.getMetrics).thenReturn(RepoMetrics.empty())
+      Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
+      Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq(Repo.centralUrl))
+      Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
+      Mockito.when(mockRepo.allRepoZ()).thenReturn(Seq(mockRepo))
+      Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(online = true, "200"))
+      Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
+        thenReturn(Some(ZonedDateTime.now()))
+      Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+        .thenReturn(None)
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+        .thenReturn(Seq("0.0.1", "1.0.1-SNAPSHOT", "1.0.0"))
       System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file))
     })
 
@@ -1700,6 +1774,11 @@ class LintMavenTest extends AssertionsForJUnit {
       """
         |package a.b;
         |package c.b;
+        |
+        |import java.io.File;
+        |import static java.util.Set;
+        |importReport.call();
+        |packageList.call();
         |""".stripMargin.linesIterator.toSeq)
 
     val result = Lint.findAllPackagenames(file, check = true)
@@ -1709,8 +1788,30 @@ class LintMavenTest extends AssertionsForJUnit {
       ("package a;", Paths.get("Test.java")),
       ("package b", Paths.get("Test.scala")),
 
-    ), result.namesAndPath)
+    ), result.packagesWithSrcPath)
     Assert.assertEquals(Seq("a.b;", "a;"), result.unwantedPackages)
+    Assert.assertEquals(Seq("package a.b;", "package a;", "package b"), result.packages)
+    Assert.assertEquals(Seq("import java.io.File;", "import static java.util.Set;"), result.imports)
+  }
+
+  @Test
+  def testDiffPackageAndImports(): Unit = {
+    val fileA = new File("/tmp/a")
+    val fileB = new File("/tmp/b")
+    val file = temp.newFolder("release-lint-diff-packagenames")
+
+    val wf = FileUtils.write(new File(file, ".unwanted-packages"),
+      """a
+        |""".stripMargin.linesIterator.toSeq)
+
+
+    val resultA = Lint.findPackagesAndImports(fileA, wf)
+    println("packages")
+    resultA.packages.foreach(println)
+    val result = Lint.findPackagesAndImports(fileB, wf)
+    println("imports")
+    result.importsNom.filter(_.startsWith("com.novomind.")).foreach(println)
+    Assert.assertEquals(Nil, result.unwantedPackages)
   }
   @Test
   def testValidMergeRequest(): Unit = {

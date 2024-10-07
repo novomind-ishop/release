@@ -47,28 +47,35 @@ object Lint {
     (calcFreq(branches).getOrElse(negativ), calcFreq(tags).getOrElse(negativ))
   }
 
-  object PackageResult {
+  object PackageImportResult {
     def timeout(d: Duration, msg: String) = {
-      PackageResult(Seq(("timeout", Path.of("timeout"))), d, "timeout", msg = msg)
+      PackageImportResult(packagesWithSrcPath = Seq(("timeout", Path.of("timeout"))),
+        importsWithSrcPath = Seq(("timeout", Path.of("timeout"))), d, "timeout", msg = msg)
     }
   }
 
-  case class PackageResult(namesAndPath: Seq[(String, Path)], d: Duration, private val unwantedText: String, msg: String) {
-    val names = namesAndPath.map(_._1).distinct.toList
-    private val namesPathIndex = namesAndPath.groupBy(k => nom(k._1))
+  case class PackageImportResult(packagesWithSrcPath: Seq[(String, Path)], importsWithSrcPath: Seq[(String, Path)], d: Duration,
+                                 private val unwantedPackageDefinition: String, msg: String) {
+    val packages = packagesWithSrcPath.map(_._1).distinct.toList
+    val packageToPathIndex = packagesWithSrcPath.groupBy(k => nomPackage(k._1))
+    lazy val imports = importsWithSrcPath.map(_._1).distinct.toList
+    lazy val importsNom = imports.map(nomImport).distinct
 
-    private def nom(in: String) = {
+    private def nomPackage(in: String) = {
       in.replaceFirst("package ", "").trim
+    }
+    private def nomImport(in: String) = {
+      in.replaceFirst("import ", "").replaceFirst("static ", "").trim.replaceFirst(";$", "")
     }
 
     def select(in: String): Option[Any] = {
-      namesPathIndex.get(in).map(_.toString())
+      packageToPathIndex.get(in).map(_.toString())
     }
 
-    val allNames = unwantedText.linesIterator.toSet.map(nom).toSeq
+    val allNames = unwantedPackageDefinition.linesIterator.toSet.map(nomPackage).toSeq
     lazy val unwantedPackages: Seq[String] = {
 
-      val normalized = names.map(nom)
+      val normalized = packages.map(nomPackage)
       normalized.filter(e => allNames.exists(k => {
         if (k.endsWith(";")) {
           e.replace(";", "").endsWith(k.replace(";", ""))
@@ -83,40 +90,45 @@ object Lint {
     }
   }
 
-  def findAllPackagenames(rootFile: File, check: Boolean): PackageResult = {
+  def findAllPackagenames(rootFile: File, check: Boolean): PackageImportResult = {
     val packageScanFile = new File(rootFile, ".unwanted-packages")
     if (check && packageScanFile.canRead) {
-
-      def toResult(stopwatch: Stopwatch): PackageResult = {
-        val suffix = Set("java", "scala")
-        val both = FileUtils.walk(rootFile).par
-          .filter(p => suffix.contains(com.google.common.io.Files.getFileExtension(p.toFile.getName)))
-          .flatMap(f => {
-            try {
-              val rel = rootFile.toPath.relativize(f)
-              val result = FileUtils.findAllInFile(f, sel => {
-                val trimmed = sel.trim
-                (trimmed.startsWith("package") || trimmed.startsWith("import"), trimmed)
-              })
-              result.find(_._1.startsWith("package")).map(e => (e._1, rel))
-            } catch {
-              case _: Exception => None
-            }
-
-          })
-        val packageLines: List[(String, Path)] = both.distinct.toList.sorted
-        PackageResult(packageLines, stopwatch.elapsed().withNanos(0), unwantedText = FileUtils.read(packageScanFile), msg = "")
-
-      }
-
-      Util.timeout(50, TimeUnit.SECONDS, toResult, (e, d) => {
-        PackageResult.timeout(d, e.getMessage + ". Big projects with more then 10k files took ~2 seconds")
-      })._1
-
+      findPackagesAndImports(rootFile, packageScanFile)
     } else {
-      PackageResult(Nil, Duration.ZERO, "", "")
+      PackageImportResult(packagesWithSrcPath = Nil, importsWithSrcPath = Nil,
+        d = Duration.ZERO, unwantedPackageDefinition = "", msg = "")
     }
 
+  }
+
+  def findPackagesAndImports(rootFile: File, packageScanFile: File): PackageImportResult = {
+    def toResult(stopwatch: Stopwatch): PackageImportResult = {
+      val suffix = Set("java", "scala")
+      val both = FileUtils.walk(rootFile).par
+        .filter(p => suffix.contains(com.google.common.io.Files.getFileExtension(p.toFile.getName)))
+        .flatMap(f => {
+          try {
+            val rel = rootFile.toPath.relativize(f)
+            val result = FileUtils.findAllInFile(f, sel => {
+              val trimmed = sel.trim
+              (trimmed.startsWith("package ") || trimmed.startsWith("import "), trimmed)
+            })
+            result.map(e => (e._1, rel))
+          } catch {
+            case _: Exception => None
+          }
+
+        })
+      val packageLines: List[(String, Path)] = both.filter(_._1.startsWith("package")).toList.sorted.distinctBy(_._2)
+      val importLines: List[(String, Path)] = both.filter(_._1.startsWith("import")).distinct.toList.sorted
+      PackageImportResult(packagesWithSrcPath = packageLines, importsWithSrcPath = importLines,
+        d = stopwatch.elapsed().withNanos(0), unwantedPackageDefinition = FileUtils.read(packageScanFile), msg = "")
+
+    }
+
+    Util.timeout(50, TimeUnit.SECONDS, toResult, (e, d) => {
+      PackageImportResult.timeout(d, e.getMessage + ". Big projects with more then 10k files took ~2 seconds")
+    })._1
   }
 
   case class NePrLa(next: Option[Gav3], previous: Option[Gav3], latest: Option[Gav3])
@@ -699,8 +711,13 @@ object Lint {
           if (modTry.isSuccess) {
             out.println(info("    ✅ successfull created", opts))
           } else {
-            warnExit.set(true)
-            out.println(warn(s"    ${fiWarn} ${modTry.failed.get.getMessage}", opts, limit = lineMax))
+            if (modTry.failed.get.isInstanceOf[PreconditionsException]) {
+              errorExit.set(true)
+              out.println(error(s"    ${fiWarn} ${modTry.failed.get.getMessage}", opts, limit = lineMax))
+            } else {
+              warnExit.set(true)
+              out.println(warn(s"    ${fiWarn} ${modTry.failed.get.getMessage}", opts, limit = lineMax))
+            }
           }
           if (modTry.isSuccess) {
             val mod = modTry.get
@@ -812,7 +829,7 @@ object Lint {
             val mrc = Release.coreMajorResultOf(mod, None)
             if (mrc.hasDifferentMajors) {
               warnExit.set(true)
-              out.println(warn(s"    Found core ${mrc.sortedMajors.mkString(", ")} ${fiWarn} ${fiCodeCoreDiff.apply(mrc)}", opts, limit = lineMax))
+              out.println(warn(s"    Found multiple core major version: »${mrc.sortedMajors.mkString(", ")}«, use only one ${fiWarn} ${fiCodeCoreDiff.apply(mrc)}", opts, limit = lineMax))
               val versions = mrc.coreMajorVersions
               val mrcGrouped: Map[String, Seq[Gav]] = versions.groupBy(_._1)
                 .map(e => (e._1, e._2.map(_._2.gav()).distinct))
@@ -950,12 +967,12 @@ object Lint {
           out.println(info("    WIP", opts))
         }
         val packageNamesDetails = Lint.findAllPackagenames(file, opts.lintOpts.checkPackages)
-        if (packageNamesDetails.names.nonEmpty) {
+        if (packageNamesDetails.packages.nonEmpty) {
           out.println(info("--- unwanted-packages @ ishop ---", opts))
           if (packageNamesDetails.msg.nonEmpty) {
             out.println(warn(packageNamesDetails.msg, opts, limit = lineMax))
           }
-          val nameSize = packageNamesDetails.names.size
+          val nameSize = packageNamesDetails.packages.size
           out.println(info(s"    found $nameSize package ${"name".pluralize(nameSize)} in ${packageNamesDetails.d.toString}", opts))
           if (packageNamesDetails.unwantedPackages.nonEmpty) {
             packageNamesDetails.unwantedPackages.foreach(line => {
