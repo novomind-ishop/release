@@ -1009,14 +1009,23 @@ object Lint {
         out.println(ws)
         rootFolderFiles.sortBy(_.toString)
           .take(5).foreach(f => out.println(f.toPath.normalize().toAbsolutePath.toFile.getAbsolutePath))
-
+        val duration = stopwatch.elapsed()
         val timerResult = if (opts.lintOpts.showTimer) {
-          " - " + stopwatch.elapsed().toString // TODO timer score A - F
+          " - " + duration.withNanos(0).toString // TODO timer score A - F
         } else {
           ""
         }
-
         out.println(info(center("[ end of lint" + timerResult + " ]"), opts))
+        val now = ZonedDateTime.now()
+        val gitlabPipelineCreatedAt = envs.get("CI_PIPELINE_CREATED_AT").flatMap(SgitParsers.parseIsoDateOpt)
+        if (gitlabPipelineCreatedAt.isDefined) {
+          out.println(info(center("[ gitlab pipeline took" + Duration.between(gitlabPipelineCreatedAt.get, now).minus(duration) + " ]"), opts))
+        }
+
+        val gitlabJobStartedAt = envs.get("CI_JOB_STARTED_AT").flatMap(SgitParsers.parseIsoDateOpt)
+        if (gitlabJobStartedAt.isDefined) {
+          out.println(info(center("[ gitlab job took" + Duration.between(gitlabJobStartedAt.get, now).minus(duration) + " ]"), opts))
+        }
         if (errorExit.get()) {
           out.println(error(s"exit ${errorExitCode} - because lint found errors, see above ${fiError}", opts))
           return errorExitCode
