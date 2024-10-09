@@ -22,6 +22,26 @@ import scala.util.{Failure, Success, Try}
 
 object Lint {
 
+  def withoutNano(d: Duration, expectedSeconds: Range = Range(0, 0)): String = {
+    if (expectedSeconds.isEmpty) {
+      d.withNanos(0).toString
+    } else {
+      val groupSize = math.ceil(expectedSeconds.length.toDouble / 6).toInt
+      val groupedSeq = expectedSeconds.grouped(groupSize).toList.zipWithIndex
+      val seconds = d.toSeconds
+      val score = if (seconds < expectedSeconds.start) {
+        " (A+)"
+      } else if (seconds > expectedSeconds.end) {
+        " (F-)"
+      } else {
+        val c = groupedSeq.find(t => t._1.contains(seconds.toInt)).get._2
+        s" (${('A' to 'Z')(c)})"
+      }
+      d.withNanos(0).toString + score
+    }
+
+  }
+
   private def calcFreq(refsr: Seq[Sgit.GitShaRefTime]): Option[Period] = {
     if (refsr.size < 2) {
       None
@@ -64,6 +84,7 @@ object Lint {
     private def nomPackage(in: String) = {
       in.replaceFirst("package ", "").trim
     }
+
     private def nomImport(in: String) = {
       in.replaceFirst("import ", "").replaceFirst("static ", "").trim.replaceFirst(";$", "")
     }
@@ -963,8 +984,12 @@ object Lint {
             out.println(warn(s"   previous problems - ${pomFailures.mkString("\n")} ${fiWarn}", opts, limit = lineMax))
             warnExit.set(true)
           }
-          out.println(info("--- dep.tree @ maven ---", opts))
-          out.println(info("    WIP", opts))
+          if (modTry.isSuccess) {
+            out.println(info("--- dep.tree @ maven ---", opts))
+            val depTrees = modTry.get.getDepTreeFileContents
+            out.println(info(s"    found ${depTrees.size} trees", opts)) // TODO parse and group by GA, show with more then one match
+          }
+
         }
         val packageNamesDetails = Lint.findAllPackagenames(file, opts.lintOpts.checkPackages)
         if (packageNamesDetails.packages.nonEmpty) {
@@ -1009,9 +1034,10 @@ object Lint {
         out.println(ws)
         rootFolderFiles.sortBy(_.toString)
           .take(5).foreach(f => out.println(f.toPath.normalize().toAbsolutePath.toFile.getAbsolutePath))
+
         val duration = stopwatch.elapsed()
         val timerResult = if (opts.lintOpts.showTimer) {
-          " - " + duration.withNanos(0).toString // TODO timer score A - F
+          " - " + withoutNano(duration, Range.inclusive(2, 44))
         } else {
           ""
         }
@@ -1019,13 +1045,10 @@ object Lint {
         val now = ZonedDateTime.now()
         val gitlabPipelineCreatedAt = envs.get("CI_PIPELINE_CREATED_AT").flatMap(SgitParsers.parseIsoDateOpt)
         if (gitlabPipelineCreatedAt.isDefined) {
-          out.println(info(center("[ gitlab pipeline took" + Duration.between(gitlabPipelineCreatedAt.get, now).minus(duration) + " ]"), opts))
+          val gitlabTime = Duration.between(gitlabPipelineCreatedAt.get, now).minus(duration)
+          out.println(info(center("[ gitlab pipeline without lint took " + withoutNano(gitlabTime, Range.inclusive(15, 60)) + " ]"), opts))
         }
 
-        val gitlabJobStartedAt = envs.get("CI_JOB_STARTED_AT").flatMap(SgitParsers.parseIsoDateOpt)
-        if (gitlabJobStartedAt.isDefined) {
-          out.println(info(center("[ gitlab job took" + Duration.between(gitlabJobStartedAt.get, now).minus(duration) + " ]"), opts))
-        }
         if (errorExit.get()) {
           out.println(error(s"exit ${errorExitCode} - because lint found errors, see above ${fiError}", opts))
           return errorExitCode

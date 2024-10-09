@@ -88,7 +88,7 @@ class LintSbtTest extends AssertionsForJUnit {
         |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
-        |[INFO]     WIP
+        |[INFO]     found 0 trees
         |[INFO] --- ??? @ sbt ---
         |[INFO]     WIP
         |

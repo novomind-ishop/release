@@ -183,12 +183,15 @@ case class PomMod(file: File, repo: RepoZ, opts: Opts,
     ouu
   }
 
+
+
   private[release] var depTreeFileContents: Map[File, DepTree] = depTreeFiles(depTreeFilename(), rawSub)
     .map(f => (f, DepTree(FileUtils.read(f))))
     .filterNot(in => in._1.getParentFile.getName == ".")
     .sortBy(_._1)
     .foldLeft(Map.empty[File, DepTree])(_ + _)
 
+  def getDepTreeFileContents: Map[File, DepTree] = depTreeFileContents
   logger.trace("pomMod val/var init")
 
   private def nodePath(node: Node): Seq[String] = {

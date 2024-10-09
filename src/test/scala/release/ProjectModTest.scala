@@ -5,6 +5,7 @@ import org.mockito.ArgumentMatchers.anyString
 import org.mockito.MockitoSugar._
 import org.mockito.{ArgumentMatchers, Mockito}
 import org.scalatestplus.junit.AssertionsForJUnit
+import release.PomMod.DepTree
 import release.ProjectMod.{Dep, Gav, Gav3, GavWithRef, SelfRef, UpdatePrinter}
 import release.ProjectModTest.MockMod
 import release.SbtModTest.d
@@ -80,6 +81,7 @@ object ProjectModTest {
     override def depTreeFilenameList(): Seq[String] = Nil
 
     override def listRemoteRepoUrls(): Seq[String] = Nil
+    override def getDepTreeFileContents: Map[File, DepTree] = Map.empty
   }
 
 }

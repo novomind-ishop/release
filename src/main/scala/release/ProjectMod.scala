@@ -2,7 +2,7 @@ package release
 
 import com.google.common.base.Stopwatch
 import com.typesafe.scalalogging.LazyLogging
-import release.PomMod.{abbreviate, unmanaged}
+import release.PomMod.{DepTree, abbreviate, unmanaged}
 import release.ProjectMod.{Dep, Gav3, PluginDep, UpdateCon}
 import release.Starter.{Opts, OptsDepUp, PreconditionsException}
 
@@ -678,7 +678,7 @@ object Increment {
 
 trait ProjectMod extends LazyLogging {
   def listRemoteRepoUrls(): Seq[String]
-
+  def getDepTreeFileContents: Map[File, DepTree]
   val file: File
   val depInFiles: Seq[(Dep, File)]
   val repo: RepoZ

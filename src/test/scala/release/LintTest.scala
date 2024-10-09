@@ -224,6 +224,15 @@ class LintTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testWithoutNano(): Unit = {
+    Assert.assertEquals("PT34S", Lint.withoutNano(Duration.parse("PT34.181865249S")))
+    Assert.assertEquals("PT34S (F-)", Lint.withoutNano(Duration.parse("PT34.181865249S"), Range.inclusive(0, 10)))
+    Assert.assertEquals("PT34S (D)", Lint.withoutNano(Duration.parse("PT34.181865249S"), Range.inclusive(0, 60)))
+    Assert.assertEquals("PT1M6S (F-)", Lint.withoutNano(Duration.parse("PT66.181865249S"), Range.inclusive(0, 60)))
+    Assert.assertEquals("PT1M6S (A+)", Lint.withoutNano(Duration.parse("PT66.181865249S"), Range.inclusive(70, 100)))
+  }
+
+  @Test
   def testGoogleFmt(): Unit = {
     val file = temp.newFile("Demo.java")
     FileUtils.write(file,

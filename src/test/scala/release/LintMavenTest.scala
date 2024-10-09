@@ -205,7 +205,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
-        |[INFO]     WIP
+        |[INFO]     found 0 trees
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
@@ -392,7 +392,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
-        |[INFO]     WIP
+        |[INFO]     found 0 trees
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
@@ -584,7 +584,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
-        |[INFO]     WIP
+        |[INFO]     found 0 trees
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
@@ -744,7 +744,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
-        |[INFO]     WIP
+        |[INFO]     found 0 trees
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
@@ -871,7 +871,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
-        |[INFO]     WIP
+        |[INFO]     found 0 trees
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
@@ -985,7 +985,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
-        |[INFO]     WIP
+        |[INFO]     found 0 trees
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
@@ -1064,8 +1064,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- model read @ maven/sbt/gradle ---
         |[ERROR]     😬 invalid SNAPSHOT definition in »0.11-snapshot«. SNAPSHOT has to be in upper case.
         |[WARNING]     skipped because of previous problems - invalid SNAPSHOT definition in »0.11-snapshot«. SNAPSHOT has to be in upper case. 😬
-        |[INFO] --- dep.tree @ maven ---
-        |[INFO]     WIP
         |
         |/tmp/junit-REPLACED/release-lint-mvn-snapshot/.git
         |/tmp/junit-REPLACED/release-lint-mvn-snapshot/pom.xml
@@ -1219,7 +1217,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |org.springframework:spring-context-blank
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
-        |[INFO]     WIP
+        |[INFO]     found 0 trees
         |
         |/tmp/junit-REPLACED/release-lint-mvn-empty/.git
         |/tmp/junit-REPLACED/release-lint-mvn-empty/pom.xml
@@ -1412,7 +1410,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING] org.springframework:spring-other:1.0.0-SNAPSHOT is not released, but next release (1.0.1) was found (maybe orphan snapshot) 😬 RL10015-f0a969b5
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
-        |[INFO]     WIP
+        |[INFO]     found 0 trees
         |[INFO] --- unwanted-packages @ ishop ---
         |[INFO]     found 1 package name in PT4S
         |[INFO]     ✅ no problematic packages found
@@ -1608,7 +1606,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
-        |[INFO]     WIP
+        |[INFO]     found 0 trees
         |[INFO] --- unwanted-packages @ ishop ---
         |[INFO]     found 2 package names in PT4S
         |[WARNING]  package »a.b;« is in list of unwanted packages, please avoid this package 😬 RL1019-e215bd6f
@@ -1719,8 +1717,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- model read @ maven/sbt/gradle ---
         |[WARNING]     😬 No property replacement found in pom.xmls for: "${non-existing}" - define properties where they are required and not in parent pom.xml. Input is Nil.
         |[WARNING]     skipped because of previous problems - No property replacement found in pom.xmls for: "${non-existing}" - define properties where they are required and not in parent pom.xml. Input is Nil. 😬
-        |[INFO] --- dep.tree @ maven ---
-        |[INFO]     WIP
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple-fail/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple-fail/.mvn
@@ -1985,7 +1981,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
-        |[INFO]     WIP
+        |[INFO]     found 0 trees
         |[INFO] --- skip-conf / self / end ---
         |[WARNING]     found unused skips, please remove from your config: RL1003-aaaaaaa
         |[WARNING]     active skips: RL1003-21ee7891

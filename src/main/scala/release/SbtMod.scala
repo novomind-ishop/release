@@ -1,6 +1,7 @@
 package release
 
 import com.typesafe.scalalogging.LazyLogging
+import release.PomMod.DepTree
 import release.ProjectMod.{Gav3, SelfRef}
 import release.SbtMod.SbtModel
 import release.Starter.Opts
@@ -50,6 +51,8 @@ case class SbtMod(file: File, repo: RepoZ, opts: Opts) extends ProjectMod {
     // TODO cat ~/.sbt/repositories
     Nil
   }
+
+  def getDepTreeFileContents: Map[File, DepTree] = Map.empty
 
   val skipPropertyReplacement: Boolean = false
 
