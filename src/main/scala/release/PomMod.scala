@@ -615,6 +615,11 @@ object PomMod {
     PomMod(file, repo, opts, skipPropertyReplacement, withSubPoms, failureCollector)
   }
 
+  object DepTree {
+    def parseGavsOnly(tree:DepTree):Seq[Gav3] = {
+      DepTreeParsers.parseGavsOnly(tree.content)
+    }
+  }
   case class DepTree(content: String)
 
   private val xPathToProjectGroupId = "//project/groupId"

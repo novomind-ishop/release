@@ -987,7 +987,8 @@ object Lint {
           if (modTry.isSuccess) {
             out.println(info("--- dep.tree @ maven ---", opts))
             val depTrees = modTry.get.getDepTreeFileContents
-            out.println(info(s"    found ${depTrees.size} trees", opts)) // TODO parse and group by GA, show with more then one match
+            out.println(info(s"    found ${depTrees.size} trees", opts))
+            TreeGav.format(depTrees.map(t => (t._1, PomMod.DepTree.parseGavsOnly(t._2))), out, opts)
           }
 
         }

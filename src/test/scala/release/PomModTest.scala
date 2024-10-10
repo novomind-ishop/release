@@ -1875,6 +1875,14 @@ class PomModTest extends AssertionsForJUnit {
     TestHelper.assertException("invalid SNAPSHOT definition in »invalidSnapsHot«. SNAPSHOT has to be in upper case.",
       classOf[PreconditionsException], () => PomMod.checkSnapshots(Seq("invalidSnapsHot")))
   }
+
+  @Test
+  def testParseTree(): Unit = {
+    val result = PomMod.DepTree.parseGavsOnly(DepTree(
+      """com.novomind:any:pom:1.0.0
+        |""".stripMargin))
+    Assert.assertEquals(Seq(Gav3(groupId = "com.novomind", artifactId = "any", version = "1.0.0")), result)
+  }
 }
 
 object PomModTest {
