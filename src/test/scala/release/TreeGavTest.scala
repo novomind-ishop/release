@@ -46,10 +46,18 @@ class TreeGavTest extends AssertionsForJUnit {
       Gav3(groupId = "g", artifactId = "a", version = Some("1.2.0")),
       Gav3(groupId = "g", artifactId = "a", version = Some("1.2.0")),
       Gav3(groupId = "g", artifactId = "a", version = Some("1.2.3")),
+      Gav3(groupId = "ag", artifactId = "a2", version = Some("1.2.5")),
+      Gav3(groupId = "ag", artifactId = "a2", version = Some("1.2.6")),
+      Gav3(groupId = "ag", artifactId = "a2", version = Some("1.2.7")),
+      Gav3(groupId = "g", artifactId = "a2", version = Some("1.2.1")),
+      Gav3(groupId = "g", artifactId = "a2", version = Some("1.2.10")),
+      Gav3(groupId = "g", artifactId = "a2", version = Some("1.2.2")),
 
     ))
     val expected =
-      """[warning]  g:a {1.2.0, 1.2.3}""".stripMargin
+      """[warning]  g:a {1.2.0, 1.2.3}
+        |[warning]  ag:a2 {1.2.5, 1.2.6, 1.2.7}
+        |[warning]  g:a2 {1.2.1, 1.2.2, 1.2.10}""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
       val opts = Opts().copy(colors = false)
       TreeGav.format(value, sys.out, opts)
