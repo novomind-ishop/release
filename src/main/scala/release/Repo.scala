@@ -506,8 +506,14 @@ object Repo extends LazyLogging {
             .distinct
         }
       }).toSeq.minOption
-      cache.put((repository.getUrl, groupId, artifactId, version), r)
-      r
+      val rr = if (r.isEmpty && retry) {
+        tryResolveReq(repository)(groupId + ":" + artifactId + ":pom:" + version)
+        depDate(repository, cache)(groupId, artifactId, version, retry = false)
+      } else {
+        r
+      }
+      cache.put((repository.getUrl, groupId, artifactId, version), rr)
+      rr
     }
     r
   }
