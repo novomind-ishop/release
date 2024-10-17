@@ -1,12 +1,13 @@
 package release
 
 import com.google.common.base.{Stopwatch, Strings}
-import com.google.common.hash.Hashing
+import com.google.common.hash.{HashFunction, Hashing}
 import org.apache.commons.codec.language.Soundex
 
 import java.io.File
 import java.net.{URI, URLEncoder}
 import java.nio.charset.StandardCharsets
+import java.nio.file.Files
 import java.security.MessageDigest
 import java.time.{Duration, Period, ZonedDateTime}
 import java.util
@@ -326,8 +327,14 @@ object Util {
 
   def hashMd5Random(): String = Util.hashMd5(Random.nextLong().toString)
 
+  private def hashMurmur3_32_fixed(): HashFunction = Hashing.murmur3_32_fixed()
+
   def hashMurmur3_32_fixed(in: String): String = {
-    Hashing.murmur3_32_fixed().hashString(in, StandardCharsets.UTF_8).toString
+    hashMurmur3_32_fixed().hashString(in, StandardCharsets.UTF_8).toString
+  }
+
+  def hashMurmur3_32_fixed(in: java.nio.file.Path): String = {
+    hashMurmur3_32_fixed().hashBytes(Files.readAllBytes(in)).toString
   }
 
   def hashSha1(in: String): String = {

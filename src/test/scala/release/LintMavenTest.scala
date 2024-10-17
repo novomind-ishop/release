@@ -23,6 +23,7 @@ object LintMavenTest {
       .replaceAll("( package name(?:s|) in) PT[0-9]+S", "$1 PT4S")
       .replaceAll("^\\[..:..:..\\...Z\\] ", "[00:00:00.00Z] ")
       .replaceAll(": git version 2\\.[0-9]+\\.[0-9]+", ": git version 2.999.999")
+      .replaceAll("self version: [0-9a-f]+$", "self version: 2222ffff")
       .replaceAll("[a-f0-9]{40}$", "affe4533042ef887a5477d73d958814317675be1")
       .replaceAll("dependencies in [0-9\\.]+ [mμs]+ \\([0-9]{4}-[0-9]{2}-[0-9]{2}\\)", "dependencies in 999ms (2000-01-01)")
   }
@@ -78,7 +79,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     no skips
         |[INFO] --- version / git ---
-        |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO]     ✅ git  version: git version 2.999.999
+        |[INFO]     ✅ self version: 2222ffff
         |[INFO] --- check clone config / remote @ git ---
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
         |[INFO] --- check branches / remote @ git ---
@@ -155,7 +157,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     no skips
         |[INFO] --- version / git ---
-        |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO]     ✅ git  version: git version 2.999.999
+        |[INFO]     ✅ self version: 2222ffff
         |[INFO] --- check clone config / remote @ git ---
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
         |[INFO] --- check branches / remote @ git ---
@@ -253,7 +256,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     no skips
         |[INFO] --- version / git ---
-        |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO]     ✅ git  version: git version 2.999.999
+        |[INFO]     ✅ self version: 2222ffff
         |[INFO] --- check clone config / remote @ git ---
         |[WARNING]  😬 unknown remote HEAD found, corrupted remote -- repair please
         |[WARNING]  😬 if you use gitlab try to
@@ -343,7 +347,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     no skips
         |[INFO] --- version / git ---
-        |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO]     ✅ git  version: git version 2.999.999
+        |[INFO]     ✅ self version: 2222ffff
         |[INFO] --- check clone config / remote @ git ---
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
         |[INFO] --- check branches / remote @ git ---
@@ -513,7 +518,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     skips: RL10015-aa71e948, RL1017-ab101a0e, RL1018-ceefe9c6
         |[INFO] --- version / git ---
-        |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO]     ✅ git  version: git version 2.999.999
+        |[INFO]     ✅ self version: 2222ffff
         |[INFO] --- check clone config / remote @ git ---
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
         |[INFO] --- check branches / remote @ git ---
@@ -683,7 +689,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     no skips
         |[INFO] --- version / git ---
-        |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO]     ✅ git  version: git version 2.999.999
+        |[INFO]     ✅ self version: 2222ffff
         |[INFO] --- check clone config / remote @ git ---
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
         |[WARNING]  😬 if you use gitlab try to
@@ -813,7 +820,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     no skips
         |[INFO] --- version / git ---
-        |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO]     ✅ git  version: git version 2.999.999
+        |[INFO]     ✅ self version: 2222ffff
         |[INFO] --- check clone config / remote @ git ---
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
         |[WARNING]  😬 if you use gitlab try to
@@ -932,7 +940,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     skips: RL1003-467ad8bc
         |[INFO] --- version / git ---
-        |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO]     ✅ git  version: git version 2.999.999
+        |[INFO]     ✅ self version: 2222ffff
         |[INFO] --- check clone config / remote @ git ---
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
         |[WARNING]  😬 if you use gitlab try to
@@ -1041,7 +1050,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     no skips
         |[INFO] --- version / git ---
-        |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO]     ✅ git  version: git version 2.999.999
+        |[INFO]     ✅ self version: 2222ffff
         |[INFO] --- check clone config / remote @ git ---
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
         |[WARNING]  😬 if you use gitlab try to
@@ -1149,7 +1159,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     no skips
         |[INFO] --- version / git ---
-        |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO]     ✅ git  version: git version 2.999.999
+        |[INFO]     ✅ self version: 2222ffff
         |[INFO] --- check clone config / remote @ git ---
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
         |[WARNING]  😬 if you use gitlab try to
@@ -1328,7 +1339,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     skips: RL1012-587ee13e, RL1003-8a73d4ae
         |[INFO] --- version / git ---
-        |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO]     ✅ git  version: git version 2.999.999
+        |[INFO]     ✅ self version: 2222ffff
         |[INFO] --- check clone config / remote @ git ---
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
         |[WARNING]  😬 if you use gitlab try to
@@ -1553,7 +1565,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     no skips
         |[INFO] --- version / git ---
-        |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO]     ✅ git  version: git version 2.999.999
+        |[INFO]     ✅ self version: 2222ffff
         |[INFO] --- check clone config / remote @ git ---
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
         |[WARNING]  😬 if you use gitlab try to
@@ -1690,7 +1703,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     skips: RL1012-d143f8dc, RL1003-b4b0c08b
         |[INFO] --- version / git ---
-        |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO]     ✅ git  version: git version 2.999.999
+        |[INFO]     ✅ self version: 2222ffff
         |[INFO] --- check clone config / remote @ git ---
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
         |[WARNING]  😬 if you use gitlab try to
@@ -1929,7 +1943,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     skips: RL1003-21ee7891, RL1003-aaaaaaa
         |[INFO] --- version / git ---
-        |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO]     ✅ git  version: git version 2.999.999
+        |[INFO]     ✅ self version: 2222ffff
         |[INFO] --- check clone config / remote @ git ---
         |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
         |[WARNING]  😬 if you use gitlab try to

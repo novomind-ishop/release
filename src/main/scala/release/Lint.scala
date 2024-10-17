@@ -463,7 +463,8 @@ object Lint {
         }
         val sgit = Sgit(file, doVerify = false, out = out, err = err, checkExisting = true, gitBin = None, opts = Opts())
         out.println(info("--- version / git ---", opts))
-        out.println(info(s"    ${fiFine} git version: " + sgit.version(), opts))
+        out.println(info(s"    ${fiFine} git  version: " + sgit.version(), opts))
+        out.println(info(s"    ${fiFine} self version: " + Sgit.selfFileChecksum, opts))
         out.println(info("--- check clone config / remote @ git ---", opts))
         val remoteHeadDefinition = sgit.remoteHead()
         if (remoteHeadDefinition.isSuccess) {

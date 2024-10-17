@@ -43,7 +43,8 @@ class LintSbtTest extends AssertionsForJUnit {
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     no skips
         |[INFO] --- version / git ---
-        |[INFO]     ✅ git version: git version 2.999.999
+        |[INFO]     ✅ git  version: git version 2.999.999
+        |[INFO]     ✅ self version: 2222ffff
         |[INFO] --- check clone config / remote @ git ---
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
         |[INFO] --- check branches / remote @ git ---
