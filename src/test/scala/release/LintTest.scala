@@ -21,6 +21,15 @@ class LintTest extends AssertionsForJUnit {
   def tag(tagName: String, branchName: Option[String] = None) = Some(BranchTagMerge(tagName = Some(tagName), branchName = branchName))
 
   @Test
+  def testPackageImportResult_nomImport(): Unit = {
+    Assert.assertEquals("" , PackageImportResult.nomImport(""))
+    Assert.assertEquals("com" , PackageImportResult.nomImport("import com"))
+    Assert.assertEquals("com.novomind" , PackageImportResult.nomImport("static import com.novomind.Result;"))
+    Assert.assertEquals("com.novomind" , PackageImportResult.nomImport("import com.novomind.Result;"))
+    Assert.assertEquals("com.novomind" , PackageImportResult.nomImport("import com.novomind.Result.Some;"))
+  }
+
+  @Test
   def testUnwantedPackage_timeout(): Unit = {
     val result = PackageImportResult.timeout(Duration.ofMillis(10), "hallo")
     Assert.assertEquals(Seq("timeout"), result.unwantedPackages)

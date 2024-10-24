@@ -29,7 +29,8 @@ object LintMaven {
       }
       val asVersion = v.removeSnapshot()
       if (as.contains(asVersion.rawInput)) {
-        val msg = s" tag v${asVersion.rawInput} is already existing ${fiWarn} ${fiCodeVersionMismatchNoTag}"
+        val suggested = PomMod.suggestNextReleaseBy(v.rawInput, v.rawInput) + "-SNAPSHOT"
+        val msg = s" tag v${asVersion.rawInput} is already existing. Please increment to next version e.g. ${suggested} ${fiWarn} ${fiCodeVersionMismatchNoTag}"
         if (opts.lintOpts.skips.contains(fiCodeVersionMismatchNoTag)) {
           out.println(warnSoft(msg, opts, limit = Lint.lineMax))
           Seq(fiCodeVersionMismatchNoTag)

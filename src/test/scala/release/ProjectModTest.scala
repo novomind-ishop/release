@@ -1,6 +1,7 @@
 package release
 
-import org.junit.{Assert, Test}
+import org.junit.rules.TemporaryFolder
+import org.junit.{Assert, Rule, Test}
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.MockitoSugar._
 import org.mockito.{ArgumentMatchers, Mockito}
@@ -87,6 +88,10 @@ object ProjectModTest {
 }
 
 class ProjectModTest extends AssertionsForJUnit {
+
+  val _temporarayFolder = new TemporaryFolder()
+
+  @Rule def temp = _temporarayFolder
   implicit def toOpt(in: String): Option[String] = Option(in)
 
   @Test
@@ -385,6 +390,21 @@ class ProjectModTest extends AssertionsForJUnit {
     val gav = Gav3(groupId = "org.example", artifactId = "some", version = "1.0.7")
     val result = ProjectMod.libyear(showYear = true, gav, major = Some("1"), timestamps, _ => {})
     Assert.assertEquals(" (libyears: ???)", result)
+  }
+
+  @Test
+  def testFindOrphanTrees(): Unit = {
+
+    // GIVEN
+    val root = temp.newFolder("root")
+    val file1 = new File(root, "dep.tree")
+    file1.createNewFile()
+    val file2 = temp.newFile("dep.tree")
+    // WHEN
+    val result = ProjectMod.findOrphanTrees(root, Seq(file2))
+
+    // THEN
+    Assert.assertEquals(Seq(file1.toPath), result)
   }
 
 }

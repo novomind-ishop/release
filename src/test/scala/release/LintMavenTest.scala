@@ -2064,7 +2064,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO]     1.2.3-SNAPSHOT
-        |[WARNING]  tag v1.2.3 is already existing 😬 RL1020
+        |[WARNING]  tag v1.2.3 is already existing. Please increment to next version e.g. 1.2.4-SNAPSHOT 😬 RL1020
         |""".stripMargin.trim
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
@@ -2080,7 +2080,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO]     1.2.3-SNAPSHOT
-        |[warning]  tag v1.2.3 is already existing 😬 RL1020
+        |[warning]  tag v1.2.3 is already existing. Please increment to next version e.g. 1.2.4-SNAPSHOT 😬 RL1020
         |""".stripMargin.trim
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1020", "ö")))

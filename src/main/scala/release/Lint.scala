@@ -17,6 +17,7 @@ import java.time.temporal.ChronoUnit
 import java.time.{Duration, Period, ZonedDateTime}
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import scala.annotation.tailrec
 import scala.collection.parallel.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
@@ -68,6 +69,22 @@ object Lint {
   }
 
   object PackageImportResult {
+
+    def nomPackage(in: String) = {
+      in.replaceFirst("package ", "").trim
+    }
+
+    @tailrec
+    def nomImport(in: String, limit: Int = 100): String = {
+      val repl = in.replaceFirst("import ", "").replaceFirst("static ", "").trim.replaceFirst(";$", "").replaceFirst("\\.[^\\.]+$", "")
+      if (limit > 0 && repl.exists(_.isUpper)) {
+        nomImport(repl, limit - 1)
+      } else {
+        repl
+      }
+
+    }
+
     def timeout(d: Duration, msg: String) = {
       PackageImportResult(packagesWithSrcPath = Seq(("timeout", Path.of("timeout"))),
         importsWithSrcPath = Seq(("timeout", Path.of("timeout"))), d, "timeout", msg = msg)
@@ -76,18 +93,13 @@ object Lint {
 
   case class PackageImportResult(packagesWithSrcPath: Seq[(String, Path)], importsWithSrcPath: Seq[(String, Path)], d: Duration,
                                  private val unwantedPackageDefinition: String, msg: String) {
+
+    import PackageImportResult._
+
     val packages = packagesWithSrcPath.map(_._1).distinct.toList
     val packageToPathIndex = packagesWithSrcPath.groupBy(k => nomPackage(k._1))
     lazy val imports = importsWithSrcPath.map(_._1).distinct.toList
-    lazy val importsNom = imports.map(nomImport).distinct
-
-    private def nomPackage(in: String) = {
-      in.replaceFirst("package ", "").trim
-    }
-
-    private def nomImport(in: String) = {
-      in.replaceFirst("import ", "").replaceFirst("static ", "").trim.replaceFirst(";$", "")
-    }
+    lazy val importsNom = imports.map(e => nomImport(e)).distinct
 
     def select(in: String): Option[Any] = {
       packageToPathIndex.get(in).map(_.toString())
@@ -989,6 +1001,10 @@ object Lint {
             out.println(info("--- dep.tree @ maven ---", opts))
             val depTrees = modTry.get.getDepTreeFileContents
             out.println(info(s"    found ${depTrees.size} trees", opts))
+            val orphanTrees = ProjectMod.findOrphanTrees(modTry.get.file, depTrees.keys.toSeq)
+            if (orphanTrees.nonEmpty) {
+              out.println(warn(s" found ${orphanTrees.size} orphan ${"tree".pluralize(orphanTrees.size)}", opts))
+            }
             TreeGav.format(depTrees.map(t => (t._1, PomMod.DepTree.parseGavsOnly(t._2))), out, opts)
           }
 
@@ -1018,6 +1034,10 @@ object Lint {
             out.println(info(s"    ${fiFine} no problematic packages found", opts))
           }
           out.println(info(s"    .unwanted-packages // checksum ${packageNamesDetails.unwantedDefinitionSum}", opts))
+        }
+        if (packageNamesDetails.imports.nonEmpty) {
+          out.println(info(s"    imports // ${packageNamesDetails.importsNom
+            .mkString(", ")}", opts, limit = lineMax))
         }
         if (sbt.isDefined) {
           out.println(info("--- ??? @ sbt ---", opts))

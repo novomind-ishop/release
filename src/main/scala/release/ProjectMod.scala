@@ -7,6 +7,7 @@ import release.ProjectMod.{Dep, Gav3, PluginDep, UpdateCon}
 import release.Starter.{Opts, OptsDepUp, PreconditionsException}
 
 import java.io.File
+import java.nio.file.Path
 import java.time.{Duration, LocalDate, Period, ZonedDateTime}
 import java.util.concurrent.TimeUnit
 import scala.collection.immutable.{ListMap, Seq}
@@ -14,6 +15,10 @@ import scala.collection.parallel.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
 object ProjectMod extends LazyLogging {
+  def findOrphanTrees(file: File, knownTrees: Seq[File]): Seq[Path] = {
+    val allTrees:Seq[Path] = FileUtils.walk(file).par.filter(p => p.endsWith("dep.tree")).seq.toSeq
+    allTrees.diff(knownTrees.map(_.toPath))
+  }
 
   def toDepChangeMap(in: Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])]): Map[Gav3, Seq[(String, Try[ZonedDateTime])]] = {
     in.map(k => (k._1.gav.simpleGav(), k._2)).to(ListMap)
