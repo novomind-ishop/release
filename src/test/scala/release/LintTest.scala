@@ -22,11 +22,30 @@ class LintTest extends AssertionsForJUnit {
 
   @Test
   def testPackageImportResult_nomImport(): Unit = {
-    Assert.assertEquals("" , PackageImportResult.nomImport(""))
-    Assert.assertEquals("com" , PackageImportResult.nomImport("import com"))
-    Assert.assertEquals("com.novomind" , PackageImportResult.nomImport("static import com.novomind.Result;"))
-    Assert.assertEquals("com.novomind" , PackageImportResult.nomImport("import com.novomind.Result;"))
-    Assert.assertEquals("com.novomind" , PackageImportResult.nomImport("import com.novomind.Result.Some;"))
+    Assert.assertEquals("", PackageImportResult.nomImport(""))
+    Assert.assertEquals("com", PackageImportResult.nomImport("import com"))
+    Assert.assertEquals("com.novomind", PackageImportResult.nomImport("static import com.novomind.Result;"))
+    Assert.assertEquals("com.novomind", PackageImportResult.nomImport("import com.novomind.Result;"))
+    Assert.assertEquals("com.novomind", PackageImportResult.nomImport("import com.novomind.Result.Some;"))
+  }
+
+  @Test
+  def testPackageImportResult_group_imports(): Unit = {
+
+    Assert.assertEquals(
+      "com.novomind.i.web.context, com.novomind.i.web.context.config, com.novomind.i.web.ctx, com.novomind.i.g",
+      PackageImportResult.formatGroupImports(Seq(
+        "com.novomind.i.web.context",
+        "com.novomind.i.web.context.config",
+        "com.novomind.i.web.ctx",
+        "com.novomind.i.g",
+        "com.guava",
+      )))
+    Assert.assertEquals("", PackageImportResult.formatGroupImports(Seq()))
+
+    Assert.assertEquals("com.novomind.i.web.context", PackageImportResult.formatGroupImports(Seq(
+      "com.novomind.i.web.context",
+    )))
   }
 
   @Test
@@ -217,7 +236,7 @@ class LintTest extends AssertionsForJUnit {
       brn("feature/b", ZonedDateTime.parse("2024-02-13T08:19:20+01:00")),
       brn("main", ZonedDateTime.parse("2024-02-14T08:19:20+01:00")),
     ), currentDate = ZonedDateTime.parse("2024-03-13T08:19:20+01:00"))
-    Assert.assertEquals((Period.parse("P1D"),Period.parse("P-1D")), result)
+    Assert.assertEquals((Period.parse("P1D"), Period.parse("P-1D")), result)
   }
 
   @Test

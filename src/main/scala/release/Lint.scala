@@ -17,7 +17,8 @@ import java.time.temporal.ChronoUnit
 import java.time.{Duration, Period, ZonedDateTime}
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
-import scala.annotation.tailrec
+import scala.annotation.{tailrec, unused}
+import scala.collection.immutable.ListMap
 import scala.collection.parallel.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
@@ -69,6 +70,19 @@ object Lint {
   }
 
   object PackageImportResult {
+    def formatGroupImports(value: Seq[String]): String = {
+
+      val nm = value.filter(_.startsWith("com.novomind"))
+        .filterNot(_.startsWith("com.novomind.ishop.shops."))
+      @unused
+      val asdf = nm
+        .flatMap(element => {
+          val byDot = element.split('.')
+          val asas = List.tabulate(byDot.size)(co => byDot.toSeq.take(co + 1))
+          asas
+        }).filterNot(_.isEmpty).groupBy(_.size).toSeq.sortBy(_._1).to(ListMap)
+      nm.mkString(", ")
+    }
 
     def nomPackage(in: String) = {
       in.replaceFirst("package ", "").trim
@@ -82,7 +96,6 @@ object Lint {
       } else {
         repl
       }
-
     }
 
     def timeout(d: Duration, msg: String) = {
@@ -1036,8 +1049,9 @@ object Lint {
           out.println(info(s"    .unwanted-packages // checksum ${packageNamesDetails.unwantedDefinitionSum}", opts))
         }
         if (packageNamesDetails.imports.nonEmpty) {
-          out.println(info(s"    imports // ${packageNamesDetails.importsNom
-            .mkString(", ")}", opts, limit = lineMax))
+          out.println(info(s"    imports // ${
+            PackageImportResult.formatGroupImports(packageNamesDetails.importsNom)
+          }", opts, limit = lineMax))
         }
         if (sbt.isDefined) {
           out.println(info("--- ??? @ sbt ---", opts))
