@@ -31,21 +31,26 @@ class LintTest extends AssertionsForJUnit {
 
   @Test
   def testPackageImportResult_group_imports(): Unit = {
-
     Assert.assertEquals(
-      "com.novomind.i.web.context, com.novomind.i.web.context.config, com.novomind.i.web.ctx, com.novomind.i.g",
+      """com.novomind.i.web.context
+        |com.novomind.i.web.context.config
+        |com.novomind.i.web.ctx
+        |com.novomind.i.g
+        |""".stripMargin.trim,
       PackageImportResult.formatGroupImports(Seq(
         "com.novomind.i.web.context",
         "com.novomind.i.web.context.config",
         "com.novomind.i.web.ctx",
         "com.novomind.i.g",
         "com.guava",
-      )))
+      ), lineLimit = 3))
     Assert.assertEquals("", PackageImportResult.formatGroupImports(Seq()))
 
     Assert.assertEquals("com.novomind.i.web.context", PackageImportResult.formatGroupImports(Seq(
       "com.novomind.i.web.context",
     )))
+
+
   }
 
   @Test

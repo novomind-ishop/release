@@ -18,7 +18,6 @@ import java.time.{Duration, Period, ZonedDateTime}
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.annotation.{tailrec, unused}
-import scala.collection.immutable.ListMap
 import scala.collection.parallel.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
@@ -70,7 +69,7 @@ object Lint {
   }
 
   object PackageImportResult {
-    def formatGroupImports(value: Seq[String]): String = {
+    def formatGroupImports(value: Seq[String], lineLimit:Int = 10): String = {
 
       val nm = value.filter(_.startsWith("com.novomind"))
         .filterNot(_.startsWith("com.novomind.ishop.shops."))
@@ -80,8 +79,10 @@ object Lint {
           val byDot = element.split('.')
           val asas = List.tabulate(byDot.size)(co => byDot.toSeq.take(co + 1))
           asas
-        }).filterNot(_.isEmpty).groupBy(_.size).toSeq.sortBy(_._1).to(ListMap)
-      nm.mkString(", ")
+        })
+      @unused
+      val selfg = asdf.groupBy(a => a).map(t => (t._1, t._2.size))
+      nm.take(10).mkString("\n") // TODO later
     }
 
     def nomPackage(in: String) = {

@@ -16,8 +16,8 @@ import scala.util.{Failure, Success, Try}
 
 object ProjectMod extends LazyLogging {
   def findOrphanTrees(file: File, knownTrees: Seq[File]): Seq[Path] = {
-    val allTrees:Seq[Path] = FileUtils.walk(file).par.filter(p => p.endsWith("dep.tree")).seq.toSeq
-    allTrees.diff(knownTrees.map(_.toPath))
+    val allTrees:Seq[Path] = FileUtils.walk(file).par.filter(p => p.endsWith("dep.tree")).seq.toSeq.map(_.toAbsolutePath)
+    allTrees.diff(knownTrees.map(_.toPath.toAbsolutePath))
   }
 
   def toDepChangeMap(in: Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])]): Map[Gav3, Seq[(String, Try[ZonedDateTime])]] = {
