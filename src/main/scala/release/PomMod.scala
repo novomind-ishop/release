@@ -183,8 +183,6 @@ case class PomMod(file: File, repo: RepoZ, opts: Opts,
     ouu
   }
 
-
-
   private[release] var depTreeFileContents: Map[File, DepTree] = depTreeFiles(depTreeFilename(), rawSub)
     .map(f => (f, DepTree(FileUtils.read(f))))
     .filterNot(in => in._1.getParentFile.getName == ".")
@@ -192,6 +190,7 @@ case class PomMod(file: File, repo: RepoZ, opts: Opts,
     .foldLeft(Map.empty[File, DepTree])(_ + _)
 
   def getDepTreeFileContents: Map[File, DepTree] = depTreeFileContents
+
   logger.trace("pomMod val/var init")
 
   private def nodePath(node: Node): Seq[String] = {
@@ -616,10 +615,11 @@ object PomMod {
   }
 
   object DepTree {
-    def parseGavsOnly(tree:DepTree):Seq[Gav3] = {
+    def parseGavsOnly(tree: DepTree): Seq[Gav3] = {
       DepTreeParsers.parseGavsOnly(tree.content)
     }
   }
+
   case class DepTree(content: String)
 
   private val xPathToProjectGroupId = "//project/groupId"
@@ -893,9 +893,9 @@ object PomMod {
         if (series.isDefined) {
           val matchingSeries = series.get
           val m = matchingSeries.max
-          val patchV = m.copy(patch = m.patch + 1).format()
-          val minorV = m.copy(minor = m.minor + 1, patch = 0).format()
-          val majorV = m.copy(major = m.major + 1, minor = 0, patch = 0).format()
+          val patchV = m.nextVersionResetZero((0, 0, 1)).format()
+          val minorV = m.nextVersionResetZero((0, 1, 0)).format()
+          val majorV = m.nextVersionResetZero((1, 0, 0)).format()
           val suggested = increment match {
             case Increment.major => Seq(majorV)
             case Increment.minor => Seq(minorV)

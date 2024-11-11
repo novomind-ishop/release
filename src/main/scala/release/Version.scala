@@ -81,6 +81,21 @@ case class Version(pre: String, major: Int, minor: Int, patch: Int, low: String,
   }
 
   @tailrec
+  final def nextVersionResetZero(t3: (Int, Int, Int), limit:Int = 1): Version = {
+    if (limit > 0 && t3._1 != 0 && t3._2 == 0 && t3._3 == 0) {
+      nextVersionResetZero(t3.copy(_2 = minor * -1, _3 = patch * -1), limit -1)
+    } else if (limit > 0 && t3._2 != 0 && t3._3 == 0) {
+      nextVersionResetZero(t3.copy(_3 = patch * -1), limit - 1)
+    } else {
+      nextVersion(t3)
+    }
+  }
+
+  def nextVersion(t3: (Int, Int, Int)): Version = {
+    copy(major = major + t3._1, minor = minor + t3._2, patch = patch + t3._3)
+  }
+
+  @tailrec
   final def nextIfKnown(known: Seq[Version], ref: Version = this): Version = {
     if (known.map(_.copy(rawInput = "")).contains(ref.copy(rawInput = ""))) {
       val version = ref.copy(patch = ref.patch + 1, low = "")
@@ -135,6 +150,7 @@ case class Version(pre: String, major: Int, minor: Int, patch: Int, low: String,
 }
 
 object Version {
+
   private[release] val semverPattern = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)$".r
   private[release] val semverPatternNoBugfix = "^([0-9]+)\\.([0-9]+)$".r
   private[release] val semverPatternNoMinor = "^([0-9]+)$".r

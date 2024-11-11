@@ -139,6 +139,26 @@ class VersionTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testNextVersion(): Unit = {
+    Assert.assertEquals(Version.parse("4.0.0"), Version.parse("3.0.0").nextVersion((1, 0, 0)))
+    Assert.assertEquals(Version.parse("4.3.0"), Version.parse("3.0.0").nextVersion((1, 3, 0)))
+    Assert.assertEquals(Version.parse("5.2.1"), Version.parse("3.0.0").nextVersion((2, 2, 1)))
+  }
+
+  @Test
+  def testNextVersionResetZero(): Unit = {
+    Assert.assertEquals(Version.parse("4.0.0"), Version.parse("3.2.10").nextVersionResetZero((1, 0, 0)))
+    Assert.assertEquals(Version.parse("4.3.0"), Version.parse("3.2.10").nextVersionResetZero((1, 1, 0)))
+    Assert.assertEquals(Version.parse("4.3.11"), Version.parse("3.2.10").nextVersionResetZero((1, 1, 1)))
+    Assert.assertEquals(Version.parse("4.5.0"), Version.parse("3.2.10").nextVersionResetZero((1, 3, 0)))
+    Assert.assertEquals(Version.parse("5.4.11"), Version.parse("3.2.10").nextVersionResetZero((2, 2, 1)))
+    Assert.assertEquals(Version.parse("3.2.10"), Version.parse("3.2.10").nextVersionResetZero((0, 0, 0)))
+    Assert.assertEquals(Version.parse("3.2.11"), Version.parse("3.2.10").nextVersionResetZero((0, 0, 1)))
+    Assert.assertEquals(Version.parse("3.3.11"), Version.parse("3.2.10").nextVersionResetZero((0, 1, 1)))
+    Assert.assertEquals(Version.parse("4.0.0"), Version.parse("3.0.0").nextVersionResetZero((1, 0, 0)))
+  }
+
+  @Test
   def testRemoveSnapshot_0(): Unit = {
     val out = Version.removeTrailingSnapshots("RC-2009.01")
 

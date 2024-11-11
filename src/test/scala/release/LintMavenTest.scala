@@ -2094,6 +2094,24 @@ class LintMavenTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testLintProjectVersion_tag_gaps(): Unit = {
+    val expected =
+      """
+        |[INFO]     5.0.0
+        |[warning]  unexpected version increment: 5.0.0; expected one of: »99.0.1, 99.1.0, 100.0.0«. Because latest numeric version is: »99.0.0«
+        |""".stripMargin.trim
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+      val boolean = new AtomicBoolean()
+
+      LintMaven.lintProjectVersion(sys.out, opts, "5.0.0", warnExit = boolean, new AtomicBoolean(),
+        Some(BranchTagMerge(tagName = Some("v5.0.0"), branchName = None)),
+        allGitTags = Seq("v1.2.3", "bert-preview", "v99.0.0", "99.0.0"))
+      Assert.assertFalse(boolean.get())
+    })
+  }
+
+  @Test
   def testLintProjectVersion_tag(): Unit = {
     val expected =
       """
@@ -2105,7 +2123,7 @@ class LintMavenTest extends AssertionsForJUnit {
       val btm = Some(BranchTagMerge(tagName = Some("v1.2.3"), branchName = None))
       Assert.assertTrue(Lint.isValidTag(btm))
       LintMaven.lintProjectVersion(sys.out, opts, "1.2.3", warnExit = boolean, new AtomicBoolean(),
-        btm, allGitTags = Seq("v1.2.3"))
+        btm, allGitTags = Seq("v1.2.2", "v1.2.3"))
       Assert.assertFalse(boolean.get())
     })
   }

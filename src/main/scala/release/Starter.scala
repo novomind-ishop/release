@@ -237,6 +237,7 @@ object Starter extends LazyLogging {
 
   case class OptsDepUp(showDependencyUpdates: Boolean = false, showHelp: Boolean = false,
                        hideLatest: Boolean = true, versionRangeLimit: Integer = 3,
+                       hideUpdates: Boolean = false,
                        hideStageVersions: Boolean = true, showLibYears: Boolean = false,
                        changeToLatest: Boolean = false, allowDependencyDowngrades: Boolean = false,
                        timeoutSec:Option[Int] = None,
@@ -252,6 +253,8 @@ object Starter extends LazyLogging {
       case "--matches" :: pattern :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(filter = Some(pattern.r))))
       case "--no-filter" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts
         .copy(hideStageVersions = false, hideLatest = false)))
+      case "--no-updates" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts
+        .copy(hideStageVersions = true, hideLatest = false, hideUpdates = true)))
       case "--no-omit" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(versionRangeLimit = Integer.MAX_VALUE)))
       case "--show-libyears" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(showLibYears = true)))
       case "--create-patch" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(changeToLatest = true)))
@@ -532,6 +535,7 @@ object Starter extends LazyLogging {
       out.println("Possible options:")
       out.println("--help, -h            => shows this and exits")
       out.println("--no-filter           => do not hide unwanted updates")
+      out.println("--no-updates          => hide all updates")
       out.println("--show-libyears       => see https://libyear.com/")
       out.println("--create-patch        => BETA - change pom.xmls")
       out.println("--matches             => regex to filter dependecy update GAVs e.g. --matches \".*guava.*\"")

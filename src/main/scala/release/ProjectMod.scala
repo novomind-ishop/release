@@ -387,10 +387,14 @@ object ProjectMod extends LazyLogging {
       .par
       .map(dep => (dep, {
         statusLine.start()
-        val newerVersions = if (depUpOpts.filter.isDefined && !depUpOpts.filter.get.matches(dep.formatted)) {
-          repo.newerAndPrevVersionsOf(dep.groupId, dep.artifactId, dep.version.get).headOption.toSeq
+        val newerVersions = if (depUpOpts.hideUpdates) {
+          Nil
         } else {
-          repo.newerAndPrevVersionsOf(dep.groupId, dep.artifactId, dep.version.get)
+          if (depUpOpts.filter.isDefined && !depUpOpts.filter.get.matches(dep.formatted)) {
+            repo.newerAndPrevVersionsOf(dep.groupId, dep.artifactId, dep.version.get).headOption.toSeq
+          } else {
+            repo.newerAndPrevVersionsOf(dep.groupId, dep.artifactId, dep.version.get)
+          }
         }
 
         val selectedVersions: Seq[String] = if (depUpOpts.filter.isDefined) {
@@ -398,6 +402,8 @@ object ProjectMod extends LazyLogging {
             .filter(gav => depUpOpts.filter.get.matches(gav.formatted))
             .map(_.version.get)
           value
+        } else if (depUpOpts.hideUpdates) {
+          Seq(dep.version.get)
         } else if (depUpOpts.hideStageVersions) {
           ProjectMod.normalizeUnwantedVersions(dep, newerVersions)
         } else {
