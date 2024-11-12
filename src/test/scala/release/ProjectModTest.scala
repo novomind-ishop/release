@@ -397,14 +397,14 @@ class ProjectModTest extends AssertionsForJUnit {
 
     // GIVEN
     val root = temp.newFolder("root")
-    val file1 = new File(root, "dep.tree")
+    val file1 = new File(root, "./dep.tree")
     file1.createNewFile()
-    val file2 = temp.newFile("dep.tree")
+    val file2 = temp.newFile("./dep.tree")
     // WHEN
     val result = ProjectMod.findOrphanTrees(root, Seq(file2))
 
     // THEN
-    Assert.assertEquals(Seq(file1.toPath), result)
+    Assert.assertEquals(Seq(file1.toPath.normalize()), result)
   }
 
 }

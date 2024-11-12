@@ -15,9 +15,10 @@ import scala.collection.parallel.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
 object ProjectMod extends LazyLogging {
-  def findOrphanTrees(file: File, knownTrees: Seq[File]): Seq[Path] = {
-    val allTrees:Seq[Path] = FileUtils.walk(file).par.filter(p => p.endsWith("dep.tree")).seq.toSeq.map(_.toAbsolutePath)
-    allTrees.diff(knownTrees.map(_.toPath.toAbsolutePath))
+  def findOrphanTrees(root: File, knownTrees: Seq[File]): Seq[Path] = {
+    val allTrees:Seq[Path] = FileUtils.walk(root).par.filter(p => p.endsWith("dep.tree")).seq.toSeq.map(_.toAbsolutePath.normalize())
+    val value:Seq[Path] = knownTrees.map(_.toPath.toAbsolutePath.normalize())
+    allTrees.diff(value)
   }
 
   def toDepChangeMap(in: Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])]): Map[Gav3, Seq[(String, Try[ZonedDateTime])]] = {
