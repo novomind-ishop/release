@@ -168,6 +168,14 @@ class ReleaseConfigTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testReplaceInSettings(): Unit = {
+    @nowarn("msg=possible missing interpolator")
+    val value = "${env.a} ${env.b}"
+    val result = ReleaseConfig.replaceInSettings(value, Map("[$$" -> "$0", "a" -> "$1", "b" -> "hallo"))
+    Assert.assertEquals("$1 hallo", result)
+  }
+
+  @Test
   def testFromSettingsWithCredentials(): Unit = {
     @nowarn("msg=possible missing interpolator")
     val content =

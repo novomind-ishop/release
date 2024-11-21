@@ -10,8 +10,9 @@ import org.apache.http.client.config.RequestConfig
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClientBuilder
 import org.apache.http.util.EntityUtils
-import java.net.URI
 
+import java.net.URI
+import java.util.regex.{Matcher, Pattern}
 import scala.io.Source
 
 sealed class ReleaseConfig(map: Map[String, String]) {
@@ -271,11 +272,17 @@ object ReleaseConfig extends LazyLogging {
 
   }
 
+  def replaceInSettings(settings:String, envs:Map[String, String]):String = {
+    envs.toSeq.foldLeft(settings)((str, key) => {
+      str.replaceAll("\\$\\{env\\." + Pattern.quote(key._1) + "\\}", Matcher.quoteReplacement(key._2))
+    })
+  }
+
   def fromSettings(root: File = new File("."), envs: Map[String, String] = Util.systemEnvs()): ReleaseConfig = {
     val settings = new File(root, "settings.xml")
     if (settings.canRead) {
       val str = FileUtils.read(settings)
-      val mir = ReleaseConfig.extractWorkAndMirror(envs.toSeq.foldLeft(str)((str, key) => str.replaceAll("\\$\\{env\\." + key._1 + "\\}", key._2)))
+      val mir = ReleaseConfig.extractWorkAndMirror(replaceInSettings(str, envs))
       if (mir.isDefined) {
         new ReleaseConfig(defaults + (keyNexusWorkUrl -> mir.get.workUrl) + (keyNexusMirrorUrl -> mir.get.mirrorUrl))
       } else {
