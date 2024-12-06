@@ -2,7 +2,7 @@ package release
 
 import com.google.common.base.{Stopwatch, Strings}
 import com.google.common.hash.{HashFunction, Hashing}
-import org.apache.commons.codec.language.Soundex
+import org.apache.commons.codec.language.{Caverphone2, Soundex}
 
 import java.io.File
 import java.net.{URI, URLEncoder}
@@ -12,6 +12,7 @@ import java.security.MessageDigest
 import java.time.{Duration, Period, ZonedDateTime}
 import java.util
 import java.util.concurrent.TimeUnit
+import java.util.regex.Pattern
 import javax.xml.bind.DatatypeConverter
 import scala.collection.immutable.Iterable
 import scala.collection.mutable
@@ -45,27 +46,27 @@ object Util {
   object Similarity {
     def spl(a: String): Seq[String] = a.toLowerCase.split("[^a-z]").toSeq
 
-    def soundexSplitMax(a: String, b: String) = {
-      soundexMax(spl(a), spl(b))
+    def similarSplitMax(a: String, b: String) = {
+      similarMax(spl(a), spl(b))
     }
 
-    def soundexSplitMin(a: String, b: String) = {
-      soundexMin(spl(a), spl(b))
+    def similarSplitMin(a: String, b: String) = {
+      similarMin(spl(a), spl(b))
     }
 
-    def soundexMin(a: Seq[String], b: Seq[String]) = {
-      soundexRange(a, b).min
+    def similarMin(a: Seq[String], b: Seq[String]) = {
+      similarRange(a, b).min
     }
 
-    def soundexMax(a: Seq[String], b: Seq[String]) = {
-      soundexRange(a, b).max
+    def similarMax(a: Seq[String], b: Seq[String]) = {
+      similarRange(a, b).max
     }
 
-    def soundexRange(a: Seq[String], b: Seq[String]): Seq[Int] = {
+    def similarRange(a: Seq[String], b: Seq[String]): Seq[Int] = {
       if (a.size != b.size) {
         Seq(0)
       } else {
-        a.zip(b).map(t => soundex(t._1, t._2))
+        a.zip(b).map(t => caverphone(t._1, t._2))
       }
     }
 
@@ -76,10 +77,48 @@ object Util {
       ("app", "sba") -> 2,
     )
 
-    def soundex(a: String, b: String) = {
-      val s = Seq(a, b).sorted
+    def caverphone(a: String, b: String): Int = {
+      val shortes = Math.min(a.length, b.length)
+      val alg = new Caverphone2()
+      val adig = expandDigits(a)
+      val strA = alg.encode(adig)
+      val bdig = expandDigits(b)
+      val strB = alg.encode(bdig)
+      val i = levenshtein(strA, strB)
+      if (shortes < 2 && i < 4) {
+        i * 4
+      } else if (shortes < 3 && i < 4) {
+        i * 3
+      } else if (shortes < 4 && i < 4) {
+        (i * 3).toInt
+      } else if (shortes < 5 && i < 4) {
+        (i * 1.6).toInt
+      } else {
+        i
+      }
+    }
+
+    def soundex(a: String, b: String): Int = {
+      val s = Seq(a, b).map(expandDigits).sorted
       val t = (s.head, s.last)
-      predefScores.get(t).getOrElse(Soundex.US_ENGLISH.difference(a, b))
+      predefScores.getOrElse(t, Soundex.US_ENGLISH.difference(s.head, s.last))
+    }
+
+    private val digitToWord: Map[String, String] = Map(
+      Pattern.quote("0") -> "Tree",
+      Pattern.quote("1") -> "Ocean",
+      Pattern.quote("2") -> "Knight",
+      Pattern.quote("3") -> "Piano",
+      Pattern.quote("4") -> "Laughter",
+      Pattern.quote("5") -> "Cactus",
+      Pattern.quote("6") -> "Vowel",
+      Pattern.quote("7") -> "Mystery",
+      Pattern.quote("8") -> "Zebra",
+      Pattern.quote("9") -> "Quasar"
+    )
+
+    def expandDigits(in: String): String = {
+      digitToWord.foldLeft(in)((a, b) => a.replaceAll(b._1, b._2))
     }
 
     def levenshtein(s1: String, s2: String): Int = {

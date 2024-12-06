@@ -160,8 +160,8 @@ object ProjectMod extends LazyLogging {
     // TODO plugins.sbt - name ?
     // [INFO] --- dependency:3.3.0:tree (pre-build-validate-tree) ---
     // [WARNING] The artifact com.atlassian.commonmark:commonmark:jar:0.17.0 has been relocated to org.commonmark:commonmark:jar:0.17.0
-    val maybeGav = repo.getRelocationOf(gav.groupId, gav.artifactId, gav.version.get)
-    if (maybeGav.isDefined) {
+    val relocationResult = repo.getRelocationOf(gav.groupId, gav.artifactId, gav.version.get)
+    if (relocationResult.isDefined) {
       // TODO handle remote relocation
       Seq(gav)
     } else {
@@ -318,7 +318,7 @@ object ProjectMod extends LazyLogging {
     extends Formated {
     def formatted: String = Gav.format(Seq(groupId, artifactId, version.getOrElse(""), packageing, classifier, scope))
 
-    def simpleGav() = Gav3(groupId, artifactId, version)
+    def simpleGav(): Gav3 = Gav3(groupId, artifactId, version)
 
     def feelsUnusual(): Boolean = {
       Gav.isUnusualElementValue(groupId) || Gav.isUnusualElementValue(artifactId) ||

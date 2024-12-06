@@ -148,6 +148,7 @@ class LintTest extends AssertionsForJUnit {
     Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("1.2.3", tag("v1.2.3")))
     Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("main", tag("vmain")))
     Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("main", BranchTagMerge.merge))
+    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("core45-SNAPSHOT", br("feature/core_45")))
 
     Assert.assertEquals(
       Lint.MismatchResult.problem(" project.version »master« has no git. Please add some .git folder. \uD83D\uDE2C RL1014"),
@@ -188,6 +189,9 @@ class LintTest extends AssertionsForJUnit {
     Assert.assertEquals(Lint.MismatchResult.problem(" »master-SNAPSHOT« does not relate to git branch: »feature/core44«. " +
       "Please use a plausible version marker and git marker combination.\uD83D\uDE2C RL1014"),
       Lint.versionMismatches("master-SNAPSHOT", br("feature/core44")))
+    Assert.assertEquals(Lint.MismatchResult.problem(" »core45-SNAPSHOT« does not relate to git branch: »feature/core44«. " +
+      "Please use a plausible version marker and git marker combination.\uD83D\uDE2C RL1014"),
+      Lint.versionMismatches("core45-SNAPSHOT", br("feature/core44")))
 
   }
 

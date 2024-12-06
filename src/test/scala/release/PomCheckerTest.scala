@@ -5,10 +5,11 @@ import org.junit.{Assert, Ignore, Rule, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.PomChecker.ValidationException
 import release.PomModTest.{document, pomTestFile, pomfile}
-import release.ProjectMod.{Dep, Gav, Gav2, PluginDep, PluginExec}
+import release.ProjectMod.{Dep, Gav, Gav2, Gav3, PluginDep, PluginExec, SelfRef}
 import release.Starter.Opts
 
 import java.io.File
+import java.util.concurrent.atomic.AtomicInteger
 import scala.annotation.nowarn
 
 class PomCheckerTest extends AssertionsForJUnit {
@@ -16,6 +17,56 @@ class PomCheckerTest extends AssertionsForJUnit {
   val _temporarayFolder = new TemporaryFolder()
 
   @Rule def temp = _temporarayFolder
+
+  @Test
+  def testGetOwnArtifactNames_empty(): Unit = {
+    val root = temp.newFolder()
+    val rel = Seq()
+    val result = PomChecker.getOwnArtifactNames(rel, root)
+
+    Assert.assertEquals((Seq(
+    ), None), result)
+  }
+
+  @Test
+  def testGetOwnArtifactNames_one(): Unit = {
+    val root = temp.newFolder()
+    val dep = Dep(SelfRef.ofGav3(Gav3(groupId = "maven", artifactId = "parent", version = Some("v"))), "g", "a", Some("v"), "t", "s", "p", "c", Nil)
+    val rel = Seq((dep, new File(root, "any")))
+    val result = PomChecker.getOwnArtifactNames(rel, root)
+
+    Assert.assertEquals((Seq(
+      Gav2(groupId = "maven", artifactId = "parent")
+    ), None), result)
+  }
+
+  @Test
+  def testGetOwnArtifactNames_simple(): Unit = {
+    val root = temp.newFolder()
+    val dep = Dep(SelfRef.ofGav3(Gav3(groupId = "maven", artifactId = "parent", version = Some("v"))), "g", "a", Some("v"), "t", "s", "p", "c", Nil)
+    val gav1 = Gav3(groupId = "any.path.to", artifactId = "novomind", version = Some("v"))
+    val gav2 = Gav3(groupId = "any.path.to", artifactId = "novonind", version = Some("v"))
+    val gav3 = Gav3(groupId = "any.path.to", artifactId = "jolo", version = Some("v"))
+
+    val gav4 = Gav3(groupId = "any.path.to", artifactId = "bre", version = Some("v"))
+    val gav5 = Gav3(groupId = "any.path.to", artifactId = "core", version = Some("v"))
+    val gav6 = Gav3(groupId = "any.path.to", artifactId = "ui", version = Some("v"))
+    val gav7 = Gav3(groupId = "any.path.to", artifactId = "vue", version = Some("v"))
+    val gav8 = Gav3(groupId = "any.path.to", artifactId = "api", version = Some("v"))
+    val gav9 = Gav3(groupId = "any.path.to", artifactId = "web", version = Some("v"))
+    val gav10 = Gav3(groupId = "any.path.to", artifactId = "app", version = Some("v"))
+    val gav11 = Gav3(groupId = "any.path.to", artifactId = "sba", version = Some("v"))
+
+    val gavs = Seq(gav1, gav2, gav3, gav4, gav5, gav6, gav7, gav8, gav9, gav10, gav11)
+    val counter = new AtomicInteger()
+
+    val rel = gavs.map(g => (dep.copy(pomRef = SelfRef.ofGav3(g)), new File(root, s"any${counter.getAndIncrement()}")))
+    val result = PomChecker.getOwnArtifactNames(rel, root)
+
+    Assert.assertEquals((
+      gavs.map(_.toGav2(),
+    ), Some("»any.path.to:novomind« (in any0) is too similar to »any.path.to:novonind« (in any1). Please choose distinguishable names.")), result)
+  }
 
   @Test
   def testCheckSnapshots(): Unit = {
@@ -913,7 +964,7 @@ class PomCheckerTest extends AssertionsForJUnit {
 
   @Test
   def testCheckOwnArtifacts_5(): Unit = {
-    val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:ishop-ba-core:27.0.0-SNAPSHOT:war")
+    val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:ishop-bar-core:27.0.0-SNAPSHOT:war")
     val ref2 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:ishop-core:27.0.0-SNAPSHOT:jar")
 
     val dep1 = ProjectModTest.depOf(pomRef = ref1, groupId = "any.group", artifactId = "some", version = Some("1.0.0"))

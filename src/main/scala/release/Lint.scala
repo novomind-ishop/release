@@ -288,14 +288,22 @@ object Lint {
                 s"${fiWarn} ${fiCodeVersionMismatch}"
               MismatchResult.of(!bool, msg = msg)
             } else {
-              if (selfVersion.replaceFirst("-SNAPSHOT", "") == branchName.replaceFirst("^feature/", "").replaceFirst("^release/", "")) {
+              val withoutCommonPrefix = branchName.replaceFirst("^feature/", "").replaceFirst("^release/", "")
+              val withoutSnapshot = selfVersion.replaceFirst("-SNAPSHOT", "")
+              if (withoutSnapshot == withoutCommonPrefix) {
                 MismatchResult.valid
               } else {
-                val msg = s" »$selfVersion« does not relate to git${branchMsg}. " +
-                  s"Please use a plausible version marker and git marker combination." +
-                  // TODO improve suggestions later
-                  s"${fiWarn} ${fiCodeVersionMismatch}"
-                MismatchResult.problem(msg)
+                val score = Util.Similarity.caverphone(withoutCommonPrefix, withoutSnapshot)
+                if (score <= 1) {
+                  MismatchResult.valid
+                } else {
+                  val msg = s" »$selfVersion« does not relate to git${branchMsg}. " +
+                    s"Please use a plausible version marker and git marker combination." +
+                    // TODO improve suggestions later
+                    s"${fiWarn} ${fiCodeVersionMismatch}"
+                  MismatchResult.problem(msg)
+                }
+
               }
             }
           } else {
@@ -1057,6 +1065,13 @@ object Lint {
         if (sbt.isDefined) {
           out.println(info("--- ??? @ sbt ---", opts))
           out.println(info("    WIP", opts))
+        }
+        val subjectLineCheck = envs.get("RELEASE_GIT_SUBJECT_PATTERN")
+        if (subjectLineCheck.nonEmpty) {
+          out.println(info("--- msg-pattern @ git ---", opts))
+          out.println(info(s"    WIP ${subjectLineCheck.get}", opts))
+          sgit.log(limit = 10).lines().forEach(l => out.println(info(l, opts, limit = lineMax)))
+          out.println(info(s"    WIP ${subjectLineCheck.get}", opts))
         }
         if (opts.lintOpts.skips.nonEmpty) {
           val unusedSkips = opts.lintOpts.skips.diff(usedSkips)

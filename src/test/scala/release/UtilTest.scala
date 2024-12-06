@@ -78,6 +78,36 @@ class UtilTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testCaverphone(): Unit = {
+    Assert.assertEquals(3, Util.Similarity.caverphone("bre", "core"))
+    Assert.assertEquals(3, Util.Similarity.caverphone("core", "bre")) // XXX to less?
+    Assert.assertEquals(4, Util.Similarity.caverphone("any44", "any45"))
+    Assert.assertEquals(0, Util.Similarity.caverphone("A", "A"))
+    Assert.assertEquals(0, Util.Similarity.caverphone("All", "All"))
+    Assert.assertEquals(3, Util.Similarity.caverphone("All", "Bll"))
+    Assert.assertEquals(4, Util.Similarity.caverphone("A", "B"))
+    Assert.assertEquals(3, Util.Similarity.caverphone("ui", "app"))
+    Assert.assertEquals(3, Util.Similarity.caverphone("bert", "core"))
+    Assert.assertEquals(4, Util.Similarity.caverphone("AssertionsForJUnit", "AssertionsJUnid"))
+    Assert.assertEquals(3, Util.Similarity.caverphone("Yongera", "Remkpu"))
+    Assert.assertEquals(4, Util.Similarity.caverphone("Zonger", "Remkpu"))
+    Assert.assertEquals(1, Util.Similarity.caverphone("Anger", "Rengeo")) // XXX to less?
+    Assert.assertEquals(1, Util.Similarity.caverphone("Anger", "Ranger"))
+    Assert.assertEquals(4, Util.Similarity.caverphone("Otto", "Ranger"))
+    Assert.assertEquals(4, Util.Similarity.caverphone("any8", "any"))
+    Assert.assertEquals(4, Util.Similarity.caverphone("any8", "any9"))
+    Assert.assertEquals(6, Util.Similarity.caverphone("any88", "any99"))
+    List.tabulate(10)(in => Assert.assertEquals(0, Util.Similarity.caverphone(s"any${in}", s"any${in}")))
+    val perm = List.tabulate(10)(in => in)
+    val cartesian = perm.flatMap(x => perm.map(y => (x, y))).filterNot(x => x._1 == x._2)
+    cartesian.foreach(in => {
+      val i = Util.Similarity.caverphone(s"any${in._1}", s"any${in._2}")
+      Assert.assertTrue(s"${in} .. ${i}", i >= 2)
+    }
+    )
+  }
+
+  @Test
   def testSoundex(): Unit = {
 
     Assert.assertEquals(4, Util.Similarity.soundex("A", "A"))
@@ -91,22 +121,32 @@ class UtilTest extends AssertionsForJUnit {
     Assert.assertEquals(2, Util.Similarity.soundex("Anger", "Rengeo"))
     Assert.assertEquals(3, Util.Similarity.soundex("Anger", "Ranger"))
     Assert.assertEquals(0, Util.Similarity.soundex("Otto", "Ranger"))
+    Assert.assertEquals(2, Util.Similarity.soundex("any8", "any"))
+    Assert.assertEquals(3, Util.Similarity.soundex("any8", "any9"))
+    Assert.assertEquals(3, Util.Similarity.soundex("any88", "any99"))
+    Assert.assertEquals(4, Util.Similarity.soundex("any44", "any45")) // XXX not good
+    Assert.assertEquals(4, Util.Similarity.soundex("any1", "any2")) // XXX not good
+    List.tabulate(10)(in => Assert.assertEquals(4, Util.Similarity.soundex(s"any${in}", s"any${in}")))
+  }
 
-    Assert.assertEquals(0, Util.Similarity.soundexMax(Seq("Otto"), Seq("Ranger")))
-    Assert.assertEquals(0, Util.Similarity.soundexMax(Seq("Otto", "o"), Seq("Otto")))
-    Assert.assertEquals(4, Util.Similarity.soundexMax(Seq("Otto", "o"), Seq("Otto", "u")))
+  @Test
+  def testSimilar(): Unit = {
 
-    Assert.assertEquals(0, Util.Similarity.soundexSplitMax("Otto", "Ranger"))
-    Assert.assertEquals(4, Util.Similarity.soundexSplitMax("Otto Bert", "Otto Wert"))
-    Assert.assertEquals(0, Util.Similarity.soundexSplitMax("ishop-xx-commons", "ishop-commons"))
+    Assert.assertEquals(4, Util.Similarity.similarMax(Seq("Otto"), Seq("Ranger")))
+    Assert.assertEquals(0, Util.Similarity.similarMax(Seq("Otto", "o"), Seq("Otto")))
+    Assert.assertEquals(0, Util.Similarity.similarMax(Seq("Otto", "o"), Seq("Otto", "u")))
 
-    Assert.assertEquals(4, Util.Similarity.soundexSplitMax("core-bom", "core-api"))
-    Assert.assertEquals(2, Util.Similarity.soundexSplitMin("ui", "vue"))
-    Assert.assertEquals(2, Util.Similarity.soundexSplitMin("api", "ui"))
-    Assert.assertEquals(2, Util.Similarity.soundexSplitMin("cli", "api"))
-    Assert.assertEquals(2, Util.Similarity.soundexSplitMin("web", "api"))
-    Assert.assertEquals(3, Util.Similarity.soundexSplitMin("gui", "ui"))
-    Assert.assertEquals(2, Util.Similarity.soundexSplitMin("app", "sba"))
+    Assert.assertEquals(4, Util.Similarity.similarSplitMax("Otto", "Ranger"))
+    Assert.assertEquals(1, Util.Similarity.similarSplitMax("Otto Bert", "Otto Wert"))
+    Assert.assertEquals(0, Util.Similarity.similarSplitMax("ishop-xx-commons", "ishop-commons"))
+
+    Assert.assertEquals(9, Util.Similarity.similarSplitMax("core-bom", "core-api"))
+    Assert.assertEquals(3, Util.Similarity.similarSplitMin("ui", "vue"))
+    Assert.assertEquals(6, Util.Similarity.similarSplitMin("api", "ui"))
+    Assert.assertEquals(6, Util.Similarity.similarSplitMin("cli", "api"))
+    Assert.assertEquals(6, Util.Similarity.similarSplitMin("web", "api"))
+    Assert.assertEquals(3, Util.Similarity.similarSplitMin("gui", "ui"))
+    Assert.assertEquals(6, Util.Similarity.similarSplitMin("app", "sba"))
   }
 
   @Test
@@ -117,6 +157,12 @@ class UtilTest extends AssertionsForJUnit {
     val distinct = tuples.distinct
     Assert.assertEquals(Seq(("a", "b")), distinct)
     Assert.assertEquals(distinct, Util.symmetricDiff(tuples, distinct))
+  }
+
+  @Test
+  def testExpandDigits(): Unit = {
+    Assert.assertEquals("Ocean", Util.Similarity.expandDigits("1"))
+    Assert.assertEquals("QuasarOceanOcean", Util.Similarity.expandDigits("911"))
   }
 
   @Test

@@ -11,16 +11,18 @@ import org.apache.http.impl.client.HttpClients
 import org.apache.maven.repository.internal.MavenRepositorySystemUtils
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException
 import org.eclipse.aether.artifact.DefaultArtifact
+import org.eclipse.aether.graph.Dependency
 import org.eclipse.aether.metadata.DefaultMetadata
 import org.eclipse.aether.metadata.Metadata.Nature
 import org.eclipse.aether.repository.{LocalRepository, RemoteRepository}
-import org.eclipse.aether.resolution.{ArtifactRequest, MetadataRequest, MetadataResult, VersionRangeRequest, VersionRangeResolutionException}
+import org.eclipse.aether.resolution.{ArtifactRequest, DependencyRequest, MetadataRequest, MetadataResult, VersionRangeRequest, VersionRangeResolutionException}
 import org.eclipse.aether.supplier.RepositorySystemSupplier
 import org.eclipse.aether.transfer._
 import org.eclipse.aether.util.repository.AuthenticationBuilder
 import org.eclipse.aether.version.Version
 import org.eclipse.aether.{DefaultRepositorySystemSession, RepositorySystem}
 import release.ProjectMod.Gav3
+import release.Repo.ArtifactRepos
 
 import java.io.{File, IOException}
 import java.nio.file.attribute.BasicFileAttributes
@@ -232,8 +234,38 @@ case class Repo private(_mirrorNexus: RemoteRepository, _workNexus: RemoteReposi
   }
 
   def getRelocationOf(groupID: String, artifactId: String, version: String): Option[Gav3] = {
-    // TODO https://maven.apache.org/guides/mini/guide-relocation.html
-    None
+    if (true) {
+      None
+    } else {
+      // TODO https://maven.apache.org/guides/mini/guide-relocation.html
+      val result = newerAndPrevVersionsOf(groupID, artifactId, version)
+      println(result)
+      import org.eclipse.aether.collection.CollectRequest
+      val system = ArtifactRepos.newRepositorySystem
+      val session = ArtifactRepos.newRepositorySystemSession(system)
+      val artifact = new DefaultArtifact(s"${groupID}:$artifactId:pom:[1.6.5,)")
+      val collectRequest: CollectRequest  = new CollectRequest()
+      collectRequest.setRoot(new Dependency(artifact, ""))
+
+      val req = new MetadataRequest()
+      req.setMetadata(new DefaultMetadata(groupID, artifactId, "", "", Nature.RELEASE_OR_SNAPSHOT))
+      req.setRepository(workNexus)
+
+      val owet = system.resolveMetadata(session, ImmutableList.of(req))
+      println(owet)
+
+      collectRequest.addRepository(workNexus)
+      val dependencyRequest = new DependencyRequest(collectRequest, null)
+      try {
+        val dependencyResult = system.resolveDependencies(session, dependencyRequest)
+        System.out.println("Artifact resolved: " + dependencyResult.getRoot.getArtifact)
+      } catch {
+        case e: Exception =>
+          System.err.println("Failed to resolve artifact: " + e.getMessage)
+      }
+      None
+    }
+
   }
 
   override def tryResolveReqWorkNexus(request: String): Try[(File, String)] = Repo.tryResolveReqWorkNexus(this)(request)
