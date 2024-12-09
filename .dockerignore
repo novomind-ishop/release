@@ -4,5 +4,8 @@ bar/
 docs/
 project/
 src/
-target/
+target/global-logging
+target/scala-2.13
+target/streams
+target/task-temp-directory
 .git/
