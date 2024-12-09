@@ -806,15 +806,20 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
 object Sgit {
 
-  lazy val selfFileChecksum:String = {
-    try {
+  lazy val selfFileChecksum: String = {
+    val hash = try {
       val codeSource = Sgit.getClass.getProtectionDomain.getCodeSource
       val path = codeSource.getLocation.getPath
       Util.hashMurmur3_32_fixed(path)
-    }catch {
-      case _:Exception => "N/A"
+    } catch {
+      case _: Exception => "N/A"
     }
-
+    val gitHEAD = try {
+      FileUtils.read(new File("/root/git.HEAD")).trim
+    } catch {
+      case _: Exception => "NA"
+    }
+    hash + "@" + gitHEAD
   }
 
   def stripVersionPrefix(in: Seq[String]): Seq[String] = in.map(_.replaceFirst("^v(.*)", "$1"))

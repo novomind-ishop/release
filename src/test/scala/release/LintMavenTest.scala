@@ -23,7 +23,7 @@ object LintMavenTest {
       .replaceAll("( package name(?:s|) in) PT[0-9]+S", "$1 PT4S")
       .replaceAll("^\\[..:..:..\\...Z\\] ", "[00:00:00.00Z] ")
       .replaceAll(": git version 2\\.[0-9]+\\.[0-9]+", ": git version 2.999.999")
-      .replaceAll("self version: [0-9a-f]+$", "self version: 2222ffff")
+      .replaceAll("self version: [0-9a-f]+@[^ ]+$", "self version: 2222ffff")
       .replaceAll("[a-f0-9]{40}$", "affe4533042ef887a5477d73d958814317675be1")
       .replaceAll("dependencies in [0-9\\.]+ [mμs]+ \\([0-9]{4}-[0-9]{2}-[0-9]{2}\\)", "dependencies in 999ms (2000-01-01)")
   }

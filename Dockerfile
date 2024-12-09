@@ -26,6 +26,7 @@ RUN curl --version
 RUN git config --global core.autocrlf input && git config --global --add safe.directory "*"
 COPY release /root/release
 COPY release.jar /root/release.jar
+COPY target/git.HEAD /root/git.HEAD
 ENV RELEASE_DOCKER=true
 RUN chmod +x /root/release
 RUN /root/release --help
