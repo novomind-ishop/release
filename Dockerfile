@@ -11,7 +11,9 @@ RUN mkdir latest-git && tar -zxf latest-git.tgz -C latest-git --strip-components
 RUN cd latest-git && ls -ltr && make configure && ./configure --prefix=/usr && make all
 RUN cd latest-git && pwd && ls -l && pwd
 RUN cd latest-git && make install
-FROM eclipse-temurin:21.0.3_9-jre-jammy
+COPY target/git.HEAD /root/git.HEAD
+
+FROM eclipse-temurin:21.0.5_11-jre-jammy
 
 # https://hub.docker.com/_/eclipse-temurin/tags
 LABEL maintainer="ishop-dev-infra@novomind.com" \
