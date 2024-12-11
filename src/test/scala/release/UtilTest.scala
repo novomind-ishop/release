@@ -85,7 +85,7 @@ class UtilTest extends AssertionsForJUnit {
     Assert.assertEquals(0, Util.Similarity.caverphone("A", "A"))
     Assert.assertEquals(0, Util.Similarity.caverphone("All", "All"))
     Assert.assertEquals(3, Util.Similarity.caverphone("All", "Bll"))
-    Assert.assertEquals(4, Util.Similarity.caverphone("A", "B"))
+    Assert.assertEquals(8, Util.Similarity.caverphone("A", "B"))
     Assert.assertEquals(3, Util.Similarity.caverphone("ui", "app"))
     Assert.assertEquals(3, Util.Similarity.caverphone("bert", "core"))
     Assert.assertEquals(4, Util.Similarity.caverphone("AssertionsForJUnit", "AssertionsJUnid"))
@@ -97,6 +97,8 @@ class UtilTest extends AssertionsForJUnit {
     Assert.assertEquals(4, Util.Similarity.caverphone("any8", "any"))
     Assert.assertEquals(4, Util.Similarity.caverphone("any8", "any9"))
     Assert.assertEquals(6, Util.Similarity.caverphone("any88", "any99"))
+    Assert.assertEquals(1, Util.Similarity.caverphone("bo-client", "bo-client-ui"))
+    Assert.assertEquals(2, Util.Similarity.caverphone("bo-client", "bo-client-roo"))
     List.tabulate(10)(in => Assert.assertEquals(0, Util.Similarity.caverphone(s"any${in}", s"any${in}")))
     val perm = List.tabulate(10)(in => in)
     val cartesian = perm.flatMap(x => perm.map(y => (x, y))).filterNot(x => x._1 == x._2)
@@ -132,13 +134,16 @@ class UtilTest extends AssertionsForJUnit {
   @Test
   def testSimilar(): Unit = {
 
+    Assert.assertEquals(4, Util.Similarity.similarMax(Seq("Otto", "o"), Seq("Otto", "u")))
+    Assert.assertEquals(8, Util.Similarity.similarSplitMax("bo-client", "bo-client-ui"))
     Assert.assertEquals(4, Util.Similarity.similarMax(Seq("Otto"), Seq("Ranger")))
-    Assert.assertEquals(0, Util.Similarity.similarMax(Seq("Otto", "o"), Seq("Otto")))
-    Assert.assertEquals(0, Util.Similarity.similarMax(Seq("Otto", "o"), Seq("Otto", "u")))
+    Assert.assertEquals(4, Util.Similarity.similarMax(Seq("Otto", "o"), Seq("Otto")))
 
     Assert.assertEquals(4, Util.Similarity.similarSplitMax("Otto", "Ranger"))
     Assert.assertEquals(1, Util.Similarity.similarSplitMax("Otto Bert", "Otto Wert"))
-    Assert.assertEquals(0, Util.Similarity.similarSplitMax("ishop-xx-commons", "ishop-commons"))
+    Assert.assertEquals(9, Util.Similarity.similarSplitMax("ishop-xx-commons", "ishop-commons"))
+    Assert.assertEquals(0, Util.Similarity.similarSplitMax("ishop-kommons", "ishop-commons"))
+    Assert.assertEquals(1, Util.Similarity.similarSplitMax("ishop-konnons", "ishop-commons"))
 
     Assert.assertEquals(9, Util.Similarity.similarSplitMax("core-bom", "core-api"))
     Assert.assertEquals(3, Util.Similarity.similarSplitMin("ui", "vue"))

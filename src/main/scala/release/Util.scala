@@ -3,6 +3,7 @@ package release
 import com.google.common.base.{Stopwatch, Strings}
 import com.google.common.hash.{HashFunction, Hashing}
 import org.apache.commons.codec.language.{Caverphone2, Soundex}
+import release.ProjectMod.Gav2
 
 import java.io.File
 import java.net.{URI, URLEncoder}
@@ -46,29 +47,45 @@ object Util {
   object Similarity {
     def spl(a: String): Seq[String] = a.toLowerCase.split("[^a-z]").toSeq
 
-    def similarSplitMax(a: String, b: String) = {
+    def similarSplitMax(a: Gav2, b: Gav2): Int = {
+      similarSplitMax(a.formatted, b.formatted)
+    }
+
+    def similarSplitMax(a: String, b: String): Int = {
       similarMax(spl(a), spl(b))
     }
 
-    def similarSplitMin(a: String, b: String) = {
+    def similarSplitMin(a: Gav2, b: Gav2): Int = {
+      similarSplitMin(a.formatted, b.formatted)
+    }
+
+    def similarSplitMin(a: String, b: String): Int = {
       similarMin(spl(a), spl(b))
     }
 
-    def similarMin(a: Seq[String], b: Seq[String]) = {
+    def similarMin(a: Seq[String], b: Seq[String]): Int = {
       similarRange(a, b).min
     }
 
-    def similarMax(a: Seq[String], b: Seq[String]) = {
+    def similarMax(a: Seq[String], b: Seq[String]): Int = {
       similarRange(a, b).max
     }
 
     def similarRange(a: Seq[String], b: Seq[String]): Seq[Int] = {
-      if (a.size != b.size) {
-        Seq(0)
-      } else {
-        a.zip(b).map(t => caverphone(t._1, t._2))
-      }
+      val eq = equalizeLengths(a, b, "")
+      val value = eq._1.zip(eq._2)
+      value.map(t => caverphone(t._1, t._2))
     }
+
+    def equalizeLengths[A](seq1: Seq[A], seq2: Seq[A], fillElement: A): (Seq[A], Seq[A]) = {
+      val maxLength = math.max(seq1.length, seq2.length)
+
+      val filledSeq1 = seq1.padTo(maxLength, fillElement)
+      val filledSeq2 = seq2.padTo(maxLength, fillElement)
+
+      (filledSeq1, filledSeq2)
+    }
+
 
     private val predefScores: Map[(String, String), Int] = Map(
       ("bre", "core") -> 2,
@@ -78,24 +95,29 @@ object Util {
     )
 
     def caverphone(a: String, b: String): Int = {
-      val shortes = Math.min(a.length, b.length)
-      val alg = new Caverphone2()
-      val adig = expandDigits(a)
-      val strA = alg.encode(adig)
-      val bdig = expandDigits(b)
-      val strB = alg.encode(bdig)
-      val i = levenshtein(strA, strB)
-      if (shortes < 2 && i < 4) {
-        i * 4
-      } else if (shortes < 3 && i < 4) {
-        i * 3
-      } else if (shortes < 4 && i < 4) {
-        (i * 3).toInt
-      } else if (shortes < 5 && i < 4) {
-        (i * 1.6).toInt
-      } else {
-        i
+
+      {
+        val shortes = Math.min(a.length, b.length)
+        val alg = new Caverphone2()
+        val adig = expandDigits(a)
+        val strA = alg.encode(adig)
+        val bdig = expandDigits(b)
+        val strB = alg.encode(bdig)
+        val i = levenshtein(strA, strB)
+        val result = if (shortes == 1 && i < 2) {
+          (levenshtein(a, b) + i) * 4
+        } else if (shortes < 2 && i < 4) {
+          i * 4
+        } else if (shortes < 4 && i < 4) {
+          i * 3
+        } else if (shortes < 5 && i < 4) {
+          (i * 1.6).toInt
+        } else {
+          i
+        }
+        result
       }
+
     }
 
     def soundex(a: String, b: String): Int = {

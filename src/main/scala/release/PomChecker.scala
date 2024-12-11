@@ -67,7 +67,7 @@ object PomChecker {
       .filter(e => {
         val formatted = e._1._1
         val formatted1 = e._2._1
-        val score = Util.Similarity.similarSplitMax(formatted.formatted, formatted1.formatted)
+        val score = Util.Similarity.similarSplitMax(formatted, formatted1)
         score < 3
       })
 
