@@ -90,6 +90,7 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
       |--no-interactive      => suppresses startup messages
       |--skip-property value => if you get false positives with property definitions
       |--defaults            => do not read ${HOME}/.ishop-release
+      |--no-check-overlap    => skip checks for too similar names e.g. "commons" and "commoms" are too similar
       |
       |--simple-chars        => use no drawing chars
       |--no-color            => use no color

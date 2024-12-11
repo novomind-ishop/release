@@ -498,6 +498,7 @@ object Starter extends LazyLogging {
       out.println("--no-interactive      => suppresses startup messages")
       out.println("--skip-property value => if you get false positives with property definitions")
       out.println("--defaults            => do not read ${HOME}/.ishop-release")
+      out.println("--no-check-overlap    => skip checks for too similar names e.g. \"commons\" and \"commoms\" are too similar")
       out.println()
       out.println("--simple-chars        => use no drawing chars")
       out.println("--no-color            => use no color")
