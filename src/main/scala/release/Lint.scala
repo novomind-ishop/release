@@ -3,7 +3,7 @@ package release
 import com.google.common.base.{Stopwatch, Strings}
 import com.google.common.io.{CharSink, CharSource}
 import com.google.googlejavaformat.java.Formatter
-import release.ProjectMod.{Gav, Gav3, StaticPrinter}
+import release.ProjectMod.{Gav3, StaticPrinter}
 import release.Sgit.GitShaRefTime
 import release.Starter.{Opts, PreconditionsException}
 import release.Term._
@@ -69,7 +69,7 @@ object Lint {
   }
 
   object PackageImportResult {
-    def formatGroupImports(value: Seq[String], lineLimit:Int = 10): String = {
+    def formatGroupImports(value: Seq[String], lineLimit:Int = 20): String = {
 
       val nm = value.filter(_.startsWith("com.novomind"))
         .filterNot(_.startsWith("com.novomind.ishop.shops."))
@@ -82,7 +82,13 @@ object Lint {
         })
       @unused
       val selfg = asdf.groupBy(a => a).map(t => (t._1, t._2.size))
-      nm.take(10).mkString("\n") // TODO later
+      val result = nm.take(lineLimit).mkString("\n") // TODO later
+      if (nm.size > lineLimit) {
+        s"$result\n\n${nm.size - lineLimit} omitted"
+      } else {
+        result
+      }
+
     }
 
     def nomPackage(in: String) = {
@@ -882,26 +888,8 @@ object Lint {
             }
             out.println(info("--- check major versions @ ishop ---", opts))
             out.println(info(s"    is shop: ${mod.isShop}", opts))
-            val mrc = Release.coreMajorResultOf(mod, None)
-            if (mrc.hasDifferentMajors) {
-              warnExit.set(true)
-              out.println(warn(s"    Found multiple core major version: »${mrc.sortedMajors.mkString(", ")}«, use only one ${fiWarn} ${fiCodeCoreDiff.apply(mrc)}", opts, limit = lineMax))
-              val versions = mrc.coreMajorVersions
-              val mrcGrouped: Map[String, Seq[Gav]] = versions.groupBy(_._1)
-                .map(e => (e._1, e._2.map(_._2.gav()).distinct))
+            Release.coreMajorResultOf(mod, None, Some(warnExit), Some(errorExit), Some(out), Some(opts))
 
-              mrcGrouped.toSeq
-                .sortBy(_._1.toIntOption)
-                .foreach(gavE => {
-                  out.println(warn(s"      - ${gavE._1} -", opts, limit = lineMax))
-                  gavE._2.foreach(gav => {
-                    out.println(warn(s"      ${gav.formatted} ${fiWarn} ${fiCodeCoreDiff.apply(gav)}", opts, limit = lineMax))
-                  })
-                })
-
-            } else {
-              out.println(info(s"    ${fiFine} no major version diff", opts))
-            }
             out.println(info("--- suggest dependency updates / configurable @ maven ---", opts))
 
             val releasenexusworkurl: String = ReleaseConfig.releaseNexusEnv(envs).orNull
@@ -1058,7 +1046,7 @@ object Lint {
           out.println(info(s"    .unwanted-packages // checksum ${packageNamesDetails.unwantedDefinitionSum}", opts))
         }
         if (packageNamesDetails.imports.nonEmpty) {
-          out.println(info(s"    imports // ${
+          out.println(info(s"    imports //\n${
             PackageImportResult.formatGroupImports(packageNamesDetails.importsNom)
           }", opts, limit = lineMax))
         }
@@ -1069,9 +1057,7 @@ object Lint {
         val subjectLineCheck = envs.get("RELEASE_GIT_SUBJECT_PATTERN")
         if (subjectLineCheck.nonEmpty) {
           out.println(info("--- msg-pattern @ git ---", opts))
-          out.println(info(s"    WIP ${subjectLineCheck.get}", opts))
-          sgit.log(limit = 10).lines().forEach(l => out.println(info(l, opts, limit = lineMax)))
-          out.println(info(s"    WIP ${subjectLineCheck.get}", opts))
+          LintGitLog.doLint(subjectLineCheck.get, sgit.log(limit = 10), out, opts)
         }
         if (opts.lintOpts.skips.nonEmpty) {
           val unusedSkips = opts.lintOpts.skips.diff(usedSkips)

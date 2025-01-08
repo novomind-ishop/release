@@ -43,7 +43,21 @@ class LintTest extends AssertionsForJUnit {
         "com.novomind.i.web.ctx",
         "com.novomind.i.g",
         "com.guava",
-      ), lineLimit = 3))
+      ), lineLimit = 4))
+
+    Assert.assertEquals(
+      """com.novomind.i.web.context
+        |com.novomind.i.web.context.config
+        |
+        |2 omitted
+        |""".stripMargin.trim,
+      PackageImportResult.formatGroupImports(Seq(
+        "com.novomind.i.web.context",
+        "com.novomind.i.web.context.config",
+        "com.novomind.i.web.ctx",
+        "com.novomind.i.g",
+        "com.guava",
+      ), lineLimit = 2))
     Assert.assertEquals("", PackageImportResult.formatGroupImports(Seq()))
 
     Assert.assertEquals("com.novomind.i.web.context", PackageImportResult.formatGroupImports(Seq(

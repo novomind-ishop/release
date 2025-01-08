@@ -1,10 +1,12 @@
 package release
 
 import com.typesafe.scalalogging.LazyLogging
+import release.Lint.{fiCodeCoreDiff, fiFine, fiWarn, lineMax}
 import release.ProjectMod.{Dep, Gav, UpdatePrinter}
 import release.Starter.{Opts, PreconditionsException}
+import release.Term.{info, warn}
 
-import java.io.File
+import java.io.{File, PrintStream}
 import java.nio.charset.MalformedInputException
 import java.nio.file.{Files, InvalidPathException, Path, Paths}
 import java.time.LocalDate
@@ -117,7 +119,9 @@ object Release extends LazyLogging {
   case class CoreMajoResult(hasDifferentMajors: Boolean, sortedMajors: Seq[String], releaseMajorVersion: String,
                             coreMajorVersions: Seq[(String, Dep)])
 
-  def coreMajorResultOf(mod: ProjectMod, release: Option[String]): CoreMajoResult = {
+  def coreMajorResultOf(mod: ProjectMod, release: Option[String],
+                        warnExit: Option[AtomicBoolean] = None, errorExit: Option[AtomicBoolean] = None,
+                        out: Option[PrintStream], opts: Option[Opts]): CoreMajoResult = {
     val relevantDeps = if (mod.isNoShop) {
       mod.listDependencies.filter(in => in.groupId.startsWith("com.novomind.ishop.core"))
     } else {
@@ -126,7 +130,29 @@ object Release extends LazyLogging {
         .filter(in => in.groupId.startsWith("com.novomind.ishop"))
         .filterNot(in => selfGavs.contains(in.gav()))
     }
-    coreMajorResultOf(relevantDeps, mod.isNoShop, release)
+    val mrc = coreMajorResultOf(relevantDeps, mod.isNoShop, release)
+    if (out.isDefined && mrc.hasDifferentMajors) {
+      warnExit.get.set(true)
+      out.get.println(warn(s"    Found multiple core major version: »${mrc.sortedMajors.mkString(", ")}«, use only one ${fiWarn} ${fiCodeCoreDiff.apply(mrc)}", opts.get, limit = lineMax))
+      val versions = mrc.coreMajorVersions
+      val mrcGrouped: Map[String, Seq[Gav]] = versions.groupBy(_._1)
+        .map(e => (e._1, e._2.map(_._2.gav()).distinct))
+
+      mrcGrouped.toSeq
+        .sortBy(_._1.toIntOption)
+        .foreach(gavE => {
+          out.get.println(warn(s"      - ${gavE._1} -", opts.get, limit = lineMax))
+          gavE._2.foreach(gav => {
+            out.get.println(warn(s"      ${gav.formatted} ${fiWarn} ${fiCodeCoreDiff.apply(gav)}", opts.get, limit = lineMax))
+          })
+        })
+
+    } else {
+      if (out.isDefined) {
+        out.get.println(info(s"    ${fiFine} no major version diff", opts.get))
+      }
+    }
+    mrc
   }
 
   def coreMajorResultOf(relevantDeps: Seq[Dep], isNoShop: Boolean, release: Option[String]): CoreMajoResult = {
@@ -333,7 +359,7 @@ object Release extends LazyLogging {
     // TODO release a feature branch should not change the next version
     val nextReleaseWithoutSnapshot = readNextReleaseVersionsWithoutSnapshot
 
-    val cmr = coreMajorResultOf(mod, Option(release))
+    val cmr = coreMajorResultOf(mod = mod, release = Option(release), opts = Some(opts), out = None)
     if (cmr.hasDifferentMajors) {
       sys.out.println()
       if (opts.colors) {
