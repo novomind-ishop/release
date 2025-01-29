@@ -63,8 +63,6 @@ class LintTest extends AssertionsForJUnit {
     Assert.assertEquals("com.novomind.i.web.context", PackageImportResult.formatGroupImports(Seq(
       "com.novomind.i.web.context",
     )))
-
-
   }
 
   @Test

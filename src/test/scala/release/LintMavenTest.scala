@@ -105,8 +105,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- list-remotes @ git ---
         |[INFO]       remote: origin  file:/tmp/junit-REPLACED/release-lint-mvn-simple-init/ (fetch)
         |[INFO]       remote: origin  file:/tmp/junit-REPLACED/release-lint-mvn-simple-init/ (push)
-        |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
-        |[INFO]     ✅ NO SNAPSHOTS in other files found
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/any.xml
@@ -287,8 +285,6 @@ class LintMavenTest extends AssertionsForJUnit {
         |[ERROR]        the pattern » ^v[0-9]+\.[0-9]+\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ « to
         |[ERROR]        suggest valid docker tags. It is also possible to export an
         |[ERROR]        environment variable e.g. HARBOR_TAG ❌ RL1006
-        |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
-        |[INFO]     ✅ NO SNAPSHOTS in other files found
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/Dockerfile

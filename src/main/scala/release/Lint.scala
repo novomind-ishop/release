@@ -69,7 +69,7 @@ object Lint {
   }
 
   object PackageImportResult {
-    def formatGroupImports(value: Seq[String], lineLimit:Int = 20): String = {
+    def formatGroupImports(value: Seq[String], lineLimit: Int = 20): String = {
 
       val nm = value.filter(_.startsWith("com.novomind"))
         .filterNot(_.startsWith("com.novomind.ishop.shops."))
@@ -152,6 +152,10 @@ object Lint {
         d = Duration.ZERO, unwantedPackageDefinition = "", msg = "")
     }
 
+  }
+
+  def findDockerfiles(rootFile: File): Boolean = {
+    FileUtils.walk(rootFile).par.exists(_.endsWith("Dockerfile"))
   }
 
   def findPackagesAndImports(rootFile: File, packageScanFile: File): PackageImportResult = {
@@ -661,7 +665,7 @@ object Lint {
         } else {
           None
         }
-        val hasDockerFiles = rootFolderFiles.exists(_.getName == "Dockerfile") // TODO search in git
+        val hasDockerFiles = findDockerfiles(file)
         val dockerTag = SuggestDockerTag.findTagname(ciCommitRefName, ciCommitTag, pompom.flatMap(_.toOption.map(_.selfVersion)), hasDockerFiles)
         val defaultCiFilename = ".gitlab-ci.yml"
 
@@ -715,53 +719,53 @@ object Lint {
           }
 
         }
-        out.println(info("--- -SNAPSHOTS in files @ maven/sbt/gradle ---", opts))
+        if (pompom.isDefined || sbt.isDefined) {
+          out.println(info("--- -SNAPSHOTS in files @ maven/sbt/gradle ---", opts))
 
-        val snapshotsInFiles = PomChecker.getSnapshotsInFiles(sgit.lsFilesAbsolute().map(_.getAbsolutePath))
-        if (snapshotsInFiles.nonEmpty) {
-          val relFiles: Seq[(Int, String, Path)] = snapshotsInFiles
-            .map(t => (t._1, t._2, file.toPath.relativize(t._3.normalize())))
-          val code1 = fiCodeSnapshotText(relFiles)
-          var allCodes = Seq.empty[String]
-          if (!opts.lintOpts.skips.contains(code1)) {
-            relFiles
-              .filterNot(f => {
-                val code = fiCodeSnapshotText((f._1, f._2, f._3.getFileName))
-                val bool = opts.lintOpts.skips.contains(code)
-                if (bool) {
-                  usedSkips = usedSkips :+ code
-                } else {
-                  allCodes = allCodes :+ code
-                }
-                bool
-              })
-              .foreach(f => {
-                val snapMsg = "  found snapshot in: " + f._3 + s" line: ${f._1}" +
-                  s" ${fiWarn} ${fiCodeSnapshotText((f._1, f._2, f._3.getFileName))}\n" +
-                  "              " + f._2
-                if (isGitOrCiTag) {
-                  out.println(warn(snapMsg, opts, limit = lineMax))
-                  warnExit.set(true)
-                } else {
-                  out.println(warnSoft(snapMsg, opts, limit = lineMax))
-                }
+          val snapshotsInFiles = PomChecker.getSnapshotsInFiles(sgit.lsFilesAbsolute().map(_.getAbsolutePath))
+          if (snapshotsInFiles.nonEmpty) {
+            val relFiles: Seq[(Int, String, Path)] = snapshotsInFiles
+              .map(t => (t._1, t._2, file.toPath.relativize(t._3.normalize())))
+            val code1 = fiCodeSnapshotText(relFiles)
+            var allCodes = Seq.empty[String]
+            if (!opts.lintOpts.skips.contains(code1)) {
+              relFiles
+                .filterNot(f => {
+                  val code = fiCodeSnapshotText((f._1, f._2, f._3.getFileName))
+                  val bool = opts.lintOpts.skips.contains(code)
+                  if (bool) {
+                    usedSkips = usedSkips :+ code
+                  } else {
+                    allCodes = allCodes :+ code
+                  }
+                  bool
+                })
+                .foreach(f => {
+                  val snapMsg = "  found snapshot in: " + f._3 + s" line: ${f._1}" +
+                    s" ${fiWarn} ${fiCodeSnapshotText((f._1, f._2, f._3.getFileName))}\n" +
+                    "              " + f._2
+                  if (isGitOrCiTag) {
+                    out.println(warn(snapMsg, opts, limit = lineMax))
+                    warnExit.set(true)
+                  } else {
+                    out.println(warnSoft(snapMsg, opts, limit = lineMax))
+                  }
 
-              })
-            val snapshotSumMsg = s"  found snapshots: ${fiWarn} $code1 -- ${allCodes.sorted.mkString(", ")}"
-            if (isGitOrCiTag) {
-              out.println(warn(snapshotSumMsg, opts, limit = lineMax))
-              warnExit.set(true)
+                })
+              val snapshotSumMsg = s"  found snapshots: ${fiWarn} $code1 -- ${allCodes.sorted.mkString(", ")}"
+              if (isGitOrCiTag) {
+                out.println(warn(snapshotSumMsg, opts, limit = lineMax))
+                warnExit.set(true)
+              } else {
+                out.println(warnSoft(snapshotSumMsg, opts, limit = lineMax))
+              }
             } else {
-              out.println(warnSoft(snapshotSumMsg, opts, limit = lineMax))
+              usedSkips = usedSkips :+ code1
             }
           } else {
-            usedSkips = usedSkips :+ code1
+            out.println(info(s"    ${fiFine} NO SNAPSHOTS in other files found", opts))
           }
-        } else {
-          out.println(info(s"    ${fiFine} NO SNAPSHOTS in other files found", opts))
-        }
 
-        if (pompom.isDefined || sbt.isDefined) {
           val modTry = if (pompom.isDefined) {
             pompom.get
           } else if (sbt.isDefined) {

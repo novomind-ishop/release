@@ -133,6 +133,7 @@ object Release extends LazyLogging {
     val mrc = coreMajorResultOf(relevantDeps, mod.isNoShop, release)
     if (out.isDefined && mrc.hasDifferentMajors) {
       warnExit.get.set(true)
+      // TODO https://kubernetes.io/releases/version-skew-policy/
       out.get.println(warn(s"    Found multiple core major version: »${mrc.sortedMajors.mkString(", ")}«, use only one ${fiWarn} ${fiCodeCoreDiff.apply(mrc)}", opts.get, limit = lineMax))
       val versions = mrc.coreMajorVersions
       val mrcGrouped: Map[String, Seq[Gav]] = versions.groupBy(_._1)
