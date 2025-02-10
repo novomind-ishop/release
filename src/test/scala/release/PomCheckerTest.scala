@@ -845,10 +845,13 @@ class PomCheckerTest extends AssertionsForJUnit {
 
   @Test
   def testCheckGav(): Unit = {
+    Assert.assertTrue(Gav.isUnusualElementValue("a a"))
     Assert.assertFalse(Gav.isUnusualElementValue(""))
     Assert.assertFalse(Gav.isUnusualElementValue("a"))
     Assert.assertFalse(Gav.isUnusualElementValue("a_b"))
     Assert.assertFalse(Gav.isUnusualElementValue("a-b"))
+    Assert.assertFalse(Gav.isUnusualElementValue("a-8b"))
+    Assert.assertFalse(Gav.isUnusualElementValue("1_8"))
     Assert.assertTrue(Gav.isUnusualElementValue(" "))
     Assert.assertTrue(Gav.isUnusualElementValue("a "))
     Assert.assertTrue(Gav.isUnusualElementValue("a ;"))
@@ -857,6 +860,16 @@ class PomCheckerTest extends AssertionsForJUnit {
     Assert.assertTrue(Gav.isUnusualElementValue("a;"))
     Assert.assertTrue(Gav.isUnusualElementValue("a-"))
     Assert.assertTrue(Gav.isUnusualElementValue("a_"))
+  }
+
+  @Test
+  def testContainsRange(): Unit = {
+    Assert.assertFalse(Gav.isContainsRange("a"))
+    Assert.assertFalse(Gav.isContainsRange("1.2.3"))
+    Assert.assertTrue(Gav.isContainsRange("(1,2)"))
+    Assert.assertTrue(Gav.isContainsRange("[1,2]"))
+    Assert.assertTrue(Gav.isContainsRange("(1,2]"))
+
   }
 
   @Test

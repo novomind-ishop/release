@@ -5,12 +5,13 @@ import org.junit.{Assert, Before, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
 
 import scala.annotation.unused
+import scala.compiletime.uninitialized
 
 class StatusLineTest extends AssertionsForJUnit {
-  var outContent: ByteArrayOutputStream = _
-  var errContent: ByteArrayOutputStream = _
-  var outStream: StatusPrinter = _
-  var errStream: PrintStream = _
+  var outContent: ByteArrayOutputStream = uninitialized
+  var errContent: ByteArrayOutputStream = uninitialized
+  var outStream: StatusPrinter = uninitialized
+  var errStream: PrintStream = uninitialized
 
   @Before
   def setUpStreams(): Unit = {

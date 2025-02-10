@@ -8,7 +8,7 @@ import ch.qos.logback.core.status.Status
 import com.typesafe.scalalogging.LazyLogging
 import org.junit.rules.Timeout
 import org.junit.{Assert, Ignore, Rule, Test}
-import org.mockito.MockitoSugar
+import org.mockito.Mockito._
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.ProjectMod.Gav3
 import release.Sgit.GitRemote
@@ -20,7 +20,7 @@ import scala.annotation.unused
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 
-class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging {
+class StarterTest extends AssertionsForJUnit with LazyLogging {
 
   val _globalTimeout = new Timeout(20_000, TimeUnit.MILLISECONDS)
 
@@ -353,10 +353,10 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
 
   @Test
   def testSuggestRebase_detached(): Unit = {
-    val out = mock[PrintStream]
-    val sgit = mock[Sgit]
+    val out = mock(classOf[PrintStream])
+    val sgit = mock(classOf[Sgit])
     when(sgit.findUpstreamBranch()).thenReturn(None)
-    val opts = mock[Opts]
+    val opts = mock(classOf[Opts])
 
     Starter.suggestRebase(new Term.Sys(null, out, null), sgit, branch = "test", opts)
 
@@ -440,21 +440,15 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
   @Ignore
   def testSuggestRebase(): Unit = {
     // TODO later
-    val out = mock[PrintStream]
+    val out = mock(classOf[PrintStream])
     val in = TermTest.willReadFrom("bert")
-    val sgit = mock[Sgit]
+    val sgit = mock(classOf[Sgit])
     when(sgit.isNotDetached).thenReturn(true)
     when(sgit.findUpstreamBranch()).thenReturn(None)
     when(sgit.listBranchNamesRemote()).thenReturn(Seq("blabla"), Seq("bert"))
-    val opts = mock[Opts]
+    val opts = mock(classOf[Opts])
 
     Starter.suggestRebase(new Term.Sys(in, out, out), sgit, branch = "test", opts)
-
-    val oi = inOrder(out)
-    oi.verify(out).println("No upstream found, please set")
-    oi.verify(out).println("a")
-    oi.verify(out).println("[1] origin/master")
-    oi.verify(out).println("[2] origin/test")
 
     verify(sgit).checkout("test")
     verify(sgit).setUpstream("bert")
@@ -464,18 +458,6 @@ class StarterTest extends AssertionsForJUnit with MockitoSugar with LazyLogging 
     //verify(out).println("W: unknown upstream branch; known are blabla")
     //verify(out, times(1)).println("Enter option or type [origin/master]: ")
     // verifyNoMoreInteractions(out)
-  }
-
-  @Test
-  def inOrder(): Unit = {
-    val out = mock[PrintStream]
-    out.println("a")
-    out.println("b")
-    out.println("a")
-    val inO = inOrder(out)
-    inO.verify(out).println("a")
-    inO.verify(out).println("b")
-    inO.verify(out).println("a")
   }
 
   @Test

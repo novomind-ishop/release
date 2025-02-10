@@ -27,7 +27,7 @@ object LintMaven {
           , opts, limit = Lint.lineMax))
         warnExit.set(true)
         // TODO skip
-        Nil
+        ()
       }
       val asVersion = v.removeSnapshot()
       if (allGitTagVersions.contains(asVersion.rawInput)) {

@@ -15,9 +15,15 @@ import scala.collection.parallel.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
 object ProjectMod extends LazyLogging {
+
+  def listGavsWithUnusualScope(gavs: Seq[ProjectMod.Gav]): Seq[(ProjectMod.Gav, String)] = {
+    val unusualGavs = gavs.filter(_.feelsUnusual())
+    unusualGavs.map(g => (g, Gav.selectUnusualReason(g)))
+  }
+
   def findOrphanTrees(root: File, knownTrees: Seq[File]): Seq[Path] = {
-    val allTrees:Seq[Path] = FileUtils.walk(root).par.filter(p => p.endsWith("dep.tree")).seq.toSeq.map(_.toAbsolutePath.normalize())
-    val value:Seq[Path] = knownTrees.map(_.toPath.toAbsolutePath.normalize())
+    val allTrees: Seq[Path] = FileUtils.walk(root).par.filter(p => p.endsWith("dep.tree")).seq.toSeq.map(_.toAbsolutePath.normalize())
+    val value: Seq[Path] = knownTrees.map(_.toPath.toAbsolutePath.normalize())
     allTrees.diff(value)
   }
 
@@ -321,9 +327,7 @@ object ProjectMod extends LazyLogging {
     def simpleGav(): Gav3 = Gav3(groupId, artifactId, version)
 
     def feelsUnusual(): Boolean = {
-      Gav.isUnusualElementValue(groupId) || Gav.isUnusualElementValue(artifactId) ||
-        (version.isDefined && (Gav.isUnusualElementValue(version.get) || version.get == "RELEASE" || version.get == "LATEST")) ||
-        Gav.isUnusualElementValue(packageing) || Gav.isUnusualElementValue(classifier) || Gav.isUnknownScope(scope)
+      Gav.feelsUnusual(this)
     }
 
     def isEmpty(): Boolean = this == Gav.empty
@@ -339,13 +343,51 @@ object ProjectMod extends LazyLogging {
   }
 
   object Gav {
+    def selectUnusualReason(gav: Gav): String = {
+      def rpluk(s:String):String = {
+        s.replaceAll("[\\p{C}]", "\u2423")
+      }
+      if (isUnknownScope(gav.scope)) {
+        s"uses unknown scope »${rpluk(gav.scope)}« please use only known scopes: ${ProjectMod.knownScopes.filterNot(_.isEmpty).toSeq.sorted.mkString(", ")}."
+      } else if (gav.version.isDefined && Gav.isUnusualElementValue(gav.version.get) && Gav.isContainsRange(gav.version.get)) {
+        s"uses version with range »${rpluk(gav.version.get)}«. Please only use a concrete version."
+      } else if (gav.version.isDefined && Gav.isUnusualElementValue(gav.version.get)) {
+        s"uses version with unknown symbol »${rpluk(gav.version.get)}«. Please remove unknown symbols."
+      } else if (gav.version.isDefined && (gav.version.get == "RELEASE" || gav.version.get == "LATEST")) {
+        s"uses version »${rpluk(gav.version.get)}« that is part of unstable markers LATEST and RELEASE. Please only use a concrete version."
+      } else if (Gav.isUnusualElementValue(gav.artifactId)) {
+        s"uses artifactId with unknown symbol »${rpluk(gav.artifactId)}«. Please remove unknown symbols."
+      } else if (Gav.isUnusualElementValue(gav.groupId)) {
+        s"uses groupId with unknown symbol »${rpluk(gav.groupId)}«. Please remove unknown symbols."
+      } else if (Gav.isUnusualElementValue(gav.packageing)) {
+        s"uses packageing with unknown symbol »${rpluk(gav.packageing)}«. Please remove unknown symbols."
+      } else {
+        "uses unusual format"
+      }
+    }
+
+    def feelsUnusual(gav: Gav) = {
+      Gav.isUnusualElementValue(gav.groupId) || Gav.isUnusualElementValue(gav.artifactId) ||
+        (gav.version.isDefined && (Gav.isUnusualElementValue(gav.version.get) || gav.version.get == "RELEASE" || gav.version.get == "LATEST")) ||
+        Gav.isUnusualElementValue(gav.packageing) || Gav.isUnusualElementValue(gav.classifier) || Gav.isUnknownScope(gav.scope)
+    }
+
     def format(parts: Seq[String]): String = parts.mkString(":").replaceAll("[:]{2,}", ":").replaceFirst(":$", "")
 
     val empty = Gav(groupId = "", artifactId = "", version = None)
 
+    def isContainsRange(in: String): Boolean = {
+      val rangeSet = "[]()".toSet
+      val inSet = in.toSet
+      inSet.diff(rangeSet) != inSet
+    }
+
     def isUnusualElementValue(in: String): Boolean = {
-      val repl = in.replaceFirst("^[^\\p{Alpha}^\\p{Digit}]", "")
+      val repl = in
+        .replaceAll("[\\p{C}\\s]", "\u2423")
+        .replaceFirst("^[^\\p{Alpha}^\\p{Digit}]", "")
         .replaceFirst("[^\\p{Alpha}^\\p{Digit}]$", "")
+
       repl != in
     }
 
@@ -521,7 +563,7 @@ object ProjectMod extends LazyLogging {
     }
     var years: Seq[(Gav3, Option[Int], Duration)] = Nil
     val stopw = Stopwatch.createStarted()
-    updatePrinter.println("I: checking dependencies against nexus - please wait")
+    updatePrinter.println("I: checking dependencies against binary repository - please wait")
 
     val selfSimple = selfDepsMod.map(_.gav().simpleGav()).distinct
     val relevant: Seq[Dep] = rootDeps
@@ -690,10 +732,12 @@ object Increment {
 
 trait ProjectMod extends LazyLogging {
   def listRemoteRepoUrls(): Seq[String]
+
   def getDepTreeFileContents: Map[File, DepTree]
+
   val file: File
-  val depInFiles: Seq[(Dep, File)]
-  val repo: RepoZ
+  lazy val depInFiles: Seq[(Dep, File)] = throw new NotImplementedError()
+  lazy val repo: RepoZ = throw new NotImplementedError()
   val opts: Opts
   val selfVersion: String
 
@@ -794,9 +838,7 @@ trait ProjectMod extends LazyLogging {
 
   def depTreeFilenameList(): Seq[String]
 
-  def listGavsWithUnusualScope(): Seq[ProjectMod.Gav] = {
-    val gavs = listGavs()
-    val unusualGavs = gavs.filter(_.feelsUnusual())
-    unusualGavs
+  def listGavsWithUnusualScope(): Seq[(ProjectMod.Gav, String)] = {
+    ProjectMod.listGavsWithUnusualScope(gavs = listGavs())
   }
 }

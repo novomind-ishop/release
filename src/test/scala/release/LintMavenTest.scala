@@ -194,7 +194,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org # (no ip)
         |[WARNING]  nexus work url must end with a '/' - https://repo.example.org 😬 RL1001
         |... https://repo.example.org/
-        |I: checking dependencies against nexus - please wait
+        |I: checking dependencies against binary repository - please wait
         |
         |I: checked 1 dependencies in 999ms (2000-01-01)
         |Non existing dependencies for:
@@ -381,7 +381,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)
         |... https://repo.example.org/
-        |I: checking dependencies against nexus - please wait
+        |I: checking dependencies against binary repository - please wait
         |
         |I: checked 1 dependencies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
@@ -563,7 +563,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)
         |... https://repo.example.org/
-        |I: checking dependencies against nexus - please wait
+        |I: checking dependencies against binary repository - please wait
         |
         |I: checked 7 dependencies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
@@ -732,7 +732,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002
         |[INFO]     RELEASE_NEXUS_WORK_URL=null # (no ip)
         |... https://repo1.maven.org/maven2/
-        |I: checking dependencies against nexus - please wait
+        |I: checking dependencies against binary repository - please wait
         |
         |I: checked 2 dependencies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
@@ -861,7 +861,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002
         |[INFO]     RELEASE_NEXUS_WORK_URL=null # (no ip)
         |... https://repo.example.org/
-        |I: checking dependencies against nexus - please wait
+        |I: checking dependencies against binary repository - please wait
         |
         |I: checked 2 dependencies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
@@ -977,7 +977,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002
         |[INFO]     RELEASE_NEXUS_WORK_URL=null # (no ip)
         |... https://repo1.maven.org/maven2/
-        |I: checking dependencies against nexus - please wait
+        |I: checking dependencies against binary repository - please wait
         |
         |I: checked 1 dependencies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.14-SNAPSHOT
@@ -1190,12 +1190,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for snapshots @ maven ---
         |[warning]   found snapshot: org.springframework:spring-context:1.0.1-SNAPSHOT 😬 RL1011-ea7ea019
         |[INFO] --- check for GAV format @ maven ---
-        |[WARNING] »org.springframework:spring-context-range:(,1.0],[1.2,)« uses unusual format, please repair 😬 RL1010-92f68063
-        |[WARNING] »org.springframework:spring-context-release:RELEASE« uses unusual format, please repair 😬 RL1010-d484eb4f
-        |[WARNING] »org.springframework:spring-context-latest:LATEST« uses unusual format, please repair 😬 RL1010-94d64e99
-        |[WARNING] known scopes are: compile, import, provided, runtime, system, test
-        |[WARNING] version ranges are not allowed
-        |[WARNING] unstable marker like LATEST and RELEASE are not allowed
+        |[WARNING] »org.springframework:spring-context-range:(,1.0],[1.2,)« uses version with range »(,1.0],[1.2,)«. Please only use a concrete version. 😬 RL1010-d7af6191
+        |[WARNING] »org.springframework:spring-context-release:RELEASE« uses version »RELEASE« that is part of unstable markers LATEST and RELEASE. Please only use a concrete version. 😬 RL1010-8afbf8a2
+        |[WARNING] »org.springframework:spring-context-latest:LATEST« uses version »LATEST« that is part of unstable markers LATEST and RELEASE. Please only use a concrete version. 😬 RL1010-aa80c631
         |[INFO] --- check for preview releases @ maven ---
         |[INFO] --- check major versions @ ishop ---
         |[INFO]     is shop: false
@@ -1204,7 +1201,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002
         |[INFO]     RELEASE_NEXUS_WORK_URL=null # (no ip)
         |... https://repo1.maven.org/maven2/
-        |I: checking dependencies against nexus - please wait
+        |I: checking dependencies against binary repository - please wait
         |
         |I: checked 4 dependencies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.11-SNAPSHOT
@@ -1381,11 +1378,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]   found snapshot: org.springframework:spring-context:1.0.1-SNAPSHOT 😬 RL1011-ea7ea019
         |[WARNING]   found snapshot: org.springframework:spring-other:1.0.0-SNAPSHOT:bert 😬 RL1011-bd849fd4
         |[INFO] --- check for GAV format @ maven ---
-        |[WARNING] »org.springframework:spring-other:1.0.0-SNAPSHOT:bert« uses unusual format, please repair 😬 RL1010-bd849fd4
-        |[WARNING] »org.springframework:spring-other2:1.0.0-SNAPSHOT « uses unusual format, please repair 😬 RL1010-def91957
-        |[WARNING] known scopes are: compile, import, provided, runtime, system, test
-        |[WARNING] version ranges are not allowed
-        |[WARNING] unstable marker like LATEST and RELEASE are not allowed
+        |[WARNING] »org.springframework:spring-other:1.0.0-SNAPSHOT:bert« uses unknown scope »bert« please use only known scopes: compile, import, provided, runtime, system, test. 😬 RL1010-12cb6670
+        |[WARNING] »org.springframework:spring-other2:1.0.0-SNAPSHOT « uses version with unknown symbol »1.0.0-SNAPSHOT «. Please remove unknown symbols. 😬 RL1010-19260448
         |[INFO] --- check for preview releases @ maven ---
         |[INFO] --- check major versions @ ishop ---
         |[INFO]     is shop: false
@@ -1394,7 +1388,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002
         |[INFO]     RELEASE_NEXUS_WORK_URL=null # (no ip)
         |... https://repo1.maven.org/maven2/
-        |I: checking dependencies against nexus - please wait
+        |I: checking dependencies against binary repository - please wait
         |
         |I: checked 4 dependencies in 999ms (2000-01-01)
         |║ Project GAV: com.novomind.ishop.any:any:0.11.0
@@ -1593,7 +1587,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     com.novomind.ishop.any:uert
         |[WARNING]    »com.novomind.ishop.any:ert« (in pom.xml) is too similar to
         |[WARNING]      »com.novomind.ishop.any:uert« (in bert/pom.xml). Please choose
-        |[WARNING]      distinguishable names.
+        |[WARNING]      distinguishable names. 😬 RL1021-5dc541c2
         |[INFO] --- .mvn @ maven ---
         |[INFO]     WIP
         |[INFO] --- project version @ maven ---
@@ -1608,7 +1602,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)
         |... https://repo.example.org/
-        |I: checking dependencies against nexus - please wait
+        |I: checking dependencies against binary repository - please wait
         |I: checked 0 dependencies in 999ms (2000-01-01)
         |
         |Σ libyears: 0Y 0M (0 days)
@@ -1985,7 +1979,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)
         |... https://repo.example.org/
-        |I: checking dependencies against nexus - please wait
+        |I: checking dependencies against binary repository - please wait
         |I: checked 0 dependencies in 999ms (2000-01-01)
         |
         |Σ libyears: 0Y 0M (0 days)

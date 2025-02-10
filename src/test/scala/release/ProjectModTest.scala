@@ -3,8 +3,8 @@ package release
 import org.junit.rules.TemporaryFolder
 import org.junit.{Assert, Rule, Test}
 import org.mockito.ArgumentMatchers.anyString
-import org.mockito.MockitoSugar._
 import org.mockito.{ArgumentMatchers, Mockito}
+import org.mockito. Mockito._
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.PomMod.DepTree
 import release.ProjectMod.{Dep, Gav, Gav3, GavWithRef, SelfRef, UpdatePrinter}
@@ -59,7 +59,7 @@ object ProjectModTest {
 
     override val selfDepsMod: Seq[ProjectMod.Dep] = Nil
 
-    override val depInFiles: Seq[(Dep, File)] = Nil
+    override lazy val depInFiles: Seq[(Dep, File)] = Nil
 
     override def suggestReleaseVersion(branchNames: Seq[String], tagNames: Seq[String], increment: Option[Increment]): Seq[String] = Nil
 
@@ -117,7 +117,7 @@ class ProjectModTest extends AssertionsForJUnit {
     val rootDeps: Seq[ProjectMod.Dep] = Seq(anyDep)
     val selfDepsModX: Seq[ProjectMod.Dep] = Nil
 
-    val repoMock1 = mock[Repo]
+    val repoMock1:Repo = Mockito.mock(classOf[Repo])
     when(repoMock1.workNexusUrl()).thenReturn("repo1")
     when(repoMock1.getRelocationOf(anyString(), anyString(), anyString())).thenReturn(None)
     when(repoMock1.newerAndPrevVersionsOf(anyDep.groupId, anyDep.artifactId, anyDep.version.get)).thenReturn(Seq(anyDep.version.get, "2.13.1"))
@@ -125,7 +125,7 @@ class ProjectModTest extends AssertionsForJUnit {
     when(repoMock1.depDate(anyDep.groupId, anyDep.artifactId, "2.13.1")).thenReturn(Some(now))
     when(repoMock1.depDate(anyDep.groupId, anyDep.artifactId, "2.13.2")).thenReturn(None)
 
-    val repoMock2 = mock[Repo]
+    val repoMock2 = mock(classOf[Repo])
     when(repoMock2.workNexusUrl()).thenReturn("repo2")
     when(repoMock2.getRelocationOf(anyString(), anyString(), anyString())).thenReturn(None)
     when(repoMock2.newerAndPrevVersionsOf(anyDep.groupId, anyDep.artifactId, anyDep.version.get)).thenReturn(Seq(anyDep.version.get, "2.13.2"))
@@ -163,7 +163,7 @@ class ProjectModTest extends AssertionsForJUnit {
     val term = Term.select("xterm", "os", simpleChars = false, isInteractice = false)
     val rootDeps: Seq[ProjectMod.Dep] = Seq(scala)
     val selfDepsModX: Seq[ProjectMod.Dep] = Nil
-    val repoMock = mock[Repo]
+    val repoMock = mock(classOf[Repo])
     when(repoMock.allRepoUrls()).thenReturn(Nil)
     Mockito.when(repoMock.createAll(ArgumentMatchers.any())).thenReturn(Seq(repoMock))
     Mockito.when(repoMock.allRepoZ()).thenReturn(Seq(repoMock))
@@ -241,11 +241,56 @@ class ProjectModTest extends AssertionsForJUnit {
     Assert.assertEquals(Seq(
       ProjectModTest.depOf(pomRef = SelfRef.undef, groupId = "g", artifactId = "a", version = Some("v"))
     ), testee.listGavsForCheck())
+  }
 
+  @Test
+  def testUnunualGav_unknown_scope(): Unit = {
     Assert.assertEquals(Seq(
+      (Gav("g", "a", "v", scope = "john"), "uses unknown scope »john« please use only known scopes: compile, import, provided, runtime, system, test."),
+      (Gav("g", "a", None, scope = "john"), "uses unknown scope »john« please use only known scopes: compile, import, provided, runtime, system, test."),
+      (Gav("g", "a", "v", scope = "import "), "uses unknown scope »import « please use only known scopes: compile, import, provided, runtime, system, test."),
+    ), ProjectMod.listGavsWithUnusualScope(Seq(
       Gav("g", "a", "v", scope = "john"),
       Gav("g", "a", None, scope = "john"),
-    ), testee.listGavsWithUnusualScope())
+      Gav("g", "a", "v"),
+      Gav("g", "a", "v",  scope = "provided"),
+      Gav("g", "a", "v",  scope = "compile"),
+      Gav("g", "a", "v",  scope = "runtime"),
+      Gav("g", "a", "v",  scope = "test"),
+      Gav("g", "a", "v",  scope = "system"),
+      Gav("g", "a", "v",  scope = "import"),
+      Gav("g", "a", "v",  scope = "import "),
+      Gav("g", "a", "v",  scope = ""),
+    )))
+  }
+
+  @Test
+  def testUnunualGav_version(): Unit = {
+    Assert.assertEquals(Seq(
+      (Gav("g", "a", "RELEASE"), "uses version »RELEASE« that is part of unstable markers LATEST and RELEASE. Please only use a concrete version."),
+      (Gav("g", "a", "LATEST"), "uses version »LATEST« that is part of unstable markers LATEST and RELEASE. Please only use a concrete version."),
+      (Gav("g", "a", "1.0.0 "), "uses version with unknown symbol »1.0.0 «. Please remove unknown symbols."),
+      (Gav("g", "a", "[1, 100]"), "uses version with range »[1, 100]«. Please only use a concrete version."),
+    ), ProjectMod.listGavsWithUnusualScope(Seq(
+      Gav("g", "a", "RELEASE"),
+      Gav("g", "a", "LATEST"),
+      Gav("g", "a", "1.0.0 "),
+      Gav("g", "a", "[1, 100]"),
+      Gav("g", "a", None),
+    )))
+  }
+
+  @Test
+  def testUnunualGav_groupId_artifactId_packageing(): Unit = {
+    Assert.assertEquals(Seq(
+      (Gav("groub\u200b", "a", "1.0.0"), "uses groupId with unknown symbol »groub␣«. Please remove unknown symbols."),
+      (Gav("g", "a a", None),  "uses artifactId with unknown symbol »a a«. Please remove unknown symbols."),
+      (Gav("g", "a", None, packageing = "w a r"), "uses packageing with unknown symbol »w a r«. Please remove unknown symbols."),
+    ), ProjectMod.listGavsWithUnusualScope(Seq(
+      Gav("groub\u200b", "a", "1.0.0"),
+      Gav("g", "a a", None),
+      Gav("g", "a", None, packageing = "w a r"),
+    )))
   }
 
   @Test
@@ -313,7 +358,7 @@ class ProjectModTest extends AssertionsForJUnit {
     val term = Term.select("xterm", "os", simpleChars = false, isInteractice = false)
     val rootDeps: Seq[ProjectMod.Dep] = Nil
     val selfDepsMod: Seq[ProjectMod.Dep] = Nil
-    val repoMock = mock[Repo]
+    val repoMock = mock(classOf[Repo])
     when(repoMock.allRepoUrls()).thenReturn(Nil)
     Mockito.when(repoMock.allRepoZ()).thenReturn(Seq(repoMock))
     Mockito.when(repoMock.createAll(ArgumentMatchers.any())).thenReturn(Seq(repoMock))
@@ -343,9 +388,9 @@ class ProjectModTest extends AssertionsForJUnit {
       .mkString("\n")
     Assert.assertEquals(
       """
-        |I: checking dependencies against nexus - please wait
+        |I: checking dependencies against binary repository - please wait
         |I: checked 0 dependencies in ...
-        |I: checking dependencies against nexus - please wait
+        |I: checking dependencies against binary repository - please wait
         |I: checked 0 dependencies in ...
         |""".stripMargin.trim, filteredOut)
 

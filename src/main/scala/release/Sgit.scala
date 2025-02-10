@@ -332,7 +332,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     }
     val future = executor.submit(call)
     val result: Try[Seq[String]] = try {
-      future.get(timeout._1, timeout._2)
+      future.get(timeout.length, timeout.unit)
     } catch {
       case te: java.util.concurrent.TimeoutException => {
         future.cancel(true)
@@ -863,17 +863,17 @@ object Sgit {
   sealed trait GitShaRefTime {
     val sha1: String
     val refName: String
-    val dateOpt: Option[ZonedDateTime]
+    lazy val dateOpt: Option[ZonedDateTime] = None
     lazy val date: ZonedDateTime = dateOpt.get
   }
 
   sealed case class GitShaTag(sha1: String, tagName: String, dateSupplier: () => Option[ZonedDateTime]) extends GitShaRefTime {
-    lazy val dateOpt: Option[ZonedDateTime] = dateSupplier.apply()
+    override lazy val dateOpt: Option[ZonedDateTime] = dateSupplier.apply()
     val refName = tagName
   }
 
   sealed case class GitShaBranch(commitId: String, branchName: String, dateSupplier: () => Option[ZonedDateTime]) extends GitShaRefTime {
-    lazy val dateOpt: Option[ZonedDateTime] = dateSupplier.apply()
+    override lazy val dateOpt: Option[ZonedDateTime] = dateSupplier.apply()
     if (commitId.length != 40) {
       throw new IllegalStateException("invalid commit id length: " + commitId.length + " (" + commitId + ")")
     }
@@ -902,7 +902,7 @@ object Sgit {
     val remoteType: String
   }
 
-  private case class GitRemoteImp private(name: String, position: String, remoteType: String) extends GitRemote {
+  private case class GitRemoteImp(name: String, position: String, remoteType: String) extends GitRemote {
     override def toString: String = s"$name  $position $remoteType"
   }
 

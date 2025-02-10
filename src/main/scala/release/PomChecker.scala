@@ -68,7 +68,7 @@ object PomChecker {
         val formatted = e._1._1
         val formatted1 = e._2._1
         val score = Util.Similarity.similarSplitMax(formatted, formatted1)
-        score < 3
+        score < 2
       })
 
     if (pr.nonEmpty) {

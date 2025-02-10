@@ -23,10 +23,11 @@ import scala.annotation.{nowarn, tailrec}
 import scala.collection.parallel.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
-case class PomMod(file: File, repo: RepoZ, opts: Opts,
+case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
                   skipPropertyReplacement: Boolean = false, withSubPoms: Boolean,
                   failureCollector: Option[Exception => Unit]) extends ProjectMod with LazyLogging {
   logger.trace("init pomMod")
+  override lazy val repo: RepoZ = repoZ
   private var depMap: Map[Dep, Node] = Map.empty
 
   private val rootPom = PomMod.rootPom(file)
@@ -40,7 +41,7 @@ case class PomMod(file: File, repo: RepoZ, opts: Opts,
     () => PomMod.allRawModulePomsFiles(Seq(file), withSubPoms))
 
   private[release] val raws: Seq[RawPomFile] = toRawPoms(allRawPomFiles)
-  lazy val depInFiles: Seq[(Dep, File)] = raws.flatMap(d => {
+  override lazy val depInFiles: Seq[(Dep, File)] = raws.flatMap(d => {
     val result = PomMod.selfDep(_ => {})(d.document)
     result.map(e => (e, d.pomFile))
   })

@@ -208,7 +208,7 @@ object Starter extends LazyLogging {
         inOpt.apiDiff.copy(left = string1, right = string2)))
       // --
       case string :: Nil => argsApiDiffRead(Nil, inOpt.copy(apiDiff = inOpt.apiDiff.copy(invalids = inOpt.apiDiff.invalids :+ string)))
-      case string :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(invalids = inOpt.apiDiff.invalids :+ string)))
+//      case string :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(invalids = inOpt.apiDiff.invalids :+ string)))
       case _ => throw new IllegalStateException("not expected")
     }
   }
@@ -387,7 +387,7 @@ object Starter extends LazyLogging {
   }
 
   def compressToGav(self: Seq[ProjectMod.Gav3], properties: Map[String, String])(in: Seq[ProjectMod.Dep]): Seq[ProjectMod.Gav3] = {
-    val rep = PomMod.replaceProperty(properties, sloppy = true) _
+    val rep = PomMod.replaceProperty(properties, sloppy = true)
     val all = in.map(_.gav())
       .filterNot(_.scope == "test")
       .map(_.simpleGav())

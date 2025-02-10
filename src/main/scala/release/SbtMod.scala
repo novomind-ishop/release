@@ -13,9 +13,10 @@ import java.util.concurrent.atomic.AtomicBoolean
 import scala.jdk.CollectionConverters._
 import scala.util.parsing.combinator.RegexParsers
 
-case class SbtMod(file: File, repo: RepoZ, opts: Opts) extends ProjectMod {
+case class SbtMod(file: File, repoZ: RepoZ, opts: Opts) extends ProjectMod {
 
-  override val depInFiles: Seq[(ProjectMod.Dep, File)] = Nil // TODO
+  override lazy val repo: RepoZ = repoZ
+  override lazy val depInFiles: Seq[(ProjectMod.Dep, File)] = Nil // TODO
   private val value: SbtModel = {
 
     def read(f: File) = Files.readAllLines(f.toPath, StandardCharsets.UTF_8)
@@ -255,7 +256,6 @@ object SbtMod {
             et match {
               case s: Left[String, Val] => s.value
               case r: Right[String, Val] => d(r.value.value)
-              case _ => throw new IllegalStateException("sdf")
             }
           }
 

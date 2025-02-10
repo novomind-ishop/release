@@ -134,6 +134,7 @@ class UtilTest extends AssertionsForJUnit {
   @Test
   def testSimilar(): Unit = {
 
+    Assert.assertEquals(2, Util.Similarity.similarSplitMax("abc-client", "abc-parent"))
     Assert.assertEquals(4, Util.Similarity.similarMax(Seq("Otto", "o"), Seq("Otto", "u")))
     Assert.assertEquals(8, Util.Similarity.similarSplitMax("bo-client", "bo-client-ui"))
     Assert.assertEquals(4, Util.Similarity.similarMax(Seq("Otto"), Seq("Ranger")))

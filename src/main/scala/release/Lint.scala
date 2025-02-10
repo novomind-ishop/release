@@ -457,6 +457,7 @@ object Lint {
   val fiCodePreviouRelease = uniqCode(1018)
   val fiCodeUnwantedPackage = uniqCode(1019)
   val fiCodeVersionMismatchNoTag = uniqCode(1020)(())
+  val fiCodeSimilarity = uniqCode(1021)
   val fiWarn = "\uD83D\uDE2C"
   val fiError = "❌"
 
@@ -810,7 +811,10 @@ object Lint {
               val checkResult = PomChecker.getOwnArtifactNames(mod.depInFiles, mod.file)
               checkResult._1.foreach(name => out.println(info("    " + name.formatted, opts, limit = lineMax)))
               if (checkResult._2.isDefined) {
-                Term.wrap(out, Term.warn, "   " + checkResult._2.get, opts)
+                val msgRaw = checkResult._2.get
+                val msg = msgRaw + s" ${fiWarn} ${fiCodeSimilarity.apply(msgRaw)}"
+
+                Term.wrap(out, Term.warn, "   " + msg, opts)
               }
               out.println(info("--- .mvn @ maven ---", opts))
               out.println(info("    WIP", opts)) // TODO check extensions present
@@ -838,11 +842,8 @@ object Lint {
             val unusualGavs = mod.listGavsWithUnusualScope()
             if (unusualGavs.nonEmpty) {
               unusualGavs.foreach(found => {
-                out.println(warn(s"»${found.formatted}« uses unusual format, please repair ${fiWarn} ${fiCodeUnusualGav.apply(found)}", opts, limit = lineMax))
+                out.println(warn(s"»${found._1.formatted}« ${found._2} ${fiWarn} ${fiCodeUnusualGav.apply(found)}", opts, limit = lineMax))
               })
-              out.println(warn(s"known scopes are: ${ProjectMod.knownScopes.filterNot(_.isEmpty).toSeq.sorted.mkString(", ")}", opts))
-              out.println(warn(s"version ranges are not allowed", opts))
-              out.println(warn(s"unstable marker like LATEST and RELEASE are not allowed", opts))
               warnExit.set(true)
             } else {
               out.println(info(s"    ${fiFine} all GAVs scopes looks fine", opts))

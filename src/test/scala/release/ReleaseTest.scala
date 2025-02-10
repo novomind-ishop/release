@@ -148,6 +148,7 @@ class ReleaseTest extends AssertionsForJUnit {
         |1. MAJOR version when you make incompatible API changes,
         |2. MINOR version when you add functionality in a backwards-compatible manner, and
         |3. PATCH version when you make backwards-compatible bug fixes.
+        |(4. SUFFIX e.g. »-M1« for milestone1 or »-RC1« for releaseCandidate1)
         |   see also: http://semver.org/
         |---------
         |Enter release version for »0.11-SNAPSHOT« [0.11]:
@@ -214,6 +215,7 @@ class ReleaseTest extends AssertionsForJUnit {
         |1. MAJOR version when you make incompatible API changes,
         |2. MINOR version when you add functionality in a backwards-compatible manner, and
         |3. PATCH version when you make backwards-compatible bug fixes.
+        |(4. SUFFIX e.g. »-M1« for milestone1 or »-RC1« for releaseCandidate1)
         |   see also: http://semver.org/
         |---------
         |Enter release version for »1x-SNAPSHOT«
@@ -281,6 +283,7 @@ class ReleaseTest extends AssertionsForJUnit {
         |1. MAJOR version when you make incompatible API changes,
         |2. MINOR version when you add functionality in a backwards-compatible manner, and
         |3. PATCH version when you make backwards-compatible bug fixes.
+        |(4. SUFFIX e.g. »-M1« for milestone1 or »-RC1« for releaseCandidate1)
         |   see also: http://semver.org/
         |---------
         |Selected release is 1.0.1
@@ -343,6 +346,7 @@ class ReleaseTest extends AssertionsForJUnit {
         |1. MAJOR version when you make incompatible API changes,
         |2. MINOR version when you add functionality in a backwards-compatible manner, and
         |3. PATCH version when you make backwards-compatible bug fixes.
+        |(4. SUFFIX e.g. »-M1« for milestone1 or »-RC1« for releaseCandidate1)
         |   see also: http://semver.org/
         |---------
         |Selected release is 1.1.0
@@ -405,6 +409,7 @@ class ReleaseTest extends AssertionsForJUnit {
         |1. MAJOR version when you make incompatible API changes,
         |2. MINOR version when you add functionality in a backwards-compatible manner, and
         |3. PATCH version when you make backwards-compatible bug fixes.
+        |(4. SUFFIX e.g. »-M1« for milestone1 or »-RC1« for releaseCandidate1)
         |   see also: http://semver.org/
         |---------
         |Selected release is 2.0.0

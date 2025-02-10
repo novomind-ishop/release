@@ -20,15 +20,15 @@ object Term {
       reader.readLine(prompt)
     } catch {
       case _: EndOfFileException => {
-        System.exit(28)
+        sys.exit(28)
         "EndOfFileException"
       }
       case _: UserInterruptException => {
-        System.exit(29)
+        sys.exit(29)
         "UserInterruptException"
       }
       case _: IOError => {
-        System.exit(30)
+        sys.exit(30)
         "IOError"
       }
     }
@@ -50,7 +50,7 @@ object Term {
     val result = line match {
       case null => {
         sys.err.println("invalid readFrom(..) => exit 14")
-        System.exit(14)
+        sys.exit(14)
         null
       }
       case "" => defaultValue
@@ -72,8 +72,8 @@ object Term {
       possibleValues.map(line => line.replace(' ', ' ')).mkString("/")), opts)
     line match {
       case null => {
-        System.err.println("invalid readFromOneOf(..)")
-        System.exit(1)
+        sys.err.println("invalid readFromOneOf(..)")
+        sys.exit(1)
         null
       }
       case any: String if possibleValues.contains(any.trim) => any.trim
@@ -98,8 +98,8 @@ object Term {
         val line = readLineWithPrompt(sys, "Enter option [" + mapped.head._1 + "]: ", opts)
         line match {
           case null => {
-            System.err.println("invalid readChooseOneOf(..)")
-            System.exit(1)
+            sys.err.println("invalid readChooseOneOf(..)")
+            sys.exit(1)
             null
           }
           case "" => mapped.head._2
@@ -122,8 +122,8 @@ object Term {
         val line = readLineWithPrompt(sys, "Enter option or type [" + valSelectF.apply(possibleValues) + "]: ", opts)
         line match {
           case null => {
-            System.err.println("invalid readChooseOneOfOrType(..)")
-            System.exit(1)
+            sys.err.println("invalid readChooseOneOfOrType(..)")
+            sys.exit(1)
             null
           }
           case "" => mappedF.apply(mapped)._2
@@ -227,7 +227,7 @@ object Term {
 
   def warnSoft(text: String, opts: Opts, limit: Int = warnSoft.defaultLimit): String = warnSoft.ex(text, opts, limit)
 
-  def warn(text: String, opts: Opts, limit: Int = warn.defaultLimit, soft:Boolean = false): String = {
+  def warn(text: String, opts: Opts, limit: Int = warn.defaultLimit, soft: Boolean = false): String = {
     if (soft) {
       warnSoft(text, opts, limit)
     } else {
@@ -291,6 +291,10 @@ object Term {
         .terminal(terminal)
         .option(LineReader.Option.INSERT_TAB, true)
         .build()
+    }
+
+    def exit(code: Int): Unit = {
+      System.exit(code)
     }
   }
 

@@ -77,7 +77,7 @@ class LintSbtTest extends AssertionsForJUnit {
         |[INFO] --- suggest dependency updates / configurable @ maven ---
         |[INFO]     RELEASE_NEXUS_WORK_URL=https://repo.example.org/ # (no ip)
         |... https://repo.example.org/
-        |I: checking dependencies against nexus - please wait
+        |I: checking dependencies against binary repository - please wait
         |
         |I: checked 2 dependencies in 999ms (2000-01-01)
         |║ Project GAV: X

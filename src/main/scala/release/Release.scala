@@ -204,7 +204,7 @@ object Release extends LazyLogging {
 
   }
 
-  def suggestPushCmd(changedVersion: Boolean, sgit: SgitDiff with SgitDetached, opts: Opts, branch: String, selectedBranch: String,
+  def suggestPushCmd(changedVersion: Boolean, sgit: (SgitDiff & SgitDetached), opts: Opts, branch: String, selectedBranch: String,
                      uName: () => String = () => System.getProperty("user.name")): String = {
     if (changedVersion && sgit.isNotDetached) {
       if (opts.useGerrit) {
@@ -282,6 +282,7 @@ object Release extends LazyLogging {
       sys.out.println("1. MAJOR version when you make incompatible API changes,")
       sys.out.println("2. MINOR version when you add functionality in a backwards-compatible manner, and")
       sys.out.println("3. PATCH version when you make backwards-compatible bug fixes.")
+      sys.out.println("(4. SUFFIX e.g. »-M1« for milestone1 or »-RC1« for releaseCandidate1)")
       sys.out.println("   see also: http://semver.org/")
       sys.out.println("---------")
     } else {
@@ -631,7 +632,7 @@ object Release extends LazyLogging {
     case class ReleaseInfo(gav: Gav, released: Boolean, suggested: Option[Gav])
 
     val noShops: (Gav => Boolean) = if (mod.isNoShop) {
-      gav: Gav => gav.groupId.contains("com.novomind.ishop.shops")
+      (gav: Gav) => gav.groupId.contains("com.novomind.ishop.shops")
     } else {
       _ => false
     }

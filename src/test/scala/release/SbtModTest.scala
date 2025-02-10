@@ -2,17 +2,18 @@ package release
 
 import org.junit.{Assert, Test}
 import org.mockito.ArgumentMatchers.anyString
-import org.mockito.MockitoSugar
+import org.mockito.{ArgumentMatcher, ArgumentMatchers, Mockito}
+import org.mockito.Mockito._
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.ProjectMod.Gav3
 import release.SbtModTest.d
 
 object SbtModTest {
   def d(g: String, a: String, v: String, scope: String = "") =
-    ProjectModTest.depOfShort(g,a,v,scope)
+    ProjectModTest.depOfShort(g, a, v, scope)
 }
 
-class SbtModTest extends AssertionsForJUnit with MockitoSugar {
+class SbtModTest extends AssertionsForJUnit {
 
   @Test
   def scalaDeps(): Unit = {
@@ -23,7 +24,7 @@ class SbtModTest extends AssertionsForJUnit with MockitoSugar {
     val guava = Gav3("com.google.guava", "guava", Some("30.1.1-jre"))
     val gavs: Seq[Gav3] = Seq(scalaLib, catsEffectM3, catsCore, scalaTest, guava)
 
-    val repo = mock[Repo]
+    val repo = mock(classOf[Repo])
     when(repo.getRelocationOf(anyString(), anyString(), anyString())).thenReturn(None)
     val result = gavs.map(gav => ProjectMod.relocateGavs(gavs, repo)(gav))
     val scalaLib3 = Gav3("org.scala-lang", "scala3-library_3", Some("-1"))
@@ -42,7 +43,7 @@ class SbtModTest extends AssertionsForJUnit with MockitoSugar {
     val catsCore = Gav3("org.typelevel", "cats-core_2.12", Some("1.4.0"))
     val gavs: Seq[Gav3] = Seq(scalaLib, catsEffectM3, catsCore)
 
-    val repo = mock[Repo]
+    val repo = mock(classOf[Repo])
     when(repo.getRelocationOf(anyString(), anyString(), anyString())).thenReturn(None)
     val result = gavs.map(gav => {
       ProjectMod.relocateGavs(gavs, repo)(gav)
@@ -58,8 +59,12 @@ class SbtModTest extends AssertionsForJUnit with MockitoSugar {
   def scalaDeps_not(): Unit = {
     val guava = Gav3("com.google.guava", "guava", Some("30.1.1-jre"))
     val gavs: Seq[Gav3] = Seq(guava)
+    val repo = mock(classOf[Repo])
+    Mockito.when(repo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).thenReturn(None)
 
-    val result = gavs.map(gav => ProjectMod.relocateGavs(gavs, mock[Repo])(gav))
+    val result = gavs.map(gav => {
+      ProjectMod.relocateGavs(gavs, repo)(gav)
+    })
 
     Assert.assertEquals(gavs, result.flatten)
   }
