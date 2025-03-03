@@ -4,7 +4,7 @@ import org.junit.{Assert, Assume, Ignore, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.Sgit.{GitRemote, GitTagWithDate, MissingGitDirException}
 import release.SgitTest.hasCommitMsg
-import release.Starter.{Opts, PreconditionsException}
+import release.Starter.{PreconditionsException}
 
 import java.io.File
 import java.nio.file.{Files, StandardCopyOption}

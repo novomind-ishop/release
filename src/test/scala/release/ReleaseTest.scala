@@ -6,7 +6,6 @@ import org.mockito.{ArgumentMatchers, Mockito}
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.ProjectMod.{Gav3, SelfRef}
 import release.Release.CoreMajoResult
-import release.Starter.Opts
 
 import java.io.File
 import java.util.regex.Pattern

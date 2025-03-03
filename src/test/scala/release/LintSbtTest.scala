@@ -4,7 +4,6 @@ import org.junit.rules.TemporaryFolder
 import org.junit.{Rule, Test}
 import org.mockito.{ArgumentMatchers, Mockito}
 import org.scalatestplus.junit.AssertionsForJUnit
-import release.Starter.Opts
 
 import java.io.File
 import java.time.ZonedDateTime

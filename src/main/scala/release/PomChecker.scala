@@ -2,7 +2,7 @@ package release
 
 import release.ProjectMod.{Dep, Gav, PluginDep, SelfRef}
 import release.Release.findBadLines
-import release.Starter.{Opts, PreconditionsException}
+import release.Starter.{PreconditionsException}
 
 import java.io.{File, PrintStream}
 import java.nio.file.Path

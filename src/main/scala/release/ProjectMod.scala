@@ -4,7 +4,7 @@ import com.google.common.base.Stopwatch
 import com.typesafe.scalalogging.LazyLogging
 import release.PomMod.{DepTree, abbreviate, unmanaged}
 import release.ProjectMod.{Dep, Gav3, PluginDep, UpdateCon}
-import release.Starter.{Opts, OptsDepUp, PreconditionsException}
+import release.Starter.{PreconditionsException}
 
 import java.io.File
 import java.nio.file.Path

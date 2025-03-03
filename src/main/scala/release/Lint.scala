@@ -5,7 +5,7 @@ import com.google.common.io.{CharSink, CharSource}
 import com.google.googlejavaformat.java.Formatter
 import release.ProjectMod.{Gav3, StaticPrinter}
 import release.Sgit.GitShaRefTime
-import release.Starter.{Opts, PreconditionsException}
+import release.Starter.PreconditionsException
 import release.Term._
 import release.Util.pluralize
 
@@ -244,7 +244,7 @@ object Lint {
 
   case class MismatchResult(isMismatch: Boolean, msg: String)
 
-  def versionMismatches(selfVersion: String, tagBranchInfo: Option[BranchTagMerge]): MismatchResult = {
+  def versionMismatches(selfVersion: String, tagBranchInfo: Option[BranchTagMerge], isShop:Boolean = false): MismatchResult = {
     val defaultBranchnames = Set("main", "master")
 
     if (tagBranchInfo.isDefined) {
@@ -331,7 +331,13 @@ object Lint {
         } else {
           ""
         }
+        val shopHint = if (isShop) {
+          "Immutable tags are not recommended for shops, because cleanup is not intended. Suggested names:  (project.version: RC-2025.02 -> git branch:release/RC-2025.02), ... "
+        } else {
+          ""
+        }
         val msg = s" »$selfVersion« does not relate to git${tagMsg}${branchMsg}. " +
+          shopHint +
           s"Please use a plausible version marker and git marker combination like: " +
           s"(project.version: 1.2.3 -> git tag:v1.2.3), " +
           s"... " +
@@ -403,11 +409,13 @@ object Lint {
   }
 
   def isValidBranch(maybeBranch: Option[BranchTagMerge]): Boolean = {
-    maybeBranch.isDefined && maybeBranch.get.branchName.isDefined && maybeBranch.get.tagName.isEmpty
+    maybeBranch.isDefined && maybeBranch.get.branchName.isDefined && 
+      maybeBranch.get.tagName.isEmpty
   }
 
   def isValidTag(maybeTag: Option[BranchTagMerge]): Boolean = {
-    maybeTag.isDefined && maybeTag.get.tagName.isDefined && maybeTag.get.branchName.filterNot(_ == "HEAD").isEmpty
+    maybeTag.isDefined && maybeTag.get.tagName.isDefined && 
+      maybeTag.get.branchName.filterNot(_ == "HEAD").isEmpty
   }
 
   type UniqCode = String
@@ -461,11 +469,12 @@ object Lint {
   val fiWarn = "\uD83D\uDE2C"
   val fiError = "❌"
 
-  def run(out: PrintStream, err: PrintStream, inopts: Starter.Opts,
-          envs: Map[String, String],
+  def run(out: PrintStream, err: PrintStream, sysOpts: Opts,
+          systemEnvs: Map[String, String],
           file: File = new File(".").getAbsoluteFile): Int = {
-    val isGitlab: Boolean = envs.get("CI_COMMIT_SHA").isDefined
 
+
+    val isGitlab: Boolean = systemEnvs.get("CI_COMMIT_SHA").isDefined
     val ws: String = {
       if (isGitlab) {
         "\uFEFF\u00A0\u200B"
@@ -477,9 +486,9 @@ object Lint {
     out.println(ws)
 
     // TODO handle --simple-chars
-    val opts = inopts.copy(checkOverlapping = false)
+    val workOpts = sysOpts.copy(checkOverlapping = false)
 
-    out.println(info(center("[ lint ]"), opts))
+    out.println(info(center("[ lint ]"), workOpts))
     val stopwatch = Stopwatch.createStarted()
     try {
       // https://github.com/hadolint/hadolint
@@ -488,30 +497,44 @@ object Lint {
       val warnExitCode = 42
       val errorExitCode = 43
       // TODO print $HOME
-      println(info("    " + file.getAbsolutePath, opts, lineMax))
+      println(info("    " + file.getAbsolutePath, workOpts, lineMax))
       val warnExit = new AtomicBoolean(false)
       val errorExit = new AtomicBoolean(false)
       val files = file.listFiles()
       var usedSkips = Seq.empty[Lint.UniqCode]
       if (files == null || files.isEmpty) {
-        out.println(error(s"E: NO FILES FOUND in ${file.getAbsolutePath}", opts))
-        out.println(error(center("[ end of lint ]"), opts))
+        out.println(error(s"E: NO FILES FOUND in ${file.getAbsolutePath}", workOpts))
+        out.println(error(center("[ end of lint ]"), workOpts))
         return 1
       } else {
-        out.println(info("--- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---", opts))
+        out.println(info("--- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---", workOpts))
         val mem = ManagementFactory.getMemoryMXBean.getHeapMemoryUsage
-        out.println(info(s"    -Xms: ${Util.byteToMb(mem.getInit)}m -Xmx: ${Util.byteToMb(mem.getMax)}m", opts))
-        if (opts.lintOpts.skips.nonEmpty) {
-          out.println(info(s"    skips: " + opts.lintOpts.skips.mkString(", "), opts, limit = lineMax))
+        out.println(info(s"    -Xms: ${Util.byteToMb(mem.getInit)}m -Xmx: ${Util.byteToMb(mem.getMax)}m", workOpts))
+        if (workOpts.lintOpts.skips.nonEmpty) {
+          out.println(info(s"    skips: " + workOpts.lintOpts.skips.mkString(", "), workOpts, limit = lineMax))
         } else {
-          out.println(info(s"    no skips", opts))
+          out.println(info(s"    no skips", workOpts))
         }
         val sgit = Sgit(file, doVerify = false, out = out, err = err, checkExisting = true, gitBin = None, opts = Opts())
+
+        val remoteHeadDefinition = sgit.remoteHead()
+        // TODO try to source env file .release-${branchSlug}.env
+        // TODO log sourcing of env file
+        val envs = if (remoteHeadDefinition.isSuccess) {
+          val remoteBranchSlug = remoteHeadDefinition.get // XXX no letters and digits only, special chars as '-'
+          // out.println(info(s"    file .release-${remoteBranchSlug}.env", workOpts))
+          // TODO patch OPTS
+          systemEnvs // TODO add others
+        } else {
+          systemEnvs
+        }
+
+
+        val opts = workOpts // TODO merge early
         out.println(info("--- version / git ---", opts))
         out.println(info(s"    ${fiFine} git  version: " + sgit.version(), opts))
         out.println(info(s"    ${fiFine} self version: " + Sgit.selfFileChecksum, opts))
         out.println(info("--- check clone config / remote @ git ---", opts))
-        val remoteHeadDefinition = sgit.remoteHead()
         if (remoteHeadDefinition.isSuccess) {
           if (remoteHeadDefinition.get.exists(_.contains("(unknown)"))) {
             out.println(warn(s" ${fiWarn} unknown remote HEAD found, corrupted remote -- repair please", opts))
@@ -539,17 +562,13 @@ object Lint {
           warnExit.set(true)
         }
         out.println(info("--- check branches / remote @ git ---", opts))
-        val names = sgit.listContributorMailboxes().sorted
+        val mailboxes = sgit.listContributorMailboxes().sorted
         val branchNames = sgit.listBranchNamesAll()
 
-        out.println(info(s"    active contributor count: ${names.size}", opts, limit = lineMax)) // TODO range?
-        names.foreach(n => out.println(info(s"      ${n}", opts, limit = lineMax)))
-        val branchMsg = if (branchNames == Nil) {
-          ""
-        } else {
-          s" - ${branchNames.mkString(", ")}"
-        }
-        out.println(info(s"    active branch count: ${branchNames.size}${branchMsg}", opts, limit = lineMax)) // TODO limits?
+        out.println(info(s"    active contributor count: ${mailboxes.size}", opts, limit = lineMax)) // TODO range?
+        mailboxes.foreach(n => out.println(info(s"      ${n}", opts, limit = lineMax)))
+
+        LintGit.lintBranchActivity(branchNames, mailboxes, out, opts)
         val refs = sgit.listRefs(_.commitDate)
         if (refs.nonEmpty) {
           val ssd: (Period, Period) = Lint.refFreqBranchTag(refs)
@@ -686,6 +705,7 @@ object Lint {
 
           if (Lint.isValidTag(tagBranchInfo)) {
             out.println(info("      a valid tag : " + ciCommitRefName, opts))
+            out.println(info("      a valid semver tag? : " + ciCommitRefName, opts)) // TODO check later
           } else if (Lint.isValidBranch(tagBranchInfo)) {
             out.println(info("      a valid branch : " + ciCommitRefName, opts))
           } else if (Lint.isValidMergeRequest(tagBranchInfo)) {

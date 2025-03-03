@@ -1,6 +1,5 @@
 package release
 
-import release.Starter.Opts
 
 import java.io.File
 import scala.annotation.tailrec

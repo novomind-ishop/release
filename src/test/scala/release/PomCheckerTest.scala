@@ -6,7 +6,6 @@ import org.scalatestplus.junit.AssertionsForJUnit
 import release.PomChecker.ValidationException
 import release.PomModTest.{document, pomTestFile, pomfile}
 import release.ProjectMod.{Dep, Gav, Gav2, Gav3, PluginDep, PluginExec, SelfRef}
-import release.Starter.Opts
 
 import java.io.File
 import java.util.concurrent.atomic.AtomicInteger

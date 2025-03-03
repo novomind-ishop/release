@@ -4,7 +4,6 @@ import java.time.{Duration, ZonedDateTime}
 import org.junit.{Assert, Assume, Test}
 import org.mockito.Mockito
 import org.scalatestplus.junit.AssertionsForJUnit
-import release.Starter.Opts
 
 import scala.annotation.nowarn
 

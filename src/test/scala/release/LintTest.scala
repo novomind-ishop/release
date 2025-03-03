@@ -181,10 +181,12 @@ class LintTest extends AssertionsForJUnit {
 
     Assert.assertEquals(Lint.MismatchResult.problem(" »main-SNAPSHOT« does not relate to git tag: »master«." +
       " Please use a plausible version marker and git marker combination like:" +
-      " (project.version: 1.2.3 -> git tag:v1.2.3), ... (hint: a git tag should not be a SNAPSHOT) \uD83D\uDE2C RL1014"), Lint.versionMismatches("main-SNAPSHOT", tag("master")))
+      " (project.version: 1.2.3 -> git tag:v1.2.3), ... (hint: a git tag should not be a SNAPSHOT) \uD83D\uDE2C RL1014"),
+      Lint.versionMismatches("main-SNAPSHOT", tag("master")))
     Assert.assertEquals(Lint.MismatchResult.problem(" »main-SNAPSHOT« does not relate to git tag: »main«." +
       " Please use a plausible version marker and git marker combination like:" +
-      " (project.version: 1.2.3 -> git tag:v1.2.3), ... (hint: a git tag should not be a SNAPSHOT) \uD83D\uDE2C RL1014"), Lint.versionMismatches("main-SNAPSHOT", tag("main")))
+      " (project.version: 1.2.3 -> git tag:v1.2.3), ... (hint: a git tag should not be a SNAPSHOT) \uD83D\uDE2C RL1014"),
+      Lint.versionMismatches("main-SNAPSHOT", tag("main")))
     Assert.assertEquals(Lint.MismatchResult.problem(" »main« does not relate to git tag: »master«." +
       " Please use a plausible version marker and git marker combination like:" +
       " (project.version: 1.2.3 -> git tag:v1.2.3), ... \uD83D\uDE2C RL1014"), Lint.versionMismatches("main", tag("master")))
@@ -204,7 +206,11 @@ class LintTest extends AssertionsForJUnit {
     Assert.assertEquals(Lint.MismatchResult.problem(" »core45-SNAPSHOT« does not relate to git branch: »feature/core44«. " +
       "Please use a plausible version marker and git marker combination.\uD83D\uDE2C RL1014"),
       Lint.versionMismatches("core45-SNAPSHOT", br("feature/core44")))
-
+    Assert.assertEquals(Lint.MismatchResult.problem(" »main« does not relate to git tag: »RC-2025.02«." +
+      " Immutable tags are not recommended for shops, because cleanup is not intended. Suggested names:" +
+      "  (project.version: RC-2025.02 -> git branch:release/RC-2025.02), ..." +
+      " Please use a plausible version marker and git marker combination like:" +
+      " (project.version: 1.2.3 -> git tag:v1.2.3), ... \uD83D\uDE2C RL1014"), Lint.versionMismatches("main", tag("RC-2025.02"), isShop = true))
   }
 
   @Test

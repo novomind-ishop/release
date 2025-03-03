@@ -2,7 +2,6 @@ package release
 
 import org.jline.reader._
 import org.jline.terminal.TerminalBuilder
-import release.Starter.Opts
 
 import java.io.{BufferedReader, IOError, InputStream, InputStreamReader, OutputStream, PrintStream}
 import java.time.format.DateTimeFormatter

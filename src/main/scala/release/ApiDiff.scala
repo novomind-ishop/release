@@ -7,7 +7,7 @@ import japicmp.model.JApiClass
 import japicmp.output.semver.SemverOut
 import javassist.CtClass
 import release.Repo.VersionString
-import release.Starter.{Opts, compressToGav, connectLeftRight}
+import release.Starter.{compressToGav, connectLeftRight}
 
 import java.io.{File, FileNotFoundException, FileOutputStream}
 import java.nio.file.Files

@@ -3,7 +3,7 @@ package release
 import com.typesafe.scalalogging.LazyLogging
 import release.Lint.{fiCodeCoreDiff, fiFine, fiWarn, lineMax}
 import release.ProjectMod.{Dep, Gav, UpdatePrinter}
-import release.Starter.{Opts, PreconditionsException}
+import release.Starter.{PreconditionsException}
 import release.Term.{info, warn}
 
 import java.io.{File, PrintStream}

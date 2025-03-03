@@ -3,7 +3,6 @@ package release
 import org.junit.Test
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.ProjectMod.Gav3
-import release.Starter.Opts
 import release.TreeGavTest.replaceVarLiterals
 
 import java.io.File

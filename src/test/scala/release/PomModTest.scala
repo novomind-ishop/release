@@ -8,7 +8,7 @@ import release.PomChecker.ValidationException
 import release.PomMod.DepTree
 import release.PomModTest._
 import release.ProjectMod._
-import release.Starter.{Opts, PreconditionsException}
+import release.Starter.{PreconditionsException}
 import release.FileUtils.linuxPath
 
 import java.io.{BufferedWriter, File, FileWriter}

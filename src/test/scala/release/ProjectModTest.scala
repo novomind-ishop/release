@@ -10,7 +10,6 @@ import release.PomMod.DepTree
 import release.ProjectMod.{Dep, Gav, Gav3, GavWithRef, SelfRef, UpdatePrinter}
 import release.ProjectModTest.MockMod
 import release.SbtModTest.d
-import release.Starter.OptsDepUp
 
 import java.io.File
 import java.time.ZonedDateTime
@@ -45,7 +44,7 @@ object ProjectModTest {
   class MockMod extends ProjectMod {
 
     override val file: File = new File("")
-    override val opts: Starter.Opts = Starter.Opts()
+    override val opts: Opts = Opts()
     override lazy val repo: Repo = throw new IllegalStateException("use a mock please")
     override val selfVersion: String = "???"
     override val listDependencies: Seq[ProjectMod.Dep] = Nil

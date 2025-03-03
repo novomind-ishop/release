@@ -7,7 +7,7 @@ import org.w3c.dom.{Document, Node}
 import release.Conf.Tracer
 import release.PomMod._
 import release.ProjectMod._
-import release.Starter.{Opts, PreconditionsException}
+import release.Starter.{PreconditionsException}
 import release.Util.pluralize
 
 import java.io.{ByteArrayOutputStream, File}

@@ -3,7 +3,6 @@ package release
 import com.typesafe.scalalogging.LazyLogging
 import org.junit._
 import org.scalatestplus.junit.AssertionsForJUnit
-import release.Starter.Opts
 import release.TermTest.testSys
 
 import java.io._

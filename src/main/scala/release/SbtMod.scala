@@ -4,7 +4,6 @@ import com.typesafe.scalalogging.LazyLogging
 import release.PomMod.DepTree
 import release.ProjectMod.{Gav3, SelfRef}
 import release.SbtMod.SbtModel
-import release.Starter.Opts
 
 import java.io.File
 import java.nio.charset.StandardCharsets

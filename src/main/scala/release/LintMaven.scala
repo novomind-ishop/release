@@ -7,7 +7,7 @@ import java.io.PrintStream
 import java.util.concurrent.atomic.AtomicBoolean
 
 object LintMaven {
-  def lintProjectVersion(out: PrintStream, opts: Starter.Opts, version: String, warnExit: AtomicBoolean, errorExit: AtomicBoolean,
+  def lintProjectVersion(out: PrintStream, opts: Opts, version: String, warnExit: AtomicBoolean, errorExit: AtomicBoolean,
                          tagBranchInfo: Option[BranchTagMerge], allGitTags: Seq[String]): Seq[Lint.UniqCode] = {
     out.println(info(s"    $version", opts))
     if (PomMod.isUnknownVersionPattern(version) && tagBranchInfo.isDefined && tagBranchInfo.get.branchName.getOrElse("").startsWith("release/")) {

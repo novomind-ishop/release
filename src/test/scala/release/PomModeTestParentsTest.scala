@@ -5,7 +5,6 @@ import org.junit.{Assert, Rule, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.PomModTest._
 import release.ProjectMod.{PluginDep, SelfRef}
-import release.Starter.Opts
 
 import java.io.File
 

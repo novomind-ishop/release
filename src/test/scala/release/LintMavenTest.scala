@@ -5,7 +5,6 @@ import org.junit.{Assert, Ignore, Rule, Test}
 import org.mockito.{ArgumentMatchers, Mockito}
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.Lint.BranchTagMerge
-import release.Starter.Opts
 
 import java.io.File
 import java.nio.file.Paths
@@ -1362,6 +1361,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]       CI_COMMIT_REF_NAME : v0.11.0
         |[INFO]       CI_COMMIT_BRANCH :
         |[INFO]       a valid tag : v0.11.0
+        |[INFO]       a valid semver tag? : v0.11.0
         |[INFO]       docker tag : v0.11.0
         |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
         |[INFO] --- model read @ maven/sbt/gradle ---

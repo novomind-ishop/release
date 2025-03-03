@@ -4,7 +4,7 @@ import com.google.common.base.Strings
 import com.typesafe.scalalogging.LazyLogging
 import release.Conf.Tracer
 import release.Sgit._
-import release.Starter.{Opts, PreconditionsException}
+import release.Starter.{PreconditionsException}
 
 import java.io.{File, PrintStream}
 import java.net.URI
@@ -33,7 +33,7 @@ case class SlogLine(branchNames: Seq[String], tagNames: Seq[String], sha1: Strin
 
 case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStream,
                 checkExisting: Boolean = true, checkGitRoot: Boolean = true,
-                gitBin: Option[String], opts: Starter.Opts) extends LazyLogging with SgitVersion with SgitDiff with SgitDetached {
+                gitBin: Option[String], opts: Opts) extends LazyLogging with SgitVersion with SgitDiff with SgitDetached {
 
   private val gitRoot: File = if (checkGitRoot) {
     Sgit.findGit(file.getAbsoluteFile, checkExisting)
