@@ -244,7 +244,7 @@ object Lint {
 
   case class MismatchResult(isMismatch: Boolean, msg: String)
 
-  def versionMismatches(selfVersion: String, tagBranchInfo: Option[BranchTagMerge], isShop:Boolean = false): MismatchResult = {
+  def versionMismatches(selfVersion: String, tagBranchInfo: Option[BranchTagMerge], isShop:Boolean): MismatchResult = {
     val defaultBranchnames = Set("main", "master")
 
     if (tagBranchInfo.isDefined) {
@@ -841,7 +841,7 @@ object Lint {
             }
             out.println(info("--- project version @ maven ---", opts))
             usedSkips = usedSkips ++ LintMaven.lintProjectVersion(out, opts, modTry.get.selfVersion, warnExit, errorExit, tagBranchInfo,
-              sgit.listAllTags())
+              sgit.listAllTags(), mod.isShop)
 
             out.println(info("--- check for snapshots @ maven ---", opts))
             val snaps = mod.listGavsForCheck()
