@@ -13,7 +13,7 @@ object FeatureBranch {
 
     Starter.chooseUpstreamIfUndef(sys, sgit, branch, opts)
     sys.out.println("Featurebranches are NOT recommended if you don't like merge conflicts.")
-    val featureName = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(sys, "Enter the feature name", "", opts))
+    val featureName = PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(sys, "Enter the feature name (without 'feature/' prefix)", "", opts))
     val featureWitoutSnapshot = Version.removeTrailingSnapshots(featureName)
     val featureSnapshot = Version.applySnapshot(featureWitoutSnapshot)
 

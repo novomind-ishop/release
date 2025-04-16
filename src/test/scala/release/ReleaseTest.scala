@@ -5,7 +5,7 @@ import org.junit.{Assert, Rule, Test}
 import org.mockito.{ArgumentMatchers, Mockito}
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.ProjectMod.{Gav3, SelfRef}
-import release.Release.CoreMajoResult
+import release.VersionSkew.SkewResult
 
 import java.io.File
 import java.util.regex.Pattern
@@ -479,66 +479,6 @@ class ReleaseTest extends AssertionsForJUnit {
     val d = ProjectModTest.depOfUndef(groupId = "g", artifactId = "a", version = Some(value))
     val deps = Seq((value, d), (value, d.copy(artifactId = "a2")))
     Assert.assertEquals((Seq("50"), false, Seq(("50", d), ("50", d.copy(artifactId = "a2")))), Release.findDiff(value, deps))
-  }
-
-  @Test
-  def testCoreMajorResult(): Unit = {
-    val result = Release.coreMajorResultOf(relevantDeps = Nil, isNoShop = true, release = None)
-    Assert.assertEquals(CoreMajoResult(hasDifferentMajors = false, Nil, "", Nil), result)
-  }
-
-  @Test
-  def testCoreMajorResult_Release(): Unit = {
-    val result = Release.coreMajorResultOf(relevantDeps = Nil, isNoShop = true, release = Some("1.2.3"))
-    Assert.assertEquals(CoreMajoResult(hasDifferentMajors = false, Nil, "", Nil), result)
-  }
-
-  @Test
-  def testCoreMajorResult_Release_deps(): Unit = {
-    val deps = Seq(Gav3("g", "a", Some("a")).toDep(SelfRef.undef))
-    val result = Release.coreMajorResultOf(relevantDeps = deps, isNoShop = true, release = Some("1.2.3"))
-    Assert.assertEquals(CoreMajoResult(hasDifferentMajors = false, Nil, "1", Nil), result)
-  }
-
-  @Test
-  def testCoreMajorResult_Release_deps_2(): Unit = {
-    val deps = Seq(
-      Gav3("g", "a", Some("1.2.3")),
-      Gav3("g", "aa", Some("1.2.3")),
-    ).map(_.toDep(SelfRef.undef))
-    val result = Release.coreMajorResultOf(relevantDeps = deps, isNoShop = true, release = Some("1.2.3"))
-    Assert.assertEquals(CoreMajoResult(hasDifferentMajors = false, Seq("1"), "1", Seq(
-      ("1", deps(0)),
-      ("1", deps(1)),
-    )), result)
-  }
-
-  @Test
-  def testCoreMajorResult_Release_deps_diff(): Unit = {
-    val deps = Seq(
-      Gav3("g", "a", Some("1.2.3")),
-      Gav3("g", "aa", Some("2.2.3")),
-      Gav3("g", "aaa", None),
-    ).map(_.toDep(SelfRef.undef))
-    val result = Release.coreMajorResultOf(relevantDeps = deps, isNoShop = true, release = Some("1.2.3"))
-    Assert.assertEquals(CoreMajoResult(hasDifferentMajors = true, Seq("1", "2"), "1", Seq(
-      ("1", deps(0)),
-      ("2", deps(1)),
-    )), result)
-  }
-
-  @Test
-  def testCoreMajorResult_Release_deps_diff_noShop(): Unit = {
-    val deps = Seq(
-      Gav3("g", "a", Some("1.2.3")),
-      Gav3("g", "aa", Some("2.2.3")),
-      Gav3("g", "aaa", None),
-    ).map(_.toDep(SelfRef.undef))
-    val result = Release.coreMajorResultOf(relevantDeps = deps, isNoShop = false, release = Some("1.2.3"))
-    Assert.assertEquals(CoreMajoResult(hasDifferentMajors = true, Seq("1", "2"), "2", Seq(
-      ("1", deps(0)),
-      ("2", deps(1)),
-    )), result)
   }
 
   def progFilter(a: String): String = {
