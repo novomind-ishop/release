@@ -1,3 +1,5 @@
+variables:
+  HARBOR_TAG: "stable"
 include:
   - project: 'product-development/dc_rd_ishop_so/ishop-core-gitlab-ci-templates'
     ref: "main"
