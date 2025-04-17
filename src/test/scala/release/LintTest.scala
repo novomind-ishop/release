@@ -21,6 +21,38 @@ class LintTest extends AssertionsForJUnit {
   def tag(tagName: String, branchName: Option[String] = None) = Some(BranchTagMerge(tagName = Some(tagName), branchName = branchName))
 
   @Test
+  def testIndentMailboxes_0(): Unit = {
+    val result = Lint.indentMailboxes(Nil)
+    Assert.assertEquals(Nil, result)
+  }
+
+  @Test
+  def testIndentMailboxes_1(): Unit = {
+    val result = Lint.indentMailboxes(Seq(
+      "as",
+      "Some Name <some@example.org>",
+    ))
+    Assert.assertEquals(Seq(
+      "as",
+      "Some Name <some@example.org>",
+    ), result)
+  }
+
+  @Test
+  def testIndentMailboxes_2(): Unit = {
+    val result = Lint.indentMailboxes(Seq(
+      "as",
+      "Other Person <some@example.org>",
+      "Anna Nass <some@example.org>",
+    ))
+    Assert.assertEquals(Seq(
+      "as",
+      "Other Person <some@example.org>",
+      "Anna Nass    <some@example.org>",
+    ), result)
+  }
+
+  @Test
   def testPackageImportResult_nomImport(): Unit = {
     Assert.assertEquals("", PackageImportResult.nomImport(""))
     Assert.assertEquals("com", PackageImportResult.nomImport("import com"))

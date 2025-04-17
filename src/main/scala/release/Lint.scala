@@ -68,6 +68,25 @@ object Lint {
     (calcFreq(branches).getOrElse(negativ), calcFreq(tags).getOrElse(negativ))
   }
 
+  def indentMailboxes(lines:Seq[String]):Seq[String] = {
+    val nameLengths = lines.map {
+      case line if line.contains("<") =>
+        line.takeWhile(_ != '<').trim.length
+      case _ => 0
+    }
+
+    val maxNameLength = nameLengths.maxOption
+
+    lines.map {
+      case line if line.contains("<") =>
+        val name = line.takeWhile(_ != '<').trim
+        val addr = line.dropWhile(_ != '<')
+        val paddedName = name.padTo(maxNameLength.get, ' ')
+        s"$paddedName $addr"
+      case other => other
+    }
+  }
+
   object PackageImportResult {
     def formatGroupImports(value: Seq[String], lineLimit: Int = 20): String = {
 
@@ -562,7 +581,7 @@ object Lint {
           warnExit.set(true)
         }
         out.println(info("--- check branches / remote @ git ---", opts))
-        val mailboxes = sgit.listContributorMailboxes().sorted
+        val mailboxes = Lint.indentMailboxes(sgit.listContributorMailboxes().sorted)
         val branchNames = sgit.listBranchNamesAll()
 
         out.println(info(s"    active contributor count: ${mailboxes.size}", opts, limit = lineMax)) // TODO range?
