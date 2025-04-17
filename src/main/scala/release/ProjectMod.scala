@@ -715,7 +715,7 @@ object ProjectMod extends LazyLogging {
           .foreach(e => updatePrinter.println(s"NEGATIVE: ${e._1.formatted} ${e._2.toString}"))
       }
       val period = Util.toPeriod(sum)
-      updatePrinter.println(s"Σ libyears: ${period.getYears}Y ${period.getMonths}M (${sum.toDays} days)")
+      updatePrinter.println(s"Σ libyears: ${period.getYears}Y ${period.getMonths}M (${sum.toDays} days) [${now.toString}]")
     }
     allWithUpdate
   }

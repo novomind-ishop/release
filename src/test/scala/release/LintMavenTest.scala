@@ -25,6 +25,7 @@ object LintMavenTest {
       .replaceAll("self version: [0-9a-f]+@[^ ]+$", "self version: 2222ffff")
       .replaceAll("[a-f0-9]{40}$", "affe4533042ef887a5477d73d958814317675be1")
       .replaceAll("dependencies in [0-9\\.]+ [mμs]+ \\([0-9]{4}-[0-9]{2}-[0-9]{2}\\)", "dependencies in 999ms (2000-01-01)")
+      .replaceAll("^Σ libyears: (.*) \\[[0-9]{4}-[0-9]{2}-[0-9]{2}\\]$", "Σ libyears: $1 [2000-01-01]")
   }
 }
 
@@ -201,7 +202,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |  RepoProxy: https://repo.example.orgorg/springframework/spring-context/maven-metadata.xml
         |
         |
-        |Σ libyears: 0Y 0M (0 days)
+        |Σ libyears: 0Y 0M (0 days) [2000-01-01]
         |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
@@ -388,7 +389,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |║ ╚═══ 1.0.1, .., 1.2.8, 1.2.9 (libyears: ?? no date found for org.springframework:spring-context:1.2.9)
         |║
         |
-        |Σ libyears: 0Y 0M (0 days)
+        |Σ libyears: 0Y 0M (0 days) [2000-01-01]
         |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
@@ -581,7 +582,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |║ ╚═══ 1.0.1, .., 1.2.8, 1.2.9 (libyears: 0Y 0M [0 days])
         |║
         |
-        |Σ libyears: 0Y 0M (0 days)
+        |Σ libyears: 0Y 0M (0 days) [2000-01-01]
         |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
@@ -742,7 +743,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |║ ╚═══ 51.2.5 (libyears: 0Y 0M [0 days])
         |║
         |
-        |Σ libyears: 0Y 0M (0 days)
+        |Σ libyears: 0Y 0M (0 days) [2000-01-01]
         |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
@@ -870,7 +871,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |║ ╚═══ 50.2.3, 50.4.0 (libyears: ?? libyears are not computed for com.novomind.ishop.core.some:core-some-context:50.4.0)
         |║
         |
-        |Σ libyears: 0Y 0M (0 days)
+        |Σ libyears: 0Y 0M (0 days) [2000-01-01]
         |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
@@ -985,7 +986,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6 (libyears: 0Y 0M [0 days])
         |║
         |
-        |Σ libyears: 0Y 0M (0 days)
+        |Σ libyears: 0Y 0M (0 days) [2000-01-01]
         |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
@@ -1406,7 +1407,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |  RepoProxy: https://repo1.maven.org/maven2/org/springframework/spring-other2/maven-metadata.xml
         |
         |
-        |Σ libyears: 2Y 10M (1065 days)
+        |Σ libyears: 2Y 10M (1065 days) [2000-01-01]
         |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[WARNING] org.springframework:spring-context:1.0.1-SNAPSHOT is already released, remove '-SNAPSHOT' suffix 😬 RL1009-ea7ea019
         |[WARNING] org.springframework:spring-other:1.0.0-SNAPSHOT is not released, but next release (1.0.1) was found (maybe orphan snapshot) 😬 RL10015-f0a969b5
@@ -1605,7 +1606,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |I: checking dependencies against binary repository - please wait
         |I: checked 0 dependencies in 999ms (2000-01-01)
         |
-        |Σ libyears: 0Y 0M (0 days)
+        |Σ libyears: 0Y 0M (0 days) [2000-01-01]
         |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
@@ -1982,7 +1983,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |I: checking dependencies against binary repository - please wait
         |I: checked 0 dependencies in 999ms (2000-01-01)
         |
-        |Σ libyears: 0Y 0M (0 days)
+        |Σ libyears: 0Y 0M (0 days) [2000-01-01]
         |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---

@@ -11,10 +11,11 @@ object VersionSkew {
   case class SkewResult(hasDifferentMajors: Boolean, sortedMajors: Seq[String], releaseMajorVersion: String,
                         coreMajorVersions: Seq[(String, Dep)])
 
-  def coreMajorResultOf(mod: ProjectMod, release: Option[String],
-                        warnExit: Option[AtomicBoolean] = None, errorExit: Option[AtomicBoolean] = None,
-                        out: Option[PrintStream], opts: Option[Opts]): SkewResult = {
-    val relevantDeps = if (mod.isNoShop) {
+  def skewResultOf(mod: ProjectMod, release: Option[String],
+                   warnExit: Option[AtomicBoolean] = None, errorExit: Option[AtomicBoolean] = None,
+                   out: Option[PrintStream], opts: Opts): SkewResult = {
+    val isNoShop = mod.isNoShop
+    val relevantDeps: Seq[Dep] = if (isNoShop) {
       mod.listDependencies.filter(in => in.groupId.startsWith("com.novomind.ishop.core"))
     } else {
       val selfGavs = mod.selfDepsMod.map(_.gav())
@@ -22,12 +23,17 @@ object VersionSkew {
         .filter(in => in.groupId.startsWith("com.novomind.ishop"))
         .filterNot(in => selfGavs.contains(in.gav()))
     }
-    val mrc = coreMajorResultOf(relevantDeps, mod.isNoShop, release)
+    innerSkewResult(release, warnExit, out, opts, isNoShop, relevantDeps)
+  }
+
+  private def innerSkewResult(release: Option[String], warnExit: Option[AtomicBoolean], out: Option[PrintStream],
+                                 opts: Opts, isNoShop: Boolean, relevantDeps: Seq[Dep]) = {
+    val mrc = skewResultOf(relevantDeps, isNoShop, release)
     if (out.isDefined && mrc.hasDifferentMajors) {
       warnExit.get.set(true)
       // TODO https://kubernetes.io/releases/version-skew-policy/
       // v0.32.7 ⚡️v0.50.3 (version ∆ x expected y)
-      out.get.println(warn(s"    Found multiple core major version: »${mrc.sortedMajors.mkString(", ")}«, use only one ${fiWarn} ${fiCodeCoreDiff.apply(mrc)}", opts.get, limit = lineMax))
+      out.get.println(warn(s"    Found multiple core major version: »${mrc.sortedMajors.mkString(", ")}«, use only one ${fiWarn} ${fiCodeCoreDiff.apply(mrc)}", opts, limit = lineMax))
       val versions = mrc.coreMajorVersions
       val mrcGrouped: Map[String, Seq[Gav]] = versions.groupBy(_._1)
         .map(e => (e._1, e._2.map(_._2.gav()).distinct))
@@ -35,21 +41,21 @@ object VersionSkew {
       mrcGrouped.toSeq
         .sortBy(_._1.toIntOption)
         .foreach(gavE => {
-          out.get.println(warn(s"      - ${gavE._1} -", opts.get, limit = lineMax))
+          out.get.println(warn(s"      - ${gavE._1} -", opts, limit = lineMax))
           gavE._2.foreach(gav => {
-            out.get.println(warn(s"      ${gav.formatted} ${fiWarn} ${fiCodeCoreDiff.apply(gav)}", opts.get, limit = lineMax))
+            out.get.println(warn(s"      ${gav.formatted} ${fiWarn} ${fiCodeCoreDiff.apply(gav)}", opts, limit = lineMax))
           })
         })
 
     } else {
       if (out.isDefined) {
-        out.get.println(info(s"    ${fiFine} no major version diff", opts.get))
+        out.get.println(info(s"    ${fiFine} no major version diff", opts))
       }
     }
     mrc
   }
 
-  def coreMajorResultOf(relevantDeps: Seq[Dep], isNoShop: Boolean, release: Option[String]): SkewResult = {
+  def skewResultOf(relevantDeps: Seq[Dep], isNoShop: Boolean, release: Option[String]): SkewResult = {
 
     if (relevantDeps.nonEmpty) {
       val releaseMajorVersion = if (isNoShop && release.isDefined) {
@@ -63,7 +69,6 @@ object VersionSkew {
         } else {
           value.maxBy(Version.parse).replaceAll("\\..*", "")
         }
-
       }
       val relevantFilteredDeps = (if (releaseMajorVersion.matches("[0-9]+")) {
         if (releaseMajorVersion.toInt > 36) {

@@ -913,7 +913,7 @@ object Lint {
             }
             out.println(info("--- check major versions @ ishop ---", opts))
             out.println(info(s"    is shop: ${mod.isShop}", opts))
-            VersionSkew.coreMajorResultOf(mod, None, Some(warnExit), Some(errorExit), Some(out), Some(opts))
+            VersionSkew.skewResultOf(mod, None, Some(warnExit), Some(errorExit), Some(out), opts)
 
             out.println(info("--- suggest dependency updates / configurable @ maven ---", opts))
 

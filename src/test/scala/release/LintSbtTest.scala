@@ -84,7 +84,7 @@ class LintSbtTest extends AssertionsForJUnit {
         |║ ╚═══ 1.0.0 (libyears: ???)
         |║
         |
-        |Σ libyears: 0Y 0M (0 days)
+        |Σ libyears: 0Y 0M (0 days) [2000-01-01]
         |RepoMetrics(dateCollection = PT0S, dateCollectionCount = 0, versionCollection = PT0S, versionCollectionCount = 0)
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
