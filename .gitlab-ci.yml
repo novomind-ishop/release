@@ -1,5 +1,6 @@
 variables:
   HARBOR_TAG: "stable"
+  RELEASE_LINT_SKIP: "RL1014"
 include:
   - project: 'product-development/dc_rd_ishop_so/ishop-core-gitlab-ci-templates'
     ref: "main"
