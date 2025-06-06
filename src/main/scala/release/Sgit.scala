@@ -3,13 +3,14 @@ package release
 import com.google.common.base.Strings
 import com.typesafe.scalalogging.LazyLogging
 import release.Conf.Tracer
-import release.Sgit._
-import release.Starter.{PreconditionsException}
+import release.Sgit.*
+import release.Starter.PreconditionsException
 
 import java.io.{File, PrintStream}
 import java.net.URI
 import java.time.ZonedDateTime
 import java.util.concurrent.{Callable, Executors, TimeUnit}
+import scala.annotation.tailrec
 import scala.concurrent.duration.Duration
 import scala.io.Source
 import scala.sys.process.ProcessLogger
@@ -32,11 +33,16 @@ trait SgitDetached {
 case class SlogLine(branchNames: Seq[String], tagNames: Seq[String], sha1: String, date: ZonedDateTime)
 
 case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStream,
-                checkExisting: Boolean = true, checkGitRoot: Boolean = true,
+                checkExisting: Boolean = true, checkGitRoot: Boolean = true, findGitRoot: Boolean = false,
                 gitBin: Option[String], opts: Opts) extends LazyLogging with SgitVersion with SgitDiff with SgitDetached {
 
   private val gitRoot: File = if (checkGitRoot) {
-    Sgit.findGit(file.getAbsoluteFile, checkExisting)
+    if (findGitRoot) {
+      Sgit.findGit(file.getAbsoluteFile)
+    } else {
+      Sgit.selectGit(file.getAbsoluteFile, checkExisting)
+    }
+
   } else {
     null
   }
@@ -1192,11 +1198,28 @@ object Sgit {
   class YourGitInstallationIsToOldException(version: String, ended: String, announced: String, msg: String = "", gitPath: String, announcedEnd: String = "") extends
     RuntimeException(s"Your git version ${version} support ended at ${ended} announced at ${announced}${msg}; please update. " + gitPath)
 
-  private[release] def findGit(start: File, checkExisting: Boolean): File = {
-    findGitInner(start, start, checkExisting)
+
+  private[release] def findGit(start: File): File = {
+    findGitInner(start, start)
   }
 
-  private def findGitInner(start: File, in: File, checkExisting: Boolean): File = {
+  @tailrec
+  private[release] def findGitInner(start: File, current: File): File = {
+    if (current == null) {
+      throw new MissingGitDirException("no .git dir in " + start.getAbsolutePath + " or in parents was found. " +
+        "Please change dir to the project folder.")
+    } else if (new File(current, ".git").exists()) {
+      current
+    } else {
+      findGitInner(start, current.getParentFile)
+    }
+  }
+
+  private[release] def selectGit(start: File, checkExisting: Boolean): File = {
+    selectGitInner(start, start, checkExisting)
+  }
+
+  private def selectGitInner(start: File, in: File, checkExisting: Boolean): File = {
     if (new File(in, ".git").exists()) {
       in
     } else if (checkExisting) {

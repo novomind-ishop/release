@@ -392,6 +392,30 @@ class SgitTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testFindGit_fail(): Unit = {
+
+    val noGit = Files.createTempDirectory("release-no-git-").toFile.getAbsoluteFile
+
+    TestHelper.assertExceptionWithCheck(msg => {
+      Assert.assertEquals(s"no .git dir in ${noGit.getAbsolutePath} or in parents was found. " +
+        "Please change dir to the project folder.", msg)
+    },
+      classOf[MissingGitDirException], () => {
+        Sgit.findGit(noGit)
+      })
+  }
+
+  @Test
+  def testFindGit(): Unit = {
+
+    val sub = SgitTest.ensureAbsent("with-git")
+
+    val file = Sgit.findGit(sub)
+    Assert.assertEquals(new File(".").getAbsoluteFile, file)
+
+  }
+
+  @Test
   def testRefFrequency(): Unit = {
     val counter = new AtomicInteger(0)
     val testRepoA = SgitTest.ensureAbsent("fq")
@@ -967,7 +991,7 @@ class SgitTest extends AssertionsForJUnit {
 
 object SgitTest {
   private var testFolders: Set[String] = Set.empty
-  private[release] val commitMsg = Sgit.findGit(Util.localWork, checkExisting = true).toPath.resolve(".git/hooks/commit-msg")
+  private[release] val commitMsg = Sgit.selectGit(Util.localWork, checkExisting = true).toPath.resolve(".git/hooks/commit-msg")
   private[release] val hasCommitMsg = Files.exists(commitMsg)
 
   def copyMsgHook(to: File): Unit = {

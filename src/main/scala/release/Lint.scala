@@ -280,20 +280,32 @@ object Lint {
         ""
       }
 
-      if (branchN.filterNot(_ == "HEAD").isDefined) {
+      if (branchN.filterNot(_ == "HEAD").isDefined) { // TODO simlify
         val selfVersionParsed = Version.parseSloppy(selfVersion)
         val branchName = branchN.get
         if (defaultBranchnames.contains(branchName)) {
           if (selfVersionParsed.isOrdinal) {
             MismatchResult.valid
           } else {
-            val str = branchName + "-SNAPSHOT"
-            val msg = s" project.version »$selfVersion« does not relate to git${branchMsg}. " +
-              s"Please use a plausible version marker and git marker combination like: " +
-              s"(project.version: $selfVersion -> git branch:${selfVersionParsed.removeSnapshot().rawInput}), " +
-              s"... " +
-              s"${fiWarn} ${fiCodeVersionMismatch}"
-            MismatchResult.of(selfVersionParsed.rawInput != str, msg = msg)
+            val shoplike = Version.parseShopLike(selfVersion)
+            if (shoplike.isDefined) {
+              val str = branchName + "-SNAPSHOT"
+              val msg = s" project.version »$selfVersion« does not relate to git${branchMsg}. " +
+                s"Please use a plausible version marker and git marker combination like: " +
+                s"(project.version: $selfVersion -> git branch:${selfVersionParsed.removeSnapshot().rawInput}), " +
+                s"maybe you try to use this pattern e.g. RC-2023.04-SNAPSHOT " +
+                s"... " +
+                s"${fiWarn} ${fiCodeVersionMismatch}"
+              MismatchResult.of(selfVersionParsed.rawInput != str, msg = msg)
+            } else {
+              val str = branchName + "-SNAPSHOT"
+              val msg = s" project.version »$selfVersion« does not relate to git${branchMsg}. " +
+                s"Please use a plausible version marker and git marker combination like: " +
+                s"(project.version: $selfVersion -> git branch:${selfVersionParsed.removeSnapshot().rawInput}), " +
+                s"... " +
+                s"${fiWarn} ${fiCodeVersionMismatch}"
+              MismatchResult.of(selfVersionParsed.rawInput != str, msg = msg)
+            }
           }
         } else {
           if (selfVersionParsed.isSnapshot) {
@@ -534,7 +546,8 @@ object Lint {
         } else {
           out.println(info(s"    no skips", workOpts))
         }
-        val sgit = Sgit(file, doVerify = false, out = out, err = err, checkExisting = true, gitBin = None, opts = Opts())
+        val sgit = Sgit(file, doVerify = false, out = out, err = err, findGitRoot = true,
+          gitBin = None, opts = Opts())
 
         val remoteHeadDefinition = sgit.remoteHead()
         // TODO try to source env file .release-${branchSlug}.env

@@ -194,6 +194,8 @@ class LintTest extends AssertionsForJUnit {
     Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("main", tag("vmain"), isShop = false))
     Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("main", BranchTagMerge.merge, isShop = false))
     Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("core45-SNAPSHOT", br("feature/core_45"), isShop = false))
+    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("RC-2024.31-SNAPSHOT", br("master"), isShop = true))
+    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("RC-2024.31-SNAPSHOT", br("master"), isShop = false))
 
     Assert.assertEquals(
       Lint.MismatchResult.problem(" project.version »master« has no git. Please add some .git folder. \uD83D\uDE2C RL1014"),
@@ -244,6 +246,14 @@ class LintTest extends AssertionsForJUnit {
       "  (project.version: RC-2025.02 -> git branch:release/RC-2025.02), ..." +
       " Please use a plausible version marker and git marker combination like:" +
       " (project.version: 1.2.3 -> git tag:v1.2.3), ... \uD83D\uDE2C RL1014"), Lint.versionMismatches("main", tag("RC-2025.02"), isShop = true))
+
+    val str = " project.version »RC-2025-13-SNAPSHOT« does not relate to git branch: »master«. " +
+      "Please use a plausible version marker and git marker combination like: " +
+      "(project.version: RC-2025-13-SNAPSHOT -> git branch:RC-2025-13), maybe you try to use this pattern e.g. RC-2023.04-SNAPSHOT ... 😬 RL1014"
+    Assert.assertEquals(Lint.MismatchResult.problem(str),
+      Lint.versionMismatches("RC-2025-13-SNAPSHOT", br("master"), isShop = true))
+    Assert.assertEquals(Lint.MismatchResult.problem(str),
+      Lint.versionMismatches("RC-2025-13-SNAPSHOT", br("master"), isShop = false))
   }
 
   @Test

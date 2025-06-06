@@ -186,4 +186,14 @@ class VersionTest extends AssertionsForJUnit {
     Assert.assertEquals("-SNAPSHOT-hallo", out)
   }
 
+  @Test
+  def testParseShopLike(): Unit = {
+    Assert.assertTrue(Version.parseShopLike("rC-2023.01-SNAPSHOT").isDefined)
+    Assert.assertTrue(Version.parseShopLike("rc-2023.01-SNAPSHOT").isDefined)
+    Assert.assertTrue(Version.parseShopLike("rc'2023-01-SNAPSHOT").isDefined)
+    Assert.assertTrue(Version.parseShopLike("rc:2023.01.SNAPSOT").isDefined)
+    Assert.assertFalse(Version.parseShopLike("RC-2023.01-SNAPSHOT").isDefined)
+
+  }
+
 }

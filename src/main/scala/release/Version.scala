@@ -161,6 +161,7 @@ object Version {
   private[release] val semverPatternLetterEnd = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)-([0-9a-zA-Z]+)$".r
   private[release] val stableShop = "^([0-9]+x)-stable.*$".r
   private[release] val shopPattern = "^(RC-)([1-9][0-9]{3})\\.([0-9][0-9])?(?:\\.([1-9]+[0-9]*))?(?:_([1-9]+[0-9]*))?(?:-SNAPSHOT)?$".r
+  private[release] val shopLikePattern = "^([rcRC]{2}.)([0-9][0-9]{3}).([0-9][0-9])?(?:.([0-9]+[0-9]*))?(?:.([0-9]+[0-9]*))?(?:.[SsNnAaPpHhOoTt]+)?$".r
   private[release] val betaTagPattern = "^(BETA-)(.+)$".r
   val shopBranchPattern = ("^release/" + shopPattern.regex.substring(1)).r
   private[release] val shopPatternSloppy = "^([Rr][Cc][-\\._])([0-9]{4})[_\\.-]([0-9][0-9]?)?(?:[_\\.-]([0-9]+[0-9]*))?(?:[-_\\.]([0-9]+[0-9]*))?$".r
@@ -212,6 +213,19 @@ object Version {
     case semverPattern(ma, mi, b) => Version.fromStringOpt("", ma, mi, b, "", m)
     case semverPatternLowdash(ma, mi, b, low) => Version.fromStringOpt("", ma, mi, b, low, m)
     case _ => None
+  }
+
+
+  def parseShopLike(versionText: String): Option[Version] = {
+    val awfr = try {
+      versionText match {
+        case shopLikePattern(pre, year, week, minor, low) => Some(Version.fromString(pre, year, week, minor, low, versionText))
+        case any => None
+      }
+    } catch {
+      case e: Exception => e.printStackTrace(); None
+    }
+    awfr.filterNot(e => parseSloppy(e.rawInput).isOrdinal)
   }
 
   def parseSloppy(versionText: String): Version = {
