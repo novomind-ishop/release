@@ -999,7 +999,8 @@ object PomMod {
     }
   }
 
-  def suggestNextReleaseBy(currentVersion: String, releaseVersion: String, sloppyShop: Boolean = true): String = {
+  def suggestNextReleaseBy(currentVersionIn: String, releaseVersion: String, sloppyShop: Boolean = true): String = {
+    val currentVersion = Strings.nullToEmpty(currentVersionIn)
     if (currentVersion == "master-SNAPSHOT" || currentVersion == "master") {
       "master"
     } else if (currentVersion == "main-SNAPSHOT" || currentVersion == "main") {

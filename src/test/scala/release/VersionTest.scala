@@ -16,6 +16,15 @@ class VersionTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testHasDigits(): Unit = {
+    Assert.assertTrue(Version.parse("1.0.1-SNAPSHOT").hasDigits)
+    Assert.assertTrue(Version.parse("SNAPSHOT").hasNoDigits)
+    Assert.assertTrue(Version.parse("otot").hasNoDigits)
+    Assert.assertTrue(Version.parse("").hasNoDigits)
+    Assert.assertFalse(Version.parse("").hasDigits)
+  }
+
+  @Test
   def testIsOrdinal(): Unit = {
     Assert.assertTrue(Version.parse("1.0.1-SNAPSHOT").isOrdinalOnly)
     Assert.assertTrue(Version.parse("1.1.1-SNAPSHOT").isOrdinalOnly)
@@ -184,6 +193,28 @@ class VersionTest extends AssertionsForJUnit {
     val out = Version.removeTrailingSnapshots("-SNAPSHOT-hallo-SNAPSHOT-SNAPSHOT")
 
     Assert.assertEquals("-SNAPSHOT-hallo", out)
+  }
+
+  @Test
+  def testParseSloppy_reseverd_maven_keywords(): Unit = {
+    Assert.assertEquals(Version.undef, Version.parse("LATEST"))
+    Assert.assertEquals(Version.undef, Version.parse("RELEASE"))
+    Assert.assertEquals(Version.undef, Version.parse("SNAPSHOT"))
+    Assert.assertEquals(Version.undef, Version.parse("-SNAPSHOT"))
+    Assert.assertEquals(Version.undef.copy(rawInput = "LATEST"), Version.parseSloppy("LATEST"))
+    Assert.assertEquals(Version.undef.copy(rawInput = "RELEASE"), Version.parseSloppy("RELEASE"))
+    Assert.assertEquals(Version.undef.copy(rawInput = "SNAPSHOT"), Version.parseSloppy("SNAPSHOT"))
+    Assert.assertEquals(Version.undef.copy(rawInput = "-SNAPSHOT"), Version.parseSloppy("-SNAPSHOT"))
+  }
+
+  @Test
+  def testUndef(): Unit = {
+    Assert.assertTrue(Version.undef.isUndef)
+    Assert.assertTrue(Version.parse("LATEST").isUndef)
+    Assert.assertTrue(Version.parseSloppy("ROMEO").isUndef)
+    Assert.assertFalse(Version.parseSloppy("1-ROME").isUndef)
+    Assert.assertFalse(Version.parseSloppy("1").isUndef)
+    Assert.assertFalse(Version.parseSloppy("1.0.0").isUndef)
   }
 
   @Test

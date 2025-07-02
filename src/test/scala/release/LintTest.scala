@@ -254,6 +254,16 @@ class LintTest extends AssertionsForJUnit {
       Lint.versionMismatches("RC-2025-13-SNAPSHOT", br("master"), isShop = true))
     Assert.assertEquals(Lint.MismatchResult.problem(str),
       Lint.versionMismatches("RC-2025-13-SNAPSHOT", br("master"), isShop = false))
+
+    Assert.assertEquals(Lint.MismatchResult.problem(" project.version »SNAPSHOT« does not relate to git branch: »master«. " +
+      "Please use a plausible version marker and git marker combination like: (project.version: SNAPSHOT -> git branch:SNAPSHOT), ... 😬 RL1014"),
+      Lint.versionMismatches("SNAPSHOT", br("master"), isShop = false))
+    Assert.assertEquals(Lint.MismatchResult.problem(" project.version »LATEST« does not relate to git branch: »master«. " +
+      "Please use a plausible version marker and git marker combination like: (project.version: LATEST -> git branch:LATEST), ... 😬 RL1014"),
+      Lint.versionMismatches("LATEST", br("master"), isShop = false))
+    Assert.assertEquals(Lint.MismatchResult.problem(" project.version »RELEASE« does not relate to git branch: »master«. " +
+      "Please use a plausible version marker and git marker combination like: (project.version: RELEASE -> git branch:RELEASE), ... 😬 RL1014"),
+      Lint.versionMismatches("RELEASE", br("master"), isShop = false))
   }
 
   @Test

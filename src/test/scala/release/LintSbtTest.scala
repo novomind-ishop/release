@@ -40,6 +40,7 @@ class LintSbtTest extends AssertionsForJUnit {
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     -Xms: 123m -Xmx: 321m
+        |[INFO]     used memory: ∞m
         |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git  version: git version 2.999.999
@@ -94,7 +95,8 @@ class LintSbtTest extends AssertionsForJUnit {
         |
         |/tmp/junit-REPLACED/release-lint-sbt-simple/.git
         |/tmp/junit-REPLACED/release-lint-sbt-simple/build.sbt
-        |[INFO] ----------------------------[ end of lint ]----------------------------""".stripMargin
+        |[INFO] ----------------------------[ end of lint ]----------------------------
+        |[INFO]     used memory: ∞m""".stripMargin
 
     TermTest.testSys(Nil, expected, "", outFn = outT, expectedExitCode = 0)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))

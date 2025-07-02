@@ -1,27 +1,37 @@
 package release
 
 import com.google.common.base.Strings
-import release.Version.{parseSloppy, removeTrailingSnapshots}
+import release.Version.{parseSloppy, removeTrailingSnapshots, undef}
 
 import scala.annotation.tailrec
 
 case class Version(pre: String, major: Int, minor: Int, patch: Int, low: String, rawInput: String) {
 
+  private val rawInputNonNull = Strings.nullToEmpty(rawInput)
   lazy val primarys: (Int, Int, Int) = (major, minor, patch)
   lazy val primarysOpt: Option[(Int, Int, Int)] = Some(primarys)
+  private val fallback = (-1, -1, -1)
+  private lazy val primarysFallback = primarysOpt.getOrElse(fallback)
+  lazy val isUndef: Boolean = {
+    primarysFallback == fallback && this.copy(rawInput = "") == undef.copy(rawInput = "")
+  }
   lazy val isOrdinal: Boolean = {
-    val x = primarysOpt.getOrElse((-1, -1, -1))
+    val x = primarysFallback
     x._1 >= 0 && x._2 >= 0 && x._3 >= 0
   }
   lazy val isOrdinalOnly: Boolean = {
     isOrdinal && lowF.replaceFirst("_-SNAPSHOT", "") == "" && pre == ""
   }
-  lazy val isSnapshot: Boolean = rawInput.endsWith("-SNAPSHOT")
+  lazy val hasDigits:Boolean = {
+    isOrdinal || rawInputNonNull.replaceAll("[^0-9]", "").toLongOption.isDefined
+  }
+  lazy val hasNoDigits:Boolean = !hasDigits
+  lazy val isSnapshot: Boolean = rawInputNonNull.endsWith("-SNAPSHOT")
   lazy val text: String = {
     if (isOrdinalOnly) {
       ""
     } else {
-      rawInput.replaceFirst("-SNAPSHOT", "").toLowerCase.replaceAll("[^a-z]+", "")
+      rawInputNonNull.replaceFirst("-SNAPSHOT", "").toLowerCase.replaceAll("[^a-z]+", "")
     }
 
   }
@@ -81,9 +91,9 @@ case class Version(pre: String, major: Int, minor: Int, patch: Int, low: String,
   }
 
   @tailrec
-  final def nextVersionResetZero(t3: (Int, Int, Int), limit:Int = 1): Version = {
+  final def nextVersionResetZero(t3: (Int, Int, Int), limit: Int = 1): Version = {
     if (limit > 0 && t3._1 != 0 && t3._2 == 0 && t3._3 == 0) {
-      nextVersionResetZero(t3.copy(_2 = minor * -1, _3 = patch * -1), limit -1)
+      nextVersionResetZero(t3.copy(_2 = minor * -1, _3 = patch * -1), limit - 1)
     } else if (limit > 0 && t3._2 != 0 && t3._3 == 0) {
       nextVersionResetZero(t3.copy(_3 = patch * -1), limit - 1)
     } else {
@@ -193,7 +203,7 @@ object Version {
 
   @tailrec
   def removeTrailingSnapshots(str: String): String = {
-    val out = str.replaceFirst("-SNAPSHOT$", "").trim
+    val out = Strings.nullToEmpty(str).replaceFirst("-SNAPSHOT$", "").trim
     if (out.endsWith("-SNAPSHOT")) {
       removeTrailingSnapshots(out)
     } else {

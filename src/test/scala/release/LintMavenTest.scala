@@ -19,6 +19,7 @@ object LintMavenTest {
       .replaceAll("-Xms: [0-9]+m -Xmx: [0-9]+m", "-Xms: 123m -Xmx: 321m")
       .replaceAll("\\.scala:[0-9]+", ".scala:???")
       .replaceAll("\t", "  ")
+      .replaceAll("    used memory: [1-9][0-9]*m", "    used memory: ∞m")
       .replaceAll("( package name(?:s|) in) PT[0-9]+S", "$1 PT4S")
       .replaceAll("^\\[..:..:..\\...Z\\] ", "[00:00:00.00Z] ")
       .replaceAll(": git version 2\\.[0-9]+\\.[0-9]+", ": git version 2.999.999")
@@ -77,6 +78,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     -Xms: 123m -Xmx: 321m
+        |[INFO]     used memory: ∞m
         |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git  version: git version 2.999.999
@@ -109,6 +111,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/any.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
+        |[INFO]     used memory: ∞m
         |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
@@ -123,7 +126,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val remote = temp.newFolder("release-lint-mvn-simple-init")
     val fileB = temp.newFolder("release-lint-mvn-simple")
     val gitA = Sgit.init(remote, SgitTest.hasCommitMsg)
-    gitA.configSetLocal("user.email", "you@example.com")
+    gitA.configSetLocal("user.email", "you@hostname-without-tld")
     gitA.configSetLocal("user.name", "Your Name")
     val pom = new File(remote, "pom.xml")
     FileUtils.write(pom,
@@ -153,6 +156,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     -Xms: 123m -Xmx: 321m
+        |[INFO]     used memory: ∞m
         |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git  version: git version 2.999.999
@@ -161,7 +165,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
         |[INFO] --- check branches / remote @ git ---
         |[INFO]     active contributor count: 1
-        |[INFO]       Your Name <you@example.com>
+        |[WARNING]       Your Name <you@hostname-without-tld> // not valid mailbox TLD
         |[INFO]     active branch count: 1 - master
         |[INFO]     approx. a new branch each: P0D, approx. a new tag each: P-1D
         |[INFO] --- check clone config / no shallow clone @ git ---
@@ -211,6 +215,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
+        |[INFO]     used memory: ∞m
         |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
@@ -252,6 +257,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     -Xms: 123m -Xmx: 321m
+        |[INFO]     used memory: ∞m
         |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git  version: git version 2.999.999
@@ -289,6 +295,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/Dockerfile
         |[INFO] ----------------------------[ end of lint ]----------------------------
+        |[INFO]     used memory: ∞m
         |[ERROR] exit 43 - because lint found errors, see above ❌""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 43)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
@@ -341,6 +348,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     -Xms: 123m -Xmx: 321m
+        |[INFO]     used memory: ∞m
         |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git  version: git version 2.999.999
@@ -397,7 +405,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
-        |[INFO] ----------------------------[ end of lint ]----------------------------""".stripMargin
+        |[INFO] ----------------------------[ end of lint ]----------------------------
+        |[INFO]     used memory: ∞m""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
       val opts1 = Opts().lintOpts.copy(showTimer = false)
       val opts = Opts(colors = false, lintOpts = opts1)
@@ -512,6 +521,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     -Xms: 123m -Xmx: 321m
+        |[INFO]     used memory: ∞m
         |[INFO]     skips: RL10015-aa71e948, RL1017-ab101a0e, RL1018-ceefe9c6
         |[INFO] --- version / git ---
         |[INFO]     ✅ git  version: git version 2.999.999
@@ -591,6 +601,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
+        |[INFO]     used memory: ∞m
         |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL10015-aa71e948", "RL1017-ab101a0e", "RL1018-ceefe9c6")))
@@ -683,6 +694,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     -Xms: 123m -Xmx: 321m
+        |[INFO]     used memory: ∞m
         |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git  version: git version 2.999.999
@@ -752,6 +764,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
+        |[INFO]     used memory: ∞m
         |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
@@ -814,6 +827,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     -Xms: 123m -Xmx: 321m
+        |[INFO]     used memory: ∞m
         |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git  version: git version 2.999.999
@@ -880,6 +894,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
+        |[INFO]     used memory: ∞m
         |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
@@ -934,6 +949,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     -Xms: 123m -Xmx: 321m
+        |[INFO]     used memory: ∞m
         |[INFO]     skips: RL1003-467ad8bc
         |[INFO] --- version / git ---
         |[INFO]     ✅ git  version: git version 2.999.999
@@ -995,6 +1011,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
+        |[INFO]     used memory: ∞m
         |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1003-467ad8bc")))
@@ -1044,6 +1061,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     -Xms: 123m -Xmx: 321m
+        |[INFO]     used memory: ∞m
         |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git  version: git version 2.999.999
@@ -1074,6 +1092,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-snapshot/.git
         |/tmp/junit-REPLACED/release-lint-mvn-snapshot/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
+        |[INFO]     used memory: ∞m
         |[ERROR] exit 43 - because lint found errors, see above ❌""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 43)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
@@ -1153,6 +1172,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     -Xms: 123m -Xmx: 321m
+        |[INFO]     used memory: ∞m
         |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git  version: git version 2.999.999
@@ -1190,9 +1210,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for snapshots @ maven ---
         |[warning]   found snapshot: org.springframework:spring-context:1.0.1-SNAPSHOT 😬 RL1011-ea7ea019
         |[INFO] --- check for GAV format @ maven ---
-        |[WARNING] »org.springframework:spring-context-range:(,1.0],[1.2,)« uses version with range »(,1.0],[1.2,)«. Please only use a concrete version. 😬 RL1010-d7af6191
-        |[WARNING] »org.springframework:spring-context-release:RELEASE« uses version »RELEASE« that is part of unstable markers LATEST and RELEASE. Please only use a concrete version. 😬 RL1010-8afbf8a2
-        |[WARNING] »org.springframework:spring-context-latest:LATEST« uses version »LATEST« that is part of unstable markers LATEST and RELEASE. Please only use a concrete version. 😬 RL1010-aa80c631
+        |[WARNING] »org.springframework:spring-context-range:(,1.0],[1.2,)« uses version with range »(,1.0],[1.2,)«. Please only use a single version. 😬 RL1010-d924ddfe
+        |[WARNING] »org.springframework:spring-context-release:RELEASE« uses version »RELEASE« that is part of unstable markers LATEST and RELEASE. Please use unambiguous versions only. 😬 RL1010-7dd44fdb
+        |[WARNING] »org.springframework:spring-context-latest:LATEST« uses version »LATEST« that is part of unstable markers LATEST and RELEASE. Please use unambiguous versions only. 😬 RL1010-c144cf49
         |[INFO] --- check for preview releases @ maven ---
         |[INFO] --- check major versions @ ishop ---
         |[INFO]     is shop: false
@@ -1226,6 +1246,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-empty/.git
         |/tmp/junit-REPLACED/release-lint-mvn-empty/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
+        |[INFO]     used memory: ∞m
         |[ERROR] exit 43 - because lint found errors, see above ❌""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 43)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
@@ -1330,6 +1351,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     -Xms: 123m -Xmx: 321m
+        |[INFO]     used memory: ∞m
         |[INFO]     skips: RL1012-587ee13e, RL1003-8a73d4ae
         |[INFO] --- version / git ---
         |[INFO]     ✅ git  version: git version 2.999.999
@@ -1380,7 +1402,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]   found snapshot: org.springframework:spring-other:1.0.0-SNAPSHOT:bert 😬 RL1011-bd849fd4
         |[INFO] --- check for GAV format @ maven ---
         |[WARNING] »org.springframework:spring-other:1.0.0-SNAPSHOT:bert« uses unknown scope »bert« please use only known scopes: compile, import, provided, runtime, system, test. 😬 RL1010-12cb6670
-        |[WARNING] »org.springframework:spring-other2:1.0.0-SNAPSHOT « uses version with unknown symbol »1.0.0-SNAPSHOT «. Please remove unknown symbols. 😬 RL1010-19260448
+        |[WARNING] »org.springframework:spring-other2:1.0.0-SNAPSHOT « uses version with unknown symbol »1.0.0-SNAPSHOT␣«. Please remove unknown symbols. 😬 RL1010-0d88b10c
         |[INFO] --- check for preview releases @ maven ---
         |[INFO] --- check major versions @ ishop ---
         |[INFO]     is shop: false
@@ -1425,6 +1447,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/folder1
         |/tmp/junit-REPLACED/release-lint-mvn-simple/notes.md
         |[INFO] ----------------------------[ end of lint ]----------------------------
+        |[INFO]     used memory: ∞m
         |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1012-587ee13e", "RL1003-8a73d4ae")))
@@ -1554,6 +1577,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     -Xms: 123m -Xmx: 321m
+        |[INFO]     used memory: ∞m
         |[INFO]     no skips
         |[INFO] --- version / git ---
         |[INFO]     ✅ git  version: git version 2.999.999
@@ -1621,6 +1645,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-parent/bert
         |/tmp/junit-REPLACED/release-lint-mvn-parent/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
+        |[INFO]     used memory: ∞m
         |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
@@ -1692,6 +1717,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     -Xms: 123m -Xmx: 321m
+        |[INFO]     used memory: ∞m
         |[INFO]     skips: RL1012-d143f8dc, RL1003-b4b0c08b
         |[INFO] --- version / git ---
         |[INFO]     ✅ git  version: git version 2.999.999
@@ -1729,6 +1755,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple-fail/notes.md
         |/tmp/junit-REPLACED/release-lint-mvn-simple-fail/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
+        |[INFO]     used memory: ∞m
         |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1012-d143f8dc", "RL1003-b4b0c08b")))
@@ -1814,6 +1841,7 @@ class LintMavenTest extends AssertionsForJUnit {
     result.importsNom.filter(_.startsWith("com.novomind.")).foreach(println)
     Assert.assertEquals(Nil, result.unwantedPackages)
   }
+
   @Test
   def testValidMergeRequest(): Unit = {
     val file = temp.newFolder("release-lint-mvn-valid-branch")
@@ -1880,7 +1908,7 @@ class LintMavenTest extends AssertionsForJUnit {
   }
 
   @Test
-  def testValidTag(): Unit = {
+  def testValidDetachedTag(): Unit = {
     val file = temp.newFolder("release-lint-mvn-valid-tag")
     val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
     gitA.configSetLocal("user.email", "you@example.com")
@@ -1932,6 +1960,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
         |[INFO]     -Xms: 123m -Xmx: 321m
+        |[INFO]     used memory: ∞m
         |[INFO]     skips: RL1003-21ee7891, RL1003-aaaaaaa
         |[INFO] --- version / git ---
         |[INFO]     ✅ git  version: git version 2.999.999
@@ -1996,6 +2025,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-deploy-none/.mvn
         |/tmp/junit-REPLACED/release-lint-mvn-deploy-none/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
+        |[INFO]     used memory: ∞m
         |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1003-21ee7891", "RL1003-aaaaaaa")))
@@ -2110,12 +2140,30 @@ class LintMavenTest extends AssertionsForJUnit {
         |""".stripMargin.trim
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
-      val boolean = new AtomicBoolean()
+      val hasWarnExit = new AtomicBoolean()
       val btm = Some(BranchTagMerge(tagName = Some("v1.2.3"), branchName = None))
       Assert.assertTrue(Lint.isValidTag(btm))
-      LintMaven.lintProjectVersion(sys.out, opts, "1.2.3", warnExit = boolean, new AtomicBoolean(),
+      LintMaven.lintProjectVersion(sys.out, opts, "1.2.3", warnExit = hasWarnExit, new AtomicBoolean(),
         btm, allGitTags = Seq("v1.2.2", "v1.2.3"), isShop = false)
-      Assert.assertFalse(boolean.get())
+      Assert.assertFalse(hasWarnExit.get())
+    })
+  }
+
+  @Test
+  def testLintProjectVersion_tag_problem(): Unit = {
+    val expected =
+      """
+        |[INFO]     otto
+        |[WARNING]  version »otto« is not recommended, please use at lease a single digit e.g. 1.0.0 😬
+        |""".stripMargin.trim
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+      val hasWarnExit = new AtomicBoolean()
+      val btm = Some(BranchTagMerge(tagName = Some("otto"), branchName = None))
+      Assert.assertTrue(Lint.isValidTag(btm))
+      LintMaven.lintProjectVersion(sys.out, opts, "otto", warnExit = hasWarnExit, new AtomicBoolean(),
+        btm, allGitTags = Seq("v1.2.2", "v1.2.3"), isShop = false)
+      Assert.assertTrue(hasWarnExit.get())
     })
   }
 
@@ -2203,7 +2251,7 @@ class LintMavenTest extends AssertionsForJUnit {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
 
       val boolean = new AtomicBoolean()
-      LintMaven.lintProjectVersion(sys.out, opts, "null", warnExit = boolean, new AtomicBoolean(), None, Nil, isShop = false)
+      LintMaven.lintProjectVersion(sys.out, opts, null, warnExit = boolean, new AtomicBoolean(), None, Nil, isShop = false)
       Assert.assertTrue(boolean.get())
     })
   }

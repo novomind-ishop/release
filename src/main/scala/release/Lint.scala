@@ -540,7 +540,9 @@ object Lint {
       } else {
         out.println(info("--- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---", workOpts))
         val mem = ManagementFactory.getMemoryMXBean.getHeapMemoryUsage
+        val runtime = Runtime.getRuntime
         out.println(info(s"    -Xms: ${Util.byteToMb(mem.getInit)}m -Xmx: ${Util.byteToMb(mem.getMax)}m", workOpts))
+        out.println(info(s"    used memory: ${Util.byteToMb(runtime.totalMemory() - runtime.freeMemory())}m", workOpts))
         if (workOpts.lintOpts.skips.nonEmpty) {
           out.println(info(s"    skips: " + workOpts.lintOpts.skips.mkString(", "), workOpts, limit = lineMax))
         } else {
@@ -598,7 +600,15 @@ object Lint {
         val branchNames = sgit.listBranchNamesAll()
 
         out.println(info(s"    active contributor count: ${mailboxes.size}", opts, limit = lineMax)) // TODO range?
-        mailboxes.foreach(n => out.println(info(s"      ${n}", opts, limit = lineMax)))
+        mailboxes.foreach(n => {
+
+          if (Util.isMailboxWithTldHostname(n)) {
+            out.println(info(s"      ${n}", opts, limit = lineMax))
+          } else {
+            out.println(warn(s"      ${n} // not valid mailbox TLD", opts, limit = lineMax))
+          }
+
+        })
 
         LintGit.lintBranchActivity(branchNames, mailboxes, out, opts)
         val refs = sgit.listRefs(_.commitDate)
@@ -1137,6 +1147,7 @@ object Lint {
           ""
         }
         out.println(info(center("[ end of lint" + timerResult + " ]"), opts))
+        out.println(info(s"    used memory: ${Util.byteToMb(runtime.totalMemory() - runtime.freeMemory())}m", workOpts))
         val now = ZonedDateTime.now()
         val gitlabPipelineCreatedAt = envs.get("CI_PIPELINE_CREATED_AT").flatMap(SgitParsers.parseIsoDateOpt)
         if (gitlabPipelineCreatedAt.isDefined) {

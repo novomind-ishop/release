@@ -2,7 +2,7 @@ package release
 
 import org.junit.{Assert, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
-import release.Util.UrlUserInfo
+import release.Util.{Mailbox, UrlUserInfo}
 
 import java.net.URI
 import java.time.{Duration, Period}
@@ -16,6 +16,20 @@ object UtilTest {
 }
 
 class UtilTest extends AssertionsForJUnit {
+
+  @Test
+  def testPaseMailbox(): Unit = {
+    Assert.assertEquals(Right(Mailbox("Your Name", "you@example.com")), Util.parseMailbox("Your Name <you@example.com>"))
+    Assert.assertEquals(Right(Mailbox("Your Real Name", "you@example.com")), Util.parseMailbox("Your Real Name <you@example.com>"))
+    Assert.assertEquals(Left("Could not parse mailbox with name from: 'You'"), Util.parseMailbox("You"))
+  }
+
+  @Test
+  def testIsMailboxWithTldHostname(): Unit = {
+    Assert.assertTrue(Util.isMailboxWithTldHostname("Your Real Name <you@example.com>"))
+    Assert.assertFalse(Util.isMailboxWithTldHostname("Your Real Name <you@examplecom>"))
+    Assert.assertFalse(Util.isMailboxWithTldHostname("Your Real Name <you.name@examplecom>"))
+  }
 
   @Test
   def testRoundDuration(): Unit = {

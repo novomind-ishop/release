@@ -370,6 +370,23 @@ object Util {
     }
   }
 
+  case class Mailbox(name:String, email:String)
+
+  def isMailboxWithTldHostname(n:String):Boolean = {
+    val stringOrString = parseMailbox(n).map(_.email.replaceFirst(".*@", ""))
+    stringOrString.exists(_.contains("."))
+  }
+
+  def parseMailbox(n:String):Either[String, Mailbox] = {
+    val pattern = """^\s*"?([^"<@]+?)"?\s*<([^<>@\s]+@[^<>@\s]+)>\s*$""".r
+    n match {
+      case pattern(name, email) =>
+        Right(Mailbox(name.trim, email))
+      case _ =>
+        Left(s"Could not parse mailbox with name from: '$n'")
+    }
+  }
+
   def systemEnvs(): Map[String, String] = toScalaMapNonBlank(System.getenv())
 
   def toScalaMapNonBlank[K, V](in: util.Map[K, V]): Map[K, V] = {

@@ -1,6 +1,6 @@
 package release
 
-import release.Lint.{BranchTagMerge, fiCodeVersionMismatch, fiCodeVersionMismatchNoTag, fiWarn}
+import release.Lint.{BranchTagMerge, fiCodeVersionMismatch, fiCodeVersionMismatchNoTag, fiError, fiWarn}
 import release.Term.{info, warn, warnSoft}
 
 import java.io.PrintStream
@@ -19,6 +19,13 @@ object LintMaven {
     val allGitTagVersions = Sgit.stripVersionPrefix(allGitTags)
     val allGitTagVersionsP = allGitTagVersions.map(Version.parseSloppy).filter(_.isOrdinal).sorted.distinct
     val v = Version.parseSloppy(version)
+    if (v.isUndef && v.hasNoDigits && Lint.isValidTag(tagBranchInfo)) {
+      // TODO describe why this is important
+      out.println(warn(s" version »${version}« is not recommended, please use at lease a single digit e.g. 1.0.0 ${fiWarn}"
+        , opts, limit = Lint.lineMax))
+      // TODO skip
+      warnExit.set(true)
+    }
     val latestKnownVersion = allGitTagVersionsP.filterNot(_ == v).lastOption
     val usedSkips: Seq[Lint.UniqCode] = if (!Lint.isValidTag(tagBranchInfo)) {
       if (!v.isSnapshot) {

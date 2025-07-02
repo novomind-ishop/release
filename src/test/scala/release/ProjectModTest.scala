@@ -247,7 +247,7 @@ class ProjectModTest extends AssertionsForJUnit {
     Assert.assertEquals(Seq(
       (Gav("g", "a", "v", scope = "john"), "uses unknown scope »john« please use only known scopes: compile, import, provided, runtime, system, test."),
       (Gav("g", "a", None, scope = "john"), "uses unknown scope »john« please use only known scopes: compile, import, provided, runtime, system, test."),
-      (Gav("g", "a", "v", scope = "import "), "uses unknown scope »import « please use only known scopes: compile, import, provided, runtime, system, test."),
+      (Gav("g", "a", "v", scope = "import "), "uses unknown scope »import␣« please use only known scopes: compile, import, provided, runtime, system, test."),
     ), ProjectMod.listGavsWithUnusualScope(Seq(
       Gav("g", "a", "v", scope = "john"),
       Gav("g", "a", None, scope = "john"),
@@ -265,26 +265,31 @@ class ProjectModTest extends AssertionsForJUnit {
 
   @Test
   def testUnunualGav_version(): Unit = {
-    Assert.assertEquals(Seq(
-      (Gav("g", "a", "RELEASE"), "uses version »RELEASE« that is part of unstable markers LATEST and RELEASE. Please only use a concrete version."),
-      (Gav("g", "a", "LATEST"), "uses version »LATEST« that is part of unstable markers LATEST and RELEASE. Please only use a concrete version."),
-      (Gav("g", "a", "1.0.0 "), "uses version with unknown symbol »1.0.0 «. Please remove unknown symbols."),
-      (Gav("g", "a", "[1, 100]"), "uses version with range »[1, 100]«. Please only use a concrete version."),
-    ), ProjectMod.listGavsWithUnusualScope(Seq(
+    val expected = Seq(
+      (Gav("g", "a", "RELEASE"), "uses version »RELEASE« that is part of unstable markers LATEST and RELEASE. Please use unambiguous versions only."),
+      (Gav("g", "a", "LATEST"), "uses version »LATEST« that is part of unstable markers LATEST and RELEASE. Please use unambiguous versions only."),
+      (Gav("g", "a", "1.0.0 "), "uses version with unknown symbol »1.0.0␣«. Please remove unknown symbols."),
+      (Gav("g", "a", "1.0.0\uD83D\uDE42\u00A0"), "uses version with unknown symbol »1.0.0\uD83D\uDE42␣«. Please remove unknown symbols."),
+      (Gav("g", "a", "[1, 100]"), "uses version with range »[1,␣100]«. Please only use a single version."),
+    )
+    val result = ProjectMod.listGavsWithUnusualScope(Seq(
       Gav("g", "a", "RELEASE"),
       Gav("g", "a", "LATEST"),
       Gav("g", "a", "1.0.0 "),
+      Gav("g", "a", "1.0.0\uD83D\uDE42\u00A0"),
       Gav("g", "a", "[1, 100]"),
       Gav("g", "a", None),
-    )))
+    ))
+    Assert.assertEquals(expected.mkString("\n"), result.mkString("\n"))
+    Assert.assertEquals(expected, result)
   }
 
   @Test
   def testUnunualGav_groupId_artifactId_packageing(): Unit = {
     Assert.assertEquals(Seq(
       (Gav("groub\u200b", "a", "1.0.0"), "uses groupId with unknown symbol »groub␣«. Please remove unknown symbols."),
-      (Gav("g", "a a", None),  "uses artifactId with unknown symbol »a a«. Please remove unknown symbols."),
-      (Gav("g", "a", None, packageing = "w a r"), "uses packageing with unknown symbol »w a r«. Please remove unknown symbols."),
+      (Gav("g", "a a", None),  "uses artifactId with unknown symbol »a␣a«. Please remove unknown symbols."),
+      (Gav("g", "a", None, packageing = "w a r"), "uses packageing with unknown symbol »w␣a␣r«. Please remove unknown symbols."),
     ), ProjectMod.listGavsWithUnusualScope(Seq(
       Gav("groub\u200b", "a", "1.0.0"),
       Gav("g", "a a", None),

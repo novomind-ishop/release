@@ -320,7 +320,8 @@ object Release extends LazyLogging {
     // TODO hier könnte man jetzt die snapshots aus "mod" in "newMod" suchen und sie auf den folgesnapshot setzen
 
     val nextSnapshot = nextReleaseWithoutSnapshot + "-SNAPSHOT"
-    if (newMod.selfVersion != nextSnapshot) {
+    val cVe = newMod.selfVersion != nextSnapshot
+    if (cVe) {
       newMod.changeVersion(nextSnapshot)
     }
 
@@ -340,7 +341,7 @@ object Release extends LazyLogging {
     checkReleaseBranch()
     val releaseBrachName = "release/" + releaseWitoutSnapshot
     sgit.createBranch(releaseBrachName)
-    if (newMod.selfVersion != nextSnapshot) {
+    if (cVe) {
       newMod.writeTo(workDirFile)
     }
     val headCommitId = sgit.commitIdHead()
@@ -452,7 +453,7 @@ object Release extends LazyLogging {
       if (sendToGerrit == "y") {
         try {
           if (sgit.hasChangesToPush || sgit.hasTagsToPush) {
-            if (sgit.isNotDetached) {
+            if (sgit.isNotDetached && cVe) {
               // ask to push version change to review;
               val pushOut = sgit.pushFor(srcBranchName = branch, targetBranchName = selectedBranch)
               pushOut.foreach(sys.err.println)

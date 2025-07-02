@@ -64,7 +64,7 @@ class PomCheckerTest extends AssertionsForJUnit {
 
     Assert.assertEquals((
       gavs.map(_.toGav2(),
-    ), Some("»any.path.to:novomind« (in any0) is too similar to »any.path.to:novonind« (in any1). Please choose distinguishable names.")), result)
+      ), Some("»any.path.to:novomind« (in any0) is too similar to »any.path.to:novonind« (in any1). Please choose distinguishable names.")), result)
   }
 
   @Test
@@ -844,8 +844,21 @@ class PomCheckerTest extends AssertionsForJUnit {
 
   @Test
   def testCheckGav(): Unit = {
-    Assert.assertTrue(Gav.isUnusualElementValue("a a"))
-    Assert.assertFalse(Gav.isUnusualElementValue(""))
+
+    def assertGavTrue(expected: String, g: String): Unit = {
+      Assert.assertTrue(Gav.isUnusualElementValue(g))
+      Assert.assertEquals(expected, Gav.replaceUnusualElements(g))
+    }
+
+    def assertGavFalse(expected: String, g: String): Unit = {
+      Assert.assertFalse(Gav.isUnusualElementValue(g))
+      Assert.assertEquals(expected, Gav.replaceUnusualElements(g))
+    }
+
+    assertGavTrue("a␣a", "a a")
+    assertGavTrue("a␣a", "a\u0020a")
+    assertGavTrue("a␣a␣", "a\u0020a\u200b")
+    assertGavFalse("", "")
     Assert.assertFalse(Gav.isUnusualElementValue("a"))
     Assert.assertFalse(Gav.isUnusualElementValue("a_b"))
     Assert.assertFalse(Gav.isUnusualElementValue("a-b"))
