@@ -24,6 +24,10 @@ trait SgitDiff {
   def diffSafe(): Seq[String]
 }
 
+trait SgitUpstream {
+  def findUpstreamBranch(): Option[String]
+}
+
 trait SgitDetached {
   def isNotDetached: Boolean = !isDetached
 
@@ -34,7 +38,8 @@ case class SlogLine(branchNames: Seq[String], tagNames: Seq[String], sha1: Strin
 
 case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStream,
                 checkExisting: Boolean = true, checkGitRoot: Boolean = true, findGitRoot: Boolean = false,
-                gitBin: Option[String], opts: Opts) extends LazyLogging with SgitVersion with SgitDiff with SgitDetached {
+                gitBin: Option[String], opts: Opts) extends LazyLogging with SgitVersion with SgitDiff with SgitDetached
+  with SgitUpstream {
 
   private val gitRoot: File = if (checkGitRoot) {
     if (findGitRoot) {
@@ -285,6 +290,23 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
   def removeRemote(name: String): Unit = {
     gitNative(Seq("remote", "remove", name))
+  }
+
+  def lsRemote(): Seq[GitShaBranch] = {
+    val nativeResult = gitNative(Seq("ls-remote"), showErrorsOnStdErr = false)
+    nativeResult match {
+      case Success(out) => {
+        out.map(in => {
+          try {
+            val splitted = Sgit.splitLineOnWhitespace(in)
+            GitShaBranch(commitId = splitted(0), branchName = splitted(1), dateSupplier = () => None)
+          } catch {
+            case e: Exception => throw new IllegalStateException("invalid line: \"" + in + "\"", e)
+          }
+        })
+      }
+      case _ => Nil
+    }
   }
 
   def listRemotes(): Seq[GitRemote] = {
@@ -1055,6 +1077,11 @@ object Sgit {
         case v: String if v.startsWith("git version 2.43.") => // do nothing (2023-11-20) (tag: v2.43.0)
         case v: String if v.startsWith("git version 2.44.") => // do nothing (2024-02-22) (tag: v2.44.0)
         case v: String if v.startsWith("git version 2.45.") => // do nothing (2024-05-30) (tag: v2.45.2)
+        case v: String if v.startsWith("git version 2.46.") => // do nothing (2024-11-26) (tag: v2.46.3)
+        case v: String if v.startsWith("git version 2.47.") => // do nothing (2024-11-26) (tag: v2.47.2)
+        case v: String if v.startsWith("git version 2.48.") => // do nothing (2025-01-13) (tag: v2.48.1)
+        case v: String if v.startsWith("git version 2.49.") => // do nothing (2025-03-14) (tag: v2.49.0)
+        case v: String if v.startsWith("git version 2.50.") => // do nothing (2025-06-15) (tag: v2.50.0)
         case v: String => out.println("W: unknown/untested git version: \"" + v + "\". Please create a ticket at ISBO.");
         //  if (!ReleaseConfig.isTravisCi()) {
         //    if (Sgit.getOs == Os.Darwin) {

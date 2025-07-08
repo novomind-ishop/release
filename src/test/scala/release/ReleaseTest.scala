@@ -17,11 +17,52 @@ class ReleaseTest extends AssertionsForJUnit {
   @Rule def temp = _temporarayFolder
 
   @Test
-  def testSuggestPushCmd_gerrit(): Unit = {
-    val sgit = new SgitDiff with SgitDetached {
+  def testSuggestRemoteBranch_noUpstream(): Unit = {
+    val sgit = new SgitDiff with SgitDetached with SgitUpstream {
       override def diffSafe(): Seq[String] = Seq("a")
 
       override def isDetached: Boolean = false
+
+      override def findUpstreamBranch(): Option[String] = None
+    }
+    val result = Release.suggestRemoteBranchname(None, sgit, () => "peter")
+    Assert.assertEquals("peter-branch-patch-b269253c", result)
+  }
+
+  @Test
+  def testSuggestRemoteBranch(): Unit = {
+    val sgit = new SgitDiff with SgitDetached with SgitUpstream {
+      override def diffSafe(): Seq[String] = Seq("a")
+
+      override def isDetached: Boolean = false
+
+      override def findUpstreamBranch(): Option[String] = Some("major")
+    }
+    val result = Release.suggestRemoteBranchname(None, sgit, () => "john")
+    Assert.assertEquals("john-major-patch-b269253c", result)
+  }
+
+  @Test
+  def testSuggestRemoteBranch_withTargetBranch(): Unit = {
+    val sgit = new SgitDiff with SgitDetached with SgitUpstream {
+      override def diffSafe(): Seq[String] = Seq("a")
+
+      override def isDetached: Boolean = false
+
+      override def findUpstreamBranch(): Option[String] = Some("major")
+    }
+    val result = Release.suggestRemoteBranchname(Some("value"), sgit, () => "chris")
+    Assert.assertEquals("chris-value-patch-b269253c", result)
+  }
+
+  @Test
+  def testSuggestPushCmd_gerrit(): Unit = {
+    val sgit = new SgitDiff with SgitDetached with SgitUpstream {
+      override def diffSafe(): Seq[String] = Seq("a")
+
+      override def isDetached: Boolean = false
+
+      override def findUpstreamBranch(): Option[String] = None
     }
     val result = Release.suggestPushCmd(changedVersion = true, sgit,
       Opts(), "main", "new-main",
@@ -31,10 +72,12 @@ class ReleaseTest extends AssertionsForJUnit {
 
   @Test
   def testSuggestPushCmd_gitlab(): Unit = {
-    val sgit = new SgitDiff with SgitDetached {
+    val sgit = new SgitDiff with SgitDetached with SgitUpstream {
       override def diffSafe(): Seq[String] = Seq("a")
 
       override def isDetached: Boolean = false
+
+      override def findUpstreamBranch(): Option[String] = None
     }
     val result = Release.suggestPushCmd(changedVersion = true, sgit,
       Opts().copy(useGerrit = false), "main", "new-main",

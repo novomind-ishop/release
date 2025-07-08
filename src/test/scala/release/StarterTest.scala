@@ -87,7 +87,7 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
       |Possible options:
       |--help, -h            => shows this and exits
       |--no-gerrit           => use this toggle for non gerrit projects
-      |--no-interactive      => suppresses startup messages
+      |--non-interactive, -B => Batch mode, suppresses startup messages
       |--skip-property value => if you get false positives with property definitions
       |--defaults            => do not read ${HOME}/.ishop-release
       |--no-check-overlap    => skip checks for too similar names e.g. "commons" and "commoms" are too similar
@@ -105,7 +105,8 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
       |lint                                 => check project for release problems (read-only),
       |                                        reads environment variables CI_COMMIT_REF_NAME and CI_COMMIT_TAG
       |showSelf                             => a list of groupId:artifactId of current project
-      |suggest-docker-tag                   => use with '--no-interactive', reads environment variables
+      |suggest-remote-branch                => use with '--non-interactive'
+      |suggest-docker-tag                   => use with '--non-interactive', reads environment variables
       |                                        CI_COMMIT_REF_NAME and CI_COMMIT_TAG
       |
       |Possible environment variables:

@@ -616,6 +616,16 @@ object Lint {
           val ssd: (Period, Period) = Lint.refFreqBranchTag(refs)
           out.println(info(s"    approx. a new branch each: ${ssd._1}, approx. a new tag each: ${ssd._2}", opts, limit = lineMax))
         }
+        val remoteRefs = sgit.lsRemote()
+          .filterNot(_.refName == "HEAD")
+          .filterNot(_.refName.startsWith("refs/heads/"))
+          .filterNot(_.refName.startsWith("refs/tags/"))
+          .filterNot(_.refName.startsWith("refs/changes/"))
+          .filterNot(_.refName.startsWith("refs/merge-requests/"))
+          .filterNot(_.refName.startsWith("refs/pipelines/"))
+        remoteRefs.foreach(ref => {
+          out.println(warnSoft(s"    strange ref: ${ref.refName}", opts, limit = lineMax))
+        })
         out.println(info("--- check clone config / no shallow clone @ git ---", opts))
         if (sgit.isShallowClone) {
           Term.wrap(out, Term.warn,
@@ -931,8 +941,9 @@ object Lint {
                 } else {
                   warnExitForDepCheck.set(true)
                 }
-                out.println(warn("  found preview: " + dep.gav().formatted + s" ${fiWarn} ${code}", opts, limit = lineMax, soft = skipped))
+
                 if (resultTry.isSuccess) {
+                  out.println(warn("  found preview: " + dep.gav().formatted + s" ${fiWarn} ${code}", opts, limit = lineMax, soft = skipped))
                   val gav = dep.gav().simpleGav()
                   val versionRangeFor = lookupUpAndDowngrades.get(gav)
                   val npo = Lint.selectNextAndPrevious(versionRangeFor, gav)
@@ -948,6 +959,8 @@ object Lint {
                       out.println(warn("       previous: " + nextAndPrev.previous.get.formatted, opts, limit = lineMax, soft = skipped))
                     }
                   }
+                } else {
+                  out.println(warn("  found preview without any stable release: " + dep.gav().formatted + s" ${fiWarn} ${code}", opts, limit = lineMax, soft = skipped))
                 }
               })
             if (warnExitForDepCheck.get()) {

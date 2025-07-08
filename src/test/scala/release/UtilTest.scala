@@ -113,6 +113,7 @@ class UtilTest extends AssertionsForJUnit {
     Assert.assertEquals(6, Util.Similarity.caverphone("any88", "any99"))
     Assert.assertEquals(1, Util.Similarity.caverphone("bo-client", "bo-client-ui"))
     Assert.assertEquals(2, Util.Similarity.caverphone("bo-client", "bo-client-roo"))
+    Assert.assertEquals(1, Util.Similarity.caverphone("cache", "cash"))
     List.tabulate(10)(in => Assert.assertEquals(0, Util.Similarity.caverphone(s"any${in}", s"any${in}")))
     val perm = List.tabulate(10)(in => in)
     val cartesian = perm.flatMap(x => perm.map(y => (x, y))).filterNot(x => x._1 == x._2)
@@ -159,6 +160,7 @@ class UtilTest extends AssertionsForJUnit {
     Assert.assertEquals(9, Util.Similarity.similarSplitMax("ishop-xx-commons", "ishop-commons"))
     Assert.assertEquals(0, Util.Similarity.similarSplitMax("ishop-kommons", "ishop-commons"))
     Assert.assertEquals(1, Util.Similarity.similarSplitMax("ishop-konnons", "ishop-commons"))
+    Assert.assertEquals(2, Util.Similarity.similarSplitMax("ishop-cash-checkout", "eshop-cache-checkcloud"))
 
     Assert.assertEquals(9, Util.Similarity.similarSplitMax("core-bom", "core-api"))
     Assert.assertEquals(3, Util.Similarity.similarSplitMin("ui", "vue"))

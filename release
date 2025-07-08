@@ -15,7 +15,10 @@ else
   interactive="false"
 fi
 
-if [[ -n $(echo "${argLine}" | egrep -- "--no-interactive") ]]; then
+if [[ -n $(echo "${argLine}" | egrep -- "--non-interactive") ]]; then
+  interactive="false"
+fi
+if [[ -n $(echo "${argLine}" | egrep -- "-B") ]]; then
   interactive="false"
 fi
 

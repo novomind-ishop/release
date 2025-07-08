@@ -116,7 +116,15 @@ object Release extends LazyLogging {
     }
   }
 
-  def suggestPushCmd(changedVersion: Boolean, sgit: (SgitDiff & SgitDetached), opts: Opts, branch: String, selectedBranch: String,
+  def suggestRemoteBranchname(branch: Option[String] = None, sgit: (SgitDiff & SgitDetached & SgitUpstream), uName: () => String = () => System.getProperty("user.name")): String = {
+    val username = Option(uName.apply()).filterNot(_.isBlank).getOrElse("nouser")
+    val id = Starter.signShort(sgit)
+    val selectedBranch = branch.orElse(sgit.findUpstreamBranch()).getOrElse("branch")
+    val remoteBranch = s"${username}-${selectedBranch.replace("-", "+")}-patch-${id}"
+    remoteBranch
+  }
+
+  def suggestPushCmd(changedVersion: Boolean, sgit: (SgitDiff & SgitDetached & SgitUpstream), opts: Opts, branch: String, selectedBranch: String,
                      uName: () => String = () => System.getProperty("user.name")): String = {
     if (changedVersion && sgit.isNotDetached) {
       if (opts.useGerrit) {
@@ -124,7 +132,7 @@ object Release extends LazyLogging {
       } else {
         val username = Option(uName.apply()).filterNot(_.isBlank).getOrElse("nouser")
         val id = Starter.signShort(sgit)
-        val remoteBranch = s"${username}-${selectedBranch.replace("-", "+")}-patch-${id}"
+        val remoteBranch = suggestRemoteBranchname(Some(selectedBranch), sgit, uName)
         s"git push origin ${branch}:${remoteBranch};"
       }
     } else {

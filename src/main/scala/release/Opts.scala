@@ -95,7 +95,8 @@ object Opts {
       case "--show-update-cmd" :: tail => argsRead(tail, inOpt.copy(showUpdateCmd = true, showStartupDone = false))
       case "--no-gerrit" :: tail => argsRead(tail, inOpt.copy(useGerrit = false))
       case "--no-update" :: tail => argsRead(tail, inOpt.copy(doUpdate = false))
-      case "--no-interactive" :: tail => argsRead(tail, inOpt.copy(isInteractive = false))
+      case "--non-interactive" :: tail => argsRead(tail, inOpt.copy(isInteractive = false))
+      case "-B" :: tail => argsRead(tail, inOpt.copy(isInteractive = false))
       case "--defaults" :: tail => argsRead(tail, inOpt.copy(useDefaults = true))
       case "--no-jline" :: tail => argsRead(tail, inOpt.copy(useJlineInput = false))
       case "--no-color" :: tail => argsRead(tail, inOpt.copy(colors = false))
@@ -113,6 +114,7 @@ object Opts {
       case "showSelf" :: tail => argsRead(tail, inOpt.copy(showSelfGa = true))
       case "apidiff" :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(showApiDiff = true)))
       case "suggest-docker-tag" :: tail => argsRead(tail, inOpt.copy(suggestDockerTag = true, showStartupDone = false))
+      case "suggest-remote-branch" :: tail => argsRead(tail, inOpt.copy(suggestRemoteBranch = true, showStartupDone = false, isInteractive = false))
       case "versionSet" :: value :: _ => argsRead(Nil, inOpt.copy(versionSet = Some(value)))
       case "shopGASet" :: value :: _ => argsRead(Nil, inOpt.copy(shopGA = Some(value)))
       case "nothing-but-create-feature-branch" :: _ => argsRead(Nil, inOpt.copy(createFeature = true))
@@ -214,6 +216,7 @@ case class Opts(simpleChars: Boolean = false, diag: OptsDiag = OptsDiag.empty(),
                 lintOpts: LintOpts = LintOpts(), checkOverlapping: Boolean = true,
                 checkProjectDeps: Boolean = true,
                 showSelfGa: Boolean = false, showStartupDone: Boolean = true, suggestDockerTag: Boolean = false,
+                suggestRemoteBranch:Boolean = false,
                 isInteractive: Boolean = true, showOpts: Boolean = false, repoSupplier: Opts => RepoZ = Opts.newRepoZ
                ) {
   def newRepo: RepoZ = {

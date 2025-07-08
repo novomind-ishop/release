@@ -294,7 +294,7 @@ object Starter extends LazyLogging {
       out.println("Possible options:")
       out.println("--help, -h            => shows this and exits")
       out.println("--no-gerrit           => use this toggle for non gerrit projects")
-      out.println("--no-interactive      => suppresses startup messages")
+      out.println("--non-interactive, -B => Batch mode, suppresses startup messages")
       out.println("--skip-property value => if you get false positives with property definitions")
       out.println("--defaults            => do not read ${HOME}/.ishop-release")
       out.println("--no-check-overlap    => skip checks for too similar names e.g. \"commons\" and \"commoms\" are too similar")
@@ -312,7 +312,8 @@ object Starter extends LazyLogging {
       out.println("lint                                 => check project for release problems (read-only),")
       out.println("                                        reads environment variables CI_COMMIT_REF_NAME and CI_COMMIT_TAG")
       out.println("showSelf                             => a list of groupId:artifactId of current project")
-      out.println("suggest-docker-tag                   => use with '--no-interactive', reads environment variables")
+      out.println("suggest-remote-branch                => use with '--non-interactive'")
+      out.println("suggest-docker-tag                   => use with '--non-interactive', reads environment variables")
       out.println("                                        CI_COMMIT_REF_NAME and CI_COMMIT_TAG")
       out.println()
       out.println("Possible environment variables:")
@@ -389,8 +390,8 @@ object Starter extends LazyLogging {
       }
 
     }
-    if (opts.suggestDockerTag) {
 
+    if (opts.suggestDockerTag) {
       val file: File = new File(".").getAbsoluteFile
       val pomModTry = PomMod.withRepoTry(file, opts, opts.newRepo, failureCollector = None)
       val selfV = pomModTry.map(pm => pm.selfVersion).toOption
@@ -430,7 +431,10 @@ object Starter extends LazyLogging {
     try {
       val gitAndBranchname = fetchGitAndAskForBranch(sys, verifyGerrit, gitBinEnv, workDirFile, opts,
         skipFetch = !termOs.isInteractice, skipAskForBranchFetch = !termOs.isInteractice)
-
+      if (opts.suggestRemoteBranch) {
+        out.println(Release.suggestRemoteBranchname(None, gitAndBranchname._1))
+        return 0
+      }
       def suggestLocalNotesReviewRemoval(activeGit: Sgit): Unit = {
         // git config --add remote.origin.fetch refs/notes/review:refs/notes/review
         // git config --add remote.origin.fetch refs/notes/*:refs/notes/*

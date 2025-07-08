@@ -530,8 +530,11 @@ class SgitTest extends AssertionsForJUnit {
         gitA.pushHeads("master", "master")
       })
 
-    Assert.assertEquals(Seq(GitRemote.of("ubglu", "failfail", "(fetch)"), GitRemote.of("ubglu", "failfail", "(push)")),
+    Assert.assertEquals(Seq(
+      GitRemote.of("ubglu", "failfail", "(fetch)"),
+      GitRemote.of("ubglu", "failfail", "(push)")),
       gitA.listRemotes())
+    Assert.assertEquals(Nil, gitA.lsRemote())
     gitA.removeRemote("ubglu")
     gitA.addRemote("ubglu", "ssh://user@git.example.org/ubglu")
 
@@ -651,6 +654,11 @@ class SgitTest extends AssertionsForJUnit {
     gitB.fetchAll()
     Assert.assertEquals(Seq("origin/master"), gitB.listBranchRemoteRaw().map(_.branchName))
     Assert.assertEquals(Seq("origin/master"), gitB.listBranchNamesRemote())
+    Assert.assertEquals(Seq(
+      "0000000000000000000000000000000000000000 HEAD",
+      "0000000000000000000000000000000000000000 refs/heads/master",
+    ), gitB.lsRemote().map(e => s"${e.commitId.replaceAll("[a-f0-9]", "0")} ${e.refName}"))
+
     Assert.assertEquals(Seq("refs/remotes/origin/master"), gitB.listBranchRemoteRefRemotes().map(_.branchName))
     Assert.assertEquals(Seq("master"), gitB.listBranchNamesRemoteShort())
     Assert.assertEquals(Seq("master"), gitB.listBranchNamesAll())
