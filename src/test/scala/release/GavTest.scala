@@ -10,8 +10,6 @@ class GavTest extends AssertionsForJUnit {
     Assert.assertEquals(None, Gav.selectUnusualReason(Gav(groupId = "a", artifactId = "a", version = Some("v"))))
   }
 
-  found copies
-  , use only one dependency
   @Test
   def testSelectUnusualReason_SNAPSHOT(): Unit = {
     Assert.assertEquals(Some("uses strange version SNAPSHOT, please do not use reserved words »SNAPSHOT«."),

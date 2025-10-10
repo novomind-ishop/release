@@ -207,8 +207,16 @@ class UtilTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testWithNonVisibles(): Unit = {
+    import release.Util.Ext.*
+    Assert.assertEquals("v\u200Ca\u200Cl\u200Cu\u200Ce   s\u200Co\u200Ca\u200Cp", "value   soap".withNonVisibles())
+
+  }
+
+
+  @Test
   def testPluralize(): Unit = {
-    import Util.pluralize
+    import release.Util.Ext.*
     Assert.assertEquals("value", "value".pluralize(0))
     Assert.assertEquals("value", "value".pluralize(1))
     Assert.assertEquals("values", "value".pluralize(10))
@@ -216,7 +224,7 @@ class UtilTest extends AssertionsForJUnit {
 
   @Test
   def testBlank(): Unit = {
-    import Util.pluralize
+    import release.Util.Ext.*
     val in: String = null
     Assert.assertTrue(in.blank())
     Assert.assertFalse("value".blank())

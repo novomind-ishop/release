@@ -7,7 +7,7 @@ import release.ProjectMod.{Gav3, StaticPrinter}
 import release.Sgit.GitShaRefTime
 import release.Starter.PreconditionsException
 import release.Term._
-import release.Util.pluralize
+import release.Util.Ext.*
 
 import java.io.{File, PrintStream}
 import java.lang.management.ManagementFactory
@@ -600,12 +600,12 @@ object Lint {
         val branchNames = sgit.listBranchNamesAll()
 
         out.println(info(s"    active contributor count: ${mailboxes.size}", opts, limit = lineMax)) // TODO range?
-        mailboxes.foreach(n => {
+        mailboxes.foreach(mailboxRaw => {
 
-          if (Util.isMailboxWithTldHostname(n)) {
-            out.println(info(s"      ${n}", opts, limit = lineMax))
+          if (Util.isMailboxWithTldHostname(mailboxRaw)) {
+            out.println(info(s"      ${mailboxRaw.withNonVisibles()}", opts, limit = lineMax))
           } else {
-            out.println(warn(s"      ${n} // not valid mailbox TLD", opts, limit = lineMax))
+            out.println(warn(s"      ${mailboxRaw.withNonVisibles()} // not valid mailbox TLD", opts, limit = lineMax))
           }
 
         })

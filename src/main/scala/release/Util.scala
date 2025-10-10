@@ -24,6 +24,54 @@ import scala.math.BigDecimal.RoundingMode
 import scala.util.Random
 
 object Util {
+  object Ext {
+    private val nonv = Seq('\u200C')
+    private val invisiblePattern = (
+      "[\\u0000-\\u001F\\u007F" +
+        "\\u00A0\\u1680\\u2000-\\u200F" +
+        "\\u2028-\\u202F\\u205F\\u2060-\\u206F\\uFEFF" +
+        "\\s]"
+      ).r
+    extension (in: String) {
+
+      private def isInvisible(ch: Char): Boolean =
+        invisiblePattern.pattern.matcher(ch.toString).matches()
+      def withNonVisibles(): String = {
+        val mixed = new StringBuilder
+        var idx = 0
+        val chars = in.toCharArray
+
+        for (i <- chars.indices) {
+          val ch = chars(i)
+          mixed.append(ch)
+
+          if (i < chars.length - 1) {
+            val next = chars(i + 1)
+            if (!isInvisible(ch) && !isInvisible(next)) {
+              mixed.append(nonv(idx % nonv.length))
+              idx += 1
+            }
+          }
+        }
+        mixed.toString
+      }
+      def pluralize(int: Int): String = {
+        if (int > 1) {
+          in + "s"
+        } else {
+          in
+        }
+      }
+
+      /**
+       * @see jdk11 has isBlank()
+       */
+      def blank(): Boolean = {
+        in == null || in != null && in.trim.isEmpty
+      }
+    }
+  }
+
   def byteToMb(value: Long): Long = {
     value / (1024 * 1024)
   }
@@ -172,25 +220,6 @@ object Util {
     }
 
   }
-
-  class PluralString(in: String) {
-    def pluralize(int: Int): String = {
-      if (int > 1) {
-        in + "s"
-      } else {
-        in
-      }
-    }
-
-    /**
-      * @see jdk11 has isBlank()
-      */
-    def blank(): Boolean = {
-      in == null || in != null && in.trim.isEmpty
-    }
-  }
-
-  implicit def pluralize(input: String): PluralString = new PluralString(input)
 
   def show(product: Product): String = {
     val className = product.productPrefix
@@ -370,14 +399,14 @@ object Util {
     }
   }
 
-  case class Mailbox(name:String, email:String)
+  case class Mailbox(name: String, email: String)
 
-  def isMailboxWithTldHostname(n:String):Boolean = {
+  def isMailboxWithTldHostname(n: String): Boolean = {
     val stringOrString = parseMailbox(n).map(_.email.replaceFirst(".*@", ""))
     stringOrString.exists(_.contains("."))
   }
 
-  def parseMailbox(n:String):Either[String, Mailbox] = {
+  def parseMailbox(n: String): Either[String, Mailbox] = {
     val pattern = """^\s*"?([^"<@]+?)"?\s*<([^<>@\s]+@[^<>@\s]+)>\s*$""".r
     n match {
       case pattern(name, email) =>

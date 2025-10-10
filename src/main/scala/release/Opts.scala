@@ -2,7 +2,7 @@ package release
 
 import com.google.common.base.Strings
 import org.eclipse.aether.repository.RemoteRepository
-
+import release.Util.Ext.*
 import scala.annotation.tailrec
 import scala.util.matching.Regex
 

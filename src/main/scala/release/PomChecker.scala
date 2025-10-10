@@ -37,7 +37,7 @@ object PomChecker {
   }
 
   def getOwnArtifactNames(relevants: Seq[(Dep, File)], rootFile: File): (Seq[ProjectMod.Gav2], Option[String]) = {
-    implicit class Crossable[X](xs: Iterable[X]) {
+    extension [X](xs: Iterable[X]) {
       def cross[Y](ys: Iterable[Y]): Iterable[(X, Y)] = for {x <- xs; y <- ys} yield (x, y)
     }
     val simplified = relevants.map(e => (e._1.pomRef.gav3.toGav2(), e._2))

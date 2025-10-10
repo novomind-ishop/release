@@ -13,14 +13,13 @@ import scala.jdk.StreamConverters._
 import scala.jdk.CollectionConverters._
 
 object FileUtils {
-  class LinuxPath(in: Path) {
-    def toStringLinux: String = {
-      in.toString.replace('\\', '/')
+  object Ext {
+    extension (in:Path) {
+      def toStringLinux: String = {
+        in.toString.replace('\\', '/')
+      }
     }
-
   }
-
-  implicit def linuxPath(input: Path): LinuxPath = new LinuxPath(input)
 
   def write(f: File, content: String): File = {
     write(f, content.linesIterator.toSeq)

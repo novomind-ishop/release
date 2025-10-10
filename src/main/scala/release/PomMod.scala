@@ -8,7 +8,7 @@ import release.Conf.Tracer
 import release.PomMod._
 import release.ProjectMod._
 import release.Starter.{PreconditionsException}
-import release.Util.pluralize
+import release.Util.Ext.*
 
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.charset.StandardCharsets

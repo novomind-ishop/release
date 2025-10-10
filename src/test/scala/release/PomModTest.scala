@@ -9,7 +9,7 @@ import release.PomMod.DepTree
 import release.PomModTest._
 import release.ProjectMod._
 import release.Starter.{PreconditionsException}
-import release.FileUtils.linuxPath
+import release.FileUtils.Ext.*
 
 import java.io.{BufferedWriter, File, FileWriter}
 import java.nio.file.Paths

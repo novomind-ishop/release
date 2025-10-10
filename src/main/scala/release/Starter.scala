@@ -7,7 +7,7 @@ import org.apache.http.impl.client.HttpClients
 import org.eclipse.aether.repository.RemoteRepository
 import release.Conf.Tracer
 import release.Sgit.GitRemote
-import release.Util.pluralize
+import release.Util.Ext.*
 import release.Xpath.InvalidPomXmlException
 
 import java.awt.Desktop
