@@ -182,6 +182,7 @@ object PomChecker {
   }
 
   def getDepScopeAndOthers(listDependecies: Seq[Dep], listDependeciesRaw: Seq[Dep]): Seq[String] = {
+    // TODO avoid plugin deps
     val byRef: Map[SelfRef, Seq[Dep]] = listDependecies.groupBy(_.pomRef)
 
     val msgs = (virtualParentRef(listDependecies) ++ byRef).flatMap(deps => {

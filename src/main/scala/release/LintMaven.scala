@@ -21,7 +21,7 @@ object LintMaven {
     val v = Version.parseSloppy(version)
     if (v.isUndef && v.hasNoDigits && Lint.isValidTag(tagBranchInfo)) {
       // TODO describe why this is important
-      out.println(warn(s" version »${version}« is not recommended, please use at lease a single digit e.g. 1.0.0 ${fiWarn}"
+      out.println(warn(s" version »${version}« is not recommended, please use at least a single digit e.g. 1.0.0. This helps us to cleanup older versions. ${fiWarn}"
         , opts, limit = Lint.lineMax))
       // TODO skip
       warnExit.set(true)
@@ -36,7 +36,7 @@ object LintMaven {
         // TODO skip
         ()
       }
-      val asVersion = v.removeSnapshot()
+      val asVersion = v.removeAllSnapshots()
       if (allGitTagVersions.contains(asVersion.rawInput)) {
         val suggested = PomMod.suggestNextReleaseBy(v.rawInput, v.rawInput) + "-SNAPSHOT"
         val msg = s" tag v${asVersion.rawInput} is already existing. Please increment to next version e.g. ${suggested} ${fiWarn} ${fiCodeVersionMismatchNoTag}"

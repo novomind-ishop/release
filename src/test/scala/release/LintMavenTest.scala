@@ -2154,7 +2154,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO]     otto
-        |[WARNING]  version »otto« is not recommended, please use at lease a single digit e.g. 1.0.0 😬
+        |[WARNING]  version »otto« is not recommended, please use at least a single digit e.g. 1.0.0 😬
         |""".stripMargin.trim
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))

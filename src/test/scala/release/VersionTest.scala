@@ -25,17 +25,31 @@ class VersionTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testSNAPSHOT(): Unit = {
+    val testee = Version.parse("SNAPSHOT")
+    Assert.assertFalse(testee.isSnapshot)
+    Assert.assertTrue(testee.isUndef)
+  }
+
+  @Test
+  def testSNAPSHOT_SNAPSHOT(): Unit = {
+    val testee = Version.parse("SNAPSHOT-SNAPSHOT")
+    Assert.assertFalse(testee.isSnapshot)
+    Assert.assertTrue(testee.isUndef)
+  }
+
+  @Test
   def testIsOrdinal(): Unit = {
     Assert.assertTrue(Version.parse("1.0.1-SNAPSHOT").isOrdinalOnly)
     Assert.assertTrue(Version.parse("1.1.1-SNAPSHOT").isOrdinalOnly)
     val aa = Version.parse("21.0.0")
     Assert.assertTrue(aa.isOrdinal)
     Assert.assertTrue(aa.isOrdinalOnly)
-    Assert.assertEquals("", aa.text)
+    Assert.assertEquals("", aa.textLowerCase)
     val a = Version.parse("21.0.0-SNAPSHOT")
     Assert.assertTrue(a.isOrdinal)
     Assert.assertTrue(a.isOrdinalOnly)
-    Assert.assertEquals("", a.text)
+    Assert.assertEquals("", a.textLowerCase)
 
     Assert.assertTrue(Version.parseSloppy("21.0.0-SNAPSHOT").isOrdinalOnly)
     Assert.assertFalse(Version.parse("alpha").isOrdinal)
@@ -44,7 +58,7 @@ class VersionTest extends AssertionsForJUnit {
     val alpha2 = Version.parseSloppy("210_alpha")
     Assert.assertTrue(alpha2.isOrdinal)
     Assert.assertFalse(alpha2.isOrdinalOnly)
-    Assert.assertEquals("alpha", alpha2.text)
+    Assert.assertEquals("alpha", alpha2.textLowerCase)
     Assert.assertTrue(Version.parse("210.0.0_alpha").isOrdinal)
     Assert.assertFalse(Version.parse("210.0.0_alpha").isOrdinalOnly)
     Assert.assertTrue(Version.parse("RC-2024.31-SNAPSHOT").isOrdinal)
@@ -142,9 +156,10 @@ class VersionTest extends AssertionsForJUnit {
 
   @Test
   def testRemoveSnapshot(): Unit = {
-    Assert.assertEquals(Version.parseSloppy("4.0.0"), Version.parseSloppy("4.0.0-SNAPSHOT").removeSnapshot())
-    Assert.assertEquals(Version.parseSloppy("4.0.0"), Version.parseSloppy("4.0.0").removeSnapshot())
-    Assert.assertEquals(Version.parseSloppy("main"), Version.parseSloppy("main-SNAPSHOT").removeSnapshot())
+    Assert.assertEquals(Version.parseSloppy("4.0.0"), Version.parseSloppy("4.0.0-SNAPSHOT").removeAllSnapshots())
+    Assert.assertEquals(Version.parseSloppy("2.1.0"), Version.parseSloppy("2.1.0-SNAPSHOT-SNAPSHOT").removeAllSnapshots())
+    Assert.assertEquals(Version.parseSloppy("4.0.0"), Version.parseSloppy("4.0.0").removeAllSnapshots())
+    Assert.assertEquals(Version.parseSloppy("main"), Version.parseSloppy("main-SNAPSHOT").removeAllSnapshots())
   }
 
   @Test

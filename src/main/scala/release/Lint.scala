@@ -292,7 +292,7 @@ object Lint {
               val str = branchName + "-SNAPSHOT"
               val msg = s" project.version »$selfVersion« does not relate to git${branchMsg}. " +
                 s"Please use a plausible version marker and git marker combination like: " +
-                s"(project.version: $selfVersion -> git branch:${selfVersionParsed.removeSnapshot().rawInput}), " +
+                s"(project.version: $selfVersion -> git branch:${selfVersionParsed.removeAllSnapshots().rawInput}), " +
                 s"maybe you try to use this pattern e.g. RC-2023.04-SNAPSHOT " +
                 s"... " +
                 s"${fiWarn} ${fiCodeVersionMismatch}"
@@ -301,7 +301,7 @@ object Lint {
               val str = branchName + "-SNAPSHOT"
               val msg = s" project.version »$selfVersion« does not relate to git${branchMsg}. " +
                 s"Please use a plausible version marker and git marker combination like: " +
-                s"(project.version: $selfVersion -> git branch:${selfVersionParsed.removeSnapshot().rawInput}), " +
+                s"(project.version: $selfVersion -> git branch:${selfVersionParsed.removeAllSnapshots().rawInput}), " +
                 s"... " +
                 s"${fiWarn} ${fiCodeVersionMismatch}"
               MismatchResult.of(selfVersionParsed.rawInput != str, msg = msg)
@@ -316,8 +316,8 @@ object Lint {
 
               val value = digitsOnly.flatMap(_.toIntOption)
               val bool = selfVersionParsed.same(value)
-              val textSuggest = if (selfVersionParsed.text.length >= 3) {
-                s", (project.version: ${selfVersionParsed.text}-SNAPSHOT -> git branch: feature/${selfVersionParsed.text}), "
+              val textSuggest = if (selfVersionParsed.textLowerCase.length >= 3) {
+                s", (project.version: ${selfVersionParsed.textLowerCase}-SNAPSHOT -> git branch: feature/${selfVersionParsed.textLowerCase}), "
               } else {
                 ", "
               }

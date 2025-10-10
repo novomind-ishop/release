@@ -328,6 +328,8 @@ object ProjectMod extends LazyLogging {
 
     def simpleGav(): Gav3 = Gav3(groupId, artifactId, version)
 
+    lazy val versionParsed:Option[Version] = version.map(Version.parseSloppy)
+
     def feelsUnusual(): Boolean = {
       Gav.feelsUnusual(this)
     }
@@ -357,6 +359,8 @@ object ProjectMod extends LazyLogging {
           s"uses version with unknown symbol »${ru(gav.version.get)}«. Please remove unknown symbols."
         } else if (gav.version.isDefined && (gav.version.get == "RELEASE" || gav.version.get == "LATEST")) {
           s"uses version »${ru(gav.version.get)}« that is part of unstable markers LATEST and RELEASE. Please use unambiguous versions only."
+        } else if (gav.version.isDefined && gav.versionParsed.get.removeAllSnapshots().textLowerCase == "snapshot") {
+          s"uses strange version SNAPSHOT, please do not use reserved words »${ru(gav.version.get)}«."
         } else if (Gav.isUnusualElementValue(gav.artifactId)) {
           s"uses artifactId with unknown symbol »${ru(gav.artifactId)}«. Please remove unknown symbols."
         } else if (Gav.isUnusualElementValue(gav.groupId)) {
@@ -373,8 +377,11 @@ object ProjectMod extends LazyLogging {
     }
 
     def feelsUnusual(gav: Gav) = {
+      val text = gav.versionParsed.get.removeAllSnapshots().textLowerCase
       Gav.isUnusualElementValue(gav.groupId) || Gav.isUnusualElementValue(gav.artifactId) ||
-        (gav.version.isDefined && (Gav.isUnusualElementValue(gav.version.get) || gav.version.get == "RELEASE" || gav.version.get == "LATEST")) ||
+        (gav.version.isDefined && (Gav.isUnusualElementValue(gav.version.get) ||
+          gav.version.get == "RELEASE" || gav.version.get == "LATEST")) ||
+        text == "snapshot" ||
         Gav.isUnusualElementValue(gav.packageing) || Gav.isUnusualElementValue(gav.classifier) || Gav.isUnknownScope(gav.scope)
     }
 

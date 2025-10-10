@@ -27,7 +27,7 @@ case class Version(pre: String, major: Int, minor: Int, patch: Int, low: String,
   }
   lazy val hasNoDigits:Boolean = !hasDigits
   lazy val isSnapshot: Boolean = rawInputNonNull.endsWith("-SNAPSHOT")
-  lazy val text: String = {
+  lazy val textLowerCase: String = {
     if (isOrdinalOnly) {
       ""
     } else {
@@ -115,7 +115,7 @@ case class Version(pre: String, major: Int, minor: Int, patch: Int, low: String,
     }
   }
 
-  def removeSnapshot(): Version = {
+  def removeAllSnapshots(): Version = {
     if (isSnapshot) {
       parseSloppy(removeTrailingSnapshots(rawInput))
     } else {
