@@ -169,8 +169,8 @@ object PomChecker {
     msgs.toSeq
   }
 
-  def checkDepScopes(listDependecies: Seq[Dep], listDependeciesRaw: Seq[Dep]) = {
-    val msgs = getDepScopeAndOthers(listDependecies, listDependeciesRaw)
+  def checkDepScopes(listDependecies: Seq[Dep], pluginInnerDependecies: Seq[Dep]) = {
+    val msgs = getDepScopeAndOthers(listDependecies, pluginInnerDependecies)
     if (msgs.nonEmpty) {
       throw new ValidationException(msgs.mkString("\n"))
     }
@@ -181,11 +181,13 @@ object PomChecker {
     parentRefs
   }
 
-  def getDepScopeAndOthers(listDependecies: Seq[Dep], listDependeciesRaw: Seq[Dep]): Seq[String] = {
+  def getDepScopeAndOthers(listDependecies: Seq[Dep], pluginInnerDependecies: Seq[Dep]): Seq[String] = {
     // TODO avoid plugin deps
     val byRef: Map[SelfRef, Seq[Dep]] = listDependecies.groupBy(_.pomRef)
+      // .filterNot(t => t._2.)
 
-    val msgs = (virtualParentRef(listDependecies) ++ byRef).flatMap(deps => {
+    val refToDeps = virtualParentRef(listDependecies) ++ byRef
+    val msgs = refToDeps.flatMap(deps => {
       val all = deps._2.map(_.gav())
       val allWithoutScope = all.map(_.copy(scope = "", packageing = ""))
       val withoutScope = allWithoutScope.distinct

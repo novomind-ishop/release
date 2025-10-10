@@ -2,14 +2,14 @@ package release
 
 import com.typesafe.scalalogging.LazyLogging
 import release.PomMod.DepTree
-import release.ProjectMod.{Gav3, SelfRef}
+import release.ProjectMod.{Dep, Gav3, SelfRef}
 import release.SbtMod.SbtModel
 
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.util.concurrent.atomic.AtomicBoolean
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.parsing.combinator.RegexParsers
 
 case class SbtMod(file: File, repoZ: RepoZ, opts: Opts) extends ProjectMod {
@@ -31,6 +31,7 @@ case class SbtMod(file: File, repoZ: RepoZ, opts: Opts) extends ProjectMod {
     mainModel.copy(deps = mainModel.deps ++ otherDeps)
   }
   override val listDependencies: Seq[ProjectMod.Dep] = value.deps
+  override val listDependenciesPlugin: Seq[ProjectMod.Dep] = Nil
   override val listRawDeps: Seq[ProjectMod.Dep] = listDependencies
 
   val selfVersion: String = {

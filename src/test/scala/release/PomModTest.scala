@@ -500,6 +500,15 @@ class PomModTest extends AssertionsForJUnit {
     val orgMod = PomModTest.withRepoForTests(orgPoms, repo)
     Assert.assertEquals("27.0.0-SNAPSHOT", orgMod.selfVersion)
     assertDeps(Anyshop1Deps.ownDeps(), orgMod.listDependencies.filter(_.artifactId.contains("anyshop")))
+    assertDeps(Seq(
+      Dep(pomRef = SelfRef(id = "com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT",
+        gav3 = Gav3(groupId = "com.novomind.ishop.shops.anyshop", artifactId = "anyshop-projects", version = Some(value = "27.0.0-SNAPSHOT"))),
+        groupId = "org.aspectj", artifactId = "aspectjrt", version = Some(value = "1.8.8"), typeN = "", scope = "", packaging = "", classifier = "", pomPath = Seq("project", "build", "pluginManagement", "plugins", "plugin", "dependencies", "dependency")),
+      Dep(pomRef = SelfRef(id = "com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT",
+        gav3 = Gav3(groupId = "com.novomind.ishop.shops.anyshop", artifactId = "anyshop-projects", version = Some(value = "27.0.0-SNAPSHOT"))),
+        groupId = "org.aspectj", artifactId = "aspectjtools", version = Some(value = "1.8.8"), typeN = "", scope = "", packaging = "", classifier = "", pomPath = Seq("project", "build", "pluginManagement", "plugins", "plugin", "dependencies", "dependency")),
+
+    ), orgMod.listDependenciesPlugin)
     val value = Map("dep.tree" -> Nil,
       "anyshop-erp" -> Seq("com.novomind.ishop.shops.anyshop:anyshop-erp:jar:27.0.0-SNAPSHOT"),
       "anyshop-shop" -> Seq("+- com.novomind.ishop.shops.anyshop:anyshop-erp:jar:tests:27.0.0-SNAPSHOT:test",
@@ -1628,7 +1637,7 @@ class PomModTest extends AssertionsForJUnit {
         |     <version>27.0.0-SNAPSHOT</version></dependency>
         |      </dependencies>""".stripMargin
 
-    val result = PomMod.formatDependecy(input,
+    val result = PomMod.formatDependency(input,
       "com.novomind.ishop.shops.anyshop",
       "anyshop-erp",
       "27.0.0-SNAPSHOT", "27.0.0")

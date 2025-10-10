@@ -376,13 +376,19 @@ object ProjectMod extends LazyLogging {
       }
     }
 
-    def feelsUnusual(gav: Gav) = {
-      val text = gav.versionParsed.get.removeAllSnapshots().textLowerCase
-      Gav.isUnusualElementValue(gav.groupId) || Gav.isUnusualElementValue(gav.artifactId) ||
-        (gav.version.isDefined && (Gav.isUnusualElementValue(gav.version.get) ||
-          gav.version.get == "RELEASE" || gav.version.get == "LATEST")) ||
-        text == "snapshot" ||
-        Gav.isUnusualElementValue(gav.packageing) || Gav.isUnusualElementValue(gav.classifier) || Gav.isUnknownScope(gav.scope)
+    def feelsUnusual(gav: Gav): Boolean = {
+      val parsed = gav.versionParsed
+      if (parsed.isDefined) {
+        val text = parsed.get.removeAllSnapshots().textLowerCase
+        Gav.isUnusualElementValue(gav.groupId) || Gav.isUnusualElementValue(gav.artifactId) ||
+          (gav.version.isDefined && (Gav.isUnusualElementValue(gav.version.get) ||
+            gav.version.get == "RELEASE" || gav.version.get == "LATEST")) ||
+          text == "snapshot" ||
+          Gav.isUnusualElementValue(gav.packageing) || Gav.isUnusualElementValue(gav.classifier) || Gav.isUnknownScope(gav.scope)
+      } else {
+        // TODO log version
+        false
+      }
     }
 
     def format(parts: Seq[String]): String = parts.mkString(":").replaceAll("[:]{2,}", ":").replaceFirst(":$", "")
@@ -771,6 +777,7 @@ trait ProjectMod extends LazyLogging {
   val selfVersion: String
 
   val listDependencies: Seq[Dep]
+  val listDependenciesPlugin: Seq[Dep]
   val listRawDeps: Seq[Dep]
   val listPluginDependencies: Seq[PluginDep]
 

@@ -861,7 +861,7 @@ object Lint {
           if (modTry.isSuccess) {
             val mod = modTry.get
             out.println(info("--- dependency scopes/copies/overlapping @ maven/sbt ---", opts))
-            val msgs = PomChecker.getDepScopeAndOthers(mod.listDependencies, mod.listRawDeps) ++
+            val msgs = PomChecker.getDepScopeAndOthers(mod.listDependencies, mod.listDependenciesPlugin) ++
               PomChecker.getDepVersionsProblems(mod.listDependencies, mod.listRawDeps)
 
             if (msgs.nonEmpty) {

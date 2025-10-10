@@ -50,6 +50,7 @@ object ProjectModTest {
     override val listDependencies: Seq[ProjectMod.Dep] = Nil
     override val listRawDeps: Seq[Dep] = Nil
     override val listPluginDependencies: Seq[ProjectMod.PluginDep] = Nil
+    override val listDependenciesPlugin: Seq[Dep] = Nil
     override val listProperties: Map[String, String] = Map("undef" -> "undef")
 
     override def isShop: Boolean = false
@@ -304,6 +305,7 @@ class ProjectModTest extends AssertionsForJUnit {
     Assert.assertTrue(Gav("g", "a", "()").feelsUnusual())
     Assert.assertTrue(Gav("g", "a", "RELEASE").feelsUnusual())
     Assert.assertTrue(Gav("g", "a", "LATEST").feelsUnusual())
+    Assert.assertFalse(Gav(groupId = "g", artifactId =  "a", version = None).feelsUnusual())
   }
 
   @Test

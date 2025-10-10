@@ -151,8 +151,14 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
     oo
   }
 
+  val listRawDepsPlugin: Seq[Dep] = allPomsDocs.flatMap(pluginInnerDeps)
+  val listDependenciesPlugin: Seq[Dep] = {
+    val oo = replacedVersionProperties(listProperties, skipPropertyReplacement)(listRawDepsPlugin) // never distinct
+    oo
+  }
+
   if (opts.checkOverlapping) {
-    PomChecker.checkDepScopes(listDependencies, listRawDeps)
+    PomChecker.checkDepScopes(listDependencies, listDependenciesPlugin)
     PomChecker.checkDepVersions(listDependencies, listRawDeps)
     PomChecker.checkOwnArtifactNames(depInFiles, file)
   }
@@ -445,14 +451,27 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
     onlySnapshots
   }
 
-  private def deps(document: Document): Seq[Dep] = {
+  private def deps(document: Document, xpathS: String, withParents: Boolean): Seq[Dep] = {
     val self: Option[Dep] = PomMod.selfDep(depU)(document)
     self.toSeq.flatMap(s => {
-      val xmlNodes = Xpath.toSeqTuples(document, xPathToDependecies)
+      val xmlNodes = Xpath.toSeqTuples(document, xpathS)
 
-      val maybeDep: Seq[Dep] = PomMod.parentDep(depU)(s, document).toList
-      maybeDep ++ xmlNodes.filter(_.nonEmpty).map(PomMod.depFrom(s.pomRef.gav3, depU))
+      val t = xmlNodes.filter(_.nonEmpty).map(PomMod.depFrom(s.pomRef.gav3, depU))
+      if (withParents) {
+        val maybeDep: Seq[Dep] = PomMod.parentDep(depU)(s, document).toList
+        maybeDep ++ t
+      } else {
+        t
+      }
     })
+  }
+
+  private def deps(document: Document): Seq[Dep] = {
+    deps(document, xPathToDependecies, withParents = true)
+  }
+
+  private def pluginInnerDeps(document: Document): Seq[Dep] = {
+    deps(document, xPathToPluginInnerDependecies, withParents = false)
   }
 
   private def checkCurrentVersion(current: Option[String]): Unit = {
@@ -635,6 +654,7 @@ object PomMod {
   private val xPathToProjectParentPackaging = "//project/parent/packaging"
 
   private val xPathToDependecies = "//dependencies/dependency"
+  private val xPathToPluginInnerDependecies = "//plugin/dependencies/dependency"
   private val xPathToDependeciesScopeCompile = "//dependencies/dependency/scope[text() = 'compile']"
   private val xPathToDependeciesTypeJar = "//dependencies/dependency/type[text() = 'jar']"
 
@@ -1057,7 +1077,7 @@ object PomMod {
   }
 
   private def filterBy(doc: Document, sGroupId: String, sArtifactId: String, sVersionId: Option[String]): Seq[Node] = {
-    (Xpath.toSeq(doc, "//plugins/plugin") ++ Xpath.toSeq(doc, "//dependencies/dependency")).filter(node => {
+    (Xpath.toSeq(doc, "//plugins/plugin") ++ Xpath.toSeq(doc, xPathToDependecies)).filter(node => {
 
       val gavElements = Xpath.toSeqNodes(node.getChildNodes)
 
@@ -1076,7 +1096,7 @@ object PomMod {
     })
   }
 
-  def formatDependecy(in: String, selectedGroupId: String, selectedArtifcatId: String, selectedVersion: String, newVersion: String): String = {
+  def formatDependency(in: String, selectedGroupId: String, selectedArtifcatId: String, selectedVersion: String, newVersion: String): String = {
     val doc = Xpath.newDocument(in)
     val filtered = filterBy(doc, selectedGroupId, selectedArtifcatId, Some(selectedVersion))
     filtered.headOption.foreach(node => {

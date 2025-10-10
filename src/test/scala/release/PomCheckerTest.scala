@@ -189,7 +189,7 @@ class PomCheckerTest extends AssertionsForJUnit {
     )
 
     // WHEN / THEN
-    PomChecker.checkDepScopes(deps, deps) // no exception
+    PomChecker.checkDepScopes(deps, Nil) // no exception
   }
 
   @Test
@@ -209,7 +209,7 @@ class PomCheckerTest extends AssertionsForJUnit {
         |
         |""".stripMargin.trim,
       classOf[PomChecker.ValidationException],
-      () => PomChecker.checkDepScopes(deps, deps))
+      () => PomChecker.checkDepScopes(deps, Nil))
   }
 
   @Test
@@ -241,7 +241,7 @@ class PomCheckerTest extends AssertionsForJUnit {
         |com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war with scope: ...:compile
         |""".stripMargin.trim,
       classOf[PomChecker.ValidationException],
-      () => PomChecker.checkDepScopes(deps, deps))
+      () => PomChecker.checkDepScopes(deps, Nil))
   }
 
   @Test
