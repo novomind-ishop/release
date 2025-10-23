@@ -720,8 +720,7 @@ object Lint {
         val ciCommitTag = ciTagEnv.orNull
         val ciCommitBranchEnv = envs.get("CI_COMMIT_BRANCH") // not present on gitlab merge requests
         val ciCommitBranch = ciCommitBranchEnv.getOrElse("")
-        val gitTagNames = sgit.currentTags.getOrElse(Nil)
-        val tagBranchInfo = Lint.toBranchTag(ciCommitRefName, ciCommitTag, sgit.currentBranchOpt, ciCommitBranch, gitTagNames)
+        val tagBranchInfo = Lint.toBranchTag(ciCommitRefName, ciCommitTag, sgit.currentBranchOpt, ciCommitBranch, sgit.currentTagsWithoutAnnotated.getOrElse(Nil))
         val isGitOrCiTag: Boolean = Lint.isValidTag(tagBranchInfo)
         val rootFolderFiles = files.toSeq
         var pomFailures: Seq[Exception] = Nil
@@ -767,7 +766,7 @@ object Lint {
               s"ciRef: ${ciCommitRefName}, " +
               s"ciTag: ${ciCommitTag}, " +
               s"ciBranch: ${ciCommitBranch}, " +
-              s"gitTags: ${gitTagNames.mkString(",")}, " +
+              s"gitTags: ${sgit.currentTags.getOrElse(Nil).mkString(",")}, " +
               s"gitBranch: ${sgit.currentBranchOpt.getOrElse("")}", opts, limit = lineMax))
             warnExit.set(true)
           }

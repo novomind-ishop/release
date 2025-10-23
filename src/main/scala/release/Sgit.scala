@@ -246,6 +246,23 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     }
   }
 
+  def currentTagsWithoutAnnotated: Option[Seq[String]] = {
+    Option(currentTags.getOrElse(Nil).map(tName => {
+      try {
+        val asdf = gitNative(Seq("cat-file", "-t", tName), showErrorsOnStdErr = false).get
+        (tName, asdf)
+      } catch {
+        case _: Throwable => (tName, Nil)
+      }
+    }).flatMap(e => {
+      if (e._2.contains("tag")) {
+        None
+      } else {
+        Some(e._1)
+      }
+    }))
+  }
+
   def currentTags: Option[Seq[String]] = {
     if (currentBranchOpt == Some("HEAD")) {
       try {
@@ -744,10 +761,10 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     }
   }
 
-  def checkout(newBranchName: String): Unit = {
+  def checkout(branchOrTag: String): Unit = {
     val branch = currentBranch
-    if (branch != newBranchName) {
-      gitNative(Seq("checkout", "-q", newBranchName))
+    if (branch != branchOrTag) {
+      gitNative(Seq("checkout", "-q", branchOrTag))
     }
   }
 

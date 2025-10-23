@@ -88,7 +88,16 @@ class SgitTest extends AssertionsForJUnit {
   @Test
   def testCurrentBranch(): Unit = {
     // GIVEN
-    val status = SgitTest.workSgit()
+    val testRepoB = SgitTest.ensureAbsent("current-branch")
+
+    val gitB = Sgit.init(testRepoB, SgitTest.hasCommitMsg)
+    gitB.configSetLocal("user.email", "you@example.com")
+    gitB.configSetLocal("user.name", "Your Name")
+    gitB.add(SgitTest.testFile(testRepoB, Util.hashMd5Random()))
+    gitB.commitAll(s"c 123 123 ", Some(ZonedDateTime.parse("2005-04-07T22:13:13Z")))
+
+    gitB.checkout("master")
+    val status = gitB
 
     // WHEN
     val branch = status.currentBranch
@@ -441,6 +450,9 @@ class SgitTest extends AssertionsForJUnit {
     gitA.doTag("1.2.3")
     gitA.checkout("feature/a")
     gitA.doTag("1.2.4", msg = "annotated")
+    gitA.checkout("1.2.4")
+    Assert.assertEquals(Seq("master"), gitA.listBranchNamesAll())
+    gitA.checkout("feature/a")
     gitA.add(SgitTest.testFile(testRepoA, Util.hashMd5Random()))
     gitA.commitAll(s"c${counter.getAndIncrement()}", Some(ZonedDateTime.parse("2007-04-07T22:13:13Z")))
     Assert.assertEquals(Seq("feature/a", "feature/r/a", "master"), gitA.listBranchNamesAll())
@@ -692,9 +704,13 @@ class SgitTest extends AssertionsForJUnit {
     val beforeBranch = gitB.currentBranch
     gitB.checkout("v0.0.10")
     Assert.assertEquals("HEAD", gitB.currentBranch)
+    Assert.assertEquals(Some(Seq("v0.0.10")), gitB.currentTagsWithoutAnnotated)
     Assert.assertEquals(Some(Seq("v0.0.10")), gitB.currentTags)
     gitB.checkout(beforeBranch)
-    Assert.assertEquals(None, gitB.currentTags)
+    gitB.deleteTag("0.0.10")
+    gitB.doTag("0.0.10", msg = "anno")
+    Assert.assertEquals(Some(Nil), gitB.currentTagsWithoutAnnotated)
+    Assert.assertEquals(Some(Seq("v0.0.10")), gitB.currentTags)
     gitA.doTag("0.0.10")
     Term.Os.getCurrent match {
       case Term.Os.Darwin => {

@@ -1869,8 +1869,10 @@ class LintMavenTest extends AssertionsForJUnit {
   def testValidBranch(): Unit = {
     val file = temp.newFolder("release-lint-mvn-valid-branch")
     val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
-    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", null, gitA.currentBranchOpt, "work", currentTagsIn = gitA.currentTags.getOrElse(Nil))))
-    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", "", gitA.currentBranchOpt, "work", currentTagsIn = gitA.currentTags.getOrElse(Nil))))
+    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", null, gitA.currentBranchOpt, "work",
+      currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))))
+    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", "", gitA.currentBranchOpt, "work",
+      currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))))
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
     val work = new File(file, "pom.xml")
@@ -1882,29 +1884,42 @@ class LintMavenTest extends AssertionsForJUnit {
     gitA.createBranch("work")
     gitA.checkout("work")
     gitA.checkout("HEAD~0")
-    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", null, gitA.currentBranchOpt, "work", currentTagsIn = gitA.currentTags.getOrElse(Nil))))
-    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", "", gitA.currentBranchOpt, "work", currentTagsIn = gitA.currentTags.getOrElse(Nil))))
+    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", null, gitA.currentBranchOpt, "work",
+      currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))))
+    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", "", gitA.currentBranchOpt, "work",
+      currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))))
 
-    Assert.assertFalse(Lint.isValidTag(Lint.toBranchTag("work", null, gitA.currentBranchOpt, "work", currentTagsIn = gitA.currentTags.getOrElse(Nil))))
-    Assert.assertFalse(Lint.isValidTag(Lint.toBranchTag("work", "", gitA.currentBranchOpt, "work", currentTagsIn = gitA.currentTags.getOrElse(Nil))))
+    Assert.assertFalse(Lint.isValidTag(Lint.toBranchTag("work", null, gitA.currentBranchOpt, "work",
+      currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))))
+    Assert.assertFalse(Lint.isValidTag(Lint.toBranchTag("work", "", gitA.currentBranchOpt, "work",
+      currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))))
 
     gitA.doTag("work-20315-gcb5491b407")
     Assert.assertEquals(Some(Seq("vwork-20315-gcb5491b407")), gitA.currentTags)
 
-    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", "", gitA.currentBranchOpt, "work", currentTagsIn = gitA.currentTags.getOrElse(Nil))))
+    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", "", gitA.currentBranchOpt, "work",
+      currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))))
 
     gitA.doTag("20.0.0.some-6439-g800ef8fee7")
     Assert.assertEquals(Some(Seq("v20.0.0.some-6439-g800ef8fee7")), gitA.currentTags)
-    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", "", gitA.currentBranchOpt, "work", currentTagsIn = gitA.currentTags.getOrElse(Nil))))
+    Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", "", gitA.currentBranchOpt, "work",
+      currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))))
 
     gitA.deleteTag("work-20315-gcb5491b407")
     gitA.deleteTag("20.0.0.some-6439-g800ef8fee7")
 
     gitA.doTag("1.2.3")
     Assert.assertEquals(Some(Seq("v1.2.3")), gitA.currentTags)
-    val maybeMerge = Lint.toBranchTag("work", "", gitA.currentBranchOpt, "work", currentTagsIn = gitA.currentTags.getOrElse(Nil))
+    val maybeMerge = Lint.toBranchTag("work", "", gitA.currentBranchOpt, "work", currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))
     Assert.assertFalse(Lint.isValidBranch(maybeMerge))
     Assert.assertFalse(Lint.isValidTag(maybeMerge))
+    gitA.deleteTag("1.2.3")
+
+    gitA.doTag("1.2.3", msg = "handle annotated tags")
+    Assert.assertEquals(Some(Seq("v1.2.3")), gitA.currentTags)
+    val olo = Lint.toBranchTag("work", "", gitA.currentBranchOpt, "work", currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))
+    Assert.assertTrue(Lint.isValidBranch(olo))
+    Assert.assertFalse(Lint.isValidTag(olo))
   }
 
   @Test
