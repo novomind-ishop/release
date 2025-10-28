@@ -709,9 +709,21 @@ class SgitTest extends AssertionsForJUnit {
     gitB.checkout(beforeBranch)
     gitB.deleteTag("0.0.10")
     gitB.doTag("0.0.10", msg = "anno")
-    Assert.assertEquals(Some(Nil), gitB.currentTagsWithoutAnnotated)
-    Assert.assertEquals(Some(Seq("v0.0.10")), gitB.currentTags)
+    Assert.assertEquals(None, gitB.currentTagsWithoutAnnotated)
+    Assert.assertEquals(None, gitB.currentTags)
+    gitB.deleteTag("0.0.10")
+    TestHelper.assertException("Nonzero exit value: 1; git --no-pager checkout -q v0.0.10; error: pathspec 'v0.0.10' did not match any file(s) known to git",
+      classOf[RuntimeException], () => gitB.checkout("v0.0.10"))
+    gitB.doTag("0.0.10", msg = "anno")
+    gitB.doTag("0.0.10_a")
+    gitB.checkout("v0.0.10")
+    Assert.assertEquals("HEAD", gitB.currentBranch)
+    Assert.assertEquals(Some(Seq("v0.0.10_a")), gitB.currentTagsWithoutAnnotated)
+    Assert.assertEquals(Some(Seq("v0.0.10", "v0.0.10_a")), gitB.currentTags)
+    Assert.assertEquals(Some(Seq("v0.0.10")), gitB.currentTagsAnnotated)
+    gitB.checkout(beforeBranch)
     gitA.doTag("0.0.10")
+    gitB.deleteTag("0.0.10_a")
     Term.Os.getCurrent match {
       case Term.Os.Darwin => {
         TestHelper.assertExceptionWithCheck(message =>
@@ -763,6 +775,9 @@ class SgitTest extends AssertionsForJUnit {
 
     gitA.deleteTag("0.0.10")
     gitA.createBranch("lulul")
+    TestHelper.assertException("Nonzero exit value: 128; git --no-pager branch lulul; fatal: a branch named 'lulul' already exists",
+      classOf[RuntimeException], () => gitA.createBranch("lulul"))
+
     gitB.fetchAll()
     gitA.deleteBranch("lulul")
     gitB.fetchAll()

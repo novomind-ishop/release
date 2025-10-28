@@ -624,7 +624,7 @@ object Lint {
           .filterNot(_.refName.startsWith("refs/merge-requests/"))
           .filterNot(_.refName.startsWith("refs/pipelines/"))
         remoteRefs.foreach(ref => {
-          out.println(warnSoft(s"    strange ref: ${ref.refName}", opts, limit = lineMax))
+          out.println(warnSoft(s" strange ref: ${ref.refName}", opts, limit = lineMax))
         })
         out.println(info("--- check clone config / no shallow clone @ git ---", opts))
         if (sgit.isShallowClone) {

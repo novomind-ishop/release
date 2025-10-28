@@ -9,6 +9,7 @@ import release.Starter.PreconditionsException
 import java.io.{File, PrintStream}
 import java.net.URI
 import java.time.ZonedDateTime
+import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.{Callable, Executors, TimeUnit}
 import scala.annotation.tailrec
 import scala.concurrent.duration.Duration
@@ -246,8 +247,12 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     }
   }
 
+  def currentTagsAnnotated: Option[Seq[String]] = {
+    currentTags.map(c => c.diff(currentTagsWithoutAnnotated.getOrElse(Nil)))
+  }
+
   def currentTagsWithoutAnnotated: Option[Seq[String]] = {
-    Option(currentTags.getOrElse(Nil).map(tName => {
+    val strings = currentTags.getOrElse(Nil).map(tName => {
       try {
         val asdf = gitNative(Seq("cat-file", "-t", tName), showErrorsOnStdErr = false).get
         (tName, asdf)
@@ -260,13 +265,24 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
       } else {
         Some(e._1)
       }
-    }))
+    })
+    if (strings.isEmpty) {
+      None
+    } else {
+      Some(strings)
+    }
+
   }
 
   def currentTags: Option[Seq[String]] = {
-    if (currentBranchOpt == Some("HEAD")) {
+    if (isDetached) {
       try {
-        Some(gitNative(Seq("describe", "--tags"), showErrorsOnStdErr = false).get)
+        val value = gitNative(Seq("tag", "--points-at", "HEAD"), showErrorsOnStdErr = false).get
+        if (value.isEmpty) {
+          None
+        } else {
+          Some(value)
+        }
       } catch {
         case _: Throwable => None
       }
@@ -764,13 +780,14 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   def checkout(branchOrTag: String): Unit = {
     val branch = currentBranch
     if (branch != branchOrTag) {
-      gitNative(Seq("checkout", "-q", branchOrTag))
+      val result = gitNative(Seq("checkout", "-q", branchOrTag))
+      result.get
     }
   }
 
   def createBranch(branchName: String): Unit = {
     try {
-      gitNative(Seq("branch", branchName))
+      gitNative(Seq("branch", branchName)).get
     } catch {
       case e: RuntimeException if e.getMessage.contains("A branch named '" + branchName + "' already exists.") =>
         throw new BranchAlreadyExistsException(e.getMessage)
@@ -841,7 +858,11 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     } else {
       Nil
     }
-    val gitCmdCall: Seq[String] = Sgit.selectedGitCmd(err, gitBin).get ++ workdir ++ Seq("--no-pager") ++ args
+    val cmd: Seq[String] = checkVersionGitSmd.updateAndGet {
+      case None => Some(selectedGitCmd(err, gitBin).get)
+      case s => s
+    }.get
+    val gitCmdCall: Seq[String] = cmd ++ workdir ++ Seq("--no-pager") ++ args
 
     val ff = Tracer.msgAround[Try[String]](gitCmdCall.mkString(" "), logger,
       () => Sgit.native(gitCmdCall, errOnStdout = showErrorsOnStdErr, cmdFilter, err, errMapper))
@@ -954,9 +975,13 @@ object Sgit {
   case class GitTagWithDate(name: String, date: ZonedDateTime)
 
   private var gits = Map.empty[Seq[String], Unit]
+  private val checkVersionGitSmd = new AtomicReference[Option[Seq[String]]](None)
 
   private[release] def checkVersion(sgitVersion: SgitVersion, out: PrintStream, err: PrintStream, gitBin: Option[String]): Unit = synchronized {
-    val cmd: Seq[String] = selectedGitCmd(err, gitBin).get
+    val cmd: Seq[String] = checkVersionGitSmd.updateAndGet {
+      case None => Some(selectedGitCmd(err, gitBin).get)
+      case s => s
+    }.get
     val cmdLine = cmd.mkString(" ")
     val git = gits.get(cmd)
     if (git.isEmpty) {
