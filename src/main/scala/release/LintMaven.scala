@@ -7,21 +7,23 @@ import java.io.PrintStream
 import java.util.concurrent.atomic.AtomicBoolean
 
 object LintMaven {
-  def lintProjectVersion(out: PrintStream, opts: Opts, version: String, warnExit: AtomicBoolean, errorExit: AtomicBoolean,
+  def lintProjectVersion(out: PrintStream, opts: Opts, currentVersion: String, warnExit: AtomicBoolean, errorExit: AtomicBoolean,
                          tagBranchInfo: Option[BranchTagMerge], allGitTags: Seq[String], isShop:Boolean): Seq[Lint.UniqCode] = {
-    out.println(info(s"    $version", opts))
-    if (PomMod.isUnknownVersionPattern(version) && tagBranchInfo.isDefined && tagBranchInfo.get.branchName.getOrElse("").startsWith("release/")) {
+    out.println(info(s"    $currentVersion", opts))
+    if (PomMod.isUnknownVersionPattern(currentVersion) && tagBranchInfo.isDefined && tagBranchInfo.get.branchName.getOrElse("").startsWith("release/")) {
 
-      out.println(warnSoft(s" unknown release/version pattern: $version ${PomMod.trySuggestKnownPattern(version).getOrElse("-")}"
+      out.println(warnSoft(s" unknown release/version pattern: $currentVersion ${PomMod.trySuggestKnownPattern(currentVersion).getOrElse("-")}"
         , opts, limit = Lint.lineMax))
     }
     // TODO check if current version is older then released tags
+    // TODO check if current version out of range of all major versions; e.g. currentVersion: 40; existing (1,2,3)
+    // TODO check if version range/sequence has no gaps?
     val allGitTagVersions = Sgit.stripVersionPrefix(allGitTags)
     val allGitTagVersionsP = allGitTagVersions.map(Version.parseSloppy).filter(_.isOrdinal).sorted.distinct
-    val v = Version.parseSloppy(version)
+    val v = Version.parseSloppy(currentVersion)
     if (v.isUndef && v.hasNoDigits && Lint.isValidTag(tagBranchInfo)) {
       // TODO describe why this is important
-      out.println(warn(s" version »${version}« is not recommended, please use at least a single digit e.g. 1.0.0. This helps us to cleanup older versions. ${fiWarn}"
+      out.println(warn(s" version »${currentVersion}« is not recommended, please use at least a single digit e.g. 1.0.0. This helps us to cleanup older versions. ${fiWarn}"
         , opts, limit = Lint.lineMax))
       // TODO skip
       warnExit.set(true)
@@ -30,7 +32,7 @@ object LintMaven {
     val usedSkips: Seq[Lint.UniqCode] = if (!Lint.isValidTag(tagBranchInfo)) {
       if (!v.isSnapshot) {
         // TODO non snapshots are only allowed in tags, because if someone install it to its local repo this will lead to problems
-        out.println(warn(s" version »${version}« must be a SNAPSHOT; non snapshots are only allowed in tags ${fiWarn}"
+        out.println(warn(s" version »${currentVersion}« must be a SNAPSHOT; non snapshots are only allowed in tags ${fiWarn}"
           , opts, limit = Lint.lineMax))
         warnExit.set(true)
         // TODO skip
@@ -77,7 +79,7 @@ object LintMaven {
       Nil
     }
 
-    val mismatchResult = Lint.versionMismatches(version, tagBranchInfo, isShop)
+    val mismatchResult = Lint.versionMismatches(currentVersion, tagBranchInfo, isShop)
     if (mismatchResult.isMismatch) {
       val bool = opts.lintOpts.skips.contains(fiCodeVersionMismatch)
       if (bool) {

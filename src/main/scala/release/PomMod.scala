@@ -108,41 +108,7 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
   }
 
   val listProperties: Map[String, String] = {
-    if (failureCollector.isDefined) {
-      try {
-        PomChecker.checkRootFirstChildPropertiesVar(opts, raws)
-      } catch {
-        case e: Exception => failureCollector.get.apply(e)
-      }
-    } else {
-      PomChecker.checkRootFirstChildPropertiesVar(opts, raws)
-    }
-
-    val allPropsFromDocs = allPomsDocs.flatMap(PomMod.createPropertyMap)
-    val result = allPropsFromDocs.foldLeft(Map.empty[String, String])(_ + _)
-    val selfVersion = Util.only(listSelf.map(_.version).distinct, "version")
-
-    def skip(key: String)(p: (String, String)) = p.copy(_2 = p._2.replace(key, "skip"))
-
-    @nowarn("msg=possible missing interpolator")
-    val projectBasedirt = "${project.basedir}"
-    @nowarn("msg=possible missing interpolator")
-    val projectBuildFinalName = "${project.build.finalName}"
-    @nowarn("msg=possible missing interpolator")
-    val projectBuildDirectory = "${project.build.directory}"
-    @nowarn("msg=possible missing interpolator")
-    val mavenBuildTimestamp = "${maven.build.timestamp}"
-
-    val allProps = (result ++ Map("project.version" -> selfVersion.get))
-      .map(skip(projectBasedirt))
-      .map(skip(projectBuildFinalName))
-      .map(skip(projectBuildDirectory))
-      .map(skip(mavenBuildTimestamp))
-    val invalid = allProps.filter(_._2.contains("$"))
-    if (invalid.nonEmpty) {
-      throw new IllegalStateException("do not use properties in properties: " + invalid)
-    }
-    allProps
+    PomMod.listProperties(opts, raws, failureCollector, allPomsDocs, listSelf)
   }
 
   val listRawDeps: Seq[Dep] = allPomsDocs.flatMap(deps)
@@ -529,6 +495,61 @@ case class RawPomFile(pomFile: File, document: Document, file: File) {
 }
 
 object PomMod {
+
+  def listProperties(opts: Opts, raws: Seq[RawPomFile], failureCollector: Option[Exception => Unit],
+                     allPomsDocs: Seq[Document], listSelf: Seq[Dep]): Map[String, String] = {
+    if (failureCollector.isDefined) {
+      try {
+        PomChecker.checkRootFirstChildPropertiesVar(opts, raws)
+      } catch {
+        case e: Exception => failureCollector.get.apply(e)
+      }
+    } else {
+      PomChecker.checkRootFirstChildPropertiesVar(opts, raws)
+    }
+
+    val allPropsFromDocs = allPomsDocs.flatMap(PomMod.createPropertyMap)
+    val result = allPropsFromDocs.foldLeft(Map.empty[String, String])(_ + _)
+    val selfVersion = Util.only(listSelf.map(_.version).distinct, "version")
+
+    replacedProperties(result, selfVersion)
+  }
+
+  @tailrec
+  private def replaceWithLimit(result: Map[String, String], key: String, limit: Int = 4): String = {
+    if (key.contains("$") && limit > 0) {
+      replaceWithLimit(result, replaceProperty(result)(key), limit - 1)
+    } else {
+      key
+    }
+
+  }
+
+  def replacedProperties(result: Map[String, String], selfVersion: Option[String]): Map[String, String] = {
+    def skip(key: String)(p: (String, String)) = p.copy(_2 = p._2.replace(key, "skip"))
+
+    @nowarn("msg=possible missing interpolator")
+    val projectBasedirt = "${project.basedir}"
+    @nowarn("msg=possible missing interpolator")
+    val projectBuildFinalName = "${project.build.finalName}"
+    @nowarn("msg=possible missing interpolator")
+    val projectBuildDirectory = "${project.build.directory}"
+    @nowarn("msg=possible missing interpolator")
+    val mavenBuildTimestamp = "${maven.build.timestamp}"
+
+    val mavenInternalVersion = Map("project.version" -> replaceWithLimit(result, selfVersion.get))
+    val allProps = (result ++ mavenInternalVersion)
+      .map(skip(projectBasedirt))
+      .map(skip(projectBuildFinalName))
+      .map(skip(projectBuildDirectory))
+      .map(skip(mavenBuildTimestamp))
+    val invalid = allProps.filter(_._2.contains("$"))
+    if (invalid.nonEmpty) {
+      throw new IllegalStateException("do not use properties in properties: " + invalid)
+    }
+    allProps
+  }
+
   def checkSnapshots(v: Seq[String]) = {
     val typos = v.filter(s => s.toUpperCase().contains("SNAPSHOT")).filterNot(_.contains("SNAPSHOT"))
     if (typos.nonEmpty) {

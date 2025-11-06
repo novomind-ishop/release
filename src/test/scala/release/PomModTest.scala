@@ -3,12 +3,12 @@ package release
 import org.junit.rules.TemporaryFolder
 import org.junit.{Assert, ComparisonFailure, Ignore, Rule, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
-import org.w3c.dom._
+import org.w3c.dom.*
 import release.PomChecker.ValidationException
 import release.PomMod.DepTree
-import release.PomModTest._
-import release.ProjectMod._
-import release.Starter.{PreconditionsException}
+import release.PomModTest.*
+import release.ProjectMod.*
+import release.Starter.PreconditionsException
 import release.FileUtils.Ext.*
 
 import java.io.{BufferedWriter, File, FileWriter}
@@ -1587,6 +1587,49 @@ class PomModTest extends AssertionsForJUnit {
           classOf[IllegalStateException], cmd)
       }
     }
+
+  }
+
+  @Test
+  def testReplacedProperties_simple(): Unit = {
+    // GIVEN / WHEN
+    val props = PomMod.replacedProperties(Map("a" -> "a"), Some("1.0.0"))
+
+    // THEN
+    Assert.assertEquals(Map(
+      "a" -> "a",
+      "project.version" -> "1.0.0",
+    ), props)
+  }
+
+  @Test
+  @nowarn("msg=possible missing interpolator")
+  def testReplacedProperties_simple_version(): Unit = {
+    // GIVEN / WHEN
+    val props = PomMod.replacedProperties(Map("a" -> "1.0.0"), Some("${a}"))
+
+    // THEN
+    Assert.assertEquals(Map(
+      "a" -> "1.0.0",
+      "project.version" -> "1.0.0",
+    ), props)
+  }
+
+
+  @Test
+  @nowarn("msg=possible missing interpolator")
+  def testReplacedProperties_problem(): Unit = {
+    TestHelper.assertException("do not use properties in properties: Map(a -> ${yolo})",
+      classOf[IllegalStateException], () => PomMod.replacedProperties(Map("a" -> "${yolo}"), Some("1.0.0")))
+
+    TestHelper.assertException("do not use properties in properties: Map(any -> ${yolo}, yolo -> ${any})",
+      classOf[IllegalStateException], () => PomMod.replacedProperties(Map("any" -> "${yolo}", "yolo" -> "${any}"), Some("1.0.0")))
+    TestHelper.assertException("No property replacement found in pom.xmls for: \"${any}\" - define properties where they are required and not in parent pom.xml. Input is Nil.",
+      classOf[IllegalArgumentException], () => PomMod.replacedProperties(Map(
+        "any" -> "${yolo}",
+        "yolo" -> "${some}",
+        "some" -> "${any}",
+      ), Some("${any}")))
 
   }
 
