@@ -123,7 +123,7 @@ object PomChecker {
     snapsF
   }
 
-  def checkExternalWithProjectScope(listRawDeps: Seq[Dep], selfDepsMod: Seq[Dep], listProperties: Map[String, String]) = {
+  def checkExternalWithProjectScope(listRawDeps: Seq[Dep], selfDepsMod: Seq[Dep], listProperties: Map[String, String]): Unit = {
     def k(iz: Seq[Dep]) = PomMod.replacedVersionProperties(listProperties.filter(t => t._1.startsWith("project")), skipPropertyReplacement = true)(iz)
 
     val externals = listRawDeps.filterNot(d => {
@@ -136,7 +136,7 @@ object PomChecker {
     }
   }
 
-  def checkDepVersions(listDependecies: Seq[Dep], listDependeciesRaw: Seq[Dep]) = {
+  def checkDepVersions(listDependecies: Seq[Dep], listDependeciesRaw: Seq[Dep]): Unit = {
     val msgs = getDepVersionsProblems(listDependecies, listDependeciesRaw)
     if (msgs.nonEmpty) {
       throw new ValidationException(msgs.mkString("\n\n"))

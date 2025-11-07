@@ -47,7 +47,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[00:00:00.00Z] [[31mERROR[0m] ----------------------------[ end of lint ]----------------------------""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
       val opts = Opts().copy(lintOpts = Opts().lintOpts.copy(showTimer = true, showTimeStamps = true))
-      Assert.assertEquals(1, Lint.run(sys.out, sys.err, opts, Map.empty, file))
+      val exit = Lint.run(sys.out, sys.err, opts, Map.empty, file)
+      Assert.assertEquals(1, exit)
+      exit
     })
 
   }
@@ -115,7 +117,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
-      Assert.assertEquals(42, Lint.run(sys.out, sys.err, opts, Map.empty, fileB))
+      val exit = Lint.run(sys.out, sys.err, opts, Map.empty, fileB)
+      Assert.assertEquals(42, exit)
+      exit
     })
 
   }
@@ -231,7 +235,8 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(Nil)
 
-      System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, fileB))
+      val exit = Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, fileB)
+      exit
     })
 
   }
@@ -307,7 +312,7 @@ class LintMavenTest extends AssertionsForJUnit {
         "CI_COMMIT_REF_NAME" -> "vU",
         "CI_COMMIT_TAG" -> "vU",
       )
-      System.exit(Lint.run(sys.out, sys.err, opts, value, fileB))
+      Lint.run(sys.out, sys.err, opts, value, fileB)
     })
 
   }
@@ -428,7 +433,7 @@ class LintMavenTest extends AssertionsForJUnit {
       )
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(mockUpdates)
-      System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, fileB))
+      Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, fileB)
     })
 
   }
@@ -657,7 +662,7 @@ class LintMavenTest extends AssertionsForJUnit {
         .thenReturn(Seq(
           "1.2.3", "99.99.99", "3.2.1"
         ))
-      System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, fileB))
+      Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, fileB)
     })
   }
 
@@ -789,7 +794,7 @@ class LintMavenTest extends AssertionsForJUnit {
         .thenReturn(Seq(
           "51.0.0", "51.2.5", "51.2.3",
         ))
-      System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file))
+      Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file)
     })
 
   }
@@ -914,7 +919,7 @@ class LintMavenTest extends AssertionsForJUnit {
       )
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(mockUpdates)
-      System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file))
+      Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file)
     })
 
   }
@@ -1034,7 +1039,7 @@ class LintMavenTest extends AssertionsForJUnit {
       )
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(mockUpdates)
-      System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file))
+      Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file)
     })
 
   }
@@ -1109,7 +1114,7 @@ class LintMavenTest extends AssertionsForJUnit {
         .thenReturn(None)
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(Seq("0.0.1", "1.0.1-SNAPSHOT", "1.0.0"))
-      System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file))
+      Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file)
     })
 
   }
@@ -1263,7 +1268,7 @@ class LintMavenTest extends AssertionsForJUnit {
         .thenReturn(None)
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(Seq("0.0.1", "1.0.1-SNAPSHOT", "1.0.0"))
-      System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file))
+      Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file)
     })
 
   }
@@ -1512,7 +1517,7 @@ class LintMavenTest extends AssertionsForJUnit {
         "CI_COMMIT_REF_NAME" -> "v0.11.0",
         "CI_COMMIT_TAG" -> "v0.11.0",
       )
-      System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), value, root))
+      Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), value, root)
     })
 
   }
@@ -1661,7 +1666,7 @@ class LintMavenTest extends AssertionsForJUnit {
         thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
-      System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file))
+      Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file)
 
     })
   }
@@ -1763,7 +1768,7 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(online = true, "202"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
-      System.exit(Lint.run(sys.out, sys.err, opts, Map.empty, file))
+      Lint.run(sys.out, sys.err, opts, Map.empty, file)
 
     })
   }
@@ -1773,7 +1778,7 @@ class LintMavenTest extends AssertionsForJUnit {
   def testOnLocal(): Unit = {
     val file = new File("/mnt/c/Users/tstock/git/cbr")
     TermTest.testSys(Nil, "", "", expectedExitCode = 42)(sys => {
-      System.exit(Lint.run(sys.out, sys.err, Opts().copy(colors = false), Map.empty, file))
+      Lint.run(sys.out, sys.err, Opts().copy(colors = false), Map.empty, file)
     })
   }
 
@@ -2060,7 +2065,7 @@ class LintMavenTest extends AssertionsForJUnit {
         "CI_CONFIG_PATH" -> ".gitlab-ci.yml",
         "CI_COMMIT_REF_NAME" -> "feature/bre",
         "CI_COMMIT_TAG" -> "")
-      System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), env, file))
+      Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), env, file)
 
     })
   }
@@ -2076,6 +2081,7 @@ class LintMavenTest extends AssertionsForJUnit {
 
       LintMaven.lintProjectVersion(sys.out, opts, "main-SNAPSHOT", new AtomicBoolean(), new AtomicBoolean(),
         BranchTagMerge.merge, Nil, isShop = false)
+      0
     })
   }
 
@@ -2092,6 +2098,7 @@ class LintMavenTest extends AssertionsForJUnit {
       LintMaven.lintProjectVersion(sys.out, opts, "main-SNAPSHOT", warnExit = boolean, new AtomicBoolean(),
         Some(BranchTagMerge(tagName = None, branchName = Some("main"))), Nil, isShop = false)
       Assert.assertFalse(boolean.get())
+      0
     })
   }
 
@@ -2108,6 +2115,7 @@ class LintMavenTest extends AssertionsForJUnit {
       LintMaven.lintProjectVersion(sys.out, opts, "1.2.3-SNAPSHOT", warnExit = boolean, new AtomicBoolean(),
         Some(BranchTagMerge(tagName = None, branchName = Some("main"))), allGitTags = Seq("v1.2.3"), isShop = false)
       Assert.assertTrue(boolean.get())
+      0
     })
   }
 
@@ -2126,6 +2134,7 @@ class LintMavenTest extends AssertionsForJUnit {
 
       Assert.assertFalse(boolean.get())
       Assert.assertEquals(Seq("RL1020"), skips)
+      0
     })
   }
 
@@ -2144,6 +2153,7 @@ class LintMavenTest extends AssertionsForJUnit {
         Some(BranchTagMerge(tagName = Some("v5.0.0"), branchName = None)),
         allGitTags = Seq("v1.2.3", "bert-preview", "v99.0.0", "99.0.0"), isShop = false)
       Assert.assertFalse(boolean.get())
+      0
     })
   }
 
@@ -2161,6 +2171,7 @@ class LintMavenTest extends AssertionsForJUnit {
       LintMaven.lintProjectVersion(sys.out, opts, "1.2.3", warnExit = hasWarnExit, new AtomicBoolean(),
         btm, allGitTags = Seq("v1.2.2", "v1.2.3"), isShop = false)
       Assert.assertFalse(hasWarnExit.get())
+      0
     })
   }
 
@@ -2179,6 +2190,7 @@ class LintMavenTest extends AssertionsForJUnit {
       LintMaven.lintProjectVersion(sys.out, opts, "otto", warnExit = hasWarnExit, new AtomicBoolean(),
         btm, allGitTags = Seq("v1.2.2", "v1.2.3"), isShop = false)
       Assert.assertTrue(hasWarnExit.get())
+      0
     })
   }
 
@@ -2194,6 +2206,7 @@ class LintMavenTest extends AssertionsForJUnit {
 
       LintMaven.lintProjectVersion(sys.out, opts, "ro-SNAPSHOT", new AtomicBoolean(), new AtomicBoolean(),
         Some(BranchTagMerge(tagName = None, branchName = Some("release/ro"))), Nil, isShop = false)
+      0
     })
   }
 
@@ -2209,6 +2222,7 @@ class LintMavenTest extends AssertionsForJUnit {
 
       LintMaven.lintProjectVersion(sys.out, opts, "RC-2024.34.01-bugfix-SNAPSHOT", new AtomicBoolean(), new AtomicBoolean(),
         Some(BranchTagMerge(tagName = None, branchName = Some("release/RC-2024.34.01-bugfix"))), Nil, isShop = false)
+      0
     })
   }
 
@@ -2230,6 +2244,7 @@ class LintMavenTest extends AssertionsForJUnit {
       LintMaven.lintProjectVersion(sys.out, opts, "main", warnExit = boolean, new AtomicBoolean(),
         btm, allGitTags = Seq("v1.2.3"), isShop = false)
       Assert.assertTrue(boolean.get())
+      0
     })
   }
 
@@ -2251,6 +2266,7 @@ class LintMavenTest extends AssertionsForJUnit {
         btm, allGitTags = Seq("v1.2.3"), isShop = false)
       Assert.assertEquals(Nil, result)
       Assert.assertTrue(boolean.get())
+      0
     })
   }
 
@@ -2268,6 +2284,7 @@ class LintMavenTest extends AssertionsForJUnit {
       val boolean = new AtomicBoolean()
       LintMaven.lintProjectVersion(sys.out, opts, null, warnExit = boolean, new AtomicBoolean(), None, Nil, isShop = false)
       Assert.assertTrue(boolean.get())
+      0
     })
   }
 }

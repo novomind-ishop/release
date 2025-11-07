@@ -214,7 +214,7 @@ class ReleaseTest extends AssertionsForJUnit {
 
         }, branch = "master", gitLocal, term, 72, () => "abc",
         ReleaseConfig.default(true), opts.newRepo, opts)
-
+      0
     })
     Assert.assertEquals(Seq("Releasetool-sha1: abc"), gitRemote.log().linesIterator.filter(_.startsWith("Releasetool-sha1")).toSeq)
 
@@ -283,7 +283,7 @@ class ReleaseTest extends AssertionsForJUnit {
 
         }, branch = "master", gitLocal, term, 72, () => "abc",
         ReleaseConfig.default(true), opts.newRepo, opts)
-
+      0
     })
 
   }
@@ -346,7 +346,7 @@ class ReleaseTest extends AssertionsForJUnit {
 
         }, branch = "master", gitLocal, term, 72, () => "abc",
         ReleaseConfig.default(true), opts.newRepo, opts)
-
+      0
     })
 
   }
@@ -409,7 +409,7 @@ class ReleaseTest extends AssertionsForJUnit {
 
         }, branch = "master", gitLocal, term, 72, () => "abc",
         ReleaseConfig.default(true), opts.newRepo, opts)
-
+      0
     })
 
   }
@@ -472,7 +472,7 @@ class ReleaseTest extends AssertionsForJUnit {
 
         }, branch = "master", gitLocal, term, 72, () => "abc",
         ReleaseConfig.default(true), opts.newRepo, opts)
-
+      0
     })
   }
 
@@ -581,7 +581,7 @@ class ReleaseTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.latestGav("org.example", "example2", "1.0.0-SNAPSHOT"))
         .thenReturn(Some(Gav3("org.example", "example2", Some("0.99"))))
       Release.offerAutoFixForReleaseSnapshots(sys, mod = testMod, gitFiles = Nil, shellWidth = 72, mockRepo, opts)
-
+      0
     })
 
   }

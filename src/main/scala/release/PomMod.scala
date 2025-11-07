@@ -595,6 +595,8 @@ object PomMod {
     def r(k: String) = replacedPropertyOf(listProperties, skipPropertyReplacement)(k)
 
     deps.map(dep => dep.copy(
+      pomRef = dep.pomRef.copy(id = r(dep.pomRef.id),
+        gav3 = dep.pomRef.gav3.copy(version = dep.pomRef.gav3.version.map(r))),
       version = dep.version.map(r),
       packaging = r(dep.packaging),
       typeN = r(dep.typeN),

@@ -6,6 +6,7 @@ import release.ProjectMod.Gav3
 import release.TreeGavTest.replaceVarLiterals
 
 import java.io.File
+
 object TreeGavTest {
   def replaceVarLiterals(in: String): String = {
     in.replaceAll("- $", "-")
@@ -20,6 +21,7 @@ object TreeGavTest {
       .replaceAll("dependencies in [0-9\\.]+ [mμs]+ \\([0-9]{4}-[0-9]{2}-[0-9]{2}\\)", "dependencies in 999ms (2000-01-01)")
   }
 }
+
 class TreeGavTest extends AssertionsForJUnit {
 
   @Test
@@ -27,13 +29,14 @@ class TreeGavTest extends AssertionsForJUnit {
 
     val value: Map[File, Seq[Gav3]] = Map(new File("a/dep.tree") -> Seq(
       Gav3(groupId = "g", artifactId = "a", version = Some("1.2.0"))
-      
+
     ))
     val expected =
       """""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
       val opts = Opts().copy(lintOpts = Opts().lintOpts.copy(showTimer = true, showTimeStamps = true))
       TreeGav.format(value, sys.out, opts)
+      0
     })
 
   }
@@ -60,6 +63,7 @@ class TreeGavTest extends AssertionsForJUnit {
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
       val opts = Opts().copy(colors = false)
       TreeGav.format(value, sys.out, opts)
+      0
     })
 
   }

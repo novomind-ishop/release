@@ -114,7 +114,7 @@ class LintSbtTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(Seq("1.0.0"))
 
-      System.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, fileB))
+      Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, fileB)
     })
 
   }

@@ -19,6 +19,7 @@ class TermTest extends AssertionsForJUnit {
     TermTest.testSys(Seq(value), "enter some [word]: My string", "", expectedExitCode = 0)(sys => {
       val result = Term.readFrom(sys, "enter some", "word", Opts(useJlineInput = false))
       Assert.assertEquals(value, result)
+      0
     })
 
   }
@@ -27,6 +28,7 @@ class TermTest extends AssertionsForJUnit {
   def testReadNull(): Unit = {
     TermTest.testSys(Nil, "enter some [word]: ", "invalid readFrom(..) => exit 14", 14)(sys => {
       Term.readFrom(sys, "enter some", "word", Opts(useJlineInput = false))
+      0
     })
   }
 
@@ -37,6 +39,7 @@ class TermTest extends AssertionsForJUnit {
       Assert.assertEquals("a", bin.readLine())
       Assert.assertEquals("b", bin.readLine())
       Assert.assertEquals(null, bin.readLine())
+      0
     })
   }
 
@@ -45,6 +48,7 @@ class TermTest extends AssertionsForJUnit {
     TestHelper.assertComparisonFailure("expected:<[a]> but was:<[b]>", () => {
       TermTest.testSys(Nil, "", "", expectedExitCode = 0)(_ => {
         Assert.assertEquals("a", "b")
+        0
       })
     })
   }
@@ -87,6 +91,7 @@ class TermTest extends AssertionsForJUnit {
     testSys(Nil, a, "", expectedExitCode = 0)(sys => {
       val value = "  a very long line a very long line a very long line a very long line a very long line a very long line "
       Term.wrap(sys.out, Term.warn, value, Opts(colors = false))
+      0
     })
   }
 
@@ -105,6 +110,7 @@ class TermTest extends AssertionsForJUnit {
         "27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, " +
         "56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74"
       Term.wrap(sys.out, Term.warn, value, Opts(colors = false))
+      0
     })
   }
 
@@ -118,6 +124,7 @@ class TermTest extends AssertionsForJUnit {
     testSys(Nil, a, "", expectedExitCode = 0)(sys => {
       val value = "a very long line a very long line a very long line a very long line a very long line a very long line "
       Term.wrap(sys.out, Term.warn, value, Opts(colors = false))
+      0
     })
   }
 
@@ -133,6 +140,7 @@ class TermTest extends AssertionsForJUnit {
         """a
           |b""".stripMargin
       Term.wrap(sys.out, Term.warn, value, Opts(colors = false))
+      0
     })
   }
 
@@ -150,6 +158,7 @@ class TermTest extends AssertionsForJUnit {
           |b
           |  c""".stripMargin
       Term.wrap(sys.out, Term.warn, value, Opts(colors = false))
+      0
     })
   }
 
@@ -207,33 +216,15 @@ object TermTest extends LazyLogging {
 
   def testSys(input: Seq[String], expectedOut: String, expectedErr: String, expectedExitCode: Int,
               outFn: String => String = a => a, outAllFn: Seq[String] => Seq[String] = a => a)
-             (fn: Term.Sys => Unit): Unit = {
+             (fn: Term.Sys => Int): Unit = {
     this.synchronized {
-
-      val oldSecurityManager = System.getSecurityManager
-      var exitCode = 0
-
-      val manager = new SecurityManager() {
-        override def checkPermission(perm: Permission): Unit = {
-          val exitPrefix = "exitVM."
-          if (perm.getName.startsWith(exitPrefix)) {
-            exitCode = perm.getName.substring(exitPrefix.length).toInt
-            // https://openjdk.org/jeps/411
-            // https://bugs.openjdk.org/browse/JDK-8199704
-            throw new SecurityException("EXIT NOT ALLOWED")
-          }
-        }
-
-      }
-      @nowarn
-      val unit = System.setSecurityManager(manager)
 
       val out = new ByteArrayOutputStream()
       val err = new ByteArrayOutputStream()
 
       val preparedLines = input.mkString("\n")
       val in = new ByteArrayInputStream(preparedLines.getBytes)
-      try {
+      val exitCode = try {
         fn.apply(new Term.Sys(in, out, err) {
           override lazy val inReader = new BufferedReader(new InputStreamReader(inS)) {
             val innerOut = new PrintStream(outS)
@@ -250,9 +241,6 @@ object TermTest extends LazyLogging {
         case e: SecurityException => // nothing
         case e: AssertionError => throw e
         case e: Throwable => throw e
-      } finally {
-        @nowarn
-        val unit = System.setSecurityManager(oldSecurityManager)
       }
       Assert.assertEquals(expectedErr, outAllFn.apply(err.toString.linesIterator.toList
         .map(outFn))
