@@ -775,6 +775,7 @@ trait ProjectMod extends LazyLogging {
   lazy val repo: RepoZ = throw new NotImplementedError()
   val opts: Opts
   val selfVersion: String
+  lazy val selfVersionReplaced:String = selfVersion
 
   val listDependencies: Seq[Dep]
   val listDependenciesPlugin: Seq[Dep]

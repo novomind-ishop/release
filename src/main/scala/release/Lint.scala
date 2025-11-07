@@ -891,7 +891,7 @@ object Lint {
               out.println(info("    WIP", opts)) // TODO check extensions present
             }
             out.println(info("--- project version @ maven ---", opts))
-            usedSkips = usedSkips ++ LintMaven.lintProjectVersion(out, opts, modTry.get.selfVersion, warnExit, errorExit, tagBranchInfo,
+            usedSkips = usedSkips ++ LintMaven.lintProjectVersion(out, opts, modTry.get.selfVersionReplaced, warnExit, errorExit, tagBranchInfo,
               sgit.listAllTags(), mod.isShop)
 
             out.println(info("--- check for snapshots @ maven ---", opts))
