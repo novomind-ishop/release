@@ -45,11 +45,10 @@ class LintMavenTest extends AssertionsForJUnit {
         |[00:00:00.00Z] [[34mINFO[0m] --------------------------------[ lint ]--------------------------------
         |[00:00:00.00Z] [[31mERROR[0m] E: NO FILES FOUND in /tmp/junit-REPLACED/release-lint-empty
         |[00:00:00.00Z] [[31mERROR[0m] ----------------------------[ end of lint ]----------------------------""".stripMargin
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
       val opts = Opts().copy(lintOpts = Opts().lintOpts.copy(showTimer = true, showTimeStamps = true))
       val exit = Lint.run(sys.out, sys.err, opts, Map.empty, file)
       Assert.assertEquals(1, exit)
-      exit
     })
 
   }
@@ -88,8 +87,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check clone config / remote @ git ---
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active contributor count: 1
-        |[INFO]       Your Name <you@example.com>
+        |[INFO]     active (last 14 days) contributor count: 1
+        |[INFO]       Y‌o‌u‌r N‌a‌m‌e <‌y‌o‌u‌@‌e‌x‌a‌m‌p‌l‌e‌.‌c‌o‌m‌>
         |[INFO]     active branch count: 1 - master
         |[INFO]     approx. a new branch each: P0D, approx. a new tag each: P-1D
         |[INFO] --- check clone config / no shallow clone @ git ---
@@ -115,11 +114,10 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[INFO]     used memory: ∞m
         |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val exit = Lint.run(sys.out, sys.err, opts, Map.empty, fileB)
       Assert.assertEquals(42, exit)
-      exit
     })
 
   }
@@ -168,8 +166,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check clone config / remote @ git ---
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active contributor count: 1
-        |[WARNING]       Your Name <you@hostname-without-tld> // not valid mailbox TLD
+        |[INFO]     active (last 14 days) contributor count: 1
+        |[WARNING]       Y‌o‌u‌r N‌a‌m‌e <‌y‌o‌u‌@‌h‌o‌s‌t‌n‌a‌m‌e‌-‌w‌i‌t‌h‌o‌u‌t‌-‌t‌l‌d‌> // not valid mailbox TLD
         |[INFO]     active branch count: 1 - master
         |[INFO]     approx. a new branch each: P0D, approx. a new tag each: P-1D
         |[INFO] --- check clone config / no shallow clone @ git ---
@@ -195,7 +193,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
         |[INFO] --- check for preview releases @ maven ---
-        |[INFO] --- check major versions @ ishop ---
+        |[INFO] --- version skew ---
         |[INFO]     is shop: false
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
@@ -235,8 +233,7 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(Nil)
 
-      val exit = Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, fileB)
-      exit
+      sys.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, fileB))
     })
 
   }
@@ -273,7 +270,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[WARNING]  😬 HEAD branch: (unknown) - n/a
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active contributor count: 0
+        |[INFO]     active (last 14 days) contributor count: 0
         |[INFO]     active branch count: 0
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
@@ -312,7 +309,7 @@ class LintMavenTest extends AssertionsForJUnit {
         "CI_COMMIT_REF_NAME" -> "vU",
         "CI_COMMIT_TAG" -> "vU",
       )
-      Lint.run(sys.out, sys.err, opts, value, fileB)
+      sys.exit(Lint.run(sys.out, sys.err, opts, value, fileB))
     })
 
   }
@@ -361,8 +358,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check clone config / remote @ git ---
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active contributor count: 1
-        |[INFO]       Your Name <you@example.com>
+        |[INFO]     active (last 14 days) contributor count: 1
+        |[INFO]       Y‌o‌u‌r N‌a‌m‌e <‌y‌o‌u‌@‌e‌x‌a‌m‌p‌l‌e‌.‌c‌o‌m‌>
         |[INFO]     active branch count: 1 - master
         |[INFO]     approx. a new branch each: P0D, approx. a new tag each: P-1D
         |[INFO] --- check clone config / no shallow clone @ git ---
@@ -388,7 +385,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
         |[INFO] --- check for preview releases @ maven ---
-        |[INFO] --- check major versions @ ishop ---
+        |[INFO] --- version skew ---
         |[INFO]     is shop: false
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
@@ -412,7 +409,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[INFO]     used memory: ∞m""".stripMargin
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
       val opts1 = Opts().lintOpts.copy(showTimer = false)
       val opts = Opts(colors = false, lintOpts = opts1)
       val mockRepo = Mockito.mock(classOf[Repo])
@@ -534,8 +531,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check clone config / remote @ git ---
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active contributor count: 1
-        |[INFO]       Your Name <you@example.com>
+        |[INFO]     active (last 14 days) contributor count: 1
+        |[INFO]       Y‌o‌u‌r N‌a‌m‌e <‌y‌o‌u‌@‌e‌x‌a‌m‌p‌l‌e‌.‌c‌o‌m‌>
         |[INFO]     active branch count: 1 - master
         |[INFO]     approx. a new branch each: P0D, approx. a new tag each: P-1D
         |[INFO] --- check clone config / no shallow clone @ git ---
@@ -572,7 +569,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]        previous: org.springframework:spring-context:0.99.99
         |[warning]   found preview: org.springframework:spring-vars:1.0.0-M1 😬 RL1018-ceefe9c6
         |[warning]        previous: org.springframework:spring-vars:0.0.99
-        |[INFO] --- check major versions @ ishop ---
+        |[INFO] --- version skew ---
         |[INFO]     is shop: false
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
@@ -662,7 +659,7 @@ class LintMavenTest extends AssertionsForJUnit {
         .thenReturn(Seq(
           "1.2.3", "99.99.99", "3.2.1"
         ))
-      Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, fileB)
+      sys.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, fileB))
     })
   }
 
@@ -710,7 +707,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[WARNING]  😬 remote call exception: java.lang.RuntimeException message: Nonzero exit value: 128; git --no-pager remote show origin; fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active contributor count: 0
+        |[INFO]     active (last 14 days) contributor count: 0
         |[INFO]     active branch count: 0
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
@@ -738,7 +735,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
         |[INFO] --- check for preview releases @ maven ---
-        |[INFO] --- check major versions @ ishop ---
+        |[INFO] --- version skew ---
         |[INFO]     is shop: false
         |[WARNING]     Found multiple core major version: »50, 51«, use only one 😬 RL1013-04b32370
         |[WARNING]       - 50 -
@@ -794,7 +791,7 @@ class LintMavenTest extends AssertionsForJUnit {
         .thenReturn(Seq(
           "51.0.0", "51.2.5", "51.2.3",
         ))
-      Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file)
+      sys.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file))
     })
 
   }
@@ -843,7 +840,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[WARNING]  😬 remote call exception: java.lang.RuntimeException message: Nonzero exit value: 128; git --no-pager remote show origin; fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active contributor count: 0
+        |[INFO]     active (last 14 days) contributor count: 0
         |[INFO]     active branch count: 0
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
@@ -873,7 +870,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
         |[INFO] --- check for preview releases @ maven ---
-        |[INFO] --- check major versions @ ishop ---
+        |[INFO] --- version skew ---
         |[INFO]     is shop: false
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
@@ -919,7 +916,7 @@ class LintMavenTest extends AssertionsForJUnit {
       )
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(mockUpdates)
-      Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file)
+      sys.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file))
     })
 
   }
@@ -965,7 +962,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[WARNING]  😬 remote call exception: java.lang.RuntimeException message: Nonzero exit value: 128; git --no-pager remote show origin; fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active contributor count: 0
+        |[INFO]     active (last 14 days) contributor count: 0
         |[INFO]     active branch count: 0
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
@@ -991,7 +988,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
         |[INFO] --- check for preview releases @ maven ---
-        |[INFO] --- check major versions @ ishop ---
+        |[INFO] --- version skew ---
         |[INFO]     is shop: false
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
@@ -1039,7 +1036,7 @@ class LintMavenTest extends AssertionsForJUnit {
       )
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(mockUpdates)
-      Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file)
+      sys.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file))
     })
 
   }
@@ -1077,7 +1074,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[WARNING]  😬 remote call exception: java.lang.RuntimeException message: Nonzero exit value: 128; git --no-pager remote show origin; fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active contributor count: 0
+        |[INFO]     active (last 14 days) contributor count: 0
         |[INFO]     active branch count: 0
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
@@ -1114,7 +1111,7 @@ class LintMavenTest extends AssertionsForJUnit {
         .thenReturn(None)
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(Seq("0.0.1", "1.0.1-SNAPSHOT", "1.0.0"))
-      Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file)
+      sys.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file))
     })
 
   }
@@ -1188,7 +1185,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[WARNING]  😬 remote call exception: java.lang.RuntimeException message: Nonzero exit value: 128; git --no-pager remote show origin; fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active contributor count: 0
+        |[INFO]     active (last 14 days) contributor count: 0
         |[INFO]     active branch count: 0
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
@@ -1219,7 +1216,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING] »org.springframework:spring-context-release:RELEASE« uses version »RELEASE« that is part of unstable markers LATEST and RELEASE. Please use unambiguous versions only. 😬 RL1010-7dd44fdb
         |[WARNING] »org.springframework:spring-context-latest:LATEST« uses version »LATEST« that is part of unstable markers LATEST and RELEASE. Please use unambiguous versions only. 😬 RL1010-c144cf49
         |[INFO] --- check for preview releases @ maven ---
-        |[INFO] --- check major versions @ ishop ---
+        |[INFO] --- version skew ---
         |[INFO]     is shop: false
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
@@ -1268,7 +1265,7 @@ class LintMavenTest extends AssertionsForJUnit {
         .thenReturn(None)
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(Seq("0.0.1", "1.0.1-SNAPSHOT", "1.0.0"))
-      Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file)
+      sys.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file))
     })
 
   }
@@ -1367,8 +1364,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[WARNING]  😬 remote call exception: java.lang.RuntimeException message: Nonzero exit value: 128; git --no-pager remote show origin; fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active contributor count: 1
-        |[INFO]       Your Name <you@example.com>
+        |[INFO]     active (last 14 days) contributor count: 1
+        |[INFO]       Y‌o‌u‌r N‌a‌m‌e <‌y‌o‌u‌@‌e‌x‌a‌m‌p‌l‌e‌.‌c‌o‌m‌>
         |[INFO]     active branch count: 2 - master, ref
         |[INFO]     approx. a new branch each: P0D, approx. a new tag each: P-1D
         |[INFO] --- check clone config / no shallow clone @ git ---
@@ -1409,7 +1406,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING] »org.springframework:spring-other:1.0.0-SNAPSHOT:bert« uses unknown scope »bert« please use only known scopes: compile, import, provided, runtime, system, test. 😬 RL1010-12cb6670
         |[WARNING] »org.springframework:spring-other2:1.0.0-SNAPSHOT « uses version with unknown symbol »1.0.0-SNAPSHOT␣«. Please remove unknown symbols. 😬 RL1010-0d88b10c
         |[INFO] --- check for preview releases @ maven ---
-        |[INFO] --- check major versions @ ishop ---
+        |[INFO] --- version skew ---
         |[INFO]     is shop: false
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
@@ -1517,7 +1514,7 @@ class LintMavenTest extends AssertionsForJUnit {
         "CI_COMMIT_REF_NAME" -> "v0.11.0",
         "CI_COMMIT_TAG" -> "v0.11.0",
       )
-      Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), value, root)
+      sys.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), value, root))
     })
 
   }
@@ -1593,8 +1590,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[WARNING]  😬 remote call exception: java.lang.RuntimeException message: Nonzero exit value: 128; git --no-pager remote show origin; fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active contributor count: 1
-        |[INFO]       Your Name <you@example.com>
+        |[INFO]     active (last 14 days) contributor count: 1
+        |[INFO]       Y‌o‌u‌r N‌a‌m‌e <‌y‌o‌u‌@‌e‌x‌a‌m‌p‌l‌e‌.‌c‌o‌m‌>
         |[INFO]     active branch count: 1 - master
         |[INFO]     approx. a new branch each: P-1D, approx. a new tag each: P-1D
         |[INFO] --- check clone config / no shallow clone @ git ---
@@ -1626,7 +1623,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
         |[INFO] --- check for preview releases @ maven ---
-        |[INFO] --- check major versions @ ishop ---
+        |[INFO] --- version skew ---
         |[INFO]     is shop: false
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
@@ -1666,7 +1663,7 @@ class LintMavenTest extends AssertionsForJUnit {
         thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
-      Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file)
+      sys.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file))
 
     })
   }
@@ -1733,8 +1730,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[WARNING]  😬 remote call exception: java.lang.RuntimeException message: Nonzero exit value: 128; git --no-pager remote show origin; fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active contributor count: 1
-        |[INFO]       Your Name <you@example.com>
+        |[INFO]     active (last 14 days) contributor count: 1
+        |[INFO]       Y‌o‌u‌r N‌a‌m‌e <‌y‌o‌u‌@‌e‌x‌a‌m‌p‌l‌e‌.‌c‌o‌m‌>
         |[INFO]     active branch count: 1 - master
         |[INFO]     approx. a new branch each: P-1D, approx. a new tag each: P-1D
         |[INFO] --- check clone config / no shallow clone @ git ---
@@ -1768,7 +1765,7 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.isReachable(false)).thenReturn(Repo.ReachableResult(online = true, "202"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
-      Lint.run(sys.out, sys.err, opts, Map.empty, file)
+      sys.exit(Lint.run(sys.out, sys.err, opts, Map.empty, file))
 
     })
   }
@@ -1904,13 +1901,12 @@ class LintMavenTest extends AssertionsForJUnit {
 
     Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", "", gitA.currentBranchOpt, "work",
       currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))))
-
+    gitA.deleteTag("work-20315-gcb5491b407")
     gitA.doTag("20.0.0.some-6439-g800ef8fee7")
     Assert.assertEquals(Some(Seq("v20.0.0.some-6439-g800ef8fee7")), gitA.currentTags)
     Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", "", gitA.currentBranchOpt, "work",
       currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))))
 
-    gitA.deleteTag("work-20315-gcb5491b407")
     gitA.deleteTag("20.0.0.some-6439-g800ef8fee7")
 
     gitA.doTag("1.2.3")
@@ -1991,7 +1987,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  😬 choose another default branch; save; use the original default branch
         |[WARNING]  😬 remote call exception: java.lang.RuntimeException message: Nonzero exit value: 128; git --no-pager remote show origin; fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active contributor count: 0
+        |[INFO]     active (last 14 days) contributor count: 0
         |[INFO]     active branch count: 0
         |[INFO] --- check clone config / no shallow clone @ git ---
         |[INFO]     ✅ NO shallow clone
@@ -2023,7 +2019,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
         |[INFO] --- check for preview releases @ maven ---
-        |[INFO] --- check major versions @ ishop ---
+        |[INFO] --- version skew ---
         |[INFO]     is shop: false
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
@@ -2065,7 +2061,7 @@ class LintMavenTest extends AssertionsForJUnit {
         "CI_CONFIG_PATH" -> ".gitlab-ci.yml",
         "CI_COMMIT_REF_NAME" -> "feature/bre",
         "CI_COMMIT_TAG" -> "")
-      Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), env, file)
+      sys.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), env, file))
 
     })
   }
@@ -2076,12 +2072,11 @@ class LintMavenTest extends AssertionsForJUnit {
       """
         |[INFO]     main-SNAPSHOT
         |""".stripMargin.trim
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
 
       LintMaven.lintProjectVersion(sys.out, opts, "main-SNAPSHOT", new AtomicBoolean(), new AtomicBoolean(),
         BranchTagMerge.merge, Nil, isShop = false)
-      0
     })
   }
 
@@ -2091,14 +2086,13 @@ class LintMavenTest extends AssertionsForJUnit {
       """
         |[INFO]     main-SNAPSHOT
         |""".stripMargin.trim
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
 
       val boolean = new AtomicBoolean()
       LintMaven.lintProjectVersion(sys.out, opts, "main-SNAPSHOT", warnExit = boolean, new AtomicBoolean(),
         Some(BranchTagMerge(tagName = None, branchName = Some("main"))), Nil, isShop = false)
       Assert.assertFalse(boolean.get())
-      0
     })
   }
 
@@ -2109,13 +2103,12 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     1.2.3-SNAPSHOT
         |[WARNING]  tag v1.2.3 is already existing. Please increment to next version e.g. 1.2.4-SNAPSHOT 😬 RL1020
         |""".stripMargin.trim
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val boolean = new AtomicBoolean()
       LintMaven.lintProjectVersion(sys.out, opts, "1.2.3-SNAPSHOT", warnExit = boolean, new AtomicBoolean(),
         Some(BranchTagMerge(tagName = None, branchName = Some("main"))), allGitTags = Seq("v1.2.3"), isShop = false)
       Assert.assertTrue(boolean.get())
-      0
     })
   }
 
@@ -2126,7 +2119,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     1.2.3-SNAPSHOT
         |[warning]  tag v1.2.3 is already existing. Please increment to next version e.g. 1.2.4-SNAPSHOT 😬 RL1020
         |""".stripMargin.trim
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1020", "ö")))
       val boolean = new AtomicBoolean()
       val skips = LintMaven.lintProjectVersion(sys.out, opts, "1.2.3-SNAPSHOT", warnExit = boolean, new AtomicBoolean(),
@@ -2134,7 +2127,6 @@ class LintMavenTest extends AssertionsForJUnit {
 
       Assert.assertFalse(boolean.get())
       Assert.assertEquals(Seq("RL1020"), skips)
-      0
     })
   }
 
@@ -2145,7 +2137,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     5.0.0
         |[warning]  unexpected version increment: 5.0.0; expected one of: »99.0.1, 99.1.0, 100.0.0«. Because latest numeric version is: »99.0.0«
         |""".stripMargin.trim
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val boolean = new AtomicBoolean()
 
@@ -2153,7 +2145,6 @@ class LintMavenTest extends AssertionsForJUnit {
         Some(BranchTagMerge(tagName = Some("v5.0.0"), branchName = None)),
         allGitTags = Seq("v1.2.3", "bert-preview", "v99.0.0", "99.0.0"), isShop = false)
       Assert.assertFalse(boolean.get())
-      0
     })
   }
 
@@ -2163,7 +2154,7 @@ class LintMavenTest extends AssertionsForJUnit {
       """
         |[INFO]     1.2.3
         |""".stripMargin.trim
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val hasWarnExit = new AtomicBoolean()
       val btm = Some(BranchTagMerge(tagName = Some("v1.2.3"), branchName = None))
@@ -2171,7 +2162,6 @@ class LintMavenTest extends AssertionsForJUnit {
       LintMaven.lintProjectVersion(sys.out, opts, "1.2.3", warnExit = hasWarnExit, new AtomicBoolean(),
         btm, allGitTags = Seq("v1.2.2", "v1.2.3"), isShop = false)
       Assert.assertFalse(hasWarnExit.get())
-      0
     })
   }
 
@@ -2180,9 +2170,9 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO]     otto
-        |[WARNING]  version »otto« is not recommended, please use at least a single digit e.g. 1.0.0 😬
+        |[WARNING]  version »otto« is not recommended, please use at least a single digit e.g. 1.0.0. This helps us to cleanup older versions. 😬
         |""".stripMargin.trim
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val hasWarnExit = new AtomicBoolean()
       val btm = Some(BranchTagMerge(tagName = Some("otto"), branchName = None))
@@ -2190,7 +2180,6 @@ class LintMavenTest extends AssertionsForJUnit {
       LintMaven.lintProjectVersion(sys.out, opts, "otto", warnExit = hasWarnExit, new AtomicBoolean(),
         btm, allGitTags = Seq("v1.2.2", "v1.2.3"), isShop = false)
       Assert.assertTrue(hasWarnExit.get())
-      0
     })
   }
 
@@ -2201,12 +2190,11 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     ro-SNAPSHOT
         |[warning]  unknown release/version pattern: ro-SNAPSHOT -
         |""".stripMargin.trim
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
 
       LintMaven.lintProjectVersion(sys.out, opts, "ro-SNAPSHOT", new AtomicBoolean(), new AtomicBoolean(),
         Some(BranchTagMerge(tagName = None, branchName = Some("release/ro"))), Nil, isShop = false)
-      0
     })
   }
 
@@ -2217,12 +2205,11 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     RC-2024.34.01-bugfix-SNAPSHOT
         |[warning]  unknown release/version pattern: RC-2024.34.01-bugfix-SNAPSHOT Maybe one of the following versions is what you want: 'RC-2024.34.1'
         |""".stripMargin.trim
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
 
       LintMaven.lintProjectVersion(sys.out, opts, "RC-2024.34.01-bugfix-SNAPSHOT", new AtomicBoolean(), new AtomicBoolean(),
         Some(BranchTagMerge(tagName = None, branchName = Some("release/RC-2024.34.01-bugfix"))), Nil, isShop = false)
-      0
     })
   }
 
@@ -2234,7 +2221,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  version »main« must be a SNAPSHOT; non snapshots are only allowed in tags 😬
         |[WARNING]  project.version »main« does not relate to git branch: »main«. Please use a plausible version marker and git marker combination like: (project.version: main -> git branch:main), ... 😬 RL1014
         |""".stripMargin.trim
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val boolean = new AtomicBoolean()
       val btm = Some(BranchTagMerge(tagName = None, branchName = Some("main")))
@@ -2244,7 +2231,6 @@ class LintMavenTest extends AssertionsForJUnit {
       LintMaven.lintProjectVersion(sys.out, opts, "main", warnExit = boolean, new AtomicBoolean(),
         btm, allGitTags = Seq("v1.2.3"), isShop = false)
       Assert.assertTrue(boolean.get())
-      0
     })
   }
 
@@ -2255,7 +2241,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     main
         |[WARNING]  version »main« must be a SNAPSHOT; non snapshots are only allowed in tags 😬
         |""".stripMargin.trim
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val boolean = new AtomicBoolean()
       val btm = BranchTagMerge.merge
@@ -2266,7 +2252,6 @@ class LintMavenTest extends AssertionsForJUnit {
         btm, allGitTags = Seq("v1.2.3"), isShop = false)
       Assert.assertEquals(Nil, result)
       Assert.assertTrue(boolean.get())
-      0
     })
   }
 
@@ -2278,13 +2263,12 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  version »null« must be a SNAPSHOT; non snapshots are only allowed in tags 😬
         |[WARNING]  project.version »null« has no git. Please add some .git folder. 😬 RL1014
         |""".stripMargin.trim
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
 
       val boolean = new AtomicBoolean()
       LintMaven.lintProjectVersion(sys.out, opts, null, warnExit = boolean, new AtomicBoolean(), None, Nil, isShop = false)
       Assert.assertTrue(boolean.get())
-      0
     })
   }
 }

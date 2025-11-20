@@ -207,14 +207,13 @@ class ReleaseTest extends AssertionsForJUnit {
         |Push to Gerrit and publish release? [y/n]: y
         |done.""".stripMargin
 
-    TermTest.testSys(Seq("", "", "y", ""), expected, "", outFn = repSha, expectedExitCode = 0)(sys => {
+    TermTest.testSys(Seq("", "", "y", ""), expected, "", outFn = repSha, expectedExitCode = -1)(sys => {
       val opts = Opts(useJlineInput = false)
       Release.work(localWorkFolder, sys,
         rebaseFn = () => {
 
         }, branch = "master", gitLocal, term, 72, () => "abc",
         ReleaseConfig.default(true), opts.newRepo, opts)
-      0
     })
     Assert.assertEquals(Seq("Releasetool-sha1: abc"), gitRemote.log().linesIterator.filter(_.startsWith("Releasetool-sha1")).toSeq)
 
@@ -276,14 +275,13 @@ class ReleaseTest extends AssertionsForJUnit {
         |Push to Gerrit and publish release? [y/n]: y
         |done.""".stripMargin
 
-    TermTest.testSys(Seq("", "", "y", ""), expected, "", outFn = repSha, expectedExitCode = 0)(sys => {
+    TermTest.testSys(Seq("", "", "y", ""), expected, "", outFn = repSha, expectedExitCode = -1)(sys => {
       val opts = Opts(useJlineInput = false)
       Release.work(localWorkFolder, sys,
         rebaseFn = () => {
 
         }, branch = "master", gitLocal, term, 72, () => "abc",
         ReleaseConfig.default(true), opts.newRepo, opts)
-      0
     })
 
   }
@@ -339,14 +337,13 @@ class ReleaseTest extends AssertionsForJUnit {
         |Push to Gerrit and publish release? [y/n]: y
         |done.""".stripMargin
 
-    TermTest.testSys(Seq("", "y", ""), expected, "", outFn = repSha, expectedExitCode = 0)(sys => {
+    TermTest.testSys(Seq("", "y", ""), expected, "", outFn = repSha, expectedExitCode = -1)(sys => {
       val opts = Opts(useJlineInput = false, versionIncrement = Increment.patch)
       Release.work(localWorkFolder, sys,
         rebaseFn = () => {
 
         }, branch = "master", gitLocal, term, 72, () => "abc",
         ReleaseConfig.default(true), opts.newRepo, opts)
-      0
     })
 
   }
@@ -402,14 +399,13 @@ class ReleaseTest extends AssertionsForJUnit {
         |Push to Gerrit and publish release? [y/n]: y
         |done.""".stripMargin
 
-    TermTest.testSys(Seq("", "y", ""), expected, "", outFn = repSha, expectedExitCode = 0)(sys => {
+    TermTest.testSys(Seq("", "y", ""), expected, "", outFn = repSha, expectedExitCode = -1)(sys => {
       val opts = Opts(useJlineInput = false, versionIncrement = Increment.minor)
       Release.work(localWorkFolder, sys,
         rebaseFn = () => {
 
         }, branch = "master", gitLocal, term, 72, () => "abc",
         ReleaseConfig.default(true), opts.newRepo, opts)
-      0
     })
 
   }
@@ -465,14 +461,13 @@ class ReleaseTest extends AssertionsForJUnit {
         |Push to Gerrit and publish release? [y/n]: y
         |done.""".stripMargin
 
-    TermTest.testSys(Seq("", "y", ""), expected, "", outFn = repSha, expectedExitCode = 0)(sys => {
+    TermTest.testSys(Seq("", "y", ""), expected, "", outFn = repSha, expectedExitCode = -1)(sys => {
       val opts = Opts(useJlineInput = false, versionIncrement = Increment.major)
       Release.work(localWorkFolder, sys,
         rebaseFn = () => {
 
         }, branch = "master", gitLocal, term, 72, () => "abc",
         ReleaseConfig.default(true), opts.newRepo, opts)
-      0
     })
   }
 
@@ -581,7 +576,6 @@ class ReleaseTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.latestGav("org.example", "example2", "1.0.0-SNAPSHOT"))
         .thenReturn(Some(Gav3("org.example", "example2", Some("0.99"))))
       Release.offerAutoFixForReleaseSnapshots(sys, mod = testMod, gitFiles = Nil, shellWidth = 72, mockRepo, opts)
-      0
     })
 
   }

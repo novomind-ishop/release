@@ -206,6 +206,16 @@ class SuggestDockerTagTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testSuggest_windowsNewline(): Unit = {
+    TestHelper.assertException(expectedMsg = "invalid docker tag »44x␍␊«; " +
+      "docker tags must match pattern »[a-zA-Z0-9][a-zA-Z0-9_\\-\\.]{0,127}«." +
+      " This will lead to »Error response from daemon: invalid reference format« from docker",
+      classOf[IllegalArgumentException], () => {
+        SuggestDockerTag.suggest("any", "any", None, "44x\r\n")
+      })
+  }
+
+  @Test
   def testFindTagname_noDockerfiles(): Unit = {
     val tuple = SuggestDockerTag.findTagname(null, null, None, hasDockerfiles = false)
     Assert.assertEquals("no Dockerfiles", tuple.failed.get.getMessage)

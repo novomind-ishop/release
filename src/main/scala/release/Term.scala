@@ -280,6 +280,7 @@ object Term {
     lazy val out = new PrintStream(outS)
     lazy val err = new PrintStream(errS)
     lazy val inReader = new BufferedReader(new InputStreamReader(inS))
+    private val atomicExit = new AtomicInteger(-1)
     lazy val lineReader: LineReader = {
       val sys: Boolean = inS == System.in && out == System.out
       val terminal = TerminalBuilder.builder()
@@ -293,7 +294,15 @@ object Term {
     }
 
     def exit(code: Int): Unit = {
-      System.exit(code)
+      if (atomicExit.get() < 0) {
+        atomicExit.set(code)
+      } else {
+        throw new IllegalStateException("set only once")
+      }
+      throw new SecurityException("EXIT")
+    }
+    def getExitCode():Int = {
+      atomicExit.get()
     }
   }
 

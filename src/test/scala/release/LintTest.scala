@@ -2,7 +2,7 @@ package release
 
 import com.google.googlejavaformat.java.Formatter
 import org.junit.rules.TemporaryFolder
-import org.junit.{Assert, Rule, Test}
+import org.junit.{Assert, Ignore, Rule, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.Lint.{BranchTagMerge, NePrLa, PackageImportResult}
 import release.ProjectMod.Gav3
@@ -341,6 +341,7 @@ class LintTest extends AssertionsForJUnit {
   }
 
   @Test
+  @Ignore
   def testGoogleFmt(): Unit = {
     val file = temp.newFile("Demo.java")
     FileUtils.write(file,

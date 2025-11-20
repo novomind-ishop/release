@@ -48,8 +48,8 @@ class LintSbtTest extends AssertionsForJUnit {
         |[INFO] --- check clone config / remote @ git ---
         |[INFO]     HEAD branch: master - affe4533042ef887a5477d73d958814317675be1
         |[INFO] --- check branches / remote @ git ---
-        |[INFO]     active contributor count: 1
-        |[INFO]       Your Name <you@example.com>
+        |[INFO]     active (last 14 days) contributor count: 1
+        |[INFO]       Y‌o‌u‌r N‌a‌m‌e <‌y‌o‌u‌@‌e‌x‌a‌m‌p‌l‌e‌.‌c‌o‌m‌>
         |[INFO]     active branch count: 1 - master
         |[INFO]     approx. a new branch each: P0D, approx. a new tag each: P-1D
         |[INFO] --- check clone config / no shallow clone @ git ---
@@ -71,7 +71,7 @@ class LintSbtTest extends AssertionsForJUnit {
         |[INFO] --- check for GAV format @ maven ---
         |[INFO]     ✅ all GAVs scopes looks fine
         |[INFO] --- check for preview releases @ maven ---
-        |[INFO] --- check major versions @ ishop ---
+        |[INFO] --- version skew ---
         |[INFO]     is shop: false
         |[INFO]     ✅ no major version diff
         |[INFO] --- suggest dependency updates / configurable @ maven ---
@@ -114,7 +114,7 @@ class LintSbtTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(Seq("1.0.0"))
 
-      Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, fileB)
+      sys.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, fileB))
     })
 
   }

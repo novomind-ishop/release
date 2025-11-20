@@ -627,7 +627,7 @@ object Release extends LazyLogging {
 
       val again = Term.readFromOneOfYesNo(sys, "Try again?", opts)
       if (again == "n") {
-        System.exit(1)
+        sys.exit(1)
       } else {
         offerAutoFixForReleaseSnapshots(sys, ProjectMod.read(mod.file, sys, opts, repo, showRead = false), gitFiles, shellWidth, repo, opts)
       }

@@ -49,7 +49,8 @@ object SuggestDockerTag {
       if (masterPattern.matches(externalTag)) {
         (externalTag, 0)
       } else {
-        val msg = s"invalid docker tag »${externalTag.replaceAll("[\\p{Cntrl}\\p{Space}]", "\uFFFD")}«; " +
+        val msg = s"invalid docker tag »${externalTag.replaceAll("\\r", "␍").replaceAll("\\n", "␊")
+          .replaceAll("[\\p{Cntrl}\\p{Space}]", "\uFFFD")}«; " +
           s"docker tags must match pattern »${masterPattern.regex}«. This will lead " +
           s"to »Error response from daemon: invalid reference format« from docker"
         throw new IllegalArgumentException(msg)

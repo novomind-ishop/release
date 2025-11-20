@@ -450,8 +450,8 @@ class SgitTest extends AssertionsForJUnit {
     gitA.doTag("1.2.3")
     gitA.checkout("feature/a")
     gitA.doTag("1.2.4", msg = "annotated")
-    gitA.checkout("1.2.4")
-    Assert.assertEquals(Seq("master"), gitA.listBranchNamesAll())
+    gitA.checkout("v1.2.4")
+    Assert.assertEquals(Seq("feature/a", "feature/r/a", "master"), gitA.listBranchNamesAll())
     gitA.checkout("feature/a")
     gitA.add(SgitTest.testFile(testRepoA, Util.hashMd5Random()))
     gitA.commitAll(s"c${counter.getAndIncrement()}", Some(ZonedDateTime.parse("2007-04-07T22:13:13Z")))
@@ -954,8 +954,8 @@ class SgitTest extends AssertionsForJUnit {
 
     }
     val expectedMailboxes = Seq("Your Name <you@example.com>")
-    Assert.assertEquals(expectedMailboxes, gitA.listContributorMailboxes())
-    Assert.assertEquals(expectedMailboxes, gitB.listContributorMailboxes())
+    Assert.assertEquals(expectedMailboxes, gitA.listContributorMailboxes14Days())
+    Assert.assertEquals(expectedMailboxes, gitB.listContributorMailboxes14Days())
   }
 
   @Test

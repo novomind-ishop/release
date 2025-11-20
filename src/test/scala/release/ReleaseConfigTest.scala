@@ -127,7 +127,7 @@ class ReleaseConfigTest extends AssertionsForJUnit {
   @Test
   def testFromSettings(): Unit = {
     val result = ReleaseConfig.fromSettings()
-    Assert.assertEquals(Repo.centralUrl, result.workNexusUrl())
+    Assert.assertEquals(Repo.centralUrl, result.workNexusUrl(Map.empty))
     Assert.assertEquals(Repo.centralUrl, result.mirrorNexusUrl())
   }
 
@@ -163,7 +163,7 @@ class ReleaseConfigTest extends AssertionsForJUnit {
     val settings = temp.newFile("settings.xml")
     FileUtils.write(settings, content)
     val result = ReleaseConfig.fromSettings(settings.getParentFile)
-    Assert.assertEquals("https://work-nexus.example.org/content/repositories/public", result.workNexusUrl())
+    Assert.assertEquals("https://work-nexus.example.org/content/repositories/public", result.workNexusUrl(Map.empty))
     Assert.assertEquals("https://work-nexus.example.org/content/repositories/public", result.mirrorNexusUrl())
   }
 
@@ -220,7 +220,7 @@ class ReleaseConfigTest extends AssertionsForJUnit {
     val settings = temp.newFile("settings.xml")
     FileUtils.write(settings, content)
     val result = ReleaseConfig.fromSettings(settings.getParentFile, Map("EXAMPLE1_USER" -> "user@example.org", "EXAMPLE1_PASSWORD" -> "pw"))
-    Assert.assertEquals("https://user%40example.org:pw@work-nexus.example.org/content/repositories/public", result.workNexusUrl())
+    Assert.assertEquals("https://user%40example.org:pw@work-nexus.example.org/content/repositories/public", result.workNexusUrl(Map.empty))
     Assert.assertEquals("https://user%40example.org:pw@work-nexus.example.org/content/repositories/public", result.mirrorNexusUrl())
   }
 }

@@ -16,10 +16,9 @@ class TermTest extends AssertionsForJUnit {
   def testReadFrom(): Unit = {
     val value = "My string"
 
-    TermTest.testSys(Seq(value), "enter some [word]: My string", "", expectedExitCode = 0)(sys => {
+    TermTest.testSys(Seq(value), "enter some [word]: My string", "", expectedExitCode = -1)(sys => {
       val result = Term.readFrom(sys, "enter some", "word", Opts(useJlineInput = false))
       Assert.assertEquals(value, result)
-      0
     })
 
   }
@@ -28,18 +27,16 @@ class TermTest extends AssertionsForJUnit {
   def testReadNull(): Unit = {
     TermTest.testSys(Nil, "enter some [word]: ", "invalid readFrom(..) => exit 14", 14)(sys => {
       Term.readFrom(sys, "enter some", "word", Opts(useJlineInput = false))
-      0
     })
   }
 
   @Test
   def testReadDirect(): Unit = {
-    TermTest.testSys(Seq("a", "b"), "", "", expectedExitCode = 0)(sys => {
+    TermTest.testSys(Seq("a", "b"), "", "", expectedExitCode = -1)(sys => {
       val bin: BufferedReader = new BufferedReader(new InputStreamReader(sys.inS))
       Assert.assertEquals("a", bin.readLine())
       Assert.assertEquals("b", bin.readLine())
       Assert.assertEquals(null, bin.readLine())
-      0
     })
   }
 
@@ -48,7 +45,6 @@ class TermTest extends AssertionsForJUnit {
     TestHelper.assertComparisonFailure("expected:<[a]> but was:<[b]>", () => {
       TermTest.testSys(Nil, "", "", expectedExitCode = 0)(_ => {
         Assert.assertEquals("a", "b")
-        0
       })
     })
   }
@@ -88,10 +84,9 @@ class TermTest extends AssertionsForJUnit {
         |[WARNING]   a very long line a very long line a very long line a very long line a
         |[WARNING]     very long line a very long line
         |""".stripMargin.trim
-    testSys(Nil, a, "", expectedExitCode = 0)(sys => {
+    testSys(Nil, a, "", expectedExitCode = -1)(sys => {
       val value = "  a very long line a very long line a very long line a very long line a very long line a very long line "
       Term.wrap(sys.out, Term.warn, value, Opts(colors = false))
-      0
     })
   }
 
@@ -105,12 +100,11 @@ class TermTest extends AssertionsForJUnit {
         |[WARNING]       53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69,
         |[WARNING]       70, 71, 72, 73, 74
         |""".stripMargin.trim
-    testSys(Nil, a, "", expectedExitCode = 0)(sys => {
+    testSys(Nil, a, "", expectedExitCode = -1)(sys => {
       val value = "    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,26, " +
         "27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, " +
         "56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74"
       Term.wrap(sys.out, Term.warn, value, Opts(colors = false))
-      0
     })
   }
 
@@ -121,10 +115,9 @@ class TermTest extends AssertionsForJUnit {
         |[WARNING] a very long line a very long line a very long line a very long line a
         |[WARNING]   very long line a very long line
         |""".stripMargin.trim
-    testSys(Nil, a, "", expectedExitCode = 0)(sys => {
+    testSys(Nil, a, "", expectedExitCode = -1)(sys => {
       val value = "a very long line a very long line a very long line a very long line a very long line a very long line "
       Term.wrap(sys.out, Term.warn, value, Opts(colors = false))
-      0
     })
   }
 
@@ -135,12 +128,11 @@ class TermTest extends AssertionsForJUnit {
         |[WARNING] a
         |[WARNING]   b
         |""".stripMargin.trim
-    testSys(Nil, a, "", expectedExitCode = 0)(sys => {
+    testSys(Nil, a, "", expectedExitCode = -1)(sys => {
       val value =
         """a
           |b""".stripMargin
       Term.wrap(sys.out, Term.warn, value, Opts(colors = false))
-      0
     })
   }
 
@@ -152,13 +144,12 @@ class TermTest extends AssertionsForJUnit {
         |[WARNING]   b
         |[WARNING]     c
         |""".stripMargin.trim
-    testSys(Nil, a, "", expectedExitCode = 0)(sys => {
+    testSys(Nil, a, "", expectedExitCode = -1)(sys => {
       val value =
         """a
           |b
           |  c""".stripMargin
       Term.wrap(sys.out, Term.warn, value, Opts(colors = false))
-      0
     })
   }
 
@@ -216,7 +207,7 @@ object TermTest extends LazyLogging {
 
   def testSys(input: Seq[String], expectedOut: String, expectedErr: String, expectedExitCode: Int,
               outFn: String => String = a => a, outAllFn: Seq[String] => Seq[String] = a => a)
-             (fn: Term.Sys => Int): Unit = {
+             (fn: Term.Sys => Unit): Unit = {
     this.synchronized {
 
       val out = new ByteArrayOutputStream()
@@ -224,19 +215,23 @@ object TermTest extends LazyLogging {
 
       val preparedLines = input.mkString("\n")
       val in = new ByteArrayInputStream(preparedLines.getBytes)
-      val exitCode = try {
-        fn.apply(new Term.Sys(in, out, err) {
-          override lazy val inReader = new BufferedReader(new InputStreamReader(inS)) {
-            val innerOut = new PrintStream(outS)
-            override def readLine(): String = {
-              val line = super.readLine()
-              if (line != null) {
-                innerOut.println(line)
-              }
-              line
+      val sys = new Term.Sys(in, out, err) {
+        override lazy val inReader = new BufferedReader(new InputStreamReader(inS)) {
+          val innerOut = new PrintStream(outS)
+
+          override def readLine(): String = {
+            val line = super.readLine()
+            if (line != null) {
+              innerOut.println(line)
             }
+            line
           }
-        })
+        }
+      }
+      try {
+
+       fn.apply(sys)
+
       } catch {
         case e: SecurityException => // nothing
         case e: AssertionError => throw e
@@ -249,7 +244,7 @@ object TermTest extends LazyLogging {
         .map(outFn))
         .mkString("\n"))
 
-      Assert.assertEquals(expectedExitCode, exitCode)
+      Assert.assertEquals(expectedExitCode, sys.getExitCode())
     }
   }
 }

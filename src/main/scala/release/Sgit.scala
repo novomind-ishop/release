@@ -411,7 +411,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     Sgit.toRawRemoteHead(remoteHead())
   }
 
-  private[release] def listContributorMailboxes(): Seq[String] = {
+  private[release] def listContributorMailboxes14Days(): Seq[String] = {
     val value = "--since=14.days"
     val anCn = gitNative(Seq("log", "--all", "--pretty=%an <%ae>᎒%cn <%ce>", value)).get
 

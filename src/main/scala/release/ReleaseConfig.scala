@@ -17,8 +17,8 @@ import scala.io.Source
 
 sealed class ReleaseConfig(map: Map[String, String]) {
 
-  def workNexusUrl(): String = {
-    ReleaseConfig.releaseNexusEnv()
+  def workNexusUrl(envs: Map[String, String]): String = {
+    ReleaseConfig.releaseNexusEnv(envs)
       .getOrElse(map(ReleaseConfig.keyNexusWorkUrl))
   }
 
@@ -87,9 +87,7 @@ object ReleaseConfig extends LazyLogging {
   def releaseNexusGet(get: Get[String, String]): Option[String] = {
     get.get(RELEASE_NEXUS_WORK_URL)
   }
-
-  def releaseNexusEnv(): Option[String] = releaseNexusGet(k => scala.util.Properties.envOrNone(k))
-
+  
   def releaseNexusEnv(envs: Map[String, String]): Option[String] = releaseNexusGet(k => envs.get(k))
 
   case class WorkAndMirror(workUrl: String, mirrorUrl: String)
@@ -272,7 +270,7 @@ object ReleaseConfig extends LazyLogging {
 
   }
 
-  def replaceInSettings(settings:String, envs:Map[String, String]):String = {
+  def replaceInSettings(settings: String, envs: Map[String, String]): String = {
     envs.toSeq.foldLeft(settings)((str, key) => {
       str.replaceAll("\\$\\{env\\." + Pattern.quote(key._1) + "\\}", Matcher.quoteReplacement(key._2))
     })

@@ -12,7 +12,7 @@ object Opts {
 
     val mirrorNexus: RemoteRepository = Repo.newDefaultRepositoryU(ReleaseConfig.default(opts.useDefaults).mirrorNexusUrl())
 
-    val workNexus: RemoteRepository = Repo.newDefaultRepositoryU(ReleaseConfig.default(opts.useDefaults).workNexusUrl())
+    val workNexus: RemoteRepository = Repo.newDefaultRepositoryU(ReleaseConfig.default(opts.useDefaults).workNexusUrl(Util.systemEnvs()))
 
     Repo.of(mirrorNexus, workNexus)
   }

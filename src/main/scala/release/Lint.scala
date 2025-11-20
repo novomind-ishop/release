@@ -596,10 +596,10 @@ object Lint {
           warnExit.set(true)
         }
         out.println(info("--- check branches / remote @ git ---", opts))
-        val mailboxes = Lint.indentMailboxes(sgit.listContributorMailboxes().sorted)
+        val mailboxes = Lint.indentMailboxes(sgit.listContributorMailboxes14Days().sorted)
         val branchNames = sgit.listBranchNamesAll()
 
-        out.println(info(s"    active contributor count: ${mailboxes.size}", opts, limit = lineMax)) // TODO range?
+        out.println(info(s"    active (last 14 days) contributor count: ${mailboxes.size}", opts, limit = lineMax))
         mailboxes.foreach(mailboxRaw => {
 
           if (Util.isMailboxWithTldHostname(mailboxRaw)) {
@@ -965,7 +965,7 @@ object Lint {
             if (warnExitForDepCheck.get()) {
               warnExit.set(true)
             }
-            out.println(info("--- check major versions @ ishop ---", opts))
+            out.println(info("--- version skew ---", opts))
             out.println(info(s"    is shop: ${mod.isShop}", opts))
             VersionSkew.skewResultOf(mod, None, Some(warnExit), Some(errorExit), Some(out), opts)
 

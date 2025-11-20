@@ -90,10 +90,6 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
     Xpath.onlyString(Xpath.documentOfFile(rootPom), PomMod.xPathToProjectVersion)
   }
 
-  val listProperties: Map[String, String] = {
-    PomMod.listProperties(opts, raws, failureCollector, allPomsDocs, listSelf)
-  }
-
   val selfVersion: String = {
     val v = listSelf.map(_.version.get).distinct
     PomMod.checkSnapshots(v)
@@ -110,6 +106,11 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
       "More then one Version found in your pom.xmls: " + selection
     })
   }
+
+  val listProperties: Map[String, String] = {
+    PomMod.listProperties(opts, raws, failureCollector, allPomsDocs, listSelf)
+  }
+
 
   override lazy val selfVersionReplaced: String = {
     replaceWithLimit(listProperties, selfVersion)

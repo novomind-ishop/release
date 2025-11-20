@@ -90,7 +90,9 @@ class PomModTest extends AssertionsForJUnit {
       "Dep(SelfRef(Gav3(com.novomind.ishop.shops.any,any-erp,Some(28.0.0-SNAPSHOT)))," +
       "com.novomind.ishop.shops.any,any-erp,Some(28.0.0-SNAPSHOT),,,,,List(project, artifactId)) (27.0.0-SNAPSHOT, 28.0.0-SNAPSHOT)",
       classOf[IllegalArgumentException], () => {
-        PomModTest.withRepoForTests(srcPoms, repo).selfVersion
+        PomModTest.withRepoForTests(srcPoms, repo)
+          .selfVersion
+
       })
 
   }

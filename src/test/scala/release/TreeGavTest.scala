@@ -33,10 +33,9 @@ class TreeGavTest extends AssertionsForJUnit {
     ))
     val expected =
       """""".stripMargin
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
       val opts = Opts().copy(lintOpts = Opts().lintOpts.copy(showTimer = true, showTimeStamps = true))
       TreeGav.format(value, sys.out, opts)
-      0
     })
 
   }
@@ -60,10 +59,9 @@ class TreeGavTest extends AssertionsForJUnit {
       """[warning]  g:a {1.2.0, 1.2.3}
         |[warning]  ag:a2 {1.2.5, 1.2.6, 1.2.7}
         |[warning]  g:a2 {1.2.1, 1.2.2, 1.2.10}""".stripMargin
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
       val opts = Opts().copy(colors = false)
       TreeGav.format(value, sys.out, opts)
-      0
     })
 
   }
