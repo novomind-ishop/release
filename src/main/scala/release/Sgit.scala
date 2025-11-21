@@ -375,7 +375,12 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     listBranchNamesRemote().map(_.replaceFirst("origin/", "")).sorted
   }
 
-  def remoteHead(timeout: Duration = Duration(10, TimeUnit.SECONDS), debugFn: () => Unit = () => ()): Try[Option[String]] = {
+  case class RemoteHead(definition: String) {
+    val name: String = definition.replaceFirst("HEAD branch: ", "")
+    val withOrigin: String = "origin/" + name
+  }
+
+  def remoteHead(timeout: Duration = Duration(10, TimeUnit.SECONDS), debugFn: () => Unit = () => ()): Try[Option[RemoteHead]] = {
     val executor = Executors.newSingleThreadExecutor() // TODO reuse executor later
     val call = new Callable[Try[Seq[String]]] {
       override def call(): Try[Seq[String]] = {
@@ -404,11 +409,15 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     } finally {
       executor.shutdownNow();
     }
-    result.map(_.headOption)
+    result.map(_.headOption.map(RemoteHead.apply))
+  }
+
+  def remoteHeadDefinition(timeout: Duration = Duration(10, TimeUnit.SECONDS), debugFn: () => Unit = () => ()): Try[Option[String]] = {
+    remoteHead(timeout, debugFn).map(_.map(_.definition))
   }
 
   def remoteHeadRaw(): Try[Option[String]] = {
-    Sgit.toRawRemoteHead(remoteHead())
+    remoteHead().map(_.map(_.withOrigin))
   }
 
   private[release] def listContributorMailboxes14Days(): Seq[String] = {
@@ -889,10 +898,6 @@ object Sgit {
   }
 
   def stripVersionPrefix(in: Seq[String]): Seq[String] = in.map(_.replaceFirst("^v(.*)", "$1"))
-
-  def toRawRemoteHead(remoteHead: Try[Option[String]]): Try[Option[String]] = {
-    remoteHead.map(_.map(_.replaceFirst("HEAD branch: ", "origin/")))
-  }
 
   def versionOnly(): SgitVersion = {
     Sgit(null, doVerify = false, System.out, System.err,

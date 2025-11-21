@@ -178,99 +178,99 @@ class LintTest extends AssertionsForJUnit {
   @Test
   def testVersionMatches(): Unit = {
     Assert.assertEquals(Lint.MismatchResult.valid,
-      Lint.versionMismatches("1.2.3", tag("v1.2.3", branchName = Some("HEAD")), isShop = false))
+      Lint.versionMismatches("1.2.3", tag("v1.2.3", branchName = Some("HEAD")), isShop = false, headBranchName = None))
     Assert.assertEquals(Lint.MismatchResult.valid,
-      Lint.versionMismatches(selfVersion = "RC-2024.31-SNAPSHOT", tagBranchInfo = br("release/RC-2024.31"), isShop = false))
-    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("45x-SNAPSHOT", br("feature/45x"), isShop = false))
-    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("0.0.8-SNAPSHOT", br("feature/0x"), isShop = false))
-    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("0.0.8-SNAPSHOT", br("feature/0.0x"), isShop = false))
-    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("1.1.1-SNAPSHOT", br("main"), isShop = false))
-    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("3.2.1-SNAPSHOT", br("master"), isShop = false))
-    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("master-SNAPSHOT", br("master"), isShop = false))
-    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("test-SNAPSHOT", br("feature/test"), isShop = false))
-    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("bert-SNAPSHOT", br("release/bert"), isShop = false))
-    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("core44-SNAPSHOT", br("feature/core44"), isShop = false))
-    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("1.2.3", tag("v1.2.3"), isShop = false))
-    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("main", tag("vmain"), isShop = false))
-    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("main", BranchTagMerge.merge, isShop = false))
-    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("core45-SNAPSHOT", br("feature/core_45"), isShop = false))
-    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("RC-2024.31-SNAPSHOT", br("master"), isShop = true))
-    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("RC-2024.31-SNAPSHOT", br("master"), isShop = false))
+      Lint.versionMismatches(selfVersion = "RC-2024.31-SNAPSHOT", tagBranchInfo = br("release/RC-2024.31"), isShop = false, headBranchName = None))
+    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("45x-SNAPSHOT", br("feature/45x"), isShop = false, headBranchName = None))
+    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("0.0.8-SNAPSHOT", br("feature/0x"), isShop = false, headBranchName = None))
+    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("0.0.8-SNAPSHOT", br("feature/0.0x"), isShop = false, headBranchName = None))
+    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("1.1.1-SNAPSHOT", br("main"), isShop = false, headBranchName = None))
+    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("3.2.1-SNAPSHOT", br("master"), isShop = false, headBranchName = None))
+    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("master-SNAPSHOT", br("master"), isShop = false, headBranchName = None))
+    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("test-SNAPSHOT", br("feature/test"), isShop = false, headBranchName = None))
+    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("bert-SNAPSHOT", br("release/bert"), isShop = false, headBranchName = None))
+    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("core44-SNAPSHOT", br("feature/core44"), isShop = false, headBranchName = None))
+    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("1.2.3", tag("v1.2.3"), isShop = false, headBranchName = None))
+    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("main", tag("vmain"), isShop = false, headBranchName = None))
+    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("main", BranchTagMerge.merge, isShop = false, headBranchName = None))
+    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("core45-SNAPSHOT", br("feature/core_45"), isShop = false, headBranchName = None))
+    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("RC-2024.31-SNAPSHOT", br("master"), isShop = true, headBranchName = None))
+    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("RC-2024.31-SNAPSHOT", br("master"), isShop = false, headBranchName = None))
 
     Assert.assertEquals(
       Lint.MismatchResult.problem(" project.version »master« has no git. Please add some .git folder. \uD83D\uDE2C RL1014"),
-      Lint.versionMismatches("master", None, isShop = false))
+      Lint.versionMismatches("master", None, isShop = false, headBranchName = None))
     Assert.assertEquals(Lint.MismatchResult.problem(" project.version »master« is detached. Maybe add a ref. \uD83D\uDE2C RL1014"),
-      Lint.versionMismatches(selfVersion = "master", tagBranchInfo = Some(BranchTagMerge(tagName = None, branchName = None)), isShop = false))
+      Lint.versionMismatches(selfVersion = "master", tagBranchInfo = Some(BranchTagMerge(tagName = None, branchName = None)), isShop = false, headBranchName = None))
     Assert.assertEquals(Lint.MismatchResult.problem(" project.version »« is detached. Maybe add a ref. \uD83D\uDE2C RL1014"),
-      Lint.versionMismatches(selfVersion = "", tagBranchInfo = Some(BranchTagMerge(tagName = None, branchName = None)), isShop = false))
+      Lint.versionMismatches(selfVersion = "", tagBranchInfo = Some(BranchTagMerge(tagName = None, branchName = None)), isShop = false, headBranchName = None))
     Assert.assertEquals(
       Lint.MismatchResult.problem(" »1.0.0-M1-SNAPSHOT« does not relate to git branch: »feature/0x«." +
         " Please use a plausible version marker and git marker combination like:" +
         " (project.version: 1.0.0-M1-SNAPSHOT -> git branch: feature/1x), ... \uD83D\uDE2C RL1014"),
-      Lint.versionMismatches("1.0.0-M1-SNAPSHOT", br("feature/0x"), isShop = false))
+      Lint.versionMismatches("1.0.0-M1-SNAPSHOT", br("feature/0x"), isShop = false, headBranchName = None))
     Assert.assertEquals(Lint.MismatchResult.problem(" »1.0.0-M1-SNAPSHOT« does not relate to git branch: »feature/1.1x«." +
       " Please use a plausible version marker and git marker combination like:" +
       " (project.version: 1.0.0-M1-SNAPSHOT -> git branch: feature/1x), ... \uD83D\uDE2C RL1014"),
-      Lint.versionMismatches("1.0.0-M1-SNAPSHOT", br("feature/1.1x"), isShop = false))
+      Lint.versionMismatches("1.0.0-M1-SNAPSHOT", br("feature/1.1x"), isShop = false, headBranchName = None))
 
     Assert.assertEquals(Lint.MismatchResult.problem(" »main-SNAPSHOT« does not relate to git tag: »master«." +
       " Please use a plausible version marker and git marker combination like:" +
       " (project.version: 1.2.3 -> git tag:v1.2.3), ... (hint: a git tag should not be a SNAPSHOT) \uD83D\uDE2C RL1014"),
-      Lint.versionMismatches("main-SNAPSHOT", tag("master"), isShop = false))
+      Lint.versionMismatches("main-SNAPSHOT", tag("master"), isShop = false, headBranchName = None))
     Assert.assertEquals(Lint.MismatchResult.problem(" »main-SNAPSHOT« does not relate to git tag: »main«." +
       " Please use a plausible version marker and git marker combination like:" +
       " (project.version: 1.2.3 -> git tag:v1.2.3), ... (hint: a git tag should not be a SNAPSHOT) \uD83D\uDE2C RL1014"),
-      Lint.versionMismatches("main-SNAPSHOT", tag("main"), isShop = false))
+      Lint.versionMismatches("main-SNAPSHOT", tag("main"), isShop = false, headBranchName = None))
     Assert.assertEquals(Lint.MismatchResult.problem(" »main« does not relate to git tag: »master«." +
       " Please use a plausible version marker and git marker combination like:" +
-      " (project.version: 1.2.3 -> git tag:v1.2.3), ... \uD83D\uDE2C RL1014"), Lint.versionMismatches("main", tag("master"), isShop = false))
+      " (project.version: 1.2.3 -> git tag:v1.2.3), ... \uD83D\uDE2C RL1014"), Lint.versionMismatches("main", tag("master"), isShop = false, headBranchName = None))
     Assert.assertEquals(Lint.MismatchResult.problem(" project.version »main-SNAPSHOT« does not relate to git branch: »master«." +
       " Please use a plausible version marker and git marker combination like:" +
       " (project.version: main-SNAPSHOT -> git branch:main), ... \uD83D\uDE2C RL1014"),
-      Lint.versionMismatches("main-SNAPSHOT", br("master"), isShop = false))
+      Lint.versionMismatches("main-SNAPSHOT", br("master"), isShop = false, headBranchName = None))
     Assert.assertEquals(
       Lint.MismatchResult.problem(" »1.0.0-M1« does not relate to git branch: »feature/0x«." +
         " Please use a plausible version marker and git marker combination like:" +
-        " (project.version: 1.2.3 -> git tag:v1.2.3), ... \uD83D\uDE2C RL1014"), Lint.versionMismatches("1.0.0-M1", br("feature/0x"), isShop = false))
+        " (project.version: 1.2.3 -> git tag:v1.2.3), ... \uD83D\uDE2C RL1014"), Lint.versionMismatches("1.0.0-M1", br("feature/0x"), isShop = false, headBranchName = None))
     Assert.assertEquals(Lint.MismatchResult.problem(" project.version »RC-2024.25-SNAPSHOT« is detached (HEAD). Maybe add a ref. \uD83D\uDE2C RL1014"),
-      Lint.versionMismatches("RC-2024.25-SNAPSHOT", Some(BranchTagMerge(tagName = None, branchName = Some("HEAD"))), isShop = false))
+      Lint.versionMismatches("RC-2024.25-SNAPSHOT", Some(BranchTagMerge(tagName = None, branchName = Some("HEAD"))), isShop = false, headBranchName = None))
     Assert.assertEquals(Lint.MismatchResult.problem(" »master-SNAPSHOT« does not relate to git branch: »feature/core44«. " +
       "Please use a plausible version marker and git marker combination.\uD83D\uDE2C RL1014"),
-      Lint.versionMismatches("master-SNAPSHOT", br("feature/core44"), isShop = false))
+      Lint.versionMismatches("master-SNAPSHOT", br("feature/core44"), isShop = false, headBranchName = None))
     Assert.assertEquals(Lint.MismatchResult.problem(" »core45-SNAPSHOT« does not relate to git branch: »feature/core44«. " +
       "Please use a plausible version marker and git marker combination.\uD83D\uDE2C RL1014"),
-      Lint.versionMismatches("core45-SNAPSHOT", br("feature/core44"), isShop = false))
+      Lint.versionMismatches("core45-SNAPSHOT", br("feature/core44"), isShop = false, headBranchName = None))
     Assert.assertEquals(Lint.MismatchResult.problem(" »main« does not relate to git tag: »RC-2025.02«." +
       " Immutable tags are not recommended for shops, because cleanup is not intended. Suggested names:" +
       "  (project.version: RC-2025.02 -> git branch:release/RC-2025.02), ..." +
       " Please use a plausible version marker and git marker combination like:" +
-      " (project.version: 1.2.3 -> git tag:v1.2.3), ... \uD83D\uDE2C RL1014"), Lint.versionMismatches("main", tag("RC-2025.02"), isShop = true))
+      " (project.version: 1.2.3 -> git tag:v1.2.3), ... \uD83D\uDE2C RL1014"), Lint.versionMismatches("main", tag("RC-2025.02"), isShop = true, headBranchName = None))
 
     val str = " project.version »RC-2025-13-SNAPSHOT« does not relate to git branch: »master«. " +
       "Please use a plausible version marker and git marker combination like: " +
       "(project.version: RC-2025-13-SNAPSHOT -> git branch:RC-2025-13), maybe you try to use this pattern e.g. RC-2023.04-SNAPSHOT ... 😬 RL1014"
     Assert.assertEquals(Lint.MismatchResult.problem(str),
-      Lint.versionMismatches("RC-2025-13-SNAPSHOT", br("master"), isShop = true))
+      Lint.versionMismatches("RC-2025-13-SNAPSHOT", br("master"), isShop = true, headBranchName = None))
     Assert.assertEquals(Lint.MismatchResult.problem(str),
-      Lint.versionMismatches("RC-2025-13-SNAPSHOT", br("master"), isShop = false))
+      Lint.versionMismatches("RC-2025-13-SNAPSHOT", br("master"), isShop = false, headBranchName = None))
 
     Assert.assertEquals(Lint.MismatchResult.problem(" project.version »SNAPSHOT« does not relate to git branch: »master«. " +
       "Please use a plausible version marker and git marker combination like: (project.version: SNAPSHOT -> git branch:SNAPSHOT), ... 😬 RL1014"),
-      Lint.versionMismatches("SNAPSHOT", br("master"), isShop = false))
+      Lint.versionMismatches("SNAPSHOT", br("master"), isShop = false, headBranchName = None))
     Assert.assertEquals(Lint.MismatchResult.problem(" project.version »LATEST« does not relate to git branch: »master«. " +
       "Please use a plausible version marker and git marker combination like: (project.version: LATEST -> git branch:LATEST), ... 😬 RL1014"),
-      Lint.versionMismatches("LATEST", br("master"), isShop = false))
+      Lint.versionMismatches("LATEST", br("master"), isShop = false, headBranchName = None))
     Assert.assertEquals(Lint.MismatchResult.problem(" project.version »RELEASE« does not relate to git branch: »master«. " +
       "Please use a plausible version marker and git marker combination like: (project.version: RELEASE -> git branch:RELEASE), ... 😬 RL1014"),
-      Lint.versionMismatches("RELEASE", br("master"), isShop = false))
+      Lint.versionMismatches("RELEASE", br("master"), isShop = false, headBranchName = None))
   }
 
   @Test
   def testVersionMismatchMsgTagLikeInFeatureBranchWithVersion(): Unit = {
 
     val result = Lint.versionMismatches("1.0.1-management-SNAPSHOT",
-      Some(BranchTagMerge(tagName = None, branchName = Some("feature/management"))), isShop = false)
+      Some(BranchTagMerge(tagName = None, branchName = Some("feature/management"))), isShop = false, headBranchName = None)
     Assert.assertTrue(result.isMismatch)
     Assert.assertEquals(" »1.0.1-management-SNAPSHOT« does not relate to git branch: »feature/management«." +
       " Please use a plausible version marker and git marker combination like:" +

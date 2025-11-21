@@ -2076,7 +2076,7 @@ class LintMavenTest extends AssertionsForJUnit {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
 
       LintMaven.lintProjectVersion(sys.out, opts, "main-SNAPSHOT", new AtomicBoolean(), new AtomicBoolean(),
-        BranchTagMerge.merge, Nil, isShop = false)
+        BranchTagMerge.merge, Nil, isShop = false, headBranchName = None)
     })
   }
 
@@ -2091,7 +2091,7 @@ class LintMavenTest extends AssertionsForJUnit {
 
       val boolean = new AtomicBoolean()
       LintMaven.lintProjectVersion(sys.out, opts, "main-SNAPSHOT", warnExit = boolean, new AtomicBoolean(),
-        Some(BranchTagMerge(tagName = None, branchName = Some("main"))), Nil, isShop = false)
+        Some(BranchTagMerge(tagName = None, branchName = Some("main"))), Nil, isShop = false, headBranchName = None)
       Assert.assertFalse(boolean.get())
     })
   }
@@ -2107,7 +2107,7 @@ class LintMavenTest extends AssertionsForJUnit {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val boolean = new AtomicBoolean()
       LintMaven.lintProjectVersion(sys.out, opts, "1.2.3-SNAPSHOT", warnExit = boolean, new AtomicBoolean(),
-        Some(BranchTagMerge(tagName = None, branchName = Some("main"))), allGitTags = Seq("v1.2.3"), isShop = false)
+        Some(BranchTagMerge(tagName = None, branchName = Some("main"))), allGitTags = Seq("v1.2.3"), isShop = false, headBranchName = None)
       Assert.assertTrue(boolean.get())
     })
   }
@@ -2123,7 +2123,7 @@ class LintMavenTest extends AssertionsForJUnit {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1020", "ö")))
       val boolean = new AtomicBoolean()
       val skips = LintMaven.lintProjectVersion(sys.out, opts, "1.2.3-SNAPSHOT", warnExit = boolean, new AtomicBoolean(),
-        Some(BranchTagMerge(tagName = None, branchName = Some("main"))), allGitTags = Seq("v1.2.3"), isShop = false)
+        Some(BranchTagMerge(tagName = None, branchName = Some("main"))), allGitTags = Seq("v1.2.3"), isShop = false, headBranchName = None)
 
       Assert.assertFalse(boolean.get())
       Assert.assertEquals(Seq("RL1020"), skips)
@@ -2143,7 +2143,7 @@ class LintMavenTest extends AssertionsForJUnit {
 
       LintMaven.lintProjectVersion(sys.out, opts, "5.0.0", warnExit = boolean, new AtomicBoolean(),
         Some(BranchTagMerge(tagName = Some("v5.0.0"), branchName = None)),
-        allGitTags = Seq("v1.2.3", "bert-preview", "v99.0.0", "99.0.0"), isShop = false)
+        allGitTags = Seq("v1.2.3", "bert-preview", "v99.0.0", "99.0.0"), isShop = false, headBranchName = None)
       Assert.assertFalse(boolean.get())
     })
   }
@@ -2160,7 +2160,7 @@ class LintMavenTest extends AssertionsForJUnit {
       val btm = Some(BranchTagMerge(tagName = Some("v1.2.3"), branchName = None))
       Assert.assertTrue(Lint.isValidTag(btm))
       LintMaven.lintProjectVersion(sys.out, opts, "1.2.3", warnExit = hasWarnExit, new AtomicBoolean(),
-        btm, allGitTags = Seq("v1.2.2", "v1.2.3"), isShop = false)
+        btm, allGitTags = Seq("v1.2.2", "v1.2.3"), isShop = false, headBranchName = None)
       Assert.assertFalse(hasWarnExit.get())
     })
   }
@@ -2178,7 +2178,7 @@ class LintMavenTest extends AssertionsForJUnit {
       val btm = Some(BranchTagMerge(tagName = Some("otto"), branchName = None))
       Assert.assertTrue(Lint.isValidTag(btm))
       LintMaven.lintProjectVersion(sys.out, opts, "otto", warnExit = hasWarnExit, new AtomicBoolean(),
-        btm, allGitTags = Seq("v1.2.2", "v1.2.3"), isShop = false)
+        btm, allGitTags = Seq("v1.2.2", "v1.2.3"), isShop = false, headBranchName = None)
       Assert.assertTrue(hasWarnExit.get())
     })
   }
@@ -2194,7 +2194,7 @@ class LintMavenTest extends AssertionsForJUnit {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
 
       LintMaven.lintProjectVersion(sys.out, opts, "ro-SNAPSHOT", new AtomicBoolean(), new AtomicBoolean(),
-        Some(BranchTagMerge(tagName = None, branchName = Some("release/ro"))), Nil, isShop = false)
+        Some(BranchTagMerge(tagName = None, branchName = Some("release/ro"))), Nil, isShop = false, headBranchName = None)
     })
   }
 
@@ -2209,7 +2209,7 @@ class LintMavenTest extends AssertionsForJUnit {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
 
       LintMaven.lintProjectVersion(sys.out, opts, "RC-2024.34.01-bugfix-SNAPSHOT", new AtomicBoolean(), new AtomicBoolean(),
-        Some(BranchTagMerge(tagName = None, branchName = Some("release/RC-2024.34.01-bugfix"))), Nil, isShop = false)
+        Some(BranchTagMerge(tagName = None, branchName = Some("release/RC-2024.34.01-bugfix"))), Nil, isShop = false, headBranchName = None)
     })
   }
 
@@ -2229,7 +2229,7 @@ class LintMavenTest extends AssertionsForJUnit {
       Assert.assertTrue(Lint.isValidBranch(btm))
       Assert.assertFalse(Lint.isValidMergeRequest(btm))
       LintMaven.lintProjectVersion(sys.out, opts, "main", warnExit = boolean, new AtomicBoolean(),
-        btm, allGitTags = Seq("v1.2.3"), isShop = false)
+        btm, allGitTags = Seq("v1.2.3"), isShop = false, headBranchName = None)
       Assert.assertTrue(boolean.get())
     })
   }
@@ -2249,7 +2249,7 @@ class LintMavenTest extends AssertionsForJUnit {
       Assert.assertFalse(Lint.isValidBranch(btm))
       Assert.assertTrue(Lint.isValidMergeRequest(btm))
       val result = LintMaven.lintProjectVersion(sys.out, opts, "main", warnExit = boolean, new AtomicBoolean(),
-        btm, allGitTags = Seq("v1.2.3"), isShop = false)
+        btm, allGitTags = Seq("v1.2.3"), isShop = false, headBranchName = None)
       Assert.assertEquals(Nil, result)
       Assert.assertTrue(boolean.get())
     })
@@ -2267,7 +2267,7 @@ class LintMavenTest extends AssertionsForJUnit {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
 
       val boolean = new AtomicBoolean()
-      LintMaven.lintProjectVersion(sys.out, opts, null, warnExit = boolean, new AtomicBoolean(), None, Nil, isShop = false)
+      LintMaven.lintProjectVersion(sys.out, opts, null, warnExit = boolean, new AtomicBoolean(), None, Nil, isShop = false, headBranchName = None)
       Assert.assertTrue(boolean.get())
     })
   }

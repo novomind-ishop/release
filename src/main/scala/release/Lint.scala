@@ -263,8 +263,8 @@ object Lint {
 
   case class MismatchResult(isMismatch: Boolean, msg: String)
 
-  def versionMismatches(selfVersion: String, tagBranchInfo: Option[BranchTagMerge], isShop:Boolean): MismatchResult = {
-    val defaultBranchnames = Set("main", "master")
+  def versionMismatches(selfVersion: String, tagBranchInfo: Option[BranchTagMerge], isShop:Boolean, headBranchName:Option[String]): MismatchResult = {
+    val defaultBranchnames = Set("main", "master") ++ headBranchName.toSet
 
     if (tagBranchInfo.isDefined) {
       val branchN = tagBranchInfo.get.branchName
@@ -551,11 +551,11 @@ object Lint {
         val sgit = Sgit(file, doVerify = false, out = out, err = err, findGitRoot = true,
           gitBin = None, opts = Opts())
 
-        val remoteHeadDefinition = sgit.remoteHead()
+        val remoteHead = sgit.remoteHead()
         // TODO try to source env file .release-${branchSlug}.env
         // TODO log sourcing of env file
-        val envs = if (remoteHeadDefinition.isSuccess) {
-          val remoteBranchSlug = remoteHeadDefinition.get // XXX no letters and digits only, special chars as '-'
+        val envs = if (remoteHead.isSuccess) {
+          val remoteBranchSlug = remoteHead.get // XXX no letters and digits only, special chars as '-'
           // out.println(info(s"    file .release-${remoteBranchSlug}.env", workOpts))
           // TODO patch OPTS
           systemEnvs // TODO add others
@@ -569,27 +569,27 @@ object Lint {
         out.println(info(s"    ${fiFine} git  version: " + sgit.version(), opts))
         out.println(info(s"    ${fiFine} self version: " + Sgit.selfFileChecksum, opts))
         out.println(info("--- check clone config / remote @ git ---", opts))
-        if (remoteHeadDefinition.isSuccess) {
-          if (remoteHeadDefinition.get.exists(_.contains("(unknown)"))) {
+        if (remoteHead.isSuccess) {
+          if (remoteHead.get.map(_.definition).exists(_.contains("(unknown)"))) {
             out.println(warn(s" ${fiWarn} unknown remote HEAD found, corrupted remote -- repair please", opts))
             out.println(warn(s" ${fiWarn} if you use gitlab try to", opts))
             out.println(warn(s" ${fiWarn} choose another default branch; save; use the original default branch", opts))
             warnExit.set(true)
           }
-          val commitRef = sgit.logShortOpt(limit = 1, path = Sgit.toRawRemoteHead(remoteHeadDefinition).get.get)
+          val commitRef = sgit.logShortOpt(limit = 1, path = remoteHead.get.get.withOrigin)
           val commitOf = commitRef.map(_.replaceFirst("^commit ", ""))
           if (commitOf.isDefined) {
-            out.println(info(s"    ${remoteHeadDefinition.get.get} - ${commitOf.get}", opts, limit = lineMax))
+            out.println(info(s"    ${remoteHead.get.get.definition} - ${commitOf.get}", opts, limit = lineMax))
           } else {
-            out.println(warn(s" ${fiWarn} ${remoteHeadDefinition.get.get} - n/a", opts, limit = lineMax))
+            out.println(warn(s" ${fiWarn} ${remoteHead.get.get.definition} - n/a", opts, limit = lineMax))
             warnExit.set(true)
           }
         } else {
           out.println(warn(s" ${fiWarn} no remote HEAD found, corrupted remote -- repair please", opts))
           out.println(warn(s" ${fiWarn} if you use gitlab try to", opts))
           out.println(warn(s" ${fiWarn} choose another default branch; save; use the original default branch", opts))
-          if (remoteHeadDefinition.isFailure) {
-            val exception = remoteHeadDefinition.failed.get
+          if (remoteHead.isFailure) {
+            val exception = remoteHead.failed.get
             out.println(warn(s" ${fiWarn} remote call exception: ${exception.getClass.getName} message: ${exception.getMessage}",
               opts, limit = lineMax))
           }
@@ -892,7 +892,7 @@ object Lint {
             }
             out.println(info("--- project version @ maven ---", opts))
             usedSkips = usedSkips ++ LintMaven.lintProjectVersion(out, opts, modTry.get.selfVersionReplaced, warnExit, errorExit, tagBranchInfo,
-              sgit.listAllTags(), mod.isShop)
+              sgit.listAllTags(), mod.isShop, remoteHead.toOption.flatMap(_.map(_.name)))
 
             out.println(info("--- check for snapshots @ maven ---", opts))
             val snaps = mod.listGavsForCheck()

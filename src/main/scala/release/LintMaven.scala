@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 object LintMaven {
   def lintProjectVersion(out: PrintStream, opts: Opts, currentVersion: String, warnExit: AtomicBoolean, errorExit: AtomicBoolean,
-                         tagBranchInfo: Option[BranchTagMerge], allGitTags: Seq[String], isShop:Boolean): Seq[Lint.UniqCode] = {
+                         tagBranchInfo: Option[BranchTagMerge], allGitTags: Seq[String], isShop:Boolean, headBranchName:Option[String]): Seq[Lint.UniqCode] = {
     out.println(info(s"    $currentVersion", opts))
     if (PomMod.isUnknownVersionPattern(currentVersion) && tagBranchInfo.isDefined && tagBranchInfo.get.branchName.getOrElse("").startsWith("release/")) {
 
@@ -79,7 +79,7 @@ object LintMaven {
       Nil
     }
 
-    val mismatchResult = Lint.versionMismatches(currentVersion, tagBranchInfo, isShop)
+    val mismatchResult = Lint.versionMismatches(currentVersion, tagBranchInfo, isShop, headBranchName)
     if (mismatchResult.isMismatch) {
       val bool = opts.lintOpts.skips.contains(fiCodeVersionMismatch)
       if (bool) {

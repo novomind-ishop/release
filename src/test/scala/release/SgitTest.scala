@@ -81,8 +81,9 @@ class SgitTest extends AssertionsForJUnit {
 
     // THEN
     Assert.assertEquals("master", branch)
-    Assert.assertEquals(Some("HEAD branch: master"), testee.remoteHead().get)
+    Assert.assertEquals(Some("HEAD branch: master"), testee.remoteHeadDefinition().get)
     Assert.assertEquals(Some("origin/master"), testee.remoteHeadRaw().get)
+    Assert.assertEquals(Some("master"), testee.remoteHead().get.get.name)
   }
 
   @Test
@@ -565,7 +566,7 @@ class SgitTest extends AssertionsForJUnit {
         })
     }
 
-    Assert.assertEquals("after 1 millisecond to ssh://git.example.org/ubglu", gitA.remoteHead(timeout = Duration(1, TimeUnit.MILLISECONDS), debugFn = () => {
+    Assert.assertEquals("after 1 millisecond to ssh://git.example.org/ubglu", gitA.remoteHeadDefinition(timeout = Duration(1, TimeUnit.MILLISECONDS), debugFn = () => {
       Thread.sleep(10_000)
     }).failed.get.getMessage)
 
