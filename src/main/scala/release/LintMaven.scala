@@ -7,7 +7,7 @@ import java.io.PrintStream
 import java.util.concurrent.atomic.AtomicBoolean
 
 object LintMaven {
-  def lintProjectVersion(out: PrintStream, opts: Opts, currentVersion: String, warnExit: AtomicBoolean, errorExit: AtomicBoolean,
+  def lintProjectVersion(out: PrintStream, opts: Opts, currentVersion: String, warnExit: AtomicBooleanFlip, errorExit: AtomicBooleanFlip,
                          tagBranchInfo: Option[BranchTagMerge], allGitTags: Seq[String], isShop:Boolean, headBranchName:Option[String]): Seq[Lint.UniqCode] = {
     out.println(info(s"    $currentVersion", opts))
     if (PomMod.isUnknownVersionPattern(currentVersion) && tagBranchInfo.isDefined && tagBranchInfo.get.branchName.getOrElse("").startsWith("release/")) {
@@ -26,7 +26,7 @@ object LintMaven {
       out.println(warn(s" version »${currentVersion}« is not recommended, please use at least a single digit e.g. 1.0.0. This helps us to cleanup older versions. ${fiWarn}"
         , opts, limit = Lint.lineMax))
       // TODO skip
-      warnExit.set(true)
+      warnExit.set()
     }
     val latestKnownVersion = allGitTagVersionsP.filterNot(_ == v).lastOption
     val usedSkips: Seq[Lint.UniqCode] = if (!Lint.isValidTag(tagBranchInfo)) {
@@ -34,7 +34,7 @@ object LintMaven {
         // TODO non snapshots are only allowed in tags, because if someone install it to its local repo this will lead to problems
         out.println(warn(s" version »${currentVersion}« must be a SNAPSHOT; non snapshots are only allowed in tags ${fiWarn}"
           , opts, limit = Lint.lineMax))
-        warnExit.set(true)
+        warnExit.set()
         // TODO skip
         ()
       }
@@ -47,7 +47,7 @@ object LintMaven {
           Seq(fiCodeVersionMismatchNoTag)
         } else {
           out.println(warn(msg, opts, limit = Lint.lineMax))
-          warnExit.set(true)
+          warnExit.set()
           Nil
         }
       } else {
@@ -87,7 +87,7 @@ object LintMaven {
         Seq(fiCodeVersionMismatch) ++ usedSkips
       } else {
         out.println(warn(mismatchResult.msg, opts, limit = Lint.lineMax))
-        warnExit.set(true)
+        warnExit.set()
         usedSkips
       }
     } else {

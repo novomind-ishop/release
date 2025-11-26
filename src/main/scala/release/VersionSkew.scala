@@ -1,6 +1,6 @@
 package release
 
-import release.Lint.{fiCodeCoreDiff, fiFine, fiWarn, lineMax}
+import release.Lint.{UniqCode, fiCodeCoreDiff, fiFine, fiWarn, fiWarnMuted, lineMax}
 import release.ProjectMod.{Dep, Gav}
 import release.Term.{info, warn}
 
@@ -9,13 +9,13 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 object VersionSkew {
   case class SkewResult(hasDifferentMajors: Boolean, sortedMajors: Seq[String], releaseMajorVersion: String,
-                        coreMajorVersions: Seq[(String, Dep)])
+                        coreMajorVersions: Seq[(String, Dep)], usedSkips: Seq[UniqCode])
 
   def skewResultOf(mod: ProjectMod, releaseVersion: Option[String],
-                   warnExit: Option[AtomicBoolean] = None, errorExit: Option[AtomicBoolean] = None,
-                   out: Option[PrintStream], opts: Opts, full: Boolean): SkewResult = {
+                   warnExit: Option[AtomicBooleanFlip] = None, errorExit: Option[AtomicBooleanFlip] = None,
+                   out: Option[PrintStream], opts: Opts, skewStyle: Option[String]): SkewResult = {
     val isNoShop = mod.isNoShop
-    val relevantDeps: Seq[Dep] = if (full) {
+    val relevantDeps: Seq[Dep] = if (skewStyle.isDefined) {
       mod.listDependencies
     } else if (isNoShop) {
       mod.listDependencies.filter(in => in.groupId.startsWith("com.novomind.ishop.core"))
@@ -28,14 +28,24 @@ object VersionSkew {
     innerSkewResult(releaseVersion, warnExit, out, opts, isNoShop, relevantDeps)
   }
 
-  private[release] def innerSkewResult(releaseVersion: Option[String], warnExit: Option[AtomicBoolean], out: Option[PrintStream],
+  private[release] def innerSkewResult(releaseVersion: Option[String], warnExit: Option[AtomicBooleanFlip], out: Option[PrintStream],
                                        opts: Opts, isNoShop: Boolean, relevantDeps: Seq[Dep]) = {
+    var usedSkips = Seq.empty[UniqCode]
+    var warnX = false
     val mrc = skewResultOfLayer(relevantDeps, isNoShop, releaseVersion)
     if (out.isDefined && mrc.hasDifferentMajors) {
-      warnExit.get.set(true)
       // TODO https://kubernetes.io/releases/version-skew-policy/
       // v0.32.7 ⚡️v0.50.3 (version ∆ x expected y)
-      out.get.println(warn(s"    Found multiple core major version: »${mrc.sortedMajors.mkString(", ")}«, use only one ${fiWarn} ${fiCodeCoreDiff.apply(mrc)}", opts, limit = lineMax))
+      val code = fiCodeCoreDiff.apply(mrc)
+      if (opts.skipProperties.contains(code)) {
+        out.get.println(info(s"       Found multiple core major version: »${mrc.sortedMajors.mkString(", ")}«, use only one ${fiWarnMuted} $code", opts, limit = lineMax))
+        usedSkips = usedSkips :+ code
+      } else {
+        out.get.println(warn(s"    Found multiple core major version: »${mrc.sortedMajors.mkString(", ")}«, use only one ${fiWarn} $code", opts, limit = lineMax))
+        warnX = true
+      }
+
+
       val versions = mrc.coreMajorVersions
       val mrcGrouped: Map[String, Seq[Gav]] = versions.groupBy(_._1)
         .map(e => (e._1, e._2.map(_._2.gav()).distinct))
@@ -45,7 +55,14 @@ object VersionSkew {
         .foreach(gavE => {
           out.get.println(warn(s"      - ${gavE._1} -", opts, limit = lineMax))
           gavE._2.foreach(gav => {
-            out.get.println(warn(s"      ${gav.formatted} ${fiWarn} ${fiCodeCoreDiff.apply(gav)}", opts, limit = lineMax))
+            val code1 = fiCodeCoreDiff.apply(gav)
+            if (opts.skipProperties.contains(code1)) {
+              out.get.println(info(s"         ${gav.formatted} ${fiWarnMuted} $code1", opts, limit = lineMax))
+              usedSkips = usedSkips :+ code1
+            } else {
+              out.get.println(warn(s"      ${gav.formatted} ${fiWarn} $code1", opts, limit = lineMax))
+              warnX = true
+            }
           })
         })
 
@@ -54,11 +71,14 @@ object VersionSkew {
         out.get.println(info(s"    ${fiFine} no major version diff", opts))
       }
     }
-    mrc
+    if (warnX) {
+      warnExit.get.set()
+    }
+    mrc.copy(usedSkips = mrc.usedSkips ++ usedSkips)
   }
 
   private[release] def skewResultOfLayer(relevantDeps: Seq[Dep], isNoShop: Boolean, releaseVersion: Option[String]): SkewResult = {
-
+    val usedSkips = Nil // TODO
     if (relevantDeps.nonEmpty) {
       val releaseMajorVersion = if (isNoShop && releaseVersion.isDefined) {
         releaseVersion.get.replaceAll("\\..*", "")
@@ -97,9 +117,9 @@ object VersionSkew {
         .sortBy(_._1)
 
       val (sortedMajors: Seq[String], hasDiff: Boolean, coreMajorVersions: Seq[(String, Dep)]) = Release.findDiff(releaseMajorVersion, coreVersions)
-      SkewResult(hasDiff, sortedMajors, releaseMajorVersion, coreMajorVersions)
+      SkewResult(hasDiff, sortedMajors, releaseMajorVersion, coreMajorVersions, usedSkips)
     } else {
-      SkewResult(hasDifferentMajors = false, Nil, "", Nil)
+      SkewResult(hasDifferentMajors = false, Nil, "", Nil, usedSkips)
     }
 
   }

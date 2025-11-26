@@ -498,6 +498,7 @@ object Lint {
   val fiCodeVersionMismatchNoTag = uniqCode(1020)(())
   val fiCodeSimilarity = uniqCode(1021)
   val fiWarn = "\uD83D\uDE2C"
+  val fiWarnMuted = "\uD83E\uDD10"
   val fiError = "❌"
 
   def run(out: PrintStream, err: PrintStream, sysOpts: Opts,
@@ -529,8 +530,8 @@ object Lint {
       val errorExitCode = 43
       // TODO print $HOME
       println(info("    " + file.getAbsolutePath, workOpts, lineMax))
-      val warnExit = new AtomicBoolean(false)
-      val errorExit = new AtomicBoolean(false)
+      val warnExit = new AtomicBooleanFlip()
+      val errorExit = new AtomicBooleanFlip()
       val files = file.listFiles()
       var usedSkips = Seq.empty[Lint.UniqCode]
       if (files == null || files.isEmpty) {
@@ -574,7 +575,7 @@ object Lint {
             out.println(warn(s" ${fiWarn} unknown remote HEAD found, corrupted remote -- repair please", opts))
             out.println(warn(s" ${fiWarn} if you use gitlab try to", opts))
             out.println(warn(s" ${fiWarn} choose another default branch; save; use the original default branch", opts))
-            warnExit.set(true)
+            warnExit.set()
           }
           val commitRef = sgit.logShortOpt(limit = 1, path = remoteHead.get.get.withOrigin)
           val commitOf = commitRef.map(_.replaceFirst("^commit ", ""))
@@ -582,7 +583,7 @@ object Lint {
             out.println(info(s"    ${remoteHead.get.get.definition} - ${commitOf.get}", opts, limit = lineMax))
           } else {
             out.println(warn(s" ${fiWarn} ${remoteHead.get.get.definition} - n/a", opts, limit = lineMax))
-            warnExit.set(true)
+            warnExit.set()
           }
         } else {
           out.println(warn(s" ${fiWarn} no remote HEAD found, corrupted remote -- repair please", opts))
@@ -593,7 +594,7 @@ object Lint {
             out.println(warn(s" ${fiWarn} remote call exception: ${exception.getClass.getName} message: ${exception.getMessage}",
               opts, limit = lineMax))
           }
-          warnExit.set(true)
+          warnExit.set()
         }
         out.println(info("--- check branches / remote @ git ---", opts))
         val mailboxes = Lint.indentMailboxes(sgit.listContributorMailboxes14Days().sorted)
@@ -641,7 +642,7 @@ object Lint {
                |  the .. -> 'Git strategy' to 'git clone' for maybe a
                |  single build to wipe out gitlab caches.
                |""".stripMargin, opts)
-          warnExit.set(true)
+          warnExit.set()
         } else {
           out.println(info(s"    ${fiFine} NO shallow clone", opts))
         }
@@ -699,7 +700,7 @@ object Lint {
             out.println(warn(s" Found local changes ${fiWarn} $mainSkip", opts))
             namesParents
               .foreach(filename => out.println(warn(s" ${filename} ${fiWarn} ${fiCodeGitLocalChanges(filename)}", opts, limit = lineMax)))
-            warnExit.set(true)
+            warnExit.set()
           } else {
             usedSkips = usedSkips :+ mainSkip
           }
@@ -709,7 +710,7 @@ object Lint {
         if (remotes.isEmpty) {
           out.println(warn(s" NO remotes found ${fiWarn} ${fiCodeGitNoRemotes}", opts))
           out.println(warn(" % git remote -v # returns nothing", opts))
-          warnExit.set(true)
+          warnExit.set()
         } else {
           remotes.foreach(r => out.println(info("      remote: " + r, opts, limit = lineMax)))
         }
@@ -745,7 +746,7 @@ object Lint {
           if (ciconfigpath != defaultCiFilename) {
             out.println(warn("   ci path: " + ciconfigpath, opts))
             out.println(warn(s"   use ${defaultCiFilename} ${fiWarn} ${fiCodeGitlabCiFilename}", opts))
-            warnExit.set(true)
+            warnExit.set()
           } else {
             out.println(info("      ci path: " + ciconfigpath, opts))
           }
@@ -768,7 +769,7 @@ object Lint {
               s"ciBranch: ${ciCommitBranch}, " +
               s"gitTags: ${sgit.currentTags.getOrElse(Nil).mkString(",")}, " +
               s"gitBranch: ${sgit.currentBranchOpt.getOrElse("")}", opts, limit = lineMax))
-            warnExit.set(true)
+            warnExit.set()
           }
           if (dockerTag.isSuccess) {
             if (dockerTag.get.isSuccess) {
@@ -780,10 +781,10 @@ object Lint {
               }
               if (bool) {
                 Term.wrap(out, Term.warn, "  docker tag : " + dockerTag.get.failed.get.getMessage + s" ${fiWarn}\u00A0${fiCodeGitlabCiTagname}", opts)
-                warnExit.set(true)
+                warnExit.set()
               } else {
                 Term.wrap(out, Term.error, "     docker tag : " + dockerTag.get.failed.get.getMessage + s" ${fiError}\u00A0${fiCodeGitlabCiTagname}", opts)
-                errorExit.set(true)
+                errorExit.set()
               }
             }
           } else {
@@ -818,7 +819,7 @@ object Lint {
                     "              " + f._2
                   if (isGitOrCiTag) {
                     out.println(warn(snapMsg, opts, limit = lineMax))
-                    warnExit.set(true)
+                    warnExit.set()
                   } else {
                     out.println(warnSoft(snapMsg, opts, limit = lineMax))
                   }
@@ -827,7 +828,7 @@ object Lint {
               val snapshotSumMsg = s"  found snapshots: ${fiWarn} $code1 -- ${allCodes.sorted.mkString(", ")}"
               if (isGitOrCiTag) {
                 out.println(warn(snapshotSumMsg, opts, limit = lineMax))
-                warnExit.set(true)
+                warnExit.set()
               } else {
                 out.println(warnSoft(snapshotSumMsg, opts, limit = lineMax))
               }
@@ -850,10 +851,10 @@ object Lint {
             out.println(info("    ✅ successfull created", opts))
           } else {
             if (modTry.failed.get.isInstanceOf[PreconditionsException]) {
-              errorExit.set(true)
+              errorExit.set()
               out.println(error(s"    ${fiWarn} ${modTry.failed.get.getMessage}", opts, limit = lineMax))
             } else {
-              warnExit.set(true)
+              warnExit.set()
               out.println(warn(s"    ${fiWarn} ${modTry.failed.get.getMessage}", opts, limit = lineMax))
             }
           }
@@ -869,7 +870,7 @@ object Lint {
               out.println(warn(s" found scopes/copies/overlapping ${fiWarn} ${code1}", opts, limit = lineMax))
               msgs.foreach(k => out.println(warn(" " + k, opts, limit = lineMax)))
               if (!opts.lintOpts.skips.contains(code1)) {
-                warnExit.set(true)
+                warnExit.set()
               } else {
                 usedSkips = usedSkips :+ code1
                 usedSkips = usedSkips :+ code1
@@ -903,7 +904,7 @@ object Lint {
                 val snapFound = "  found snapshot: " + dep.gav().formatted + s" ${fiWarn} ${fiCodeSnapshotGav.apply(dep.gav())}"
                 if (isGitOrCiTag) {
                   out.println(warn(snapFound, opts, limit = lineMax))
-                  warnExit.set(true)
+                  warnExit.set()
                 } else {
                   out.println(warnSoft(snapFound, opts, limit = lineMax))
 
@@ -915,7 +916,7 @@ object Lint {
               unusualGavs.foreach(found => {
                 out.println(warn(s"»${found._1.formatted}« ${found._2} ${fiWarn} ${fiCodeUnusualGav.apply(found)}", opts, limit = lineMax))
               })
-              warnExit.set(true)
+              warnExit.set()
             } else {
               out.println(info(s"    ${fiFine} all GAVs scopes looks fine", opts))
             }
@@ -928,7 +929,7 @@ object Lint {
             } else {
               Map.empty
             }
-            val warnExitForDepCheck = new AtomicBoolean(false)
+            val warnExitForDepCheck = new AtomicBooleanFlip
             mod.listGavsForCheck()
               .filter(dep => ProjectMod.isUnwanted(dep.gav().simpleGav()))
               .filterNot(_.version.get.endsWith("-SNAPSHOT"))
@@ -938,7 +939,7 @@ object Lint {
                 if (skipped) {
                   usedSkips = usedSkips :+ code
                 } else {
-                  warnExitForDepCheck.set(true)
+                  warnExitForDepCheck.set()
                 }
 
                 if (resultTry.isSuccess) {
@@ -963,11 +964,12 @@ object Lint {
                 }
               })
             if (warnExitForDepCheck.get()) {
-              warnExit.set(true)
+              warnExit.set()
             }
             out.println(info("--- version skew ---", opts))
             out.println(info(s"    is shop: ${mod.isShop}", opts))
-            VersionSkew.skewResultOf(mod, None, Some(warnExit), Some(errorExit), Some(out), opts, full = envs.getOrElse("RELEASE_SKEW_FULL", "false").toBoolean)
+            usedSkips = usedSkips ++ VersionSkew.skewResultOf(mod, None, Some(warnExit), Some(errorExit), Some(out), opts,
+              skewStyle = envs.get("RELEASE_SKEW_STYLE")).usedSkips
 
             out.println(info("--- suggest dependency updates / configurable @ maven ---", opts))
 
@@ -976,13 +978,13 @@ object Lint {
             if (repo.workNexusUrl() == Repo.centralUrl) {
               out.println(warn(s" work nexus points to central ${repo.workNexusUrl()} ${fiWarn} ${fiCodeNexusCentral}", opts, limit = lineMax))
               out.println(info(s"    RELEASE_NEXUS_WORK_URL=${releasenexusworkurl} # (${Util.ipFromUrl(releasenexusworkurl).getOrElse("no ip")})", opts, limit = lineMax))
-              warnExit.set(true)
+              warnExit.set()
             } else {
               out.println(info(s"    RELEASE_NEXUS_WORK_URL=${repo.workNexusUrl()} # (${Util.ipFromUrl(repo.workNexusUrl()).getOrElse("no ip")})", opts, limit = lineMax))
             }
             if (!repo.workNexusUrl().endsWith("/")) {
               out.println(warn(s" nexus work url must end with a '/' - ${repo.workNexusUrl()} ${fiWarn} ${fiCodeNexusUrlSlash}", opts, limit = lineMax))
-              warnExit.set(true)
+              warnExit.set()
             }
             val settingsNexusMirrors = mod.listRemoteRepoUrls()
             if (settingsNexusMirrors != Nil) {
@@ -1000,10 +1002,10 @@ object Lint {
                 out.println(warn(" Dependency updated failed", opts))
                 if (resultTry.failed.get.isInstanceOf[PreconditionsException]) {
                   out.println(error("   " + resultTry.failed.get.getMessage, opts, limit = lineMax)) // TODO improve format
-                  errorExit.set(true)
+                  errorExit.set()
                 } else {
                   out.println(warn(" " + resultTry.failed.get.getMessage, opts, limit = lineMax)) // TODO improve format
-                  warnExit.set(true)
+                  warnExit.set()
                 }
 
                 Nil
@@ -1019,7 +1021,7 @@ object Lint {
                 releaseOfSnapshotPresent.map(_._1).foreach(found => {
                   out.println(warn(s"${found.formatted} is already released, remove '-SNAPSHOT' suffix ${fiWarn} ${fiCodeNexusFoundRelease(found)}", opts, limit = lineMax))
                 })
-                warnExit.set(true)
+                warnExit.set()
               }
               val nextReleaseOfSnapshotPresent = snapUpdates.flatMap(e => {
                 val currentVersion = e._1.gav.version.get
@@ -1053,7 +1055,7 @@ object Lint {
                       s"was found (maybe orphan snapshot) ${fiWarn} ${found._3}", opts, limit = lineMax))
                   })
                 if (withCode.nonEmpty) {
-                  warnExit.set(true)
+                  warnExit.set()
                 }
 
               }
@@ -1061,7 +1063,7 @@ object Lint {
             } catch {
               case pce: PreconditionsException => {
                 out.println(warn(pce.getMessage + s"${fiWarn} ${fiCodePomModPreconditionsException}", opts, limit = lineMax))
-                warnExit.set(true)
+                warnExit.set()
               }
               case pce: Exception => {
                 val newStackTrace = filteredStacktrace(pce.getStackTrace)
@@ -1069,10 +1071,10 @@ object Lint {
                 pce.printStackTrace(err)
                 out.println(error(pce.getMessage + s" ${fiWarn} ${fiCodePomModException}", opts, limit = lineMax))
                 if (!opts.lintOpts.skips.contains(fiCodePomModException)) {
-                  errorExit.set(true)
+                  errorExit.set()
                 } else {
                   usedSkips = usedSkips :+ fiCodePomModException
-                  warnExit.set(true)
+                  warnExit.set()
                 }
               }
             }
@@ -1080,11 +1082,11 @@ object Lint {
             out.println(info("    WIP", opts))
           } else {
             out.println(warn(s"    skipped because of previous problems - ${modTry.failed.get.getMessage} ${fiWarn}", opts, limit = lineMax))
-            warnExit.set(true)
+            warnExit.set()
           }
           if (pomFailures.nonEmpty) {
             out.println(warn(s"   previous problems - ${pomFailures.mkString("\n")} ${fiWarn}", opts, limit = lineMax))
-            warnExit.set(true)
+            warnExit.set()
           }
           if (modTry.isSuccess) {
             out.println(info("--- dep.tree @ maven ---", opts))
@@ -1116,7 +1118,7 @@ object Lint {
                 out.println(warnSoft(msg, opts, limit = lineMax))
               } else {
                 out.println(warn(msg, opts, limit = lineMax))
-                warnExit.set(true)
+                warnExit.set()
               }
             })
           } else {
@@ -1144,7 +1146,7 @@ object Lint {
             out.println(info("--- skip-conf / self / end ---", opts))
             out.println(warn(s"    found unused skips, please remove from your config: " + unusedSkips.sorted.mkString(", "), opts, limit = lineMax))
             out.println(warn(s"    active skips: " + opts.lintOpts.skips.diff(unusedSkips).sorted.mkString(", "), opts, limit = lineMax))
-            warnExit.set(true)
+            warnExit.set()
           }
         }
 
