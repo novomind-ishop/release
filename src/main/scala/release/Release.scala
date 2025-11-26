@@ -281,7 +281,7 @@ object Release extends LazyLogging {
     // TODO release a feature branch should not change the next version
     val nextReleaseWithoutSnapshot = readNextReleaseVersionsWithoutSnapshot
 
-    val cmr = VersionSkew.skewResultOf(mod = mod, release = Option(release), opts = opts, out = None)
+    val cmr = VersionSkew.skewResultOf(mod = mod, releaseVersion = Option(release), opts = opts, out = None, full = false)
     if (cmr.hasDifferentMajors) {
       sys.out.println()
       if (opts.colors) {

@@ -11,11 +11,13 @@ object VersionSkew {
   case class SkewResult(hasDifferentMajors: Boolean, sortedMajors: Seq[String], releaseMajorVersion: String,
                         coreMajorVersions: Seq[(String, Dep)])
 
-  def skewResultOf(mod: ProjectMod, release: Option[String],
+  def skewResultOf(mod: ProjectMod, releaseVersion: Option[String],
                    warnExit: Option[AtomicBoolean] = None, errorExit: Option[AtomicBoolean] = None,
-                   out: Option[PrintStream], opts: Opts): SkewResult = {
+                   out: Option[PrintStream], opts: Opts, full: Boolean): SkewResult = {
     val isNoShop = mod.isNoShop
-    val relevantDeps: Seq[Dep] = if (isNoShop) {
+    val relevantDeps: Seq[Dep] = if (full) {
+      mod.listDependencies
+    } else if (isNoShop) {
       mod.listDependencies.filter(in => in.groupId.startsWith("com.novomind.ishop.core"))
     } else {
       val selfGavs = mod.selfDepsMod.map(_.gav())
@@ -23,12 +25,12 @@ object VersionSkew {
         .filter(in => in.groupId.startsWith("com.novomind.ishop"))
         .filterNot(in => selfGavs.contains(in.gav()))
     }
-    innerSkewResult(release, warnExit, out, opts, isNoShop, relevantDeps)
+    innerSkewResult(releaseVersion, warnExit, out, opts, isNoShop, relevantDeps)
   }
 
-  private def innerSkewResult(release: Option[String], warnExit: Option[AtomicBoolean], out: Option[PrintStream],
-                                 opts: Opts, isNoShop: Boolean, relevantDeps: Seq[Dep]) = {
-    val mrc = skewResultOf(relevantDeps, isNoShop, release)
+  private[release] def innerSkewResult(releaseVersion: Option[String], warnExit: Option[AtomicBoolean], out: Option[PrintStream],
+                                       opts: Opts, isNoShop: Boolean, relevantDeps: Seq[Dep]) = {
+    val mrc = skewResultOfLayer(relevantDeps, isNoShop, releaseVersion)
     if (out.isDefined && mrc.hasDifferentMajors) {
       warnExit.get.set(true)
       // TODO https://kubernetes.io/releases/version-skew-policy/
@@ -55,16 +57,16 @@ object VersionSkew {
     mrc
   }
 
-  def skewResultOf(relevantDeps: Seq[Dep], isNoShop: Boolean, release: Option[String]): SkewResult = {
+  private[release] def skewResultOfLayer(relevantDeps: Seq[Dep], isNoShop: Boolean, releaseVersion: Option[String]): SkewResult = {
 
     if (relevantDeps.nonEmpty) {
-      val releaseMajorVersion = if (isNoShop && release.isDefined) {
-        release.get.replaceAll("\\..*", "")
+      val releaseMajorVersion = if (isNoShop && releaseVersion.isDefined) {
+        releaseVersion.get.replaceAll("\\..*", "")
       } else {
         val value = relevantDeps.filterNot(_.version.isEmpty).map(_.version.get)
-        if (value.isEmpty && release.isDefined) {
-          release.get.replaceAll("\\..*", "")
-        } else if (value.isEmpty && release.isEmpty) {
+        if (value.isEmpty && releaseVersion.isDefined) {
+          releaseVersion.get.replaceAll("\\..*", "")
+        } else if (value.isEmpty && releaseVersion.isEmpty) {
           ""
         } else {
           value.maxBy(Version.parse).replaceAll("\\..*", "")

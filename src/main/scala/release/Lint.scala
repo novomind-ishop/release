@@ -967,7 +967,7 @@ object Lint {
             }
             out.println(info("--- version skew ---", opts))
             out.println(info(s"    is shop: ${mod.isShop}", opts))
-            VersionSkew.skewResultOf(mod, None, Some(warnExit), Some(errorExit), Some(out), opts)
+            VersionSkew.skewResultOf(mod, None, Some(warnExit), Some(errorExit), Some(out), opts, full = envs.getOrElse("RELEASE_SKEW_FULL", "false").toBoolean)
 
             out.println(info("--- suggest dependency updates / configurable @ maven ---", opts))
 
