@@ -71,6 +71,7 @@ class VersionSkewTest extends AssertionsForJUnit {
 
   @Test
   def testWithOut(): Unit = {
+    val wx = Some(new AtomicBooleanFlip())
     val term = TermTest.withOutErr[Unit]()(sys => {
       val deps = Seq(
         Gav3("g", "some-rele-a", Some("1.2.3")),
@@ -78,7 +79,6 @@ class VersionSkewTest extends AssertionsForJUnit {
         Gav3("g", "aa", Some("2.2.3")),
         Gav3("g", "aaa", None),
       ).map(_.toDep(SelfRef.undef))
-      val wx = Some(new AtomicBooleanFlip())
       val sk = VersionSkew.innerSkewResult(None, warnExit = wx, out = Some(sys.out),
         Opts().copy(colors = false, lintOpts = Opts().lintOpts.copy(skips = Seq("RL1013-2a36fc66"))), isNoShop = false, deps).usedLintSkips
       Assert.assertEquals(Seq("RL1013-2a36fc66"), sk)
@@ -90,10 +90,12 @@ class VersionSkewTest extends AssertionsForJUnit {
         |[INFO]          g:some-rele-b:1.2.4 🤐 RL1013-2a36fc66
         |[WARNING]       - 2 -
         |[WARNING]       g:aa:2.2.3 😬 RL1013-7e9bf46f""".stripMargin, term.out)
+    Assert.assertTrue(wx.get.get())
   }
 
   @Test
   def testWithOut_skipAll(): Unit = {
+    val wx = Some(new AtomicBooleanFlip())
     val term = TermTest.withOutErr[Unit]()(sys => {
       val deps = Seq(
         Gav3("g", "some-rele-a", Some("1.2.3")),
@@ -101,7 +103,6 @@ class VersionSkewTest extends AssertionsForJUnit {
         Gav3("g", "aa", Some("2.2.3")),
         Gav3("g", "aaa", None),
       ).map(_.toDep(SelfRef.undef))
-      val wx = Some(new AtomicBooleanFlip())
       val sk = VersionSkew.innerSkewResult(None, warnExit = wx, out = Some(sys.out),
         Opts().copy(colors = false, lintOpts = Opts().lintOpts.copy(skips = Seq("RL1013-2b9077d7"))), isNoShop = false, deps).usedLintSkips
       Assert.assertEquals(Seq("RL1013-2b9077d7"), sk)
@@ -113,6 +114,7 @@ class VersionSkewTest extends AssertionsForJUnit {
         |[INFO]          g:some-rele-b:1.2.4 🤐 RL1013-2a36fc66
         |[INFO]          - 2 -
         |[INFO]          g:aa:2.2.3 🤐 RL1013-7e9bf46f""".stripMargin, term.out)
+    Assert.assertFalse(wx.get.get())
   }
 
 }

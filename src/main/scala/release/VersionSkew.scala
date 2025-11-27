@@ -65,7 +65,7 @@ object VersionSkew {
             if (bool || mainSkip) {
               out.get.println(info(s"         ${gav.formatted} ${fiWarnMuted} $code1", opts, limit = lineMax))
             }
-            if (bool) {
+            if (bool && !mainSkip) {
               usedSkips = usedSkips :+ code1
             } else {
               if (!mainSkip) {
@@ -88,7 +88,7 @@ object VersionSkew {
   }
 
   private[release] def skewResultOfLayer(relevantDeps: Seq[Dep], isNoShop: Boolean, releaseVersion: Option[String]): SkewResult = {
-    val usedSkips = Nil // TODO
+    val usedSkips = Nil
     if (relevantDeps.nonEmpty) {
       val releaseMajorVersion = if (isNoShop && releaseVersion.isDefined) {
         releaseVersion.get.replaceAll("\\..*", "")

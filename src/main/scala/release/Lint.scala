@@ -533,7 +533,7 @@ object Lint {
       val warnExit = new AtomicBooleanFlip()
       val errorExit = new AtomicBooleanFlip()
       val files = file.listFiles()
-      var usedSkips = Seq.empty[Lint.UniqCode]
+      var usedLintSkips = Seq.empty[Lint.UniqCode]
       if (files == null || files.isEmpty) {
         out.println(error(s"E: NO FILES FOUND in ${file.getAbsolutePath}", workOpts))
         out.println(error(center("[ end of lint ]"), workOpts))
@@ -684,7 +684,7 @@ object Lint {
               val code = fiCodeGitLocalChanges(name)
               val bool = opts.lintOpts.skips.contains(code)
               if (bool) {
-                usedSkips = usedSkips :+ code
+                usedLintSkips = usedLintSkips :+ code
               }
               if (name.endsWith("/") && bool) {
                 folderMods = folderMods :+ name
@@ -702,7 +702,7 @@ object Lint {
               .foreach(filename => out.println(warn(s" ${filename} ${fiWarn} ${fiCodeGitLocalChanges(filename)}", opts, limit = lineMax)))
             warnExit.set()
           } else {
-            usedSkips = usedSkips :+ mainSkip
+            usedLintSkips = usedLintSkips :+ mainSkip
           }
         }
         out.println(info("--- list-remotes @ git ---", opts))
@@ -777,7 +777,7 @@ object Lint {
             } else {
               val bool = opts.lintOpts.skips.contains(fiCodeGitlabCiTagname)
               if (bool) {
-                usedSkips = usedSkips :+ fiCodeGitlabCiTagname
+                usedLintSkips = usedLintSkips :+ fiCodeGitlabCiTagname
               }
               if (bool) {
                 Term.wrap(out, Term.warn, "  docker tag : " + dockerTag.get.failed.get.getMessage + s" ${fiWarn}\u00A0${fiCodeGitlabCiTagname}", opts)
@@ -807,7 +807,7 @@ object Lint {
                   val code = fiCodeSnapshotText((f._1, f._2, f._3.getFileName))
                   val bool = opts.lintOpts.skips.contains(code)
                   if (bool) {
-                    usedSkips = usedSkips :+ code
+                    usedLintSkips = usedLintSkips :+ code
                   } else {
                     allCodes = allCodes :+ code
                   }
@@ -823,17 +823,18 @@ object Lint {
                   } else {
                     out.println(warnSoft(snapMsg, opts, limit = lineMax))
                   }
-
                 })
               val snapshotSumMsg = s"  found snapshots: ${fiWarn} $code1 -- ${allCodes.sorted.mkString(", ")}"
               if (isGitOrCiTag) {
                 out.println(warn(snapshotSumMsg, opts, limit = lineMax))
                 warnExit.set()
               } else {
-                out.println(warnSoft(snapshotSumMsg, opts, limit = lineMax))
+                if (allCodes.nonEmpty) {
+                  out.println(warnSoft(snapshotSumMsg, opts, limit = lineMax))
+                }
               }
             } else {
-              usedSkips = usedSkips :+ code1
+              usedLintSkips = usedLintSkips :+ code1
             }
           } else {
             out.println(info(s"    ${fiFine} NO SNAPSHOTS in other files found", opts))
@@ -872,8 +873,8 @@ object Lint {
               if (!opts.lintOpts.skips.contains(code1)) {
                 warnExit.set()
               } else {
-                usedSkips = usedSkips :+ code1
-                usedSkips = usedSkips :+ code1
+                usedLintSkips = usedLintSkips :+ code1
+                usedLintSkips = usedLintSkips :+ code1
               }
             } else {
               out.println(info("    ✅ no warnings found", opts))
@@ -892,7 +893,7 @@ object Lint {
               out.println(info("    WIP", opts)) // TODO check extensions present
             }
             out.println(info("--- project version @ maven ---", opts))
-            usedSkips = usedSkips ++ LintMaven.lintProjectVersion(out, opts, modTry.get.selfVersionReplaced, warnExit, errorExit, tagBranchInfo,
+            usedLintSkips = usedLintSkips ++ LintMaven.lintProjectVersion(out, opts, modTry.get.selfVersionReplaced, warnExit, errorExit, tagBranchInfo,
               sgit.listAllTags(), mod.isShop, remoteHead.toOption.flatMap(_.map(_.name)))
 
             out.println(info("--- check for snapshots @ maven ---", opts))
@@ -937,7 +938,7 @@ object Lint {
                 val code = fiCodePreviouRelease.apply(dep.gav())
                 val skipped = opts.lintOpts.skips.contains(code)
                 if (skipped) {
-                  usedSkips = usedSkips :+ code
+                  usedLintSkips = usedLintSkips :+ code
                 } else {
                   warnExitForDepCheck.set()
                 }
@@ -968,7 +969,7 @@ object Lint {
             }
             out.println(info("--- version skew ---", opts))
             out.println(info(s"    is shop: ${mod.isShop}", opts))
-            usedSkips = usedSkips ++ VersionSkew.skewResultOf(mod, None, Some(warnExit), Some(errorExit), Some(out), opts,
+            usedLintSkips = usedLintSkips ++ VersionSkew.skewResultOf(mod, None, Some(warnExit), Some(errorExit), Some(out), workOpts,
               skewStyle = envs.get("RELEASE_SKEW_STYLE")).usedLintSkips
 
             out.println(info("--- suggest dependency updates / configurable @ maven ---", opts))
@@ -1045,7 +1046,7 @@ object Lint {
                   .filterNot(t => {
                     val bool = opts.lintOpts.skips.contains(t._3)
                     if (bool) {
-                      usedSkips = usedSkips :+ t._3
+                      usedLintSkips = usedLintSkips :+ t._3
                     }
                     bool
                   })
@@ -1073,7 +1074,7 @@ object Lint {
                 if (!opts.lintOpts.skips.contains(fiCodePomModException)) {
                   errorExit.set()
                 } else {
-                  usedSkips = usedSkips :+ fiCodePomModException
+                  usedLintSkips = usedLintSkips :+ fiCodePomModException
                   warnExit.set()
                 }
               }
@@ -1114,7 +1115,7 @@ object Lint {
               val msg = s" package »${line}« is in list of unwanted packages, please avoid this package ${fiWarn} $code"
               val bool = opts.lintOpts.skips.contains(code)
               if (bool) {
-                usedSkips = usedSkips :+ code
+                usedLintSkips = usedLintSkips :+ code
                 out.println(warnSoft(msg, opts, limit = lineMax))
               } else {
                 out.println(warn(msg, opts, limit = lineMax))
@@ -1141,7 +1142,7 @@ object Lint {
           LintGitLog.doLint(subjectLineCheck.get, sgit.log(limit = 10), out, opts)
         }
         if (opts.lintOpts.skips.nonEmpty) {
-          val unusedSkips = opts.lintOpts.skips.diff(usedSkips)
+          val unusedSkips = opts.lintOpts.skips.diff(usedLintSkips)
           if (unusedSkips.nonEmpty) {
             out.println(info("--- skip-conf / self / end ---", opts))
             out.println(warn(s"    found unused skips, please remove from your config: " + unusedSkips.sorted.mkString(", "), opts, limit = lineMax))
