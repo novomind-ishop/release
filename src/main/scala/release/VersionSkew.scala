@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 object VersionSkew {
   case class SkewResult(hasDifferentMajors: Boolean, sortedMajors: Seq[String], releaseMajorVersion: String,
-                        coreMajorVersions: Seq[(String, Dep)], usedSkips: Seq[UniqCode])
+                        coreMajorVersions: Seq[(String, Dep)], usedLintSkips: Seq[UniqCode])
 
   def skewResultOf(mod: ProjectMod, releaseVersion: Option[String],
                    warnExit: Option[AtomicBooleanFlip] = None, errorExit: Option[AtomicBooleanFlip] = None,
@@ -36,8 +36,9 @@ object VersionSkew {
     if (out.isDefined && mrc.hasDifferentMajors) {
       // TODO https://kubernetes.io/releases/version-skew-policy/
       // v0.32.7 ⚡️v0.50.3 (version ∆ x expected y)
-      val code = fiCodeCoreDiff.apply(mrc)
-      if (opts.skipProperties.contains(code)) {
+      val code = fiCodeCoreDiff.apply(mrc.copy(usedLintSkips = Nil))
+      val mainSkip = opts.lintOpts.skips.contains(code)
+      if (mainSkip) {
         out.get.println(info(s"       Found multiple core major version: »${mrc.sortedMajors.mkString(", ")}«, use only one ${fiWarnMuted} $code", opts, limit = lineMax))
         usedSkips = usedSkips :+ code
       } else {
@@ -53,15 +54,24 @@ object VersionSkew {
       mrcGrouped.toSeq
         .sortBy(_._1.toIntOption)
         .foreach(gavE => {
-          out.get.println(warn(s"      - ${gavE._1} -", opts, limit = lineMax))
+          if (mainSkip) {
+            out.get.println(info(s"         - ${gavE._1} -", opts, limit = lineMax))
+          } else {
+            out.get.println(warn(s"      - ${gavE._1} -", opts, limit = lineMax))
+          }
           gavE._2.foreach(gav => {
             val code1 = fiCodeCoreDiff.apply(gav)
-            if (opts.skipProperties.contains(code1)) {
+            val bool = opts.lintOpts.skips.contains(code1)
+            if (bool || mainSkip) {
               out.get.println(info(s"         ${gav.formatted} ${fiWarnMuted} $code1", opts, limit = lineMax))
+            }
+            if (bool) {
               usedSkips = usedSkips :+ code1
             } else {
-              out.get.println(warn(s"      ${gav.formatted} ${fiWarn} $code1", opts, limit = lineMax))
-              warnX = true
+              if (!mainSkip) {
+                out.get.println(warn(s"      ${gav.formatted} ${fiWarn} $code1", opts, limit = lineMax))
+                warnX = true
+              }
             }
           })
         })
@@ -74,7 +84,7 @@ object VersionSkew {
     if (warnX) {
       warnExit.get.set()
     }
-    mrc.copy(usedSkips = mrc.usedSkips ++ usedSkips)
+    mrc.copy(usedLintSkips = mrc.usedLintSkips ++ usedSkips)
   }
 
   private[release] def skewResultOfLayer(relevantDeps: Seq[Dep], isNoShop: Boolean, releaseVersion: Option[String]): SkewResult = {
