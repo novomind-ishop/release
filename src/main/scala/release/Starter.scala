@@ -219,7 +219,6 @@ object Starter extends LazyLogging {
               _: PomChecker.ValidationException | _: PreconditionsException | _: Sgit.BranchAlreadyExistsException) => {
         err.println()
         err.println("E: " + x.getMessage)
-        x.printStackTrace()
         1
       }
       case x@(_: TimeoutException) => {

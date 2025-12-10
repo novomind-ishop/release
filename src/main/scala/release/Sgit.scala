@@ -1298,7 +1298,7 @@ object Sgit {
       in
     } else if (checkExisting) {
       throw new MissingGitDirException("no .git dir in " + start.getAbsolutePath + " was found. " +
-        "Please change dir to the project folder.")
+        "Please change dir to the project folder.") // TODO tell me the folder
     } else {
       in
     }

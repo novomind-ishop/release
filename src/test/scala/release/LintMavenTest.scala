@@ -737,7 +737,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- check for preview releases @ maven ---
         |[INFO] --- version skew ---
         |[INFO]     is shop: false
-        |[WARNING]     Found multiple core major version: »50, 51«, use only one 😬 RL1013-a5753e69
+        |[WARNING]     Found multiple core major version: »50, 51«, use only one 😬 RL1013-200c4b3d
         |[WARNING]       - 50 -
         |[WARNING]       com.novomind.ishop.core.other:other-context:50.2.3 😬 RL1013-253fb8cd
         |[WARNING]       - 51 -

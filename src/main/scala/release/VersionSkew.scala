@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 object VersionSkew {
   case class SkewResult(hasDifferentMajors: Boolean, sortedMajors: Seq[String], releaseMajorVersion: String,
-                        coreMajorVersions: Seq[(String, Dep)], usedLintSkips: Seq[UniqCode])
+                        coreMajorVersions: Seq[(String, Gav)], usedLintSkips: Seq[UniqCode])
 
   def skewResultOf(mod: ProjectMod, releaseVersion: Option[String],
                    warnExit: Option[AtomicBooleanFlip] = None, errorExit: Option[AtomicBooleanFlip] = None,
@@ -32,6 +32,7 @@ object VersionSkew {
                                        opts: Opts, isNoShop: Boolean, relevantDeps: Seq[Dep]) = {
     var usedSkips = Seq.empty[UniqCode]
     var warnX = false
+    var sjwef = Set.empty[String]
     val mrc = skewResultOfLayer(relevantDeps, isNoShop, releaseVersion)
     if (out.isDefined && mrc.hasDifferentMajors) {
       // TODO https://kubernetes.io/releases/version-skew-policy/
@@ -49,7 +50,8 @@ object VersionSkew {
 
       val versions = mrc.coreMajorVersions
       val mrcGrouped: Map[String, Seq[Gav]] = versions.groupBy(_._1)
-        .map(e => (e._1, e._2.map(_._2.gav()).distinct))
+        .map(e => (e._1, e._2.map(_._2).distinct))
+
 
       mrcGrouped.toSeq
         .sortBy(_._1.toIntOption)
@@ -69,6 +71,7 @@ object VersionSkew {
               usedSkips = usedSkips :+ code1
             } else {
               if (!mainSkip) {
+                sjwef = sjwef + gavE._1
                 out.get.println(warn(s"      ${gav.formatted} ${fiWarn} $code1", opts, limit = lineMax))
                 warnX = true
               }
@@ -81,7 +84,7 @@ object VersionSkew {
         out.get.println(info(s"    ${fiFine} no major version diff", opts))
       }
     }
-    if (warnX) {
+    if (warnX && sjwef.size > 1) {
       warnExit.get.set()
     }
     mrc.copy(usedLintSkips = mrc.usedLintSkips ++ usedSkips)
@@ -127,7 +130,7 @@ object VersionSkew {
         .sortBy(_._1)
 
       val (sortedMajors: Seq[String], hasDiff: Boolean, coreMajorVersions: Seq[(String, Dep)]) = Release.findDiff(releaseMajorVersion, coreVersions)
-      SkewResult(hasDiff, sortedMajors, releaseMajorVersion, coreMajorVersions, usedSkips)
+      SkewResult(hasDiff, sortedMajors, releaseMajorVersion, coreMajorVersions.map(e => (e._1, e._2.gav())), usedSkips)
     } else {
       SkewResult(hasDifferentMajors = false, Nil, "", Nil, usedSkips)
     }

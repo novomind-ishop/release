@@ -197,10 +197,7 @@ object TermTest extends LazyLogging {
   }
 
   def withOutErr[T]()(fn: Term.Sys => T): OutErr[T] = {
-    val out: ByteArrayOutputStream = new ByteArrayOutputStream
-    val err: ByteArrayOutputStream = new ByteArrayOutputStream
-    val x = fn.apply(new Term.Sys(null, out, err))
-    OutErr(normalize(out), normalize(err), x)
+    withOutErrIn[T](null)(fn)
   }
 
   case class OutErr[T](out: String, err: String, value: T)

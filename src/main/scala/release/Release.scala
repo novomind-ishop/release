@@ -140,6 +140,38 @@ object Release extends LazyLogging {
     }
   }
 
+  @tailrec
+  def readReleaseVersions(sys: Term.Sys, mod: ProjectMod, suggestedVersions: Seq[String], opts: Opts, knownTags: Seq[String]): String = {
+    val result = PomMod.checkNoSlashesNotEmptyNoZeros(
+      Term.readChooseOneOfOrType(sys, s"Enter release version for »${mod.selfVersion}«", suggestedVersions, opts, e => e.last, m => m.last))
+    if (PomMod.isUnknownVersionPattern(result)) {
+      if (mod.isShop) {
+        sys.out.println("I: We prefer:")
+        sys.out.println("I: RC-{YEAR}.{WEEK OF YEAR} for common releases")
+        sys.out.println("I: RC-{YEAR}.{WEEK OF YEAR}.{NUMBER} for intermediate releases")
+      }
+
+      val latestTags = knownTags.take(5)
+      if (latestTags.nonEmpty) {
+        sys.out.println("Latest version tag names are: " + latestTags.mkString(", ")) // TODO sort
+        sys.out.println("Latest version tag matching are: " + "latestTags".mkString(", ")) // TODO sort
+      }
+      val retryVersionEnter = Term.readFromOneOfYesNo(sys, "Unknown release version name: \"" + result + "\".\n" +
+        PomMod.trySuggestKnownPattern(result).getOrElse(s"W: suggestion failed for '${result}'\n") +
+        "_unknown_ versions may affect creation and cleanup of build jobs and artifacts\n" +
+        " and/or publishing of artifacts to partners.\n" +
+        " Are you sure to continue with this name?", opts)
+
+      if (retryVersionEnter == "n") {
+        readReleaseVersions(sys, mod, suggestedVersions, opts, knownTags)
+      } else {
+        result
+      }
+    } else {
+      result
+    }
+  }
+
   // TODO @tailrec
   def work(workDirFile: File, sys: Term.Sys, rebaseFn: () => Unit, branch: String, sgit: Sgit,
            termOs: Term, shellWidth: Int, releaseToolGitSha1: () => String, config: ReleaseConfig,
@@ -209,45 +241,13 @@ object Release extends LazyLogging {
       sys.out.println(s"I: Current week of year: ${PomMod.weekOfYear(LocalDate.now())}")
     }
 
-    val knownTags = sgit.listTagsWithDate().map(_.name)
-    val suggestedVersions = newMod.suggestReleaseVersion(sgit.listBranchNamesAll(), knownTags, opts.versionIncrement)
-
-    @tailrec
-    def readReleaseVersions: String = {
-      val result = PomMod.checkNoSlashesNotEmptyNoZeros(
-        Term.readChooseOneOfOrType(sys, s"Enter release version for »${mod.selfVersion}«", suggestedVersions, opts, e => e.last, m => m.last))
-      if (PomMod.isUnknownVersionPattern(result)) {
-        if (mod.isShop) {
-          sys.out.println("I: We prefer:")
-          sys.out.println("I: RC-{YEAR}.{WEEK OF YEAR} for common releases")
-          sys.out.println("I: RC-{YEAR}.{WEEK OF YEAR}.{NUMBER} for intermediate releases")
-        }
-
-        val latestTags = knownTags.take(5)
-        if (latestTags.nonEmpty) {
-          sys.out.println("Latest version tag names are: " + latestTags.mkString(", ")) // TODO sort
-          sys.out.println("Latest version tag matching are: " + "latestTags".mkString(", ")) // TODO sort
-        }
-        val retryVersionEnter = Term.readFromOneOfYesNo(sys, "Unknown release version name: \"" + result + "\".\n" +
-          PomMod.trySuggestKnownPattern(result).getOrElse(s"W: suggestion failed for '${result}'\n") +
-          "_unknown_ versions may affect creation and cleanup of build jobs and artifacts\n" +
-          " and/or publishing of artifacts to partners.\n" +
-          " Are you sure to continue with this name?", opts)
-
-        if (retryVersionEnter == "n") {
-          readReleaseVersions
-        } else {
-          result
-        }
-      } else {
-        result
-      }
-    }
+    val knownTags: Seq[String] = sgit.listTagsWithDate().map(_.name)
+    val suggestedVersions: Seq[String] = newMod.suggestReleaseVersion(sgit.listBranchNamesAll(), knownTags, opts.versionIncrement)
 
     val releaseWithoutSnapshot = if (opts.versionIncrement.isDefined) {
       suggestedVersions.head
     } else {
-      readReleaseVersions
+      readReleaseVersions(sys, mod, suggestedVersions, opts, knownTags)
     }
 
     sys.out.println(s"Selected release is ${releaseWithoutSnapshot}")
@@ -306,7 +306,7 @@ object Release extends LazyLogging {
       }
       sys.out.println()
       sys.out.println()
-      Release.formatVersionLinesGav(cmr.coreMajorVersions.map(_._2.gav()).sortBy(_.version), opts.colors)
+      Release.formatVersionLinesGav(cmr.coreMajorVersions.map(_._2).sortBy(_.version), opts.colors)
         .map(in => " " + in)
         .foreach(sys.out.println)
       val continue = Term.readFromOneOfYesNo(sys, "Continue?", opts)
