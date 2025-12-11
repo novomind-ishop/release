@@ -71,7 +71,7 @@ class VersionSkewTest extends AssertionsForJUnit {
 
   @Test
   def testWithOut(): Unit = {
-    val wx = Some(new AtomicBooleanFlip())
+    val wx = Some(new OneTimeSwitch())
     val term = TermTest.withOutErr[Unit]()(sys => {
       val deps = Seq(
         Gav3("g", "some-rele-a", Some("1.2.3")),
@@ -90,12 +90,12 @@ class VersionSkewTest extends AssertionsForJUnit {
         |[INFO]          g:some-rele-b:1.2.4 🤐 RL1013-2a36fc66
         |[WARNING]       - 2 -
         |[WARNING]       g:aa:2.2.3 😬 RL1013-7e9bf46f""".stripMargin, term.out)
-    Assert.assertTrue(wx.get.get())
+    Assert.assertTrue(wx.get.isTriggered())
   }
 
   @Test
   def testSkipSingle(): Unit = {
-    val wx = Some(new AtomicBooleanFlip())
+    val wx = Some(new OneTimeSwitch())
     val term = TermTest.withOutErr[Unit]()(sys => {
       val deps = Seq(
         Gav3("g", "some-rele-b", Some("1.2.4")),
@@ -107,17 +107,17 @@ class VersionSkewTest extends AssertionsForJUnit {
       Assert.assertEquals(Seq("RL1013-2a36fc66"), sk)
     })
     Assert.assertEquals(
-      """[WARNING]     Found multiple core major version: »1, 2«, use only one 😬 RL1013-bc16a1a4
-        |[WARNING]       - 1 -
+      """[warning]     Found multiple core major version: »1, 2«, use only one 😬 RL1013-bc16a1a4
+        |[warning]       - 1 -
         |[INFO]          g:some-rele-b:1.2.4 🤐 RL1013-2a36fc66
-        |[WARNING]       - 2 -
-        |[WARNING]       g:aa:2.2.3 😬 RL1013-7e9bf46f""".stripMargin, term.out)
-    Assert.assertFalse(wx.get.get())
+        |[warning]       - 2 -
+        |[warning]       g:aa:2.2.3 😬 RL1013-7e9bf46f""".stripMargin, term.out)
+    Assert.assertFalse(wx.get.isTriggered())
   }
 
   @Test
   def testWithOut_skipAll(): Unit = {
-    val wx = Some(new AtomicBooleanFlip())
+    val wx = Some(new OneTimeSwitch())
     val term = TermTest.withOutErr[Unit]()(sys => {
       val deps = Seq(
         Gav3("g", "some-rele-a", Some("1.2.3")),
@@ -136,7 +136,7 @@ class VersionSkewTest extends AssertionsForJUnit {
         |[INFO]          g:some-rele-b:1.2.4 🤐 RL1013-2a36fc66
         |[INFO]          - 2 -
         |[INFO]          g:aa:2.2.3 🤐 RL1013-7e9bf46f""".stripMargin, term.out)
-    Assert.assertFalse(wx.get.get())
+    Assert.assertFalse(wx.get.isTriggered())
   }
 
 }

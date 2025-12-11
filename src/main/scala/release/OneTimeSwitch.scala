@@ -2,10 +2,12 @@ package release
 
 import java.util.concurrent.atomic.AtomicBoolean
 
-class AtomicBooleanFlip {
+class OneTimeSwitch {
   private val v = new AtomicBoolean(false)
-  def set(): Unit = {
+
+  def trigger(): Unit = {
     v.set(true)
   }
-  def get():Boolean = v.get()
+
+  def isTriggered(): Boolean = v.get()
 }

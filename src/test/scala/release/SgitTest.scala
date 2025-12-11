@@ -603,10 +603,15 @@ class SgitTest extends AssertionsForJUnit {
               "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu")
           }
           case _ => {
-            failFetchAll("Nonzero exit value: 128; git --no-pager fetch --all --tags; " +
+            val a = "Nonzero exit value: 128; git --no-pager fetch --all --tags; " +
+              "ssh: Could not resolve hostname git.example.org: No address associated with hostname fatal: " +
+              "Could not read from remote repository. " +
+              "Please make sure you have the correct access rights and the repository exists."
+            val b = "Nonzero exit value: 128; git --no-pager fetch --all --tags; " +
               "ssh: Could not resolve hostname git.example.org: Name or service not known fatal: " +
               "Could not read from remote repository. " +
-              "Please make sure you have the correct access rights and the repository exists.")
+              "Please make sure you have the correct access rights and the repository exists."
+            failFetchAll(a, b)
           }
         }
 

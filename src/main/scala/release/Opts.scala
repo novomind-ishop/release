@@ -31,7 +31,6 @@ object Opts {
     null
   }
 
-
   @tailrec
   def envRead(envs: Seq[(String, String)], inOpt: Opts): Opts = {
     envs match {
@@ -42,6 +41,13 @@ object Opts {
       case ("RELEASE_LINT_SKIP", k) :: tail => envRead(tail, {
         val skips = Strings.nullToEmpty(k).split(",").toSeq.map(_.trim).distinct.filterNot(_.isEmpty)
         inOpt.copy(lintOpts = inOpt.lintOpts.copy(skips = inOpt.lintOpts.skips ++ skips))
+      })
+      case ("RELEASE_LINT_WARN_TO_ERROR", k) :: tail => envRead(tail, {
+        val bool = Strings.nullToEmpty(k).toBooleanOption.getOrElse(false)
+        inOpt.copy(lintOpts = inOpt.lintOpts.copy(warningsToErrors = bool, warningsToErrorsTag = bool))
+      })
+      case ("RELEASE_LINT_WARN_TO_ERROR_TAG", k) :: tail => envRead(tail, {
+        inOpt.copy(lintOpts = inOpt.lintOpts.copy(warningsToErrorsTag = Strings.nullToEmpty(k).toBooleanOption.getOrElse(false)))
       })
       case ("RELEASE_LINT_TIMESTAMPS", k) :: tail => envRead(tail, {
         inOpt.copy(lintOpts = inOpt.lintOpts.copy(showTimeStamps = Strings.nullToEmpty(k).toBooleanOption.getOrElse(false)))
@@ -161,7 +167,8 @@ object Opts {
       case "--help" :: tail => argsLintRead(tail, inOpt.copy(lintOpts = inOpt.lintOpts.copy(showHelp = true)))
       case "-h" :: tail => argsLintRead(tail, inOpt.copy(lintOpts = inOpt.lintOpts.copy(showHelp = true)))
       case "--timeout-secs" :: secs :: tail => argsLintRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(timeoutSec = secs.toIntOption)))
-      case "--strict" :: tail => argsLintRead(tail, inOpt.copy(lintOpts = inOpt.lintOpts.copy(waringsToErrors = true)))
+      case "--strict" :: tail => argsLintRead(tail, inOpt.copy(lintOpts = inOpt.lintOpts.copy(warningsToErrors = true, warningsToErrorsTag = true)))
+      case "--strict-only-for-tags" :: tail => argsLintRead(tail, inOpt.copy(lintOpts = inOpt.lintOpts.copy(warningsToErrorsTag = true)))
       case v :: tail if v.startsWith("--skip-") => argsLintRead(tail, inOpt.copy(lintOpts = {
         inOpt.lintOpts.copy(skips = inOpt.lintOpts.skips :+ v.replaceFirst("^--skip-", ""))
       }))
@@ -194,7 +201,7 @@ object OptsDiag {
 
 case class LintOpts(doLint: Boolean = false, showTimer: Boolean = true, showTimeStamps: Boolean = false,
                     showHelp: Boolean = false, checkPackages: Boolean = true,
-                    skips: Seq[String] = Nil, waringsToErrors: Boolean = false,
+                    skips: Seq[String] = Nil, warningsToErrors: Boolean = false, warningsToErrorsTag: Boolean = false,
                     diag: OptsDiag = OptsDiag.empty())
 
 

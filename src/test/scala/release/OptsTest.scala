@@ -64,6 +64,18 @@ class OptsTest extends AssertionsForJUnit with LazyLogging {
   }
 
   @Test
+  def testEnvRead_lint_warn_to_err(): Unit = {
+    val result = Opts.envRead(Seq(("RELEASE_LINT_WARN_TO_ERROR", "true")), Opts())
+    Assert.assertEquals(Opts(lintOpts = LintOpts(warningsToErrors = true, warningsToErrorsTag = true)), result)
+  }
+
+  @Test
+  def testEnvRead_lint_warn_to_err_tag(): Unit = {
+    val result = Opts.envRead(Seq(("RELEASE_LINT_WARN_TO_ERROR_TAG", "true")), Opts())
+    Assert.assertEquals(Opts(lintOpts = LintOpts(warningsToErrorsTag = true)), result)
+  }
+
+  @Test
   def testEnvRead_checkPackages(): Unit = {
     val inOpts = Opts()
     Assert.assertEquals(Opts(lintOpts = LintOpts(checkPackages = true)), inOpts)
@@ -197,7 +209,7 @@ class OptsTest extends AssertionsForJUnit with LazyLogging {
       Opts.argsAndEnvRead(Seq("lint", "--skip-RL1012-5a4ee54d", "--skip-a"), Opts(), envs = Map(
         "RELEASE_LINT_SKIP" -> "c,D,, ,c,,,",
       )))
-    assertArgs(Opts(lintOpts = LintOpts(doLint = true, waringsToErrors = true), showStartupDone = false),
+    assertArgs(Opts(lintOpts = LintOpts(doLint = true, warningsToErrors = true, warningsToErrorsTag = true), showStartupDone = false),
       Opts.argsAndEnvRead(Seq("lint", "--strict"), Opts(), envs = Map(
         "RELEASE_LINT_SKIP" -> null,
       )))

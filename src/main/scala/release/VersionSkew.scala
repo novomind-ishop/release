@@ -2,7 +2,7 @@ package release
 
 import release.Lint.{UniqCode, fiCodeCoreDiff, fiFine, fiWarn, fiWarnMuted, lineMax}
 import release.ProjectMod.{Dep, Gav}
-import release.Term.{info, warn}
+import release.Term.{info, warn, warnSoft}
 
 import java.io.PrintStream
 import java.util.concurrent.atomic.AtomicBoolean
@@ -12,7 +12,7 @@ object VersionSkew {
                         coreMajorVersions: Seq[(String, Gav)], usedLintSkips: Seq[UniqCode])
 
   def skewResultOf(mod: ProjectMod, releaseVersion: Option[String],
-                   warnExit: Option[AtomicBooleanFlip] = None, errorExit: Option[AtomicBooleanFlip] = None,
+                   warnExit: Option[OneTimeSwitch] = None, errorExit: Option[OneTimeSwitch] = None,
                    out: Option[PrintStream], opts: Opts, skewStyle: Option[String]): SkewResult = {
     val isNoShop = mod.isNoShop
     val relevantDeps: Seq[Dep] = if (skewStyle.isDefined) {
@@ -28,30 +28,44 @@ object VersionSkew {
     innerSkewResult(releaseVersion, warnExit, out, opts, isNoShop, relevantDeps)
   }
 
-  private[release] def innerSkewResult(releaseVersion: Option[String], warnExit: Option[AtomicBooleanFlip], out: Option[PrintStream],
+  private[release] def innerSkewResult(releaseVersion: Option[String], warnExit: Option[OneTimeSwitch], out: Option[PrintStream],
                                        opts: Opts, isNoShop: Boolean, relevantDeps: Seq[Dep]) = {
     var usedSkips = Seq.empty[UniqCode]
     var warnX = false
-    var sjwef = Set.empty[String]
+
     val mrc = skewResultOfLayer(relevantDeps, isNoShop, releaseVersion)
     if (out.isDefined && mrc.hasDifferentMajors) {
       // TODO https://kubernetes.io/releases/version-skew-policy/
       // v0.32.7 ⚡️v0.50.3 (version ∆ x expected y)
       val code = fiCodeCoreDiff.apply(mrc.copy(usedLintSkips = Nil))
       val mainSkip = opts.lintOpts.skips.contains(code)
-      if (mainSkip) {
-        out.get.println(info(s"       Found multiple core major version: »${mrc.sortedMajors.mkString(", ")}«, use only one ${fiWarnMuted} $code", opts, limit = lineMax))
-        usedSkips = usedSkips :+ code
-      } else {
-        out.get.println(warn(s"    Found multiple core major version: »${mrc.sortedMajors.mkString(", ")}«, use only one ${fiWarn} $code", opts, limit = lineMax))
-        warnX = true
-      }
-
-
       val versions = mrc.coreMajorVersions
       val mrcGrouped: Map[String, Seq[Gav]] = versions.groupBy(_._1)
         .map(e => (e._1, e._2.map(_._2).distinct))
 
+
+      val isHardWarning: Boolean = {
+        val relevantKeys = for {
+          (key, gvals) <- mrcGrouped.toSeq.sortBy(_._1.toIntOption)
+          gav <- gvals
+          code = fiCodeCoreDiff(gav)
+          skipAllowed = opts.lintOpts.skips.contains(code)
+          if !(skipAllowed && !mainSkip)
+        } yield key
+        relevantKeys.distinct.size > 1
+      }
+      if (mainSkip) {
+        out.get.println(info(s"       Found multiple core major version: »${mrc.sortedMajors.mkString(", ")}«, use only one ${fiWarnMuted} $code", opts, limit = lineMax))
+        usedSkips = usedSkips :+ code
+      } else {
+        val value = s"    Found multiple core major version: »${mrc.sortedMajors.mkString(", ")}«, use only one ${fiWarn} $code"
+        if (isHardWarning) {
+          out.get.println(warn(value, opts, limit = lineMax))
+          warnX = true
+        } else {
+          out.get.println(warnSoft(value, opts, limit = lineMax))
+        }
+      }
 
       mrcGrouped.toSeq
         .sortBy(_._1.toIntOption)
@@ -59,7 +73,12 @@ object VersionSkew {
           if (mainSkip) {
             out.get.println(info(s"         - ${gavE._1} -", opts, limit = lineMax))
           } else {
-            out.get.println(warn(s"      - ${gavE._1} -", opts, limit = lineMax))
+            val value = s"      - ${gavE._1} -"
+            if (isHardWarning) {
+              out.get.println(warn(value, opts, limit = lineMax))
+            } else {
+              out.get.println(warnSoft(value, opts, limit = lineMax))
+            }
           }
           gavE._2.foreach(gav => {
             val code1 = fiCodeCoreDiff.apply(gav)
@@ -71,9 +90,13 @@ object VersionSkew {
               usedSkips = usedSkips :+ code1
             } else {
               if (!mainSkip) {
-                sjwef = sjwef + gavE._1
-                out.get.println(warn(s"      ${gav.formatted} ${fiWarn} $code1", opts, limit = lineMax))
-                warnX = true
+                val value = s"      ${gav.formatted} ${fiWarn} $code1"
+                if (isHardWarning) {
+                  out.get.println(warn(value, opts, limit = lineMax))
+                  warnX = true
+                } else {
+                  out.get.println(warnSoft(value, opts, limit = lineMax))
+                }
               }
             }
           })
@@ -84,8 +107,9 @@ object VersionSkew {
         out.get.println(info(s"    ${fiFine} no major version diff", opts))
       }
     }
-    if (warnX && sjwef.size > 1) {
-      warnExit.get.set()
+
+    if (warnX) {
+      warnExit.get.trigger()
     }
     mrc.copy(usedLintSkips = mrc.usedLintSkips ++ usedSkips)
   }
