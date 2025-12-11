@@ -9,12 +9,14 @@ import release.Conf.Tracer
 import release.Sgit.GitRemote
 import release.Util.Ext.*
 import release.Xpath.InvalidPomXmlException
+import release.docker.SuggestDockerTag
+import release.lint.Lint
 
 import java.awt.Desktop
 import java.io.{File, PrintStream}
 import java.net.URI
 import java.util.concurrent.TimeoutException
-import java.util.concurrent.atomic.{AtomicBoolean}
+import java.util.concurrent.atomic.AtomicBoolean
 import scala.annotation.tailrec
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -261,7 +263,7 @@ object Starter extends LazyLogging {
 
     val otherArgs = argSeq.drop(7).filter(_ != null).map(_.trim).toList
 
-    val opts = Opts.argsAndEnvRead(otherArgs, Opts(), Util.systemEnvs())
+    val opts = Opts.argsAndEnvRead(otherArgs, Opts(), Envs.systemEnvs())
     if (opts.showOpts) {
       out.println(Util.show(opts))
     }
@@ -317,7 +319,7 @@ object Starter extends LazyLogging {
       out.println()
       out.println("Possible environment variables:")
       out.println("export RELEASE_GIT_BIN=$PATH_TO_GIT_EXECUTABLE")
-      out.println("export RELEASE_NO_GERRIT=true" + Util.systemEnvs().get("RELEASE_NO_GERRIT").map(k => s" # ${k}").getOrElse(""))
+      out.println("export RELEASE_NO_GERRIT=true" + Envs.systemEnvs().get("RELEASE_NO_GERRIT").map(k => s" # ${k}").getOrElse(""))
       out.println()
       out.println("Your home dir is: " + config.getUserHome(home))
       out.println(s"InteractiveShell: ${interactiveShell}")
@@ -415,7 +417,7 @@ object Starter extends LazyLogging {
         out.println("--help, -h            => shows this and exits")
         return 0
       }
-      return Lint.run(out, err, opts, Util.systemEnvs())
+      return Lint.run(out, err, opts, Envs.systemEnvs())
     }
     if (opts.showSelfGa) {
       val file: File = new File(".").getAbsoluteFile

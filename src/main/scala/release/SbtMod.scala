@@ -156,10 +156,17 @@ object SbtMod {
         SelfVersion(selfVersionL)
       })
 
-      def scalaVersion = "scalaVersion := " ~> quotedWord ^^ (term => {
+      def scalaVersionA: Parser[ScalaVersion] = "scalaVersion := " ~> quotedWord ^^ (term => {
         sVersion = Some(term._1.value) // XXX side effect
         ScalaVersion(sVersion)
       })
+
+      def scalaVersionB: Parser[ScalaVersion] = "ThisBuild / scalaVersion := " ~> quotedWord ^^ (term => {
+        sVersion = Some(term._1.value) // XXX side effect
+        ScalaVersion(sVersion)
+      })
+
+      def scalaVersion: Parser[ScalaVersion] = scalaVersionA | scalaVersionB
 
       def sbtVersion = "sbt.version=" ~> word ^^ (term => {
         sbtVersionL = Some(term.stripLineEnd) // XXX side effect
@@ -192,24 +199,30 @@ object SbtMod {
         }
       })
 
-      def dep = "libraryDependencies += " ~> rep(test | quotedWord | word3) <~ opt("[ ]+//.*".r) ~ nl ^^ (term => {
+      def dep = "[ ]*libraryDependencies \\+= ".r ~> rep(test | quotedWord | word3) <~ opt("[ ,]+//.*".r | "[ ,]+.*".r) ~ nl ^^ (term => {
 
         if (term.size >= 3) {
-          val addVersion = term.find(_._2.isDefined)
-            .map(_ => {
-              val suf = sVersion match {
-                case lv if lv.get.startsWith("3") => lv.get.replaceFirst("\\.[0-9]+\\.[0-9]+$", "")
-                case lv => lv.get.replaceFirst("\\.[0-9]+$", "")
-              }
-              "_" + suf
-            })
+          try {
+            val addVersion = term.find(_._2.isDefined)
+              .map(_ => {
+                val suf = sVersion match {
+                  case lv if lv.get.startsWith("3") => lv.get.replaceFirst("\\.[0-9]+\\.[0-9]+$", "")
+                  case lv => lv.get.replaceFirst("\\.[0-9]+$", "")
+                }
+                "_" + suf
+              })
 
-          SbtMod.Dep(
-            groupId = toE(term(0)._1),
-            artifactId = toE(term(1)._1, addVersion),
-            version = toE(term(2)._1),
-            "", "", "", ""
-          )
+
+            SbtMod.Dep(
+              groupId = toE(term(0)._1),
+              artifactId = toE(term(1)._1, addVersion),
+              version = toE(term(2)._1),
+              "", "", "", ""
+            )
+          } catch
+            case e: Exception => {
+              throw new IllegalStateException(term.toString())
+            }
         } else {
           SbtMod.Dep(
             groupId = toE(LiteralWord("TODO")),

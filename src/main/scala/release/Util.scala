@@ -416,8 +416,6 @@ object Util {
     }
   }
 
-  def systemEnvs(): Map[String, String] = toScalaMapNonBlank(System.getenv())
-
   def toScalaMapNonBlank[K, V](in: util.Map[K, V]): Map[K, V] = {
     toScalaMapNonNull(in).filterNot(_._1.toString.isBlank).filterNot(_._2.toString.isBlank)
   }

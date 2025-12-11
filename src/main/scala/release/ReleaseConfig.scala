@@ -63,7 +63,7 @@ sealed class ReleaseConfig(map: Map[String, String]) {
   }
 
   def gitBinEnv(): Option[String] = {
-    Util.systemEnvs().get("RELEASE_GIT_BIN")
+    Envs.systemEnvs().get("RELEASE_GIT_BIN")
   }
 
   def getUserHome(shellHome: String): String = {
@@ -276,7 +276,7 @@ object ReleaseConfig extends LazyLogging {
     })
   }
 
-  def fromSettings(root: File = new File("."), envs: Map[String, String] = Util.systemEnvs()): ReleaseConfig = {
+  def fromSettings(root: File = new File("."), envs: Map[String, String] = Envs.systemEnvs()): ReleaseConfig = {
     val settings = new File(root, "settings.xml")
     if (settings.canRead) {
       val str = FileUtils.read(settings)

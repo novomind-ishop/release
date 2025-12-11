@@ -122,6 +122,25 @@ class SbtModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testDoParseScalaVersion(): Unit = {
+    val value = SbtMod.SloppyParser.doParse(strict = true)(
+      """
+        |version := "1.0"
+        |
+        |ThisBuild / scalaVersion := "3.7.1"
+        |
+        |libraryDependencies += "org.scalatestplus" %% "junit-4-12" % "3.1.2.1" % Test
+        |
+        |""".stripMargin.trim)
+
+    Assert.assertEquals(Seq(
+      d("org.scala-lang", "scala3-library_3", "3.7.1"),
+      d("org.scalatestplus", "junit-4-12_3", "3.1.2.1"),
+
+    ), value.deps)
+  }
+
+  @Test
   def testDoParse_val(): Unit = {
     val value = SbtMod.SloppyParser.doParse(strict = true)(
       """
@@ -145,11 +164,16 @@ class SbtModTest extends AssertionsForJUnit {
         |
         |libraryDependencies += "org.scalatestplus" %% "junit-4-12" % vers % Test
         |
+        |    libraryDependencies += "net.java.dev.jna" % "jna-platform" % "5.13.0",
+        |   libraryDependencies += "net.java.dev.jna" % "jna" % "5.13.0", // some comment
+        |
         |""".stripMargin.trim)
 
     Assert.assertEquals(Seq(
       d("org.scala-lang", "scala3-library_3", "3.0.1"),
       d("org.scalatestplus", "junit-4-12_3", "a.b.c"),
+      d("net.java.dev.jna", "jna-platform", "5.13.0"),
+      d("net.java.dev.jna", "jna", "5.13.0"),
 
     ), value.deps)
   }

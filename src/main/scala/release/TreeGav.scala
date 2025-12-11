@@ -1,6 +1,6 @@
 package release
 
-import release.Lint.lineMax
+import release.lint.Lint.lineMax
 import release.Term.warnSoft
 
 import java.io.{File, PrintStream}

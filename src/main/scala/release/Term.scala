@@ -173,7 +173,7 @@ object Term {
   val info = ColoredLiner(82 - 4, (text, useColor, limit) =>
     colorB(34, "INFO", useColor) + checkedLength(limit)(text))
   val warnSoft = ColoredLiner(82 - 7, (text, useColor, limit) =>
-    colorB(34, "WARNING", useColor, Some("warning")) + checkedLength(limit)(text))
+    colorB(36, "WARNING", useColor, Some("warning")) + checkedLength(limit)(text))
   val warn = ColoredLiner(82 - 7, (text, useColor, limit) =>
     colorB(33, "WARNING", useColor) + checkedLength(limit)(text))
   val error = ColoredLiner(82 - 5, (text, useColor, limit) =>

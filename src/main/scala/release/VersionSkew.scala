@@ -1,6 +1,6 @@
 package release
 
-import release.Lint.{UniqCode, fiCodeCoreDiff, fiFine, fiWarn, fiWarnMuted, lineMax}
+import release.lint.Lint.{UniqCode, fiCodeCoreDiff, fiFine, fiWarn, fiWarnMuted, lineMax}
 import release.ProjectMod.{Dep, Gav}
 import release.Term.{info, warn, warnSoft}
 
