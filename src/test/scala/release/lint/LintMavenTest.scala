@@ -47,10 +47,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[00:00:00.00Z] [[34mINFO[0m] --------------------------------[ lint ]--------------------------------
         |[00:00:00.00Z] [[31mERROR[0m] E: NO FILES FOUND in /tmp/junit-REPLACED/release-lint-empty
         |[00:00:00.00Z] [[31mERROR[0m] ----------------------------[ end of lint ]----------------------------""".stripMargin
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 1)(sys => {
       val opts = Opts().copy(lintOpts = Opts().lintOpts.copy(showTimer = true, showTimeStamps = true))
-      val exit = Lint.run(sys.out, sys.err, opts, Map.empty, file)
-      Assert.assertEquals(1, exit)
+      sys.exit(Lint.run(sys.out, sys.err, opts, Map.empty, file))
     })
 
   }
@@ -116,10 +115,9 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[INFO]     used memory: ∞m
         |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
-      val exit = Lint.run(sys.out, sys.err, opts, Map.empty, fileB)
-      Assert.assertEquals(42, exit)
+      sys.exit(Lint.run(sys.out, sys.err, opts, Map.empty, fileB))
     })
 
   }
@@ -253,7 +251,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val dockerile = new File(fileB, "Dockerfile")
     FileUtils.write(dockerile,
       """
-        |FROM
+        |FROM busybox:unstable
         |""".stripMargin.linesIterator.toSeq)
 
     val expected =
@@ -285,6 +283,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]       remote: origin  file:/tmp/junit-REPLACED/release-lint-mvn-simple-init/ (push)
         |[INFO] --- Dockerfile @ docker ---
         |[INFO]       - : Dockerfile
+        |[INFO]           ✅ FROM busybox:unstable
         |[INFO] --- gitlabci.yml @ gitlab ---
         |[WARNING]    ci path: a
         |[WARNING]    use .gitlab-ci.yml 😬 RL1005
@@ -413,7 +412,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[INFO]     used memory: ∞m""".stripMargin
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 0)(sys => {
       val opts1 = Opts().lintOpts.copy(showTimer = false)
       val opts = Opts(colors = false, lintOpts = opts1)
       val mockRepo = Mockito.mock(classOf[Repo])
@@ -434,7 +433,7 @@ class LintMavenTest extends AssertionsForJUnit {
       )
       Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(mockUpdates)
-      Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, fileB)
+      sys.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, fileB))
     })
 
   }
@@ -2078,7 +2077,7 @@ class LintMavenTest extends AssertionsForJUnit {
       """
         |[INFO]     main-SNAPSHOT
         |""".stripMargin.trim
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
 
       LintMaven.lintProjectVersion(sys.out, opts, "main-SNAPSHOT", new OneTimeSwitch(), new OneTimeSwitch(),
@@ -2092,7 +2091,7 @@ class LintMavenTest extends AssertionsForJUnit {
       """
         |[INFO]     main-SNAPSHOT
         |""".stripMargin.trim
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
 
       val boolean = new OneTimeSwitch()
@@ -2109,7 +2108,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     1.2.3-SNAPSHOT
         |[WARNING]  tag v1.2.3 is already existing. Please increment to next version e.g. 1.2.4-SNAPSHOT 😬 RL1020
         |""".stripMargin.trim
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val boolean = new OneTimeSwitch()
       LintMaven.lintProjectVersion(sys.out, opts, "1.2.3-SNAPSHOT", warnExit = boolean, new OneTimeSwitch(),
@@ -2125,7 +2124,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     1.2.3-SNAPSHOT
         |[warning]  tag v1.2.3 is already existing. Please increment to next version e.g. 1.2.4-SNAPSHOT 😬 RL1020
         |""".stripMargin.trim
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1020", "ö")))
       val boolean = new OneTimeSwitch()
       val skips = LintMaven.lintProjectVersion(sys.out, opts, "1.2.3-SNAPSHOT", warnExit = boolean, new OneTimeSwitch(),
@@ -2143,7 +2142,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     5.0.0
         |[warning]  unexpected version increment: 5.0.0; expected one of: »99.0.1, 99.1.0, 100.0.0«. Because latest numeric version is: »99.0.0«
         |""".stripMargin.trim
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val boolean = new OneTimeSwitch()
 
@@ -2160,7 +2159,7 @@ class LintMavenTest extends AssertionsForJUnit {
       """
         |[INFO]     1.2.3
         |""".stripMargin.trim
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val hasWarnExit = new OneTimeSwitch()
       val btm = Some(BranchTagMerge(tagName = Some("v1.2.3"), branchName = None))
@@ -2178,7 +2177,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     otto
         |[WARNING]  version »otto« is not recommended, please use at least a single digit e.g. 1.0.0. This helps us to cleanup older versions. 😬
         |""".stripMargin.trim
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val hasWarnExit = new OneTimeSwitch()
       val btm = Some(BranchTagMerge(tagName = Some("otto"), branchName = None))
@@ -2196,7 +2195,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     ro-SNAPSHOT
         |[warning]  unknown release/version pattern: ro-SNAPSHOT -
         |""".stripMargin.trim
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
 
       LintMaven.lintProjectVersion(sys.out, opts, "ro-SNAPSHOT", new OneTimeSwitch(), new OneTimeSwitch(),
@@ -2211,7 +2210,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     RC-2024.34.01-bugfix-SNAPSHOT
         |[warning]  unknown release/version pattern: RC-2024.34.01-bugfix-SNAPSHOT Maybe one of the following versions is what you want: 'RC-2024.34.1'
         |""".stripMargin.trim
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
 
       LintMaven.lintProjectVersion(sys.out, opts, "RC-2024.34.01-bugfix-SNAPSHOT", new OneTimeSwitch(), new OneTimeSwitch(),
@@ -2227,7 +2226,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  version »main« must be a SNAPSHOT; non snapshots are only allowed in tags 😬
         |[WARNING]  project.version »main« does not relate to git branch: »main«. Please use a plausible version marker and git marker combination like: (project.version: main -> git branch:main), ... 😬 RL1014
         |""".stripMargin.trim
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val boolean = new OneTimeSwitch()
       val btm = Some(BranchTagMerge(tagName = None, branchName = Some("main")))
@@ -2247,7 +2246,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     main
         |[WARNING]  version »main« must be a SNAPSHOT; non snapshots are only allowed in tags 😬
         |""".stripMargin.trim
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val boolean = new OneTimeSwitch()
       val btm = BranchTagMerge.merge
@@ -2269,7 +2268,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  version »null« must be a SNAPSHOT; non snapshots are only allowed in tags 😬
         |[WARNING]  project.version »null« has no git. Please add some .git folder. 😬 RL1014
         |""".stripMargin.trim
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = -1)(sys => {
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
 
       val boolean = new OneTimeSwitch()

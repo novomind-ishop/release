@@ -750,8 +750,7 @@ object Lint {
           out.println(info("--- Dockerfile @ docker ---", opts))
           dockerFiles.foreach(f => {
             out.println(info("      - : " + file.toPath.relativize(f), opts))
-            Dockerfile.parse(f, envs)
-            // TOOD check for FROM lines without prefix server from env
+            usedLintSkips = usedLintSkips ++ Dockerfile.parse(f, envs, out, opts, warnExit, errorExit)
           })
         }
         val defaultCiFilename = ".gitlab-ci.yml"
