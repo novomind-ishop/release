@@ -501,6 +501,7 @@ object Lint {
   val fiCodeUnwantedPackage = uniqCode(1019)
   val fiCodeVersionMismatchNoTag = uniqCode(1020)(())
   val fiCodeSimilarity = uniqCode(1021)
+  val fiCodeDockerHost = uniqCode(1022)
   val fiWarn = "\uD83D\uDE2C"
   val fiWarnMuted = "\uD83E\uDD10"
   val fiError = "❌"
@@ -747,11 +748,16 @@ object Lint {
         val hasDockerFiles = dockerFiles.nonEmpty
 
         if (hasDockerFiles) {
-          out.println(info("--- Dockerfile @ docker ---", opts))
-          dockerFiles.foreach(f => {
-            out.println(info("      - : " + file.toPath.relativize(f), opts))
-            usedLintSkips = usedLintSkips ++ Dockerfile.parse(f, envs, out, opts, warnExit, errorExit)
-          })
+          val allowedFromHosts = envs.getOrElse("RELEASE_LINT_DOCKER_FROM_HOSTS", "") // move up
+          val aHost = Dockerfile.allowedDockerHostnames(allowedFromHosts)
+          if (aHost.nonEmpty) {
+            out.println(info("--- Dockerfile @ docker ---", opts))
+            out.println(info(s"      Allowed docker hostnames are: ${aHost.mkString(", ")}", opts, lineMax))
+            dockerFiles.foreach(f => {
+              out.println(info("      - : " + file.toPath.relativize(f), opts))
+              usedLintSkips = usedLintSkips ++ Dockerfile.parse(f, allowedFromHosts, out, opts, warnExit, errorExit)
+            })
+          }
         }
         val defaultCiFilename = ".gitlab-ci.yml"
 

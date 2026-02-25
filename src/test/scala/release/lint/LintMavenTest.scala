@@ -282,6 +282,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]       remote: origin  file:/tmp/junit-REPLACED/release-lint-mvn-simple-init/ (fetch)
         |[INFO]       remote: origin  file:/tmp/junit-REPLACED/release-lint-mvn-simple-init/ (push)
         |[INFO] --- Dockerfile @ docker ---
+        |[INFO]       Allowed docker hostnames are: .*
         |[INFO]       - : Dockerfile
         |[INFO]           ✅ FROM busybox:unstable
         |[INFO] --- gitlabci.yml @ gitlab ---
@@ -1384,6 +1385,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[WARNING]  NO remotes found 😬 RL1004
         |[WARNING]  % git remote -v # returns nothing
         |[INFO] --- Dockerfile @ docker ---
+        |[INFO]       Allowed docker hostnames are: .*
         |[INFO]       - : Dockerfile
         |[INFO] --- gitlabci.yml @ gitlab ---
         |[INFO]       ci path: .gitlab-ci.yml
