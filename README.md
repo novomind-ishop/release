@@ -70,3 +70,61 @@ ishop-release.gerrit.url=https://your-gerrit.example.org/
 ishop-release.nexus.mirror.url=https://your-nexus-mirror.example.org/content/groups/public/
 ishop-release.nexus.work.url=http://your-nexus/nexus/content/repositories/public
 ```
+
+## Reset QA Branches
+
+### Synopsis
+
+`reset-branch` resets one or more `qa/<version>` branches back to their corresponding release source branch after a release cycle.                                                                                                                                                                              
+It is interactive and asks for confirmation before each destructive step, and automatically creates a backup branch before overwriting.
+
+### Branch mapping
+
+| Argument | Source branch | Target (QA) branch |
+|----------|---------------|--------------------|                                                                                                                                                                                                                                                             
+| `48x`    | `release/48x` | `qa/48x`           |                                                                                                                                                                                                                                                               
+| `47x`    | `release/47x` | `qa/47x`           |
+| `main`   | `main`        | `qa/main`          |                                                                                                                                                                                                                                                               
+
+### What it does (per version)
+
+1. **Safety check** — aborts if there are uncommitted local changes.
+2. **Fetch** — runs `git fetch origin` to get the latest remote state.
+3. **Branch existence check** — skips silently if source or target branch is missing on the remote.
+4. **Preview** — lists the Jira task IDs in `qa/<version>` that are not in the source branch (i.e. commits that will be lost after the reset).
+6. **Reset** — with a confirmation, force-pushes the source branch tip to `qa/<version>`.
+
+### Usage
+
+Make sure `reset-branch` is executable and on your `PATH`, or call it with its full path:
+
+```bash                                                                                                                                                                                                                                                                                                       
+# Reset a single QA branch
+./reset-branch 48x        
+                                                                                                                                                                                                                                                                                                                  
+# Reset multiple QA branches in one run
+./reset-branch 48x 47x main                                                                                                                                                                                                                                                                                     
+                                                                                                              
+# Via PATH (same as the release tool)  
+reset-branch 48x 47x main            
+
+Prerequisites                                                                                                                                                                                                                                                                                                   
+   
+- You must be inside a git repository that has the relevant branches on origin.                                                                                                                                                                                                                                 
+- Your working tree must be clean (no uncommitted changes).
+                                                                                                                                                                                                                                                                                                                  
+Backup / Restore
+                                                                                                                                                                                                                                                                                                                  
+Before each reset the script creates qa-backup/<version> on origin. To restore:                             
+                                    
+git push --force origin origin/qa-backup/48x:refs/heads/qa/48x
+                                                                                                                                                                                                                                                                                                                  
+---
+                                                                                                                                                                                                                                                                                                                  
+**To add it to your PATH** (same pattern as `release`):                                                                                                                                                                                                                                                         
+                                         
+```bash                                                                                                                                                                                                                                                                                                         
+# assuming you checked out this repo at ~/git/release                                                       
+export PATH="$HOME/git/release:$PATH"                                                                                                                                                                                                                                                                           
+# then anywhere:
+reset-branch 48x 47x main

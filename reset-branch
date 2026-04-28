@@ -1,0 +1,80 @@
+#!/bin/bash
+
+set -euo pipefail
+
+if [[ $# -lt 1 ]]; then
+  echo "❌ Usage: $0 48x 47x main"
+  exit 1
+fi
+
+VERSIONS=("$@")
+
+echo "======================================"
+echo "Processing: ${VERSIONS[*]}"
+echo "======================================"
+
+# Safety check
+if [[ -n "$(git status --porcelain)" ]]; then
+  echo "❌ You have uncommitted changes. Abort."
+  exit 1
+fi
+
+git fetch origin
+
+for VERSION in "${VERSIONS[@]}"; do
+
+  echo ""
+  echo "======================================"
+  echo "Processing: $VERSION"
+  echo "======================================"
+
+  if [[ "$VERSION" == "main" ]]; then
+    TARGET_BRANCH="qa/main"
+    SOURCE_BRANCH="main"
+  else
+    TARGET_BRANCH="qa/${VERSION}"
+    SOURCE_BRANCH="release/${VERSION}"
+  fi
+
+  echo "Target : $TARGET_BRANCH"
+  echo "Source : $SOURCE_BRANCH"
+
+  # Check if branches exist
+  if ! git ls-remote --exit-code --heads origin "$SOURCE_BRANCH" >/dev/null 2>&1; then
+    echo "⚠️ Source branch not found: $SOURCE_BRANCH → skipping"
+    continue
+  fi
+
+  if ! git ls-remote --exit-code --heads origin "$TARGET_BRANCH" >/dev/null 2>&1; then
+    echo "⚠️ Target branch not found: $TARGET_BRANCH → skipping"
+    continue
+  fi
+
+  # Show affected commits
+  echo ""
+  echo "⚠️ Commits that will be removed:"
+  git log origin/$SOURCE_BRANCH..origin/$TARGET_BRANCH \
+    | grep -oP "(?<=Task: ).*" \
+    | sort | uniq \
+    | grep -v ISBO-0 \
+    | paste -sd ','
+
+  echo ""
+  read -p "Reset qa/$VERSION? This will backup then force-push. (y/n): " confirm
+  [[ "$confirm" != "y" ]] && echo "Skipping $VERSION." && continue
+
+  # Backup
+  echo "Backing up qa branch..."
+  git push --force origin origin/$TARGET_BRANCH:refs/heads/qa-backup/$VERSION
+
+  # Reset
+  echo "Resetting release branch..."
+  git push --force origin origin/$SOURCE_BRANCH:refs/heads/qa/$VERSION
+
+  echo "Done: $VERSION"
+
+done
+
+echo ""
+echo "All operations completed."
+
