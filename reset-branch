@@ -54,10 +54,9 @@ for VERSION in "${VERSIONS[@]}"; do
   echo ""
   echo "⚠️ Commits that will be removed:"
   git log origin/$SOURCE_BRANCH..origin/$TARGET_BRANCH \
-    | grep -oP "(?<=Task: ).*" \
-    | sort | uniq \
-    | grep -v ISBO-0 \
-    | paste -sd ','
+      | { grep -oP "(?<=Task: ).*" || true; } \
+      | sort -u \
+      | paste -sd ','
 
   echo ""
   read -p "Reset qa/$VERSION? This will backup then force-push. (y/n): " confirm
