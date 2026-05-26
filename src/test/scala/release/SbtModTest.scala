@@ -179,6 +179,42 @@ class SbtModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testDoParse_var(): Unit = {
+    val value = SbtMod.SloppyParser.doParse(strict = true)(
+      """
+        |ThisBuild / version := "0.1.0-SNAPSHOT"
+        |
+        |ThisBuild / scalaVersion := "3.8.1"
+        |
+        |lazy val root = (project in file("."))
+        |  .settings(
+        |    libraryDependencies += "org.yaml" % "snakeyaml" % "2.5",
+        |    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % "test",
+        |
+        |    libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.5.27",
+        |  )
+        |scalacOptions ++= Seq(
+        |  "-deprecation",
+        |)
+        |
+        |Test / compile := (Test / compile).dependsOn(Compile / compile).value
+        |
+        |// sbt 'dependencyTree::toFile dep.tree -f'
+        |// export COURSIER_TTL=0s # https://get-coursier.io/docs/ttl
+        |
+        |
+        |""".stripMargin.trim)
+
+    Assert.assertEquals(Seq(
+      d("org.scala-lang", "scala3-library_3", "3.8.1"),
+      d("org.yaml", "snakeyaml", "2.5"),
+      d("org.scalatest", "scalatest_3", "3.2.19"),
+      d("ch.qos.logback", "logback-classic", "1.5.27"),
+
+    ), value.deps)
+  }
+
+  @Test
   def testDoParseBuildProperties(): Unit = {
     val value = SbtMod.SloppyParser.doParse(strict = true)(
       """

@@ -42,7 +42,7 @@ object Starter extends LazyLogging {
       } catch {
         case e: Exception => Left(FutureError(e.getMessage, e))
       }
-    }(ec))(ec)
+    }(using ec))(using ec)
   }
 
   def suggestRebase(sys: Term.Sys, sgit: Sgit, branch: String, opts: Opts): () => Unit = {

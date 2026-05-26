@@ -26,7 +26,6 @@ if [[ "true" = "${interactive}" ]]; then
   echo -n "I: Starting release vm .." 1>&2
 fi
 
-# TODO test java installation # java -v
 if [[ -n $(echo "${argLine}" | egrep -- "--replace") ]]; then
   pushd .  > /dev/null
   cd $(dirname $0)
@@ -61,6 +60,12 @@ else
 fi
 if ! ${java_bin} -version > /dev/null 2>&1 ; then
   echo "E: no java found"
+else
+  java_spec_version=$(${java_bin} -XshowSettings:properties -version 2>&1 | awk '/java.specification.version/ { print $3 }')
+  major="${java_spec_version%%.*}"
+  if (( major == 25 )); then
+    java_bin="${java_bin} --sun-misc-unsafe-memory-access=allow"
+  fi
 fi
 release_opts=${RELEASE_OPTS:-}
 

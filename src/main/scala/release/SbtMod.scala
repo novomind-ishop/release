@@ -111,7 +111,7 @@ object SbtMod {
 
       def nl = "\n" ^^ (term => "NL")
 
-      def predfined = "(^[ ]*(//|publish|scalacOptions|name|logLevel|assembly).*)".r <~ nl ^^ (term => Predefined(term))
+      def predfined = "(^[ ]*(//|publish|scalacOptions|name|logLevel|assembly|lazy val|.settings|\\)|\"|Test).*)".r <~ nl ^^ (term => Predefined(term))
 
       def valP = "(^val[ ]+)".r ~> word ~ " = " ~ word <~ nl ^^ (term => ValDef(term._1._1, term._2))
 
@@ -151,10 +151,17 @@ object SbtMod {
       var selfVersionL: Option[String] = None
       var sbtVersionL: Option[String] = None
 
-      def selfVersion = "version := " ~> quotedWord ^^ (term => {
+      def selfVersionA = "version := " ~> quotedWord ^^ (term => {
         selfVersionL = Some(term._1.value) // XXX side effect
         SelfVersion(selfVersionL)
       })
+
+      def selfVersionB = "ThisBuild / version := " ~> quotedWord ^^ (term => {
+        selfVersionL = Some(term._1.value) // XXX side effect
+        SelfVersion(selfVersionL)
+      })
+
+      def selfVersion = selfVersionA | selfVersionB
 
       def scalaVersionA: Parser[ScalaVersion] = "scalaVersion := " ~> quotedWord ^^ (term => {
         sVersion = Some(term._1.value) // XXX side effect

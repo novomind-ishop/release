@@ -748,11 +748,16 @@ object Lint {
         val hasDockerFiles = dockerFiles.nonEmpty
 
         if (hasDockerFiles) {
-          val allowedFromHosts = envs.getOrElse("RELEASE_LINT_DOCKER_FROM_HOSTS", "") // move up
+          val allowedFromHosts = envs.getOrElse("RELEASE_LINT_DOCKER_FROM_HOSTS", "")
           val aHost = Dockerfile.allowedDockerHostnames(allowedFromHosts)
           if (aHost.nonEmpty) {
             out.println(info("--- Dockerfile @ docker ---", opts))
             out.println(info(s"      Allowed docker hostnames are: ${aHost.mkString(", ")}", opts, lineMax))
+            val dockerHostnameMsg = envs.get("RELEASE_LINT_DOCKER_FROM_HOSTS_MSG")
+            if (dockerHostnameMsg.isDefined) {
+              out.println(info(s"      ", opts, lineMax))
+
+            }
             dockerFiles.foreach(f => {
               out.println(info("      - : " + file.toPath.relativize(f), opts))
               usedLintSkips = usedLintSkips ++ Dockerfile.parse(f, allowedFromHosts, out, opts, warnExit, errorExit)
