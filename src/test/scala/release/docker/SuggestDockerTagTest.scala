@@ -254,6 +254,24 @@ class SuggestDockerTagTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testFindTagname_validTag_milestone_withProject_var(): Unit = {
+    val tuple = SuggestDockerTag.findTagname("v10.7.0-yolo", "v10.7.0-yolo", Some("10.7.0-yolo"), hasDockerfiles = true)
+    Assert.assertEquals(Success("v10.7.0-yolo"), tuple.get)
+  }
+
+  @Test
+  def testFindTagname_validTag_milestone_withProject_var_aka(): Unit = {
+    val tuple = SuggestDockerTag.findTagname("v10.7.0-yolo", "v10.7.0-yolo", Some("yolo"), hasDockerfiles = true)
+    Assert.assertEquals(Success("v10.7.0-yolo"), tuple.get)
+  }
+
+  @Test
+  def testFallback(): Unit = {
+    val tuple = SuggestDockerTag.fallback("v10.7.0-yolo")("10.7.0-yolo")
+    Assert.assertEquals(("10.7.0-yolo_2b21c70f_TEMP",0), tuple)
+  }
+
+  @Test
   def testFindTagname_invalidVersion(): Unit = {
     val tuple = SuggestDockerTag.findTagname("v1.0.0-M1", "v1.0.0-M1", Some("1.0.0-SNAPSHOT"), hasDockerfiles = true)
     Assert.assertEquals("auto suggested docker tag » v1.0.0-M1_aka_1_0_0_SNAPSHOT « is no valid docker tag name. " +
