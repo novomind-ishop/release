@@ -48,7 +48,7 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.15" % "test"
 
 libraryDependencies += "org.scalatestplus" %% "junit-4-13" % "3.2.15.0" % Test
 
-libraryDependencies += "org.mockito" % "mockito-core" % "5.15.2" % Test
+libraryDependencies += "org.mockito" % "mockito-core" % "5.23.0" % Test
 
 libraryDependencies += "com.novocode" % "junit-interface" % "0.11" % "test"
 

@@ -549,6 +549,10 @@ object Lint {
         val runtime = Runtime.getRuntime
         out.println(info(s"    -Xms: ${Util.byteToMb(mem.getInit)}m -Xmx: ${Util.byteToMb(mem.getMax)}m", workOpts))
         out.println(info(s"    used memory: ${Util.byteToMb(runtime.totalMemory() - runtime.freeMemory())}m", workOpts))
+        if (workOpts.lintOpts.warningsToErrors) {
+          out.println(info(s"    RELEASE_LINT_STRICT=true", workOpts))
+          out.println(info(s"      all warnings will cause an error", workOpts))
+        }
         if (workOpts.lintOpts.skips.nonEmpty) {
           out.println(info(s"    skips: " + workOpts.lintOpts.skips.mkString(", "), workOpts, limit = lineMax))
         } else {
