@@ -152,7 +152,7 @@ class SbtModTest extends AssertionsForJUnit {
         |
         |scalaVersion := "3.0.1"
         |
-        |val vers = "a.b.c"
+        |val vers = "a.b.c" // comment
         |
         |assembly / logLevel := Level.Warn
         |

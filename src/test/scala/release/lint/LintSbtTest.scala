@@ -40,7 +40,7 @@ class LintSbtTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_WARN_TO_ERROR ---
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     used memory: ∞m
         |[INFO]     no skips

@@ -78,7 +78,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_WARN_TO_ERROR ---
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     used memory: ∞m
         |[INFO]     no skips
@@ -156,7 +156,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_WARN_TO_ERROR ---
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     used memory: ∞m
         |[INFO]     no skips
@@ -257,7 +257,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_WARN_TO_ERROR ---
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     used memory: ∞m
         |[INFO]     no skips
@@ -352,7 +352,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_WARN_TO_ERROR ---
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     used memory: ∞m
         |[INFO]     no skips
@@ -525,7 +525,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_WARN_TO_ERROR ---
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     used memory: ∞m
         |[INFO]     skips: RL10015-aa71e948, RL1017-ab101a0e, RL1018-ceefe9c6
@@ -698,7 +698,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_WARN_TO_ERROR ---
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     used memory: ∞m
         |[INFO]     no skips
@@ -831,7 +831,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_WARN_TO_ERROR ---
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     used memory: ∞m
         |[INFO]     no skips
@@ -953,7 +953,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_WARN_TO_ERROR ---
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     used memory: ∞m
         |[INFO]     skips: RL1003-467ad8bc
@@ -1065,7 +1065,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_WARN_TO_ERROR ---
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     used memory: ∞m
         |[INFO]     no skips
@@ -1176,7 +1176,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_WARN_TO_ERROR ---
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     used memory: ∞m
         |[INFO]     no skips
@@ -1355,7 +1355,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_WARN_TO_ERROR ---
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     used memory: ∞m
         |[INFO]     skips: RL1012-587ee13e, RL1003-8a73d4ae
@@ -1584,7 +1584,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_WARN_TO_ERROR ---
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     used memory: ∞m
         |[INFO]     no skips
@@ -1724,7 +1724,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_WARN_TO_ERROR ---
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     used memory: ∞m
         |[INFO]     skips: RL1012-d143f8dc, RL1003-b4b0c08b
@@ -1981,7 +1981,7 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
-        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_WARN_TO_ERROR ---
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     used memory: ∞m
         |[INFO]     skips: RL1003-21ee7891, RL1003-aaaaaaa

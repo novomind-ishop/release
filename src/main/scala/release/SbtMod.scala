@@ -21,8 +21,7 @@ case class SbtMod(file: File, repoZ: RepoZ, opts: Opts) extends ProjectMod {
     def read(f: File) = Files.readAllLines(f.toPath, StandardCharsets.UTF_8)
       .asScala.mkString("\n")
 
-    val allFiles = sbtFile(file)
-      .map(read)
+    val allFiles = sbtFile(file)      .map(read)
     val main = read(file)
     val mainModel = SbtMod.SloppyParser.doParse()(main)
 
@@ -111,9 +110,11 @@ object SbtMod {
 
       def nl = "\n" ^^ (term => "NL")
 
+      def comment = "[ ]*//[^\n]+".r ^^ (term => term)
+
       def predfined = "(^[ ]*(//|publish|scalacOptions|name|logLevel|assembly|lazy val|.settings|\\)|\"|Test).*)".r <~ nl ^^ (term => Predefined(term))
 
-      def valP = "(^val[ ]+)".r ~> word ~ " = " ~ word <~ nl ^^ (term => ValDef(term._1._1, term._2))
+      def valP = "(^val[ ]+)".r ~> word ~ " = " ~ word <~ opt(comment) ~ nl ^^ (term => ValDef(term._1._1, term._2))
 
       def ignore = ".*".r <~ nl ^^ (term => term)
 

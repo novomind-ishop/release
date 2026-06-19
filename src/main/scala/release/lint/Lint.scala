@@ -544,13 +544,13 @@ object Lint {
         out.println(error(center("[ end of lint ]"), workOpts))
         return 1
       } else {
-        out.println(info("--- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_STRICT ---", workOpts))
+        out.println(info("--- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_WARN_TO_ERROR ---", workOpts))
         val mem = ManagementFactory.getMemoryMXBean.getHeapMemoryUsage
         val runtime = Runtime.getRuntime
         out.println(info(s"    -Xms: ${Util.byteToMb(mem.getInit)}m -Xmx: ${Util.byteToMb(mem.getMax)}m", workOpts))
         out.println(info(s"    used memory: ${Util.byteToMb(runtime.totalMemory() - runtime.freeMemory())}m", workOpts))
         if (workOpts.lintOpts.warningsToErrors) {
-          out.println(info(s"    RELEASE_LINT_STRICT=true", workOpts))
+          out.println(info(s"    RELEASE_LINT_WARN_TO_ERROR=true", workOpts))
           out.println(info(s"      all warnings will cause an error", workOpts))
         }
         if (workOpts.lintOpts.skips.nonEmpty) {
