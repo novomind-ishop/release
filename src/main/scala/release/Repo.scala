@@ -431,6 +431,8 @@ object Repo extends LazyLogging {
       if (value.isDefined) {
         throw value.head
       }
+
+
       val o = rangeResult.getVersions.asScala.toList
       cache.put((repository.getUrl, request), o)
       o

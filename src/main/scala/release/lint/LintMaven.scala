@@ -6,12 +6,14 @@ import release.lint.Lint.*
 import release.*
 
 import java.io.PrintStream
+import java.time.temporal.WeekFields
+import java.time.{LocalDate, YearMonth}
 import java.util.concurrent.atomic.AtomicBoolean
 
 object LintMaven {
   def lintProjectVersion(out: PrintStream, opts: Opts, currentVersion: String, warnExit: OneTimeSwitch, errorExit: OneTimeSwitch,
-                         tagBranchInfo: Option[BranchTagMerge], allGitTags: Seq[String], isShop:Boolean,
-                         headBranchName:Option[String], allBranches:Seq[String] = Nil): Seq[Lint.UniqCode] = {
+                         tagBranchInfo: Option[BranchTagMerge], allGitTags: Seq[String], isShop: Boolean,
+                         headBranchName: Option[String], allBranches: Seq[String] = Nil, now: YearMonth = YearMonth.now()): Seq[Lint.UniqCode] = {
     out.println(info(s"    $currentVersion", opts))
     if (PomMod.isUnknownVersionPattern(currentVersion) && tagBranchInfo.isDefined && tagBranchInfo.get.branchName.getOrElse("").startsWith("release/")) {
 
@@ -24,6 +26,15 @@ object LintMaven {
     val allGitTagVersions = Sgit.stripVersionPrefix(allGitTags)
     val allGitTagVersionsP = allGitTagVersions.map(Version.parseSloppy).filter(_.isOrdinal).sorted.distinct
     val v = Version.parseSloppy(currentVersion)
+
+    val yealikeVersions = selectYearLikesProblems(allGitTagVersions, now)
+    if (yealikeVersions.nonEmpty) {
+      yealikeVersions.foreach(cf => {
+        out.println(warnSoft(s" ${cf}", opts, limit = Lint.lineMax))
+      })
+
+      //  warnExit.trigger() // TODO trigger later and remove soft warning
+    }
     if (v.isUndef && v.hasNoDigits && Lint.isValidTag(tagBranchInfo)) {
       // TODO describe why this is important
       out.println(warn(s" version »${currentVersion}« is not recommended, please use at least a single digit e.g. 1.0.0. This helps us to cleanup older versions. ${fiWarn}"
@@ -96,6 +107,31 @@ object LintMaven {
     } else {
       usedSkips
     }
+  }
+
+
+  private def containsValidCurrentYearWeek(years: Seq[String], ef: Version): Either[String, Boolean] = {
+    ef.digits
+      .sliding(2)
+      .collectFirst {
+        case Seq(year, week) if years.contains(year) =>
+          week.toIntOption match {
+            case Some(w) if w >= 1 && w <= 52 => Right(true)
+            case Some(w) => Left(s"Invalid calendar week $w for year $year <== »${ef.rawInput}« ${fiWarn}")
+            case None => Left(s"Invalid calendar week $week for year $year <== »${ef.rawInput}« ${fiWarn}")
+          }
+      }
+      .getOrElse(Right(false))
+  }
+
+  def selectYearLikesProblems(in: Seq[String], now: YearMonth): Seq[String] = {
+    val keys = Seq(now.getYear - 1, now.getYear, now.getYear + 1).map(_.toString)
+    in.map(Version.parseSloppy).filter(vs => ({
+      val strings = keys.diff(vs.digits)
+      strings != keys
+    })).map(v => {
+      containsValidCurrentYearWeek(keys, v)
+    }).flatMap(_.swap.map(e => Some(e)).getOrElse(None))
   }
 
 }

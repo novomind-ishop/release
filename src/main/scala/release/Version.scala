@@ -7,6 +7,8 @@ import scala.annotation.tailrec
 
 case class Version(pre: String, major: Int, minor: Int, patch: Int, low: String, rawInput: String) {
 
+  def dropOrg(): Version = Version(pre, major, minor, patch, low, rawInput = "")
+
   private val rawInputNonNull = Strings.nullToEmpty(rawInput)
   lazy val primarys: (Int, Int, Int) = (major, minor, patch)
   lazy val primarysOpt: Option[(Int, Int, Int)] = Some(primarys)
@@ -22,10 +24,13 @@ case class Version(pre: String, major: Int, minor: Int, patch: Int, low: String,
   lazy val isOrdinalOnly: Boolean = {
     isOrdinal && lowF.replaceFirst("_-SNAPSHOT", "") == "" && pre == ""
   }
-  lazy val hasDigits:Boolean = {
+  lazy val digits: Seq[String] = {
+    "\\d+".r.findAllIn(rawInputNonNull).toSeq
+  }
+  lazy val hasDigits: Boolean = {
     isOrdinal || rawInputNonNull.replaceAll("[^0-9]", "").toLongOption.isDefined
   }
-  lazy val hasNoDigits:Boolean = !hasDigits
+  lazy val hasNoDigits: Boolean = !hasDigits
   lazy val isSnapshot: Boolean = rawInputNonNull.endsWith("-SNAPSHOT")
   lazy val textLowerCase: String = {
     if (isOrdinalOnly) {
@@ -266,12 +271,12 @@ object Version {
     try {
       snapped match {
         case stableShop(pre) => undef
-        case semverPatternLowdash(ma, mi, b, low) => Version.fromString("", ma, mi, b, low, "")
-        case semverPatternLowdashString(ma, mi, b, low) => Version.fromString("", ma, mi, b, low, "")
-        case semverPattern(ma, mi, b) => Version.fromString("", ma, mi, b, "", "")
-        case semverPatternNoBugfix(ma, mi) => Version.fromString("", ma, mi, "", "", "")
-        case semverPatternNoMinor(ma) => Version.fromString("", ma, "", "", "", "")
-        case shopPattern(pre, year, week, minor, low) => Version.fromString(pre, year, week, minor, low, "")
+        case semverPatternLowdash(ma, mi, b, low) => Version.fromString("", ma, mi, b, low, original = versionText)
+        case semverPatternLowdashString(ma, mi, b, low) => Version.fromString("", ma, mi, b, low, original = versionText)
+        case semverPattern(ma, mi, b) => Version.fromString("", ma, mi, b, "", original = versionText)
+        case semverPatternNoBugfix(ma, mi) => Version.fromString("", ma, mi, "", "", original = versionText)
+        case semverPatternNoMinor(ma) => Version.fromString("", ma, "", "", "", original = versionText)
+        case shopPattern(pre, year, week, minor, low) => Version.fromString(pre, year, week, minor, low, original = versionText)
         case any => undef
       }
     } catch {

@@ -4,6 +4,8 @@ import com.typesafe.scalalogging.LazyLogging
 import release.PomMod.DepTree
 import release.ProjectMod.{Dep, Gav3, SelfRef}
 import release.SbtMod.SbtModel
+import release.Term.warnSoft
+import release.lint.Lint.lineMax
 
 import java.io.File
 import java.nio.charset.StandardCharsets
@@ -21,12 +23,12 @@ case class SbtMod(file: File, repoZ: RepoZ, opts: Opts) extends ProjectMod {
     def read(f: File) = Files.readAllLines(f.toPath, StandardCharsets.UTF_8)
       .asScala.mkString("\n")
 
-    val allFiles = sbtFile(file)      .map(read)
+    val allFiles = sbtFile(file).map(read)
     val main = read(file)
-    val mainModel = SbtMod.SloppyParser.doParse()(main)
+    val mainModel = SbtMod.SloppyParser.doParse(opts = opts)(main)
 
     val otherDeps = allFiles
-      .map(SbtMod.SloppyParser.doParse()).flatMap(_.deps)
+      .map(SbtMod.SloppyParser.doParse(opts)).flatMap(_.deps)
     mainModel.copy(deps = mainModel.deps ++ otherDeps)
   }
   override val listDependencies: Seq[ProjectMod.Dep] = value.deps
@@ -106,7 +108,7 @@ object SbtMod {
   object SloppyParser extends RegexParsers with LazyLogging {
     override val skipWhitespace = false
 
-    def doParse(strict: Boolean = false)(in: String): SbtModel = {
+    def doParse(opts: Opts, strict: Boolean = false)(in: String): SbtModel = {
 
       def nl = "\n" ^^ (term => "NL")
 
@@ -298,7 +300,7 @@ object SbtMod {
                       if (firstWarn.getAndSet(false)) {
                         println()
                       }
-                      println(s"SLOPPY SBT PARSER WARNING / skipped line: ${in}")
+                      println(warnSoft(s"SLOPPY SBT PARSER / skipped line: ${in}", opts, limit = lineMax))
                     }
 
                 }

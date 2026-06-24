@@ -45,6 +45,7 @@ class VersionTest extends AssertionsForJUnit {
     val aa = Version.parse("21.0.0")
     Assert.assertTrue(aa.isOrdinal)
     Assert.assertTrue(aa.isOrdinalOnly)
+    Assert.assertEquals(Seq("21", "0", "0"), aa.digits)
     Assert.assertEquals("", aa.textLowerCase)
     val a = Version.parse("21.0.0-SNAPSHOT")
     Assert.assertTrue(a.isOrdinal)
@@ -59,6 +60,7 @@ class VersionTest extends AssertionsForJUnit {
     Assert.assertTrue(alpha2.isOrdinal)
     Assert.assertFalse(alpha2.isOrdinalOnly)
     Assert.assertEquals("alpha", alpha2.textLowerCase)
+    Assert.assertEquals(Seq("210"), alpha2.digits)
     Assert.assertTrue(Version.parse("210.0.0_alpha").isOrdinal)
     Assert.assertFalse(Version.parse("210.0.0_alpha").isOrdinalOnly)
     Assert.assertTrue(Version.parse("RC-2024.31-SNAPSHOT").isOrdinal)
@@ -105,12 +107,12 @@ class VersionTest extends AssertionsForJUnit {
 
   @Test
   def testVersionParse(): Unit = {
-    Assert.assertEquals(Version("", 1, 2, 3, "", ""), Version.parse("1.2.3"))
-    Assert.assertEquals(Version("", 1, 2, 3, "6", ""), Version.parse("1.2.3_6"))
-    Assert.assertEquals(Version("", 1, 2, 3, "final", ""), Version.parse("1.2.3_final"))
-    Assert.assertEquals(Version("", 3, 2, 1, "", ""), Version.parse("3.2.1-SNAPSHOT"))
-    Assert.assertEquals(Version("", 7, 0, 0, "", ""), Version.parse("7"))
-    Assert.assertEquals(Version("", 8, 43, 0, "", ""), Version.parse("8.43"))
+    Assert.assertEquals(Version("", 1, 2, 3, "", ""), Version.parse("1.2.3").dropOrg())
+    Assert.assertEquals(Version("", 1, 2, 3, "6", ""), Version.parse("1.2.3_6").dropOrg())
+    Assert.assertEquals(Version("", 1, 2, 3, "final", ""), Version.parse("1.2.3_final").dropOrg())
+    Assert.assertEquals(Version("", 3, 2, 1, "", ""), Version.parse("3.2.1-SNAPSHOT").dropOrg())
+    Assert.assertEquals(Version("", 7, 0, 0, "", ""), Version.parse("7").dropOrg())
+    Assert.assertEquals(Version("", 8, 43, 0, "", ""), Version.parse("8.43").dropOrg())
   }
 
   @Test
@@ -164,22 +166,22 @@ class VersionTest extends AssertionsForJUnit {
 
   @Test
   def testNextVersion(): Unit = {
-    Assert.assertEquals(Version.parse("4.0.0"), Version.parse("3.0.0").nextVersion((1, 0, 0)))
-    Assert.assertEquals(Version.parse("4.3.0"), Version.parse("3.0.0").nextVersion((1, 3, 0)))
-    Assert.assertEquals(Version.parse("5.2.1"), Version.parse("3.0.0").nextVersion((2, 2, 1)))
+    Assert.assertEquals(Version.parse("4.0.0").dropOrg(), Version.parse("3.0.0").nextVersion((1, 0, 0)).dropOrg())
+    Assert.assertEquals(Version.parse("4.3.0").dropOrg(), Version.parse("3.0.0").nextVersion((1, 3, 0)).dropOrg())
+    Assert.assertEquals(Version.parse("5.2.1").dropOrg(), Version.parse("3.0.0").nextVersion((2, 2, 1)).dropOrg())
   }
 
   @Test
   def testNextVersionResetZero(): Unit = {
-    Assert.assertEquals(Version.parse("4.0.0"), Version.parse("3.2.10").nextVersionResetZero((1, 0, 0)))
-    Assert.assertEquals(Version.parse("4.3.0"), Version.parse("3.2.10").nextVersionResetZero((1, 1, 0)))
-    Assert.assertEquals(Version.parse("4.3.11"), Version.parse("3.2.10").nextVersionResetZero((1, 1, 1)))
-    Assert.assertEquals(Version.parse("4.5.0"), Version.parse("3.2.10").nextVersionResetZero((1, 3, 0)))
-    Assert.assertEquals(Version.parse("5.4.11"), Version.parse("3.2.10").nextVersionResetZero((2, 2, 1)))
-    Assert.assertEquals(Version.parse("3.2.10"), Version.parse("3.2.10").nextVersionResetZero((0, 0, 0)))
-    Assert.assertEquals(Version.parse("3.2.11"), Version.parse("3.2.10").nextVersionResetZero((0, 0, 1)))
-    Assert.assertEquals(Version.parse("3.3.11"), Version.parse("3.2.10").nextVersionResetZero((0, 1, 1)))
-    Assert.assertEquals(Version.parse("4.0.0"), Version.parse("3.0.0").nextVersionResetZero((1, 0, 0)))
+    Assert.assertEquals(Version.parse("4.0.0").dropOrg(), Version.parse("3.2.10").nextVersionResetZero((1, 0, 0)).dropOrg())
+    Assert.assertEquals(Version.parse("4.3.0").dropOrg(), Version.parse("3.2.10").nextVersionResetZero((1, 1, 0)).dropOrg())
+    Assert.assertEquals(Version.parse("4.3.11").dropOrg(), Version.parse("3.2.10").nextVersionResetZero((1, 1, 1)).dropOrg())
+    Assert.assertEquals(Version.parse("4.5.0").dropOrg(), Version.parse("3.2.10").nextVersionResetZero((1, 3, 0)).dropOrg())
+    Assert.assertEquals(Version.parse("5.4.11").dropOrg(), Version.parse("3.2.10").nextVersionResetZero((2, 2, 1)).dropOrg())
+    Assert.assertEquals(Version.parse("3.2.10").dropOrg(), Version.parse("3.2.10").nextVersionResetZero((0, 0, 0)).dropOrg())
+    Assert.assertEquals(Version.parse("3.2.11").dropOrg(), Version.parse("3.2.10").nextVersionResetZero((0, 0, 1)).dropOrg())
+    Assert.assertEquals(Version.parse("3.3.11").dropOrg(), Version.parse("3.2.10").nextVersionResetZero((0, 1, 1)).dropOrg())
+    Assert.assertEquals(Version.parse("4.0.0").dropOrg(), Version.parse("3.0.0").nextVersionResetZero((1, 0, 0)).dropOrg())
   }
 
   @Test

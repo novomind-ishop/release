@@ -531,8 +531,8 @@ object Lint {
       // https://github.com/hadolint/hadolint
       // https://polaris.docs.fairwinds.com/infrastructure-as-code/
 
-      val warnExitCode = 42
-      val errorExitCode = 43
+      val WARN_EXIT_CODE = 42
+      val ERROR_EXIT_CODE = 43
       // TODO print $HOME
       println(info("    " + file.getAbsolutePath, workOpts, lineMax))
       val warnExit = new OneTimeSwitch()
@@ -1207,11 +1207,15 @@ object Lint {
         }
 
         if (errorExit.isTriggered()) {
-          out.println(error(s"exit ${errorExitCode} - because lint found errors, see above ${fiError}", opts))
-          return errorExitCode
+          out.println(error(s"exit ${ERROR_EXIT_CODE} - because lint found errors, see above ${fiError}", opts))
+          return ERROR_EXIT_CODE
         } else if (warnExit.isTriggered()) {
-          out.println(warn(s"exit ${warnExitCode} - because lint found warnings, see above ${fiWarn}", opts))
-          return warnExitCode
+          out.println(warn(s"exit ${WARN_EXIT_CODE} - because lint found warnings, see above ${fiWarn}", opts))
+          if (workOpts.lintOpts.warningsToErrors) {
+            return ERROR_EXIT_CODE
+          } else {
+            return WARN_EXIT_CODE 
+          }
         } else {
           return 0
         }

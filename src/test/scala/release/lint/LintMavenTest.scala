@@ -10,7 +10,7 @@ import release.*
 
 import java.io.File
 import java.nio.file.Paths
-import java.time.ZonedDateTime
+import java.time.{YearMonth, ZonedDateTime}
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.annotation.{nowarn, unused}
 
@@ -2142,16 +2142,17 @@ class LintMavenTest extends AssertionsForJUnit {
     val expected =
       """
         |[INFO]     5.0.0
+        |[warning]  Invalid calendar week 99 for year 2026 <== »ja2026.99.ooo« 😬
         |[warning]  unexpected version increment: 5.0.0; expected one of: »99.0.1, 99.1.0, 100.0.0«. Because latest numeric version is: »99.0.0«
         |""".stripMargin.trim
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
-      val boolean = new OneTimeSwitch()
+      val warn = new OneTimeSwitch()
 
-      LintMaven.lintProjectVersion(sys.out, opts, "5.0.0", warnExit = boolean, new OneTimeSwitch(),
+      LintMaven.lintProjectVersion(sys.out, opts, "5.0.0", warnExit = warn, new OneTimeSwitch(),
         Some(BranchTagMerge(tagName = Some("v5.0.0"), branchName = None)),
-        allGitTags = Seq("v1.2.3", "bert-preview", "v99.0.0", "99.0.0"), isShop = false, headBranchName = None)
-      Assert.assertFalse(boolean.isTriggered())
+        allGitTags = Seq("v1.2.3", "bert-preview", "v99.0.0", "99.0.0", "vja2026.99.ooo"), isShop = false, headBranchName = None)
+      Assert.assertFalse(warn.isTriggered())
     })
   }
 
@@ -2278,4 +2279,23 @@ class LintMavenTest extends AssertionsForJUnit {
       Assert.assertTrue(boolean.isTriggered())
     })
   }
+
+  @Test
+  def testSelectYearLikesProblems(): Unit = {
+    Assert.assertEquals(Seq(
+      "Invalid calendar week 991 for year 2026 <== »any2026-991w« \uD83D\uDE2C",
+      "Invalid calendar week 88 for year 2027 <== »any2027-88-tag« \uD83D\uDE2C",
+      "Invalid calendar week 91 for year 2025 <== »v2025-91-234« \uD83D\uDE2C",
+    ),
+      LintMaven.selectYearLikesProblems(Seq(
+        "a",
+        "any2026-991w",
+        "any2027-88-tag",
+        "v2025-01-12",
+        "v2025-91-234",
+        "vBeta2024-91-234"
+      ), YearMonth.of(2026, 1)))
+  }
+
+
 }

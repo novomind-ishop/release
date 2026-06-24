@@ -71,7 +71,7 @@ class SbtModTest extends AssertionsForJUnit {
 
   @Test
   def testDoParse(): Unit = {
-    val value = SbtMod.SloppyParser.doParse(strict = true)(
+    val value = SbtMod.SloppyParser.doParse(Opts(), strict = true)(
       """
         |version := "1.0-SNAPSHOT"
         |
@@ -104,7 +104,7 @@ class SbtModTest extends AssertionsForJUnit {
 
   @Test
   def testDoParse3(): Unit = {
-    val value = SbtMod.SloppyParser.doParse(strict = true)(
+    val value = SbtMod.SloppyParser.doParse(Opts(), strict = true)(
       """
         |version := "1.0"
         |
@@ -123,7 +123,7 @@ class SbtModTest extends AssertionsForJUnit {
 
   @Test
   def testDoParseScalaVersion(): Unit = {
-    val value = SbtMod.SloppyParser.doParse(strict = true)(
+    val value = SbtMod.SloppyParser.doParse(Opts(), strict = true)(
       """
         |version := "1.0"
         |
@@ -142,7 +142,7 @@ class SbtModTest extends AssertionsForJUnit {
 
   @Test
   def testDoParse_val(): Unit = {
-    val value = SbtMod.SloppyParser.doParse(strict = true)(
+    val value = SbtMod.SloppyParser.doParse(Opts(), strict = true)(
       """
         |version := "1.0"
         |
@@ -180,7 +180,7 @@ class SbtModTest extends AssertionsForJUnit {
 
   @Test
   def testDoParse_var(): Unit = {
-    val value = SbtMod.SloppyParser.doParse(strict = true)(
+    val value = SbtMod.SloppyParser.doParse(Opts(), strict = true)(
       """
         |ThisBuild / version := "0.1.0-SNAPSHOT"
         |
@@ -216,7 +216,7 @@ class SbtModTest extends AssertionsForJUnit {
 
   @Test
   def testDoParseBuildProperties(): Unit = {
-    val value = SbtMod.SloppyParser.doParse(strict = true)(
+    val value = SbtMod.SloppyParser.doParse(Opts(), strict = true)(
       """
         |sbt.version=1.5.5
         |
@@ -229,7 +229,7 @@ class SbtModTest extends AssertionsForJUnit {
 
   @Test
   def testDoParsePlugins(): Unit = {
-    val value = SbtMod.SloppyParser.doParse(strict = true)(
+    val value = SbtMod.SloppyParser.doParse(Opts(), strict = true)(
       """
         |addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "1.0.0")
         |

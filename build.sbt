@@ -20,17 +20,17 @@ libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % 
 
 libraryDependencies += "org.scala-lang.modules" %% "scala-parallel-collections" % "1.2.0"
 
-libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-connector-basic" % "1.9.16"
+libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-connector-basic" % "1.9.27"
 
-libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-transport-file" % "1.9.16"
+libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-transport-file" % "1.9.27"
 
-libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-transport-http" % "1.9.16"
+libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-transport-http" % "1.9.27"
 
-libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-supplier" % "1.9.16"
+libraryDependencies += "org.apache.maven.resolver" % "maven-resolver-supplier" % "1.9.27"
 
 // libraryDependencies += "org.codehaus.plexus" % "plexus-utils" % "4.0.0"
 
-libraryDependencies += "org.apache.maven" % "maven-resolver-provider" % "3.9.5"
+libraryDependencies += "org.apache.maven" % "maven-resolver-provider" % "3.9.16"
 
 //libraryDependencies += "io.get-coursier" %% "coursier" % "2.1.7"
 
