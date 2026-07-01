@@ -1131,7 +1131,9 @@ object Lint {
             out.println(info(s"    found ${depTrees.size} trees", opts))
             val orphanTrees = ProjectMod.findOrphanTrees(modTry.get.file, depTrees.keys.toSeq)
             if (orphanTrees.nonEmpty) {
-              out.println(warn(s" found ${orphanTrees.size} orphan ${"tree".pluralize(orphanTrees.size)}", opts))
+              out.println(warnSoft(s" found ${orphanTrees.size} orphan ${"tree".pluralize(orphanTrees.size)}", opts))
+              orphanTrees.foreach(t => warnSoft(s"  orphan ${t}", opts))
+              // TODO exit handler
             }
             TreeGav.format(depTrees.map(t => (t._1, PomMod.DepTree.parseGavsOnly(t._2))), out, opts)
           }
@@ -1210,11 +1212,14 @@ object Lint {
           out.println(error(s"exit ${ERROR_EXIT_CODE} - because lint found errors, see above ${fiError}", opts))
           return ERROR_EXIT_CODE
         } else if (warnExit.isTriggered()) {
-          out.println(warn(s"exit ${WARN_EXIT_CODE} - because lint found warnings, see above ${fiWarn}", opts))
           if (workOpts.lintOpts.warningsToErrors) {
+            out.println(info(s"RELEASE_LINT_WARN_TO_ERROR=true", workOpts))
+            out.println(info(s"  all warnings will cause an error", workOpts))
+            out.println(error(s"exit ${ERROR_EXIT_CODE} - because lint found warnings, see above ${fiWarn}", opts))
             return ERROR_EXIT_CODE
           } else {
-            return WARN_EXIT_CODE 
+            out.println(warn(s"exit ${WARN_EXIT_CODE} - because lint found warnings, see above ${fiWarn}", opts))
+            return WARN_EXIT_CODE
           }
         } else {
           return 0
