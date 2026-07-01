@@ -3,13 +3,13 @@ package release.lint
 import com.google.common.base.{Stopwatch, Strings}
 import com.google.common.io.{CharSink, CharSource}
 import com.google.googlejavaformat.java.Formatter
+import release.*
 import release.ProjectMod.{Gav3, StaticPrinter}
 import release.Sgit.GitShaRefTime
-import release.Starter.{PreconditionsException, sign}
+import release.Starter.PreconditionsException
 import release.Term.*
 import release.Util.Ext.*
 import release.docker.{Dockerfile, SuggestDockerTag}
-import release.*
 
 import java.io.{File, PrintStream}
 import java.lang.management.ManagementFactory
@@ -20,7 +20,6 @@ import java.time.{Duration, Period, ZonedDateTime}
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.annotation.{tailrec, unused}
-import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.CollectionConverters.*
 import scala.util.{Failure, Success, Try}
 
@@ -481,27 +480,28 @@ object Lint {
   val lineMax = 100_000
   val fiFine = "✅"
 
-  val fiCodeNexusUrlSlash = uniqCode(1001)(())
-  val fiCodeNexusCentral = uniqCode(1002)(())
-  val fiCodeGitLocalChanges = uniqCode(1003)
-  val fiCodeGitNoRemotes = uniqCode(1004)(())
-  val fiCodeGitlabCiFilename = uniqCode(1005)(())
-  val fiCodeGitlabCiTagname = uniqCode(1006)(())
-  val fiCodePomModPreconditionsException = uniqCode(1007)(())
-  val fiCodePomModException = uniqCode(1008)(())
-  val fiCodeNexusFoundRelease = uniqCode(1009)
-  val fiCodeNexusFoundOrphanSnapshot = uniqCode(10015)
-  val fiCodeUnusualGav = uniqCode(1010)
-  val fiCodeSnapshotGav = uniqCode(1011)
-  val fiCodeSnapshotText = uniqCode(1012)
-  val fiCodeCoreDiff = uniqCode(1013)
-  val fiCodeVersionMismatch = uniqCode(1014)(())
-  val fiCodeDependencyScopesCopiesOverlapping = uniqCode(1017)
-  val fiCodePreviouRelease = uniqCode(1018)
-  val fiCodeUnwantedPackage = uniqCode(1019)
-  val fiCodeVersionMismatchNoTag = uniqCode(1020)(())
-  val fiCodeSimilarity = uniqCode(1021)
-  val fiCodeDockerHost = uniqCode(1022)
+  private val fiCodeNexusUrlSlash = uniqCode(1001)(())
+  private val fiCodeNexusCentral = uniqCode(1002)(())
+  private val fiCodeGitLocalChanges = uniqCode(1003)
+  private val fiCodeGitNoRemotes = uniqCode(1004)(())
+  private val fiCodeGitlabCiFilename = uniqCode(1005)(())
+  private val fiCodeGitlabCiTagname = uniqCode(1006)(())
+  private val fiCodePomModPreconditionsException = uniqCode(1007)(())
+  private val fiCodePomModException = uniqCode(1008)(())
+  private val fiCodeNexusFoundRelease = uniqCode(1009)
+  private val fiCodeNexusFoundOrphanSnapshot = uniqCode(10015)
+  private val fiCodeUnusualGav = uniqCode(1010)
+  private val fiCodeSnapshotGav = uniqCode(1011)
+  private val fiCodeSnapshotText = uniqCode(1012)
+  private[release] val fiCodeCoreDiff = uniqCode(1013)
+  private[release] val fiCodeVersionMismatch = uniqCode(1014)(())
+  private val fiCodeDependencyScopesCopiesOverlapping = uniqCode(1017)
+  private val fiCodePreviouRelease = uniqCode(1018)
+  private val fiCodeUnwantedPackage = uniqCode(1019)
+  private[release] val fiCodeVersionMismatchNoTag = uniqCode(1020)(())
+  private val fiCodeSimilarity = uniqCode(1021)
+  private[release] val fiCodeDockerHost = uniqCode(1022)
+  private val fiCodeOrphanTree = uniqCode(1023)
   val fiWarn = "\uD83D\uDE2C"
   val fiWarnMuted = "\uD83E\uDD10"
   val fiError = "❌"
@@ -1131,9 +1131,27 @@ object Lint {
             out.println(info(s"    found ${depTrees.size} trees", opts))
             val orphanTrees = ProjectMod.findOrphanTrees(modTry.get.file, depTrees.keys.toSeq)
             if (orphanTrees.nonEmpty) {
-              out.println(warnSoft(s" found ${orphanTrees.size} orphan ${"tree".pluralize(orphanTrees.size)}", opts))
-              orphanTrees.foreach(t => warnSoft(s"  orphan ${t}", opts))
-              // TODO exit handler
+              val orphanTreesFound = new AtomicBoolean()
+              orphanTrees.foreach(t => {
+                val code = fiCodeOrphanTree.apply(t)
+                val skipped = opts.lintOpts.skips.contains(code)
+                val value = s"  orphan ${t} ${code}"
+                if (skipped) {
+                  usedLintSkips = usedLintSkips :+ code
+                  warnSoft(value, opts, limit = lineMax)
+                } else {
+                  warn(value, opts, limit = lineMax)
+                  orphanTreesFound.set(true)
+                  warnExit.trigger()
+                }
+              })
+              val value = s" found ${orphanTrees.size} orphan ${"tree".pluralize(orphanTrees.size)}"
+              if (orphanTreesFound.get()) {
+                out.println(warn(value, opts))
+              } else {
+                out.println(warnSoft(value, opts))
+              }
+
             }
             TreeGav.format(depTrees.map(t => (t._1, PomMod.DepTree.parseGavsOnly(t._2))), out, opts)
           }

@@ -23,13 +23,7 @@ case class SbtMod(file: File, repoZ: RepoZ, opts: Opts) extends ProjectMod {
     def read(f: File) = Files.readAllLines(f.toPath, StandardCharsets.UTF_8)
       .asScala.mkString("\n")
 
-    val allFiles = sbtFile(file).map(read)
-    val main = read(file)
-    val mainModel = SbtMod.SloppyParser.doParse(opts = opts)(main)
-
-    val otherDeps = allFiles
-      .map(SbtMod.SloppyParser.doParse(opts)).flatMap(_.deps)
-    mainModel.copy(deps = mainModel.deps ++ otherDeps)
+    SbtMod.modelOfConents(sbtFiles(file), file, read,  opts)
   }
   override val listDependencies: Seq[ProjectMod.Dep] = value.deps
   override val listDependenciesPlugin: Seq[ProjectMod.Dep] = Nil
@@ -39,7 +33,7 @@ case class SbtMod(file: File, repoZ: RepoZ, opts: Opts) extends ProjectMod {
     value.selfVersion.getOrElse("n/a")
   }
 
-  def sbtFile(file: File): Seq[File] = {
+  def sbtFiles(file: File): Seq[File] = {
     val props = new File(new File(file.getParentFile, "project"), "build.properties")
     val plugins = new File(new File(file.getParentFile, "project"), "plugins.sbt")
     Seq(props, plugins).filter(_.exists())
@@ -97,6 +91,17 @@ object SbtMod {
 
   case class SbtModel(deps: Seq[ProjectMod.Dep], selfVersion: Option[String])
 
+  def modelOfConents(allFiles: Seq[File], mainFile: File, reader:File => String, opts: Opts): SbtModel = {
+    val otherDeps: Seq[ProjectMod.Dep] = allFiles
+      .foldLeft(SbtModel(deps = Nil, selfVersion = None))((model, fileContent) => {
+        val newModel = SbtMod.SloppyParser.doParse(opts = opts, otherModel = Some(model))(reader(fileContent), ProjectMod.SelfRef.scalaBuildMeta)
+        model.copy(deps = model.deps ++ newModel.deps, selfVersion = model.selfVersion.orElse(newModel.selfVersion))
+      }).deps
+    val mainModel = SbtMod.SloppyParser.doParse(opts = opts)(reader.apply(mainFile), ProjectMod.SelfRef.undef)
+
+    mainModel.copy(deps = mainModel.deps ++ otherDeps)
+  }
+
   def buildSbt(file: File): File = {
     new File(file, "build.sbt")
   }
@@ -108,7 +113,7 @@ object SbtMod {
   object SloppyParser extends RegexParsers with LazyLogging {
     override val skipWhitespace = false
 
-    def doParse(opts: Opts, strict: Boolean = false)(in: String): SbtModel = {
+    def doParse(opts: Opts, strict: Boolean = false, otherModel: Option[SbtModel] = None)(in: String, givenDepRef:ProjectMod.SelfRef): SbtModel = {
 
       def nl = "\n" ^^ (term => "NL")
 
@@ -193,11 +198,20 @@ object SbtMod {
 
       def pluginDep = "addSbtPlugin(" ~> rep(quotedWord) <~ "[ ]*\\)".r ~ opt("[ ]+//.*".r) ~ nl ^^ (term => {
         // addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.6.1")
+        val sbtVersion = Util.only(otherModel.get.deps.filter(d => d.groupId == "org.scala-sbt" && d.artifactId == "sbt"),
+            "only one sbt version expected")
+          .version.get
+        val suffix = sbtVersion match {
+          case e: String if e.startsWith("1.") => "_2.12_1.0"
+          case e: String => throw new IllegalStateException(s"unknown sbt version: ${e}")
+        }
+
         val termL = term
         if (termL.size >= 3) {
+          val stringOrVal = toE(termL(1)._1).swap.map(v => v + suffix).swap
           SbtMod.Dep(
             groupId = toE(termL(0)._1),
-            artifactId = toE(termL(1)._1),
+            artifactId = stringOrVal,
             version = toE(termL(2)._1),
             "a", "b", "c", "d")
         } else {
@@ -309,7 +323,7 @@ object SbtMod {
               o
             })
             .collect({ case e: SbtMod.Dep => e })
-            .map(d => ProjectMod.Dep(SelfRef.undef,
+            .map(d => ProjectMod.Dep(givenDepRef,
               groupId = eval(allVals)(d.groupId),
               artifactId = eval(allVals)(d.artifactId),
               version = Some(eval(allVals)(d.version)),

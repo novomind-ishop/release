@@ -3,10 +3,12 @@ package release
 import org.junit.{Assert, Test}
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.{ArgumentMatcher, ArgumentMatchers, Mockito}
-import org.mockito.Mockito._
+import org.mockito.Mockito.*
 import org.scalatestplus.junit.AssertionsForJUnit
-import release.ProjectMod.Gav3
+import release.ProjectMod.{Dep, Gav3, SelfRef}
 import release.SbtModTest.d
+
+import java.io.File
 
 object SbtModTest {
   def d(g: String, a: String, v: String, scope: String = "") =
@@ -22,7 +24,8 @@ class SbtModTest extends AssertionsForJUnit {
     val catsCore = Gav3("org.typelevel", "cats-core_2.12", Some("1.4.0"))
     val scalaTest = Gav3("org.scalatest", "scalatest_2.13", Some("3.2.9"))
     val guava = Gav3("com.google.guava", "guava", Some("30.1.1-jre"))
-    val gavs: Seq[Gav3] = Seq(scalaLib, catsEffectM3, catsCore, scalaTest, guava)
+    val gavs: Seq[Dep] = Seq(scalaLib, catsEffectM3, catsCore, scalaTest, guava)
+      .map(_.toDep(SelfRef.undef))
 
     val repo = mock(classOf[Repo])
     when(repo.getRelocationOf(anyString(), anyString(), anyString())).thenReturn(None)
@@ -32,7 +35,7 @@ class SbtModTest extends AssertionsForJUnit {
       catsCore.copy(artifactId = "cats-core_2.13"),
       catsEffectM3.copy(artifactId = "cats-effect_2.13"),
       scalaLib3,
-    )
+    ).map(_.toDep(SelfRef.undef))
     Assert.assertEquals((gavs ++ extra).sortBy(_.toString), result.flatten.sortBy(_.toString))
   }
 
@@ -41,7 +44,8 @@ class SbtModTest extends AssertionsForJUnit {
     val scalaLib = Gav3("org.scala-lang", "scala3-library_3", Some("3.0.1"))
     val catsEffectM3 = Gav3("org.typelevel", "cats-effect_2.13.0-M5", Some("1.4.0"))
     val catsCore = Gav3("org.typelevel", "cats-core_2.12", Some("1.4.0"))
-    val gavs: Seq[Gav3] = Seq(scalaLib, catsEffectM3, catsCore)
+    val gavs: Seq[Dep] = Seq(scalaLib, catsEffectM3, catsCore)
+      .map(_.toDep(SelfRef.undef))
 
     val repo = mock(classOf[Repo])
     when(repo.getRelocationOf(anyString(), anyString(), anyString())).thenReturn(None)
@@ -51,14 +55,15 @@ class SbtModTest extends AssertionsForJUnit {
     val extra = Seq(
       catsCore.copy(artifactId = "cats-core_3"),
       catsEffectM3.copy(artifactId = "cats-effect_3"),
-    )
+    ).map(_.toDep(SelfRef.undef))
     Assert.assertEquals((gavs ++ extra).sortBy(_.toString), result.flatten.sortBy(_.toString))
   }
 
   @Test
   def scalaDeps_not(): Unit = {
     val guava = Gav3("com.google.guava", "guava", Some("30.1.1-jre"))
-    val gavs: Seq[Gav3] = Seq(guava)
+    val gavs: Seq[Dep] = Seq(guava)
+      .map(_.toDep(SelfRef.undef))
     val repo = mock(classOf[Repo])
     Mockito.when(repo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).thenReturn(None)
 
@@ -88,7 +93,7 @@ class SbtModTest extends AssertionsForJUnit {
         |
         |libraryDependencies += "org.typelevel" % "cats-effect_2.13.0-M5" % "1.4.0"
         |
-        |""".stripMargin.trim)
+        |""".stripMargin.trim, ProjectMod.SelfRef.undef)
 
     Assert.assertEquals(Seq(
       d("org.scala-lang", "scala-library", "2.13.0"),
@@ -112,7 +117,7 @@ class SbtModTest extends AssertionsForJUnit {
         |
         |libraryDependencies += "org.scalatestplus" %% "junit-4-12" % "3.1.2.1" % Test
         |
-        |""".stripMargin.trim)
+        |""".stripMargin.trim, ProjectMod.SelfRef.undef)
 
     Assert.assertEquals(Seq(
       d("org.scala-lang", "scala3-library_3", "3.0.1"),
@@ -131,7 +136,7 @@ class SbtModTest extends AssertionsForJUnit {
         |
         |libraryDependencies += "org.scalatestplus" %% "junit-4-12" % "3.1.2.1" % Test
         |
-        |""".stripMargin.trim)
+        |""".stripMargin.trim, ProjectMod.SelfRef.undef)
 
     Assert.assertEquals(Seq(
       d("org.scala-lang", "scala3-library_3", "3.7.1"),
@@ -167,7 +172,7 @@ class SbtModTest extends AssertionsForJUnit {
         |    libraryDependencies += "net.java.dev.jna" % "jna-platform" % "5.13.0",
         |   libraryDependencies += "net.java.dev.jna" % "jna" % "5.13.0", // some comment
         |
-        |""".stripMargin.trim)
+        |""".stripMargin.trim, ProjectMod.SelfRef.undef)
 
     Assert.assertEquals(Seq(
       d("org.scala-lang", "scala3-library_3", "3.0.1"),
@@ -203,7 +208,7 @@ class SbtModTest extends AssertionsForJUnit {
         |// export COURSIER_TTL=0s # https://get-coursier.io/docs/ttl
         |
         |
-        |""".stripMargin.trim)
+        |""".stripMargin.trim, ProjectMod.SelfRef.undef)
 
     Assert.assertEquals(Seq(
       d("org.scala-lang", "scala3-library_3", "3.8.1"),
@@ -220,7 +225,7 @@ class SbtModTest extends AssertionsForJUnit {
       """
         |sbt.version=1.5.5
         |
-        |""".stripMargin.trim)
+        |""".stripMargin.trim, ProjectMod.SelfRef.undef)
 
     Assert.assertEquals(Seq(
       d("org.scala-sbt", "sbt", "1.5.5"),
@@ -229,18 +234,44 @@ class SbtModTest extends AssertionsForJUnit {
 
   @Test
   def testDoParsePlugins(): Unit = {
-    val value = SbtMod.SloppyParser.doParse(Opts(), strict = true)(
+    val a = new File("build.properties")
+    val b = new File("plugins.sbt")
+    val c = new File("build.sbt")
+    val fm = Map(a ->
       """
-        |addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "1.0.0")
+        |sbt.version=1.5.5
         |
-        |addSbtPlugin(  "org.scoverage"    %  "sbt-scoverage" % "1.6.1" ) // helo
-        |
-        |""".stripMargin.trim)
+        |""".stripMargin.trim,
+      b ->
+        """
+          |addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "1.0.0")
+          |
+          |addSbtPlugin(  "org.scoverage"    %  "sbt-scoverage" % "1.6.1" ) // helo
+          |
+          |""".stripMargin.trim,
+      c ->
+        """
+          |scalaVersion := "3.8.3"
+          |""".stripMargin.trim,
+    )
+    val value = SbtMod.modelOfConents(Seq(a, b), c, fd => fm.getOrElse(fd, ""), Opts())
+
 
     Assert.assertEquals(Seq(
-      d("com.eed3si9n", "sbt-assembly", "1.0.0"),
-      d("org.scoverage", "sbt-scoverage", "1.6.1"),
+      d("org.scala-lang", "scala3-library_3", "3.8.3"),
+      d("org.scala-sbt", "sbt", "1.5.5"),
+      d("com.eed3si9n", "sbt-assembly_2.12_1.0", "1.0.0").copy(pomRef = SelfRef.scalaBuildMeta),
+      d("org.scoverage", "sbt-scoverage_2.12_1.0", "1.6.1").copy(pomRef = SelfRef.scalaBuildMeta),
     ), value.deps)
+    val repo = mock(classOf[Repo])
+    when(repo.getRelocationOf(anyString(), anyString(), anyString())).thenReturn(None)
+    val result = value.deps.map(aa => ProjectMod.relocateGavs(value.deps, repo)(aa))
+    Assert.assertEquals(Seq(
+      Seq(d("org.scala-lang", "scala3-library_3", "3.8.3")),
+      Seq(d("org.scala-sbt", "sbt", "1.5.5")),
+      Seq(d("com.eed3si9n", "sbt-assembly_2.12_1.0", "1.0.0").copy(pomRef = SelfRef.scalaBuildMeta)),
+      Seq(d("org.scoverage", "sbt-scoverage_2.12_1.0", "1.6.1").copy(pomRef = SelfRef.scalaBuildMeta)),
+    ), result)
   }
 
 }

@@ -155,7 +155,7 @@ object ProjectMod extends LazyLogging {
   def relocatedDeps(relevant: Seq[Dep], repo: RepoZ): Seq[Dep] = {
     relevant.flatMap(dep => {
       val gav = dep.gav().simpleGav()
-      val others = relocateGavs(Seq(gav), repo)(gav).filterNot(x => x == gav)
+      val others = relocateGavs(Seq(dep), repo)(dep).filterNot(x => x.gav().simpleGav() == gav)
       if (others.nonEmpty) {
         others.map(gav3 => dep.copy(groupId = gav3.groupId, artifactId = gav3.artifactId, version = gav3.version))
       } else {
@@ -164,16 +164,16 @@ object ProjectMod extends LazyLogging {
     })
   }
 
-  def relocateGavs(gavs: Seq[Gav3], repo: RepoZ)(gav: Gav3): Seq[Gav3] = {
+  def relocateGavs(deps: Seq[Dep], repo: RepoZ)(dep: Dep): Seq[Dep] = {
     // TODO plugins.sbt - name ?
     // [INFO] --- dependency:3.3.0:tree (pre-build-validate-tree) ---
     // [WARNING] The artifact com.atlassian.commonmark:commonmark:jar:0.17.0 has been relocated to org.commonmark:commonmark:jar:0.17.0
-    val relocationResult = repo.getRelocationOf(gav.groupId, gav.artifactId, gav.version.get)
-    if (relocationResult.isDefined) {
+    val relocationResult = repo.getRelocationOf(dep.groupId, dep.artifactId, dep.version.get)
+    if (dep.pomRef == SelfRef.scalaBuildMeta || relocationResult.isDefined) {
       // TODO handle remote relocation
-      Seq(gav)
+      Seq(dep)
     } else {
-      val sFind = gavs.find(gavk => gavk.groupId == sGroupId &&
+      val sFind = deps.find(gavk => gavk.groupId == sGroupId &&
         (gavk.artifactId == sArtifactId || gavk.artifactId == s3ArtifactId))
       if (sFind.isDefined) {
         val scalaLib = sFind.get
@@ -182,18 +182,18 @@ object ProjectMod extends LazyLogging {
           case o => o.replaceFirst("\\.[0-9]+$", "")
         }
         val scalaDepRegex = "^(.*_)[1-9][0-9]*\\.[1-9][0-9]*.*$".r
-        if (scalaDepRegex.matches(gav.artifactId)) {
-          val newA = scalaDepRegex.replaceAllIn(gav.artifactId, "$1" + scalaMinor)
-          Seq(gav, gav.copy(artifactId = newA)).distinct
+        if (scalaDepRegex.matches(dep.artifactId)) {
+          val newA = scalaDepRegex.replaceAllIn(dep.artifactId, "$1" + scalaMinor)
+          Seq(dep, dep.copy(artifactId = newA)).distinct
         } else {
-          if (gav.artifactId == sArtifactId && gav.groupId == sGroupId) {
-            Seq(gav, gav.copy(artifactId = s3ArtifactId, version = Some("-1")))
+          if (dep.artifactId == sArtifactId && dep.groupId == sGroupId) {
+            Seq(dep, dep.copy(artifactId = s3ArtifactId, version = Some("-1")))
           } else {
-            Seq(gav)
+            Seq(dep)
           }
         }
       } else {
-        Seq(gav)
+        Seq(dep)
       }
     }
 
@@ -438,6 +438,7 @@ object ProjectMod extends LazyLogging {
   object SelfRef {
     val virtualParent = SelfRef("virtual-group-of-all-parents", Gav3("maven", "parent", None))
     val extensions = SelfRef(".mvn/extensions.xml", Gav3("maven", "extension", None))
+    val scalaBuildMeta = SelfRef("plugins", Gav3("scala", "plugins", None))
     val undef = SelfRef("X", Gav3("X", "X", None))
 
     def ofGav3(gav3: Gav3): SelfRef = SelfRef(gav3.formatted, gav3)
@@ -606,15 +607,14 @@ object ProjectMod extends LazyLogging {
       .filterNot(in => selfSimple.contains(in.gav().simpleGav()))
 
     val relevantGav = relevant
-      .map(_.gav())
-      .distinct
+      .distinctBy(_.gav())
 
     val emptyVersions = rootDeps
       .filter(_.version.get == "")
       .map(_.gav())
       .distinct
 
-    val prepared = relevantGav.map(_.simpleGav())
+    val prepared = relevantGav
       .map(in => {
         if (in.version.isEmpty || in.artifactId.isEmpty || in.groupId.isEmpty) {
           throw new IllegalStateException("gav has empty parts: " + in)
@@ -623,7 +623,7 @@ object ProjectMod extends LazyLogging {
         }
       })
 
-    val value: Seq[Gav3] = prepared.flatMap(ProjectMod.relocateGavs(prepared, repoDelegator))
+    val value: Seq[Gav3] = prepared.flatMap(ProjectMod.relocateGavs(prepared, repoDelegator)).map(_.gav().simpleGav())
     val updates = checkForUpdates(value, depUpOpts, repoDelegator, updatePrinter, ws = ws)
     val now = LocalDate.now()
     updatePrinter.println(s"I: checked ${value.size} dependencies in ${stopw.toString} (${now.toString})")
@@ -716,7 +716,7 @@ object ProjectMod extends LazyLogging {
       updatePrinter.printlnErr(ws)
     }
 
-    val unmangedVersions = unmanaged(emptyVersions, relevantGav)
+    val unmangedVersions = unmanaged(emptyVersions, relevantGav.map(_.gav()))
     if (unmangedVersions != Nil) {
       updatePrinter.printlnErr("Empty or managed versions found:")
       unmangedVersions.map(_.simpleGav()).foreach(updatePrinter.printlnErr)
