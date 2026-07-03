@@ -533,10 +533,12 @@ object Lint {
 
       val WARN_EXIT_CODE = 42
       val ERROR_EXIT_CODE = 43
+      val RETRY_EXIT_CODE = 44
       // TODO print $HOME
       println(info("    " + file.getAbsolutePath, workOpts, lineMax))
       val warnExit = new OneTimeSwitch()
       val errorExit = new OneTimeSwitch()
+      val retryExit = new OneTimeSwitch()
       val files = file.listFiles()
       var usedLintSkips = Seq.empty[Lint.UniqCode]
       if (files == null || files.isEmpty) {
@@ -633,6 +635,7 @@ object Lint {
           .filterNot(_.refName.startsWith("refs/tags/"))
           .filterNot(_.refName.startsWith("refs/changes/"))
           .filterNot(_.refName.startsWith("refs/merge-requests/"))
+          .filterNot(_.refName.startsWith("refs/environments/")) // gitlab
           .filterNot(_.refName.startsWith("refs/pipelines/"))
         remoteRefs.foreach(ref => {
           out.println(warnSoft(s" strange ref: ${ref.refName}", opts, limit = lineMax))
@@ -1037,12 +1040,14 @@ object Lint {
                 ProjectMod.removeOlderVersions(resultTry.get._1)
               } else {
                 out.println(warn(" Dependency updated failed", opts))
-                if (resultTry.failed.get.isInstanceOf[PreconditionsException]) {
-                  out.println(error("   " + resultTry.failed.get.getMessage, opts, limit = lineMax)) // TODO improve format
+                val failedGet = resultTry.failed.get
+                if (failedGet.isInstanceOf[PreconditionsException]) {
+                  out.println(error("   " + failedGet.getMessage, opts, limit = lineMax)) // TODO improve format
                   errorExit.trigger()
                 } else {
-                  out.println(warn(" " + resultTry.failed.get.getMessage, opts, limit = lineMax)) // TODO improve format
+                  out.println(warn(failedGet.getClass.getCanonicalName + " " + failedGet.getMessage, opts, limit = lineMax)) // TODO improve format
                   warnExit.trigger()
+                  // TODO trigger
                 }
 
                 Nil
@@ -1227,17 +1232,33 @@ object Lint {
         }
 
         if (errorExit.isTriggered()) {
-          out.println(error(s"exit ${ERROR_EXIT_CODE} - because lint found errors, see above ${fiError}", opts))
-          return ERROR_EXIT_CODE
+          if (retryExit.isTriggered()) {
+            out.println(error(s"exit ${RETRY_EXIT_CODE} - because lint found errors and wants to retry, see above ${fiError}", opts))
+            return RETRY_EXIT_CODE
+          } else {
+            out.println(error(s"exit ${ERROR_EXIT_CODE} - because lint found errors, see above ${fiError}", opts))
+            return ERROR_EXIT_CODE
+          }
+
         } else if (warnExit.isTriggered()) {
           if (workOpts.lintOpts.warningsToErrors) {
             out.println(info(s"RELEASE_LINT_WARN_TO_ERROR=true", workOpts))
             out.println(info(s"  all warnings will cause an error", workOpts))
-            out.println(error(s"exit ${ERROR_EXIT_CODE} - because lint found warnings, see above ${fiWarn}", opts))
-            return ERROR_EXIT_CODE
+            if (retryExit.isTriggered()) {
+              out.println(error(s"exit ${RETRY_EXIT_CODE} - because lint found warnings and wants to retry, see above ${fiWarn}", opts))
+              return RETRY_EXIT_CODE
+            } else {
+              out.println(error(s"exit ${ERROR_EXIT_CODE} - because lint found warnings, see above ${fiWarn}", opts))
+              return ERROR_EXIT_CODE
+            }
           } else {
-            out.println(warn(s"exit ${WARN_EXIT_CODE} - because lint found warnings, see above ${fiWarn}", opts))
-            return WARN_EXIT_CODE
+            if (retryExit.isTriggered()) {
+              out.println(warn(s"exit ${RETRY_EXIT_CODE} - because lint found warnings and wants to retry, see above ${fiWarn}", opts))
+              return RETRY_EXIT_CODE
+            } else {
+              out.println(warn(s"exit ${WARN_EXIT_CODE} - because lint found warnings, see above ${fiWarn}", opts))
+              return WARN_EXIT_CODE
+            }
           }
         } else {
           return 0
