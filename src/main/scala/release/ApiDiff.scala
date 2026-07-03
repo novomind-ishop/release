@@ -37,7 +37,7 @@ object ApiDiff {
       .map(ga => {
         val groupId = ga._1
         val artifactId = ga._2
-        println(s"download artifacts for diff of: ${groupId}:${artifactId}:(${left}..${right})")
+        System.err.println(s"download artifacts for diff of: ${groupId}:${artifactId}:(${left}..${right})")
 
         val ty = s":${ga._3}:"
         val ar = repo.tryResolveReqWorkNexus(groupId + ":" + artifactId + ty + left).map(t => (t._1, t._2, ga._3))
@@ -45,7 +45,7 @@ object ApiDiff {
         (ar, br)
       }).seq
     if (inOpt.apiDiff.pomOnly) {
-      println("pom-only-mode")
+      System.err.println("pom-only-mode")
 
       def jarElements(jf: File): Option[(JarFile, util.Enumeration[JarEntry])] = {
         try {
@@ -137,10 +137,10 @@ object ApiDiff {
             Seq(((aDeps, selfA, modA.listProperties), (bDeps, selfB, modB.listProperties)))
           } else {
             if (ar.isFailure) {
-              println("W: " + ar.failed.get.getMessage)
+              System.err.println("W: " + ar.failed.get.getMessage)
             }
             if (br.isFailure) {
-              println("W: " + br.failed.get.getMessage)
+              System.err.println("W: " + br.failed.get.getMessage)
             }
             Nil
           }
@@ -164,7 +164,7 @@ object ApiDiff {
 
 
       if (inOpt.apiDiff.unifiedDiffLike) {
-        println(Starter.formatLeftRightUnifiedLike(xDiff))
+        println(Starter.formatLeftRightUnifiedLike(xDiff, inOpt.colors))
       } else {
         println(formatLeftRight(xDiff))
       }

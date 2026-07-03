@@ -133,13 +133,16 @@ object Term {
     }
   }
 
-  def colorB(color: Int, text: String, useColor: Boolean, noColorText: Option[String] = None): String = {
+  def colorRaw(color: Int, text: String, useColor: Boolean, noColorText: Option[String] = None): String = {
     if (useColor) {
-      "[" + "\u001B[" + color + "m" + text + "\u001B[0m" + "] "
+      "\u001B[" + color + "m" + text + "\u001B[0m"
     } else {
-      "[" + noColorText.getOrElse(text) + "] "
+     noColorText.getOrElse(text)
     }
-
+  }
+  
+  def colorB(color: Int, text: String, useColor: Boolean, noColorText: Option[String] = None): String = {
+      "[" + colorRaw(color, text, useColor, noColorText) + "] "
   }
 
   def checkedLength(length: Int)(in: String): String = {

@@ -321,8 +321,36 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
         |- groupId:artifactIdUpMore:2
         |+ groupId:artifactIdUpMore:3
         |+ groupId:artifactIdUpMore:4
-        |""".stripMargin.trim, Starter.formatLeftRightUnifiedLike(out))
+        |""".stripMargin.trim, Starter.formatLeftRightUnifiedLike(out, colors = false))
+  }
 
+  @Test
+  def testFormatUnifiedLikeColor(): Unit = {
+
+    val gavUpMore0 = Gav3("groupId", "artifactIdUpMore", None)
+    val gavUpMore1 = Gav3("groupId", "artifactIdUpMore", Some("2"))
+    val gavUpMore2 = Gav3("groupId", "artifactIdUpMore", None)
+    val gavUpMore3 = Gav3("groupId", "artifactIdUpMore", Some("4"))
+    val out = Seq(
+      (Seq(gavUpMore0, gavUpMore1), Seq(gavUpMore2, gavUpMore3)),
+    )
+    Assert.assertEquals(
+      """|[31m- groupId:artifactIdUpMore:2[0m
+         |[32m+ groupId:artifactIdUpMore:4[0m""".stripMargin,
+      Starter.formatLeftRightUnifiedLike(out, colors = true))
+  }
+
+  @Test
+  def testCompresIdenticals(): Unit = {
+    val gavUp1 = Gav3("groupId", "artifactIdUp", None)
+    val gavNew = Gav3("groupId", "artifactIdNew", Some("1"))
+    val gavUpMore0 = Gav3("groupId", "artifactIdUpMore", None)
+    val gavUpMore1 = Gav3("groupId", "artifactIdUpMore", Some("2"))
+    Assert.assertEquals(Seq(
+      gavUpMore1, gavNew, gavUp1
+    ), Starter.compressIdenticals(Seq(
+      gavUpMore0, gavUpMore1, gavNew, gavUp1
+    )))
   }
 
   @Test

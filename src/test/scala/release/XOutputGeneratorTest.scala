@@ -9,7 +9,8 @@ import org.junit.{Assert, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
 
 import java.util
-import scala.jdk.CollectionConverters._
+import java.util.Optional
+import scala.jdk.CollectionConverters.*
 
 class XOutputGeneratorTest extends AssertionsForJUnit {
 
@@ -29,11 +30,11 @@ class XOutputGeneratorTest extends AssertionsForJUnit {
   def test_class(): Unit = {
 
     val fullQName = "org.example.MyClass"
-    val oldClass = japicmp.util.Optional.absent[CtClass]()
-    val newClass = japicmp.util.Optional.absent[CtClass]()
+    val oldClass = Optional.empty[CtClass]()
+    val newClass = Optional.empty[CtClass]()
     val changeStatus = JApiChangeStatus.REMOVED
-    val classType = new JApiClassType(japicmp.util.Optional.of[ClassType](ClassType.CLASS),
-      japicmp.util.Optional.of[ClassType](ClassType.CLASS), JApiChangeStatus.NEW)
+    val classType = new JApiClassType(Optional.of[ClassType](ClassType.CLASS),
+      Optional.of[ClassType](ClassType.CLASS), JApiChangeStatus.NEW)
     val options = Options.newDefault()
     options.setIgnoreMissingClasses(false)
     options.setOutputOnlyModifications(false)

@@ -1,16 +1,14 @@
 package release
 
 import java.util
-import java.util.List
-
-import japicmp.config._
+import java.util.{List, Optional}
+import japicmp.config.*
 import japicmp.model.JApiAnnotationElementValue.Type
-import japicmp.model._
-import japicmp.output._
-import japicmp.util.Optional
+import japicmp.model.*
+import japicmp.output.*
 import javassist.bytecode.annotation.MemberValue
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 class XoutOutputGenerator(options: Options, jApiClasses: util.List[JApiClass]) extends
   OutputGenerator[String](options, jApiClasses) {

@@ -7,6 +7,7 @@ import org.apache.http.impl.client.HttpClients
 import org.eclipse.aether.repository.RemoteRepository
 import release.Conf.Tracer
 import release.Sgit.GitRemote
+import release.Term.{colorB, colorRaw}
 import release.Util.Ext.*
 import release.Xpath.InvalidPomXmlException
 import release.docker.SuggestDockerTag
@@ -188,9 +189,21 @@ object Starter extends LazyLogging {
     }
   }
 
-  def formatLeftRightUnifiedLike(in: Seq[(Seq[ProjectMod.Gav3], Seq[ProjectMod.Gav3])]): String = {
+  def compressIdenticals(a: Seq[ProjectMod.Gav3]): Seq[ProjectMod.Gav3] = {
+    val hasVersion = a
+      .filter(_.version.isDefined)
+      .map(g => (g.groupId, g.artifactId))
+      .toSet
+
+    a.filter { g =>
+      g.version.isDefined || !hasVersion.contains((g.groupId, g.artifactId))
+    }
+  }
+
+  def formatLeftRightUnifiedLike(in: Seq[(Seq[ProjectMod.Gav3], Seq[ProjectMod.Gav3])], colors: Boolean): String = {
     in.flatMap(t => {
-      t._1.map(e => s"- ${e.formatted}") ++ t._2.map(e => s"+ ${e.formatted}")
+      compressIdenticals(t._1).map(e => colorRaw(31, s"- ${e.formatted}", colors, Some(s"- ${e.formatted}"))) ++
+        compressIdenticals(t._2).map(e => colorRaw(32, s"+ ${e.formatted}", colors, Some(s"+ ${e.formatted}")))
     }).mkString("\n")
   }
 

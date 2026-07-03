@@ -38,7 +38,7 @@ libraryDependencies += "org.jline" % "jline-terminal" % "3.24.1"
 
 libraryDependencies += "org.jline" % "jline-reader" % "3.24.1"
 
-libraryDependencies += "com.github.siom79.japicmp" % "japicmp" % "0.18.3"
+libraryDependencies += "com.github.siom79.japicmp" % "japicmp" % "0.26.1"
 
 libraryDependencies += "com.typesafe" % "config" % "1.4.3"
 
