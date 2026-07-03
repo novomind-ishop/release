@@ -7,7 +7,7 @@ import japicmp.model.JApiClass
 import japicmp.output.semver.SemverOut
 import javassist.CtClass
 import release.Repo.VersionString
-import release.Starter.{compressToGav, connectLeftRight}
+import release.Starter.{compressToGav, connectLeftRight, formatLeftRight}
 
 import java.io.{File, FileNotFoundException, FileOutputStream}
 import java.nio.file.Files
@@ -15,8 +15,8 @@ import java.util
 import java.util.Collections
 import java.util.jar.{JarEntry, JarFile}
 import java.util.zip.ZipException
-import scala.collection.parallel.CollectionConverters._
-import scala.jdk.CollectionConverters._
+import scala.collection.parallel.CollectionConverters.*
+import scala.jdk.CollectionConverters.*
 import scala.util.{Try, Using}
 
 object ApiDiff {
@@ -162,15 +162,13 @@ object ApiDiff {
       println("diff:")
       val xDiff = connectLeftRight(t)
 
-      def emptyTo(in: Seq[String], fill: String) = in match {
-        case Nil => Seq(fill)
-        case o => o
+
+      if (inOpt.apiDiff.unifiedDiffLike) {
+        println(Starter.formatLeftRightUnifiedLike(xDiff))
+      } else {
+        println(formatLeftRight(xDiff))
       }
 
-      xDiff
-        .map(line => emptyTo(line._1.map(_.formatted), "NEW").mkString(", ") + " => " +
-          emptyTo(line._2.map(_.formatted), "REMOVED").mkString(", "))
-        .foreach(println)
       Nil
     } else {
       val options = Options.newDefault()

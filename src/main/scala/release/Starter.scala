@@ -187,6 +187,26 @@ object Starter extends LazyLogging {
       o.getOrElse(null)
     }
   }
+
+  def formatLeftRightUnifiedLike(in: Seq[(Seq[ProjectMod.Gav3], Seq[ProjectMod.Gav3])]): String = {
+    in.flatMap(t => {
+      t._1.map(e => s"- ${e.formatted}") ++ t._2.map(e => s"+ ${e.formatted}")
+    }).mkString("\n")
+  }
+
+  def formatLeftRight(in: Seq[(Seq[ProjectMod.Gav3], Seq[ProjectMod.Gav3])]): String = {
+    def emptyTo(in: Seq[String], fill: String) = in match {
+      case Nil => Seq(fill)
+      case o => o
+    }
+
+    in
+      .map(line => emptyTo(line._1.map(_.formatted), "NEW").mkString(", ") + " => " +
+        emptyTo(line._2.map(_.formatted), "REMOVED").mkString(", "))
+      .mkString("\n")
+
+  }
+
   def connectLeftRight(in: (Seq[ProjectMod.Gav3], Seq[ProjectMod.Gav3])): Seq[(Seq[ProjectMod.Gav3], Seq[ProjectMod.Gav3])] = {
     val changed = Util.symmetricDiff(in._1, in._2)
       .sortBy(_.toString)
@@ -355,6 +375,7 @@ object Starter extends LazyLogging {
       out.println("Possible options:")
       out.println("--all                 => show unfiltered diff")
       out.println("--pom-only            => shows a diff only of direct dependencies")
+      out.println("--unified-diff-like   => shows the diff with +/-")
       out.println("--help, -h            => shows this and exits")
       return 0
     }
@@ -437,6 +458,7 @@ object Starter extends LazyLogging {
         out.println(Release.suggestRemoteBranchname(None, gitAndBranchname._1))
         return 0
       }
+
       def suggestLocalNotesReviewRemoval(activeGit: Sgit): Unit = {
         // git config --add remote.origin.fetch refs/notes/review:refs/notes/review
         // git config --add remote.origin.fetch refs/notes/*:refs/notes/*

@@ -148,6 +148,7 @@ object Opts {
       case Nil => inOpt
 
       case "--pom-only" :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(pomOnly = true)))
+      case "--unified-diff-like" :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(unifiedDiffLike = true)))
       case "--all" :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(allModifications = true)))
       case "--help" :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(showHelp = true)))
       case "-h" :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(showHelp = true)))
@@ -183,6 +184,7 @@ object Opts {
 
 case class OptsApidiff(showApiDiff: Boolean = false, showHelp: Boolean = false,
                        pomOnly: Boolean = false,
+                       unifiedDiffLike: Boolean = false,
                        allModifications: Boolean = false,
                        left: String = null, right: String = null,
                        diag: OptsDiag = OptsDiag.empty()) {

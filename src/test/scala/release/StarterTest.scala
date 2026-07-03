@@ -306,6 +306,23 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
       (Seq(gavUpMore0, gavUpMore1), Seq(gavUpMore2, gavUpMore3)),
     ), out)
 
+    Assert.assertEquals(
+      """NEW => groupId:artifactIdNew:1
+        |groupId:artifactIdRemove:1 => REMOVED
+        |groupId:artifactIdUp:1 => groupId:artifactIdUp:2
+        |groupId:artifactIdUpMore:1, groupId:artifactIdUpMore:2 => groupId:artifactIdUpMore:3, groupId:artifactIdUpMore:4
+        |""".stripMargin.trim, Starter.formatLeftRight(out))
+    Assert.assertEquals(
+      """+ groupId:artifactIdNew:1
+        |- groupId:artifactIdRemove:1
+        |- groupId:artifactIdUp:1
+        |+ groupId:artifactIdUp:2
+        |- groupId:artifactIdUpMore:1
+        |- groupId:artifactIdUpMore:2
+        |+ groupId:artifactIdUpMore:3
+        |+ groupId:artifactIdUpMore:4
+        |""".stripMargin.trim, Starter.formatLeftRightUnifiedLike(out))
+
   }
 
   @Test
