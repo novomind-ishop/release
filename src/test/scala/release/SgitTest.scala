@@ -96,7 +96,9 @@ class SgitTest extends AssertionsForJUnit {
     gitB.configSetLocal("user.name", "Your Name")
     gitB.add(SgitTest.testFile(testRepoB, Util.hashMd5Random()))
     gitB.commitAll(s"c 123 123 ", Some(ZonedDateTime.parse("2005-04-07T22:13:13Z")))
-
+    if (!gitB.listBranchNamesLocal().contains("master")) {
+      gitB.createBranch("master")
+    }
     gitB.checkout("master")
     val status = gitB
 

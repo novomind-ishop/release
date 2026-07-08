@@ -2,16 +2,18 @@ package release
 
 import com.google.common.base.Stopwatch
 import com.typesafe.scalalogging.LazyLogging
+import org.apache.http.client.utils.URIBuilder
 import release.PomMod.{DepTree, abbreviate, unmanaged}
 import release.ProjectMod.{Dep, Gav3, PluginDep, UpdateCon}
-import release.Starter.{PreconditionsException}
+import release.Starter.PreconditionsException
 
 import java.io.File
+import java.net.URI
 import java.nio.file.Path
 import java.time.{Duration, LocalDate, Period, ZonedDateTime}
 import java.util.concurrent.TimeUnit
 import scala.collection.immutable.{ListMap, Seq}
-import scala.collection.parallel.CollectionConverters._
+import scala.collection.parallel.CollectionConverters.*
 import scala.util.{Failure, Success, Try}
 
 object ProjectMod extends LazyLogging {
@@ -68,6 +70,11 @@ object ProjectMod extends LazyLogging {
   private val sArtifactId = "scala-library"
   private val s3ArtifactId = "scala3-library_3"
 
+  def createEnvRul(urlS: String): String = {
+    val envrl = URI.create(urlS).getHost.toUpperCase.replaceAll("\\W", "_")
+    
+    " " + Seq("_CONNECT_TIMEOUT", "_CONNECTION_REQUEST_TIMEOUT", "_SOCKET_TIMEOUT").map(e => envrl + e).mkString(", ")
+  }
   def toUpdats(refs: Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])], fx: (Gav3, Seq[String]) => String): Seq[(Gav3, String)] = {
     refs.map(in => {
       (in._1.gav.simpleGav(), fx.apply(in._1.gav.simpleGav(), in._2.map(_._1)))
@@ -328,7 +335,7 @@ object ProjectMod extends LazyLogging {
 
     def simpleGav(): Gav3 = Gav3(groupId, artifactId, version)
 
-    lazy val versionParsed:Option[Version] = version.map(Version.parseSloppy)
+    lazy val versionParsed: Option[Version] = version.map(Version.parseSloppy)
 
     def feelsUnusual(): Boolean = {
       Gav.feelsUnusual(this)
@@ -404,16 +411,17 @@ object ProjectMod extends LazyLogging {
 
     private
     val unusualCharsPattern = (
-      "[\\p{C}" +                    // Control characters
-        "\\u0020" +                   // Regular space
-        "\\u00A0" +                   // NBSP
-        "\\u1680" +                   // Ogham space mark
-        "\\u2000-\\u200A" +           // En quad – hair space
-        "\\u202F" +                   // Narrow NBSP
-        "\\u205F" +                   // Medium mathematical space
-        "\\u3000" +                   // Ideographic space
+      "[\\p{C}" + // Control characters
+        "\\u0020" + // Regular space
+        "\\u00A0" + // NBSP
+        "\\u1680" + // Ogham space mark
+        "\\u2000-\\u200A" + // En quad – hair space
+        "\\u202F" + // Narrow NBSP
+        "\\u205F" + // Medium mathematical space
+        "\\u3000" + // Ideographic space
         "]"
       ).r
+
     def replaceUnusualElements(s: String): String = {
       unusualCharsPattern.replaceAllIn(s, "\u2423")
     }
@@ -586,13 +594,15 @@ object ProjectMod extends LazyLogging {
   }
 
   def collectDependencyUpdates(updatePrinter: UpdateCon, depUpOpts: OptsDepUp,
+                               envs: Map[String, String],
                                rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], repoDelegator: RepoProxy,
                                checkOnline: Boolean, ws: String): Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = {
     if (checkOnline) {
       repoDelegator.repos.foreach(repo => {
+        // depUpOpts. TODO configure timeouts
         val reachableResult = repo.isReachable(false)
         if (!reachableResult.online) {
-          throw new PreconditionsException(repo.workNexusUrl() + " - repo feels offline - " + reachableResult.msg)
+          throw new PreconditionsException(repo.workNexusUrl() + " - repo feels offline - " + reachableResult.msg + createEnvRul(repo.workNexusUrl()))
         }
       })
 
@@ -775,7 +785,7 @@ trait ProjectMod extends LazyLogging {
   lazy val repo: RepoZ = throw new NotImplementedError()
   val opts: Opts
   val selfVersion: String
-  lazy val selfVersionReplaced:String = selfVersion
+  lazy val selfVersionReplaced: String = selfVersion
 
   val listDependencies: Seq[Dep]
   val listDependenciesPlugin: Seq[Dep]
@@ -785,11 +795,12 @@ trait ProjectMod extends LazyLogging {
   val listProperties: Map[String, String]
   val skipPropertyReplacement: Boolean
 
-  def tryCollectDependencyUpdates(depUpOpts: OptsDepUp, checkOn: Boolean = true, updatePrinter: UpdateCon, ws: String):
+  def tryCollectDependencyUpdates(depUpOpts: OptsDepUp, checkOn: Boolean = true, updatePrinter: UpdateCon, ws: String,
+                                  envs: Map[String, String]):
   Try[(Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])], RepoProxy)] = {
     Util.timeout(depUpOpts.timeoutSec.getOrElse(90), TimeUnit.SECONDS, _ => {
       try {
-        Success(collectDependencyUpdates(depUpOpts, checkOn, updatePrinter, ws))
+        Success(collectDependencyUpdates(depUpOpts, checkOn, updatePrinter, ws, envs = envs))
       } catch {
         case e: Exception => {
           Failure(e)
@@ -799,7 +810,8 @@ trait ProjectMod extends LazyLogging {
 
   }
 
-  def collectDependencyUpdates(depUpOpts: OptsDepUp, checkOn: Boolean = true, updatePrinter: UpdateCon, ws: String):
+  def collectDependencyUpdates(depUpOpts: OptsDepUp, checkOn: Boolean = true, updatePrinter: UpdateCon, ws: String,
+                               envs: Map[String, String]):
   (Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])], RepoProxy) = {
     val depForCheck: Seq[Dep] = listGavsForCheck()
     val sdm = selfDepsMod
@@ -811,7 +823,7 @@ trait ProjectMod extends LazyLogging {
     }
     val result = ProjectMod.collectDependencyUpdates(updatePrinter = updatePrinter,
       depUpOpts = depUpOpts, rootDeps = depForCheck, selfDepsMod = sdm, repoDelegator = proxy, checkOnline = checkOn,
-      ws = ws)
+      ws = ws, envs = envs)
     if (depUpOpts.changeToLatest) {
       val localDepUpFile = new File(file, ".release-dependency-updates")
       val fn: (Gav3, Seq[String]) => String = if (localDepUpFile.canRead) {

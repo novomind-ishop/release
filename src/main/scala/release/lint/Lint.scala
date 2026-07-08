@@ -963,10 +963,11 @@ object Lint {
             out.println(info("--- check for preview releases @ maven ---", opts))
             val updatePrinter = new StaticPrinter()
             val updateOpts = opts.depUpOpts.copy(hideStageVersions = true, allowDependencyDowngrades = true, showLibYears = true)
-            val resultTry = mod.tryCollectDependencyUpdates(updateOpts, checkOn = true, updatePrinter, ws = ws)
+            val resultTry = mod.tryCollectDependencyUpdates(updateOpts, checkOn = true, updatePrinter, ws = ws, envs = envs)
             val lookupUpAndDowngrades: Map[Gav3, Seq[String]] = if (resultTry.isSuccess) {
               resultTry.get._1.map(t => (t._1.gav.simpleGav(), t._2.map(_._1))).toMap
             } else {
+              retryExit.trigger()
               Map.empty
             }
             val warnExitForDepCheck = new OneTimeSwitch

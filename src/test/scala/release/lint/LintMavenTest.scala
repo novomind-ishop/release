@@ -1253,8 +1253,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-empty/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[INFO]     used memory: ∞m
-        |[ERROR] exit 43 - because lint found errors, see above ❌""".stripMargin
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 43)(sys => {
+        |[ERROR] exit 44 - because lint found errors and wants to retry, see above ❌""".stripMargin
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 44)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.getMetrics).thenReturn(RepoMetrics.empty())

@@ -204,7 +204,7 @@ object Release extends LazyLogging {
     sys.out.println(". done (g)")
     if (opts.depUpOpts.showDependencyUpdates) {
       val updatePrinter = new UpdatePrinter(shellWidth = shellWidth, termOs = termOs, sys = sys, printProgress = true)
-      mod.collectDependencyUpdates(opts.depUpOpts, checkOn = true, updatePrinter, ws = "")
+      mod.collectDependencyUpdates(opts.depUpOpts, checkOn = true, updatePrinter, ws = "", envs = Map.empty)
       System.exit(0)
     }
 

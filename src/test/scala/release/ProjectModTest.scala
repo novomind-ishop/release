@@ -4,7 +4,7 @@ import org.junit.rules.TemporaryFolder
 import org.junit.{Assert, Rule, Test}
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.{ArgumentMatchers, Mockito}
-import org.mockito. Mockito._
+import org.mockito.Mockito._
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.PomMod.DepTree
 import release.ProjectMod.{Dep, Gav, Gav3, GavWithRef, SelfRef, UpdatePrinter}
@@ -82,6 +82,7 @@ object ProjectModTest {
     override def depTreeFilenameList(): Seq[String] = Nil
 
     override def listRemoteRepoUrls(): Seq[String] = Nil
+
     override def getDepTreeFileContents: Map[File, DepTree] = Map.empty
   }
 
@@ -92,6 +93,7 @@ class ProjectModTest extends AssertionsForJUnit {
   val _temporarayFolder = new TemporaryFolder()
 
   @Rule def temp = _temporarayFolder
+
   implicit def toOpt(in: String): Option[String] = Option(in)
 
   @Test
@@ -117,7 +119,7 @@ class ProjectModTest extends AssertionsForJUnit {
     val rootDeps: Seq[ProjectMod.Dep] = Seq(anyDep)
     val selfDepsModX: Seq[ProjectMod.Dep] = Nil
 
-    val repoMock1:Repo = Mockito.mock(classOf[Repo])
+    val repoMock1: Repo = Mockito.mock(classOf[Repo])
     when(repoMock1.workNexusUrl()).thenReturn("repo1")
     when(repoMock1.getRelocationOf(anyString(), anyString(), anyString())).thenReturn(None)
     when(repoMock1.newerAndPrevVersionsOf(anyDep.groupId, anyDep.artifactId, anyDep.version.get)).thenReturn(Seq(anyDep.version.get, "2.13.1"))
@@ -138,7 +140,8 @@ class ProjectModTest extends AssertionsForJUnit {
 
       val innerResult: Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = ProjectMod.collectDependencyUpdates(
         new UpdatePrinter(100, term, sys, printProgress = true), opts,
-        rootDeps, selfDepsModX, RepoProxy(Seq(repoMock1, repoMock2)), checkOnline = false, ws = "")
+        rootDeps = rootDeps, selfDepsMod = selfDepsModX, repoDelegator = RepoProxy(Seq(repoMock1, repoMock2)),
+        checkOnline = false, ws = "", envs = Map.empty)
 
       val any = GavWithRef(SelfRef.undef, anyDep.gav())
       val scala2 = (any, Seq(
@@ -180,7 +183,7 @@ class ProjectModTest extends AssertionsForJUnit {
 
       val innerResult: Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = ProjectMod.collectDependencyUpdates(
         new UpdatePrinter(100, term, sys, printProgress = true), opts,
-        rootDeps, selfDepsModX, new RepoProxy(Seq(repoMock)), checkOnline = false, ws = "")
+        rootDeps = rootDeps, selfDepsMod = selfDepsModX, repoDelegator = RepoProxy(Seq(repoMock)), checkOnline = false, ws = "", envs = Map.empty)
 
       val sca0 = GavWithRef(SelfRef.undef, Gav("org.scala-lang", "scala-library", "2.13.0"))
       val scala0 = (sca0, Seq(
@@ -204,7 +207,7 @@ class ProjectModTest extends AssertionsForJUnit {
         override private[release] def listGavsForCheck() = rootDeps
 
         override val selfDepsMod: Seq[Dep] = selfDepsModX
-      }.collectDependencyUpdates(opts, checkOn = false, updatePrinter, ws = "")
+      }.collectDependencyUpdates(opts, checkOn = false, updatePrinter, ws = "", envs = Map.empty)
       Assert.assertEquals(tryToString(Seq(scala0, scala3)), tryToString(resultMod._1))
     })
     Assert.assertEquals("", result.err)
@@ -252,14 +255,14 @@ class ProjectModTest extends AssertionsForJUnit {
       Gav("g", "a", "v", scope = "john"),
       Gav("g", "a", None, scope = "john"),
       Gav("g", "a", "v"),
-      Gav("g", "a", "v",  scope = "provided"),
-      Gav("g", "a", "v",  scope = "compile"),
-      Gav("g", "a", "v",  scope = "runtime"),
-      Gav("g", "a", "v",  scope = "test"),
-      Gav("g", "a", "v",  scope = "system"),
-      Gav("g", "a", "v",  scope = "import"),
-      Gav("g", "a", "v",  scope = "import "),
-      Gav("g", "a", "v",  scope = ""),
+      Gav("g", "a", "v", scope = "provided"),
+      Gav("g", "a", "v", scope = "compile"),
+      Gav("g", "a", "v", scope = "runtime"),
+      Gav("g", "a", "v", scope = "test"),
+      Gav("g", "a", "v", scope = "system"),
+      Gav("g", "a", "v", scope = "import"),
+      Gav("g", "a", "v", scope = "import "),
+      Gav("g", "a", "v", scope = ""),
     )))
   }
 
@@ -288,8 +291,8 @@ class ProjectModTest extends AssertionsForJUnit {
   def testUnunualGav_groupId_artifactId_packageing(): Unit = {
     Assert.assertEquals(Seq(
       (Gav("groub\u200b", "a", "1.0.0"), "uses groupId with unknown symbol »groub␣«. Please remove unknown symbols."),
-  //    (Gav("g", "a a", None),  "uses artifactId with unknown symbol »a␣a«. Please remove unknown symbols."), // TODO check later?
-  //    (Gav("g", "a", None, packageing = "w a r"), "uses packageing with unknown symbol »w␣a␣r«. Please remove unknown symbols."), // TODO check later?
+      //    (Gav("g", "a a", None),  "uses artifactId with unknown symbol »a␣a«. Please remove unknown symbols."), // TODO check later?
+      //    (Gav("g", "a", None, packageing = "w a r"), "uses packageing with unknown symbol »w␣a␣r«. Please remove unknown symbols."), // TODO check later?
     ), ProjectMod.listGavsWithUnusualScope(Seq(
       Gav("groub\u200b", "a", "1.0.0"),
       Gav("g", "a a", None),
@@ -304,7 +307,7 @@ class ProjectModTest extends AssertionsForJUnit {
     Assert.assertTrue(Gav("g", "a", "()").feelsUnusual())
     Assert.assertTrue(Gav("g", "a", "RELEASE").feelsUnusual())
     Assert.assertTrue(Gav("g", "a", "LATEST").feelsUnusual())
-    Assert.assertFalse(Gav(groupId = "g", artifactId =  "a", version = None).feelsUnusual())
+    Assert.assertFalse(Gav(groupId = "g", artifactId = "a", version = None).feelsUnusual())
   }
 
   @Test
@@ -370,14 +373,15 @@ class ProjectModTest extends AssertionsForJUnit {
     val result = TermTest.withOutErr[Unit]()(sys => {
       val innerResult: Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = ProjectMod.collectDependencyUpdates(
         new UpdatePrinter(100, term, sys, printProgress = true), OptsDepUp(),
-        rootDeps, selfDepsMod, new RepoProxy(Seq(repoMock)), checkOnline = false, ws = "")
+        rootDeps = rootDeps, selfDepsMod = selfDepsMod, repoDelegator = RepoProxy(Seq(repoMock)),
+        checkOnline = false, ws = "", envs = Map.empty)
       Assert.assertEquals(Nil, innerResult)
       val updatePrinter = new UpdatePrinter(shellWidth = 100,
         termOs = term,
         sys = sys, printProgress = true)
       val resultMod = new MockMod() {
         override lazy val repo: Repo = repoMock
-      }.collectDependencyUpdates(OptsDepUp(), checkOn = false, updatePrinter, ws = "")
+      }.collectDependencyUpdates(OptsDepUp(), checkOn = false, updatePrinter, ws = "", envs = Map.empty)
       Assert.assertEquals(Nil, resultMod._1)
     })
     Assert.assertEquals("", result.err)
@@ -455,6 +459,12 @@ class ProjectModTest extends AssertionsForJUnit {
 
     // THEN
     Assert.assertEquals(Seq(file1.toPath.normalize()), result)
+  }
+
+  @Test
+  def testCreateEnvRul(): Unit = {
+    Assert.assertEquals(" WWW_EXAMPLE_ORG_CONNECT_TIMEOUT, WWW_EXAMPLE_ORG_CONNECTION_REQUEST_TIMEOUT, WWW_EXAMPLE_ORG_SOCKET_TIMEOUT",
+      ProjectMod.createEnvRul("https://www.example.org:8080/path/to.file"))
   }
 
 }

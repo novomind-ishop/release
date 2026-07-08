@@ -59,8 +59,8 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     gitNative(Seq("--version"), useWorkdir = false).get.mkString("")
   }
 
-  private def init(): Unit = {
-    gitNative(Seq("init", file.getAbsolutePath), useWorkdir = false)
+  private def init(initBranchName:String): Unit = {
+    gitNative(Seq("init", s"--initial-branch=${initBranchName}", file.getAbsolutePath), useWorkdir = false)
   }
 
   private def cloneRemote(src: String, dest: File, depth: Int): Unit = {
@@ -1317,9 +1317,9 @@ object Sgit {
     o.copy(doVerify = false, checkExisting = true)
   }
 
-  private[release] def init(f: File, verify: Boolean = true): Sgit = {
+  private[release] def init(f: File, verify: Boolean = true, initBranchName:String = "master"): Sgit = {
     val sgit = Sgit(f, doVerify = verify, out = System.out, err = System.err, checkExisting = false, gitBin = None, opts = Opts())
-    sgit.init()
+    sgit.init( initBranchName)
     sgit
   }
 }
