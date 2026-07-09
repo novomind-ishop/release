@@ -181,12 +181,12 @@ object PomChecker {
     parentRefs
   }
 
-  def getDepScopeAndOthers(listDependecies: Seq[Dep], pluginInnerDependecies: Seq[Dep]): Seq[String] = {
-    // TODO avoid plugin deps
-    val byRef: Map[SelfRef, Seq[Dep]] = listDependecies.groupBy(_.pomRef)
-      // .filterNot(t => t._2.)
+  def getDepScopeAndOthers(listDependencies: Seq[Dep], pluginInnerDependencies: Seq[Dep]): Seq[String] = {
+    val filteredDeps = listDependencies
+      .filterNot(pluginInnerDependencies.contains)
+    val byRef: Map[SelfRef, Seq[Dep]] = filteredDeps.groupBy(_.pomRef)
 
-    val refToDeps = virtualParentRef(listDependecies) ++ byRef
+    val refToDeps = virtualParentRef(filteredDeps) ++ byRef
     val msgs = refToDeps.flatMap(deps => {
       val all = deps._2.map(_.gav())
       val allWithoutScope = all.map(_.copy(scope = "", packageing = ""))
@@ -206,7 +206,7 @@ object PomChecker {
         val msg = "found overlapping scopes\n" + diff.map(select => {
 
           val str = select.formatted + "\n found in\n" +
-            listDependecies.filter(dep => select == (dep.copy(scope = "").gav()))
+            filteredDeps.filter(dep => select == (dep.copy(scope = "").gav()))
               .map(d => s"${d.pomRef.id} with scope: ${d.gav().formatted.replace(select.formatted, "...")}")
               .mkString("\n")
           str

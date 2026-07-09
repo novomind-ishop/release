@@ -245,6 +245,37 @@ class PomCheckerTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testCheckDepScopes_plugin(): Unit = {
+    // GIVEN
+    val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")
+    val dep = ProjectModTest.depOf(pomRef = ref1, "org.junit.vintage", "junit-vintage-engine", Some("5.13.4"), "", "", "", "")
+    val allDeps: Seq[Dep] = Seq(
+      dep,
+      ProjectModTest.depOf(pomRef = ref1, "org.junit.vintage", "junit-vintage-engine", Some("5.13.4"), "", "test", "", ""),
+      ProjectModTest.depOf(pomRef = ref1, "any.group", "some", Some("1.0.0"), "", "compile", "", ""),
+      ProjectModTest.depOf(pomRef = ref1, "any.group", "some", Some("1.0.0"), "", "runtime", "", ""),
+      ProjectModTest.depOf(pomRef = ref1, "any.group", "other", Some("1.0.0"), "", "runtime", "", ""),
+      ProjectModTest.depOf(pomRef = ref1, "any.group", "valid", Some("1.0.0"), "", "compile", "", ""),
+    )
+
+    val plugins: Seq[Dep] = Seq(
+      dep,
+    )
+
+    // WHEN / THEN
+    TestHelper.assertException(
+      """found overlapping scopes
+        |any.group:some:1.0.0
+        | found in
+        |com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war with scope: ...:compile
+        |com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war with scope: ...:runtime
+        |
+        |""".stripMargin.trim,
+      classOf[PomChecker.ValidationException],
+      () => PomChecker.checkDepScopes(allDeps, plugins))
+  }
+
+  @Test
   def testCheckExternalWithProjectScope_noException(): Unit = {
     // GIVEN
     val ref1 = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war")

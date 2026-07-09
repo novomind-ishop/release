@@ -13,6 +13,7 @@ import java.nio.file.Paths
 import java.time.{YearMonth, ZonedDateTime}
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.annotation.{nowarn, unused}
+import scala.util.{Failure, Success, Try}
 
 object LintMavenTest {
   def replaceVarLiterals(in: String): String = {
@@ -1253,8 +1254,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |/tmp/junit-REPLACED/release-lint-mvn-empty/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[INFO]     used memory: ∞m
-        |[ERROR] exit 44 - because lint found errors and wants to retry, see above ❌""".stripMargin
-    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 44)(sys => {
+        |[ERROR] exit 43 - because lint found errors, see above ❌""".stripMargin
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 43)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.getMetrics).thenReturn(RepoMetrics.empty())
@@ -1271,7 +1272,91 @@ class LintMavenTest extends AssertionsForJUnit {
         .thenReturn(Seq("0.0.1", "1.0.1-SNAPSHOT", "1.0.0"))
       sys.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file))
     })
+  }
 
+  @Test
+  def testTimeout(): Unit = {
+    val file = temp.newFolder("release-lint-mvn-empty")
+    val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
+
+    val expected =
+      """
+        |[INFO] --------------------------------[ lint ]--------------------------------
+        |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_WARN_TO_ERROR ---
+        |[INFO]     -Xms: 123m -Xmx: 321m
+        |[INFO]     used memory: ∞m
+        |[INFO]     no skips
+        |[INFO] --- version / git ---
+        |[INFO]     ✅ git  version: git version 2.999.999
+        |[INFO]     ✅ self version: 2222ffff
+        |[INFO] --- check clone config / remote @ git ---
+        |[WARNING]  😬 no remote HEAD found, corrupted remote -- repair please
+        |[WARNING]  😬 if you use gitlab try to
+        |[WARNING]  😬 choose another default branch; save; use the original default branch
+        |[WARNING]  😬 remote call exception: java.lang.RuntimeException message: Nonzero exit value: 128; git --no-pager remote show origin; fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
+        |[INFO] --- check branches / remote @ git ---
+        |[INFO]     active (last 14 days) contributor count: 0
+        |[INFO]     active branch count: 0
+        |[INFO] --- check clone config / no shallow clone @ git ---
+        |[INFO]     ✅ NO shallow clone
+        |[INFO] --- .gitattributes @ git ---
+        |[INFO] --- .gitignore @ git ---
+        |[INFO] --- list-remotes @ git ---
+        |[WARNING]  NO remotes found 😬 RL1004
+        |[WARNING]  % git remote -v # returns nothing
+        |[INFO] --- -SNAPSHOTS in files @ maven/sbt/gradle ---
+        |[INFO]     ✅ NO SNAPSHOTS in other files found
+        |[INFO] --- model read @ maven/sbt/gradle ---
+        |[INFO]     ✅ successfull created
+        |[INFO] --- dependency scopes/copies/overlapping @ maven/sbt ---
+        |[INFO]     ✅ no warnings found
+        |[INFO] --- project version @ maven ---
+        |[INFO]     null
+        |[WARNING]  version »null« must be a SNAPSHOT; non snapshots are only allowed in tags 😬
+        |[WARNING]  project.version »null« has no git. Please add some .git folder. 😬 RL1014
+        |[INFO] --- check for snapshots @ maven ---
+        |[INFO] --- check for GAV format @ maven ---
+        |[INFO]     ✅ all GAVs scopes looks fine
+        |[INFO] --- check for preview releases @ maven ---
+        |[INFO] --- version skew ---
+        |[INFO]     is shop: false
+        |[INFO]     ✅ no major version diff
+        |[INFO] --- suggest dependency updates / configurable @ maven ---
+        |[WARNING]  work nexus points to central https://repo1.maven.org/maven2/ 😬 RL1002
+        |[INFO]     RELEASE_NEXUS_WORK_URL=null # (no ip)
+        |
+        |[WARNING]  Dependency updated failed
+        |[WARNING] java.util.concurrent.TimeoutException a
+        |[INFO]     WIP
+        |[INFO] --- dep.tree @ maven ---
+        |[INFO]     found 0 trees
+        |
+        |/tmp/junit-REPLACED/release-lint-mvn-empty/.git
+        |[INFO] ----------------------------[ end of lint ]----------------------------
+        |[INFO]     used memory: ∞m
+        |[WARNING] exit 44 - because lint found warnings and wants to retry, see above 😬""".stripMargin
+    TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 44)(sys => {
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+      val mockRepo = Mockito.mock(classOf[Repo])
+
+      Mockito.when(mockRepo.workNexusUrl()).thenReturn(Repo.centralUrl)
+      val mod = Mockito.mock(classOf[ProjectMod])
+      Mockito.when(mod.repo).thenReturn(mockRepo)
+      Mockito.when(mod.listDependencies).thenReturn(Nil)
+      Mockito.when(mod.listDependenciesPlugin).thenReturn(Nil)
+      Mockito.when(mod.listRawDeps).thenReturn(Nil)
+      Mockito.when(mod.listGavsForCheck()).thenReturn(Nil)
+      Mockito.when(mod.listGavsWithUnusualScope()).thenReturn(Nil)
+      Mockito.when(mod.listRemoteRepoUrls()).thenReturn(Nil)
+      Mockito.when(mod.getDepTreeFileContents).thenReturn(Map.empty)
+      Mockito.when(mod.listGavsForCheck()).thenReturn(Nil)
+      Mockito.when(mod.selfDepsMod).thenReturn(Nil)
+
+      Mockito.when(mod.tryCollectDependencyUpdates(ArgumentMatchers.any(), ArgumentMatchers.anyBoolean(),
+        ArgumentMatchers.any(), ArgumentMatchers.anyString(), ArgumentMatchers.any())).thenReturn(Failure(new java.util.concurrent.TimeoutException("a")))
+
+      sys.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file, mockMod = Some(Success(mod))))
+    })
   }
 
   @Test

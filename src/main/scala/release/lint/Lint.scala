@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.annotation.{tailrec, unused}
 import scala.collection.parallel.CollectionConverters.*
+import scala.concurrent.TimeoutException
 import scala.util.{Failure, Success, Try}
 
 object Lint {
@@ -508,7 +509,8 @@ object Lint {
 
   def run(out: PrintStream, err: PrintStream, sysOpts: Opts,
           systemEnvs: Map[String, String],
-          file: File = new File(".").getAbsoluteFile): Int = {
+          file: File = new File(".").getAbsoluteFile,
+          mockMod: Option[Try[ProjectMod]] = None): Int = {
 
 
     val isGitlab: Boolean = systemEnvs.get("CI_COMMIT_SHA").isDefined
@@ -825,7 +827,7 @@ object Lint {
           }
 
         }
-        if (pompom.isDefined || sbt.isDefined) {
+        if (pompom.isDefined || sbt.isDefined || mockMod.isDefined) {
           out.println(info("--- -SNAPSHOTS in files @ maven/sbt/gradle ---", opts))
 
           val snapshotsInFiles = PomChecker.getSnapshotsInFiles(sgit.lsFilesAbsolute().map(_.getAbsolutePath))
@@ -883,6 +885,8 @@ object Lint {
             pompom.get
           } else if (sbt.isDefined) {
             sbt.get
+          } else if (mockMod.isDefined) {
+            mockMod.get
           } else {
             throw new IllegalStateException("should not happen")
           }
@@ -967,7 +971,10 @@ object Lint {
             val lookupUpAndDowngrades: Map[Gav3, Seq[String]] = if (resultTry.isSuccess) {
               resultTry.get._1.map(t => (t._1.gav.simpleGav(), t._2.map(_._1))).toMap
             } else {
-              retryExit.trigger()
+              if (resultTry.failed.get.isInstanceOf[TimeoutException]) {
+                retryExit.trigger()
+              }
+
               Map.empty
             }
             val warnExitForDepCheck = new OneTimeSwitch
@@ -1135,31 +1142,34 @@ object Lint {
             out.println(info("--- dep.tree @ maven ---", opts))
             val depTrees = modTry.get.getDepTreeFileContents
             out.println(info(s"    found ${depTrees.size} trees", opts))
-            val orphanTrees = ProjectMod.findOrphanTrees(modTry.get.file, depTrees.keys.toSeq)
-            if (orphanTrees.nonEmpty) {
-              val orphanTreesFound = new AtomicBoolean()
-              orphanTrees.foreach(t => {
-                val code = fiCodeOrphanTree.apply(t)
-                val skipped = opts.lintOpts.skips.contains(code)
-                val value = s"  orphan ${t} ${code}"
-                if (skipped) {
-                  usedLintSkips = usedLintSkips :+ code
-                  warnSoft(value, opts, limit = lineMax)
+            val seq = depTrees.keys.toSeq
+            if (seq.nonEmpty) {
+              val orphanTrees = ProjectMod.findOrphanTrees(modTry.get.file, seq)
+              if (orphanTrees.nonEmpty) {
+                val orphanTreesFound = new AtomicBoolean()
+                orphanTrees.foreach(t => {
+                  val code = fiCodeOrphanTree.apply(t)
+                  val skipped = opts.lintOpts.skips.contains(code)
+                  val value = s"  orphan ${t} ${code}"
+                  if (skipped) {
+                    usedLintSkips = usedLintSkips :+ code
+                    warnSoft(value, opts, limit = lineMax)
+                  } else {
+                    warn(value, opts, limit = lineMax)
+                    orphanTreesFound.set(true)
+                    warnExit.trigger()
+                  }
+                })
+                val value = s" found ${orphanTrees.size} orphan ${"tree".pluralize(orphanTrees.size)}"
+                if (orphanTreesFound.get()) {
+                  out.println(warn(value, opts))
                 } else {
-                  warn(value, opts, limit = lineMax)
-                  orphanTreesFound.set(true)
-                  warnExit.trigger()
+                  out.println(warnSoft(value, opts))
                 }
-              })
-              val value = s" found ${orphanTrees.size} orphan ${"tree".pluralize(orphanTrees.size)}"
-              if (orphanTreesFound.get()) {
-                out.println(warn(value, opts))
-              } else {
-                out.println(warnSoft(value, opts))
-              }
 
+              }
+              TreeGav.format(depTrees.map(t => (t._1, PomMod.DepTree.parseGavsOnly(t._2))), out, opts)
             }
-            TreeGav.format(depTrees.map(t => (t._1, PomMod.DepTree.parseGavsOnly(t._2))), out, opts)
           }
 
         }
