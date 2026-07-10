@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import scala.annotation.{tailrec, unused}
 import scala.collection.parallel.CollectionConverters.*
 import scala.concurrent.TimeoutException
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Random, Success, Try}
 
 object Lint {
 
@@ -503,6 +503,7 @@ object Lint {
   private val fiCodeSimilarity = uniqCode(1021)
   private[release] val fiCodeDockerHost = uniqCode(1022)
   private val fiCodeOrphanTree = uniqCode(1023)
+  private val fiCodeSkipBinaryRepo = uniqCode(1024)(())
   val fiWarn = "\uD83D\uDE2C"
   val fiWarnMuted = "\uD83E\uDD10"
   val fiError = "❌"
@@ -1048,6 +1049,41 @@ object Lint {
                 ProjectMod.removeOlderVersions(resultTry.get._1)
               } else {
                 out.println(warn(" Dependency updated failed", opts))
+                val chars: IndexedSeq[Char] = (
+                  ('ァ' to 'ヶ') ++ // Katakana
+                    ('ぁ' to 'ゖ') ++ // Hiragana
+                    ('一' to '龯').take(400) ++ // Einige CJK-Zeichen
+                    ('Α' to 'Ω') ++ // Griechisch Groß
+                    ('α' to 'ω') ++ // Griechisch Klein
+                    Seq(
+                      '§', '¤', '¥', '¢', '±', '×', '÷', '∞', '∑', '∏',
+                      '∆', '∇', '∈', '∩', '∪', '≈', '≠', '≤', '≥', '⌘',
+                      '⌬', '⌖', '⌗', '⌑',
+                      '◊', '○', '●', '◎', '◇', '◆', '□', '■',
+                      '★', '☆', '☉', '☯', '☢', '☣',
+                      '♠', '♣', '♥', '♦',
+                      '⚙', '⚛', '⚡', '☄',
+                      '0', '1'
+                    )
+                  ).distinct
+
+                def generate(length: Int, lineWidth: Int): String = {
+                  val sb = new StringBuilder(length + length / lineWidth)
+
+                  for (i <- 0 until length) {
+                    sb += chars(Random.nextInt(chars.length))
+
+                    if ((i + 1) % lineWidth == 0 && i + 1 < length)
+                      sb += '\n'
+                  }
+
+                  sb.result()
+                }
+
+                if (opts.lintOpts.skips.contains(fiCodeSkipBinaryRepo)) {
+                  out.println(generate(1000, 80))
+                  return WARN_EXIT_CODE
+                }
                 val failedGet = resultTry.failed.get
                 if (failedGet.isInstanceOf[PreconditionsException]) {
                   out.println(error("   " + failedGet.getMessage, opts, limit = lineMax)) // TODO improve format
