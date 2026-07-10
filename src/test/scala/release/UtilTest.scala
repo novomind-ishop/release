@@ -348,4 +348,16 @@ class UtilTest extends AssertionsForJUnit {
         |""".stripMargin.trim, Util.show(Bert(name = "Bert", s = Seq(1, 2), otherNames = List("otto", "man"),
         innerBerts = List(Bert(name = "Treb", Nil, Nil, Nil)))))
   }
+
+  @Test
+  def testGenerated(): Unit = {
+    Assert.assertEquals(
+      """.....
+        |.....
+        |.....
+        |.....
+        |.....
+        |.....""".stripMargin
+      , Util.generateSymbols(30, 5).replaceAll(".", "."))
+  }
 }

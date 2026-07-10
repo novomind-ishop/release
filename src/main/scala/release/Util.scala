@@ -460,4 +460,32 @@ object Util {
   } else {
     in
   }
+
+  private val chars: IndexedSeq[Char] = (
+      ('Α' to 'Ω') ++ // Griechisch Groß
+      ('α' to 'ω') ++ // Griechisch Klein
+      Seq(
+        '§', '¤', '¥', '¢', '±', '×', '÷', '∞', '∑', '∏',
+        '∆', '∇', '∈', '∩', '∪', '≈', '≠', '≤', '≥', '⌘',
+        '⌬', '⌖', '⌗', '⌑',
+        '◊', '○', '●', '◎', '◇', '◆', '□', '■',
+        '★', '☆', '☉', '☯', '☢', '☣',
+        '♠', '♣', '♥', '♦',
+        '⚙', '⚛', '⚡', '☄',
+        '0', '1'
+      )
+    ).distinct
+
+  def generateSymbols(length: Int, lineWidth: Int): String = {
+    val sb = new StringBuilder(length + length / lineWidth)
+
+    for (i <- 0 until length) {
+      sb += chars(Random.nextInt(chars.length))
+
+      if ((i + 1) % lineWidth == 0 && i + 1 < length)
+        sb += '\n'
+    }
+
+    sb.result()
+  }
 }

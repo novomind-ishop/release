@@ -544,6 +544,7 @@ object Lint {
       val retryExit = new OneTimeSwitch()
       val files = file.listFiles()
       var usedLintSkips = Seq.empty[Lint.UniqCode]
+      usedLintSkips = usedLintSkips :+ fiCodeSkipBinaryRepo
       if (files == null || files.isEmpty) {
         out.println(error(s"E: NO FILES FOUND in ${file.getAbsolutePath}", workOpts))
         out.println(error(center("[ end of lint ]"), workOpts))
@@ -1049,39 +1050,10 @@ object Lint {
                 ProjectMod.removeOlderVersions(resultTry.get._1)
               } else {
                 out.println(warn(" Dependency updated failed", opts))
-                val chars: IndexedSeq[Char] = (
-                  ('ァ' to 'ヶ') ++ // Katakana
-                    ('ぁ' to 'ゖ') ++ // Hiragana
-                    ('一' to '龯').take(400) ++ // Einige CJK-Zeichen
-                    ('Α' to 'Ω') ++ // Griechisch Groß
-                    ('α' to 'ω') ++ // Griechisch Klein
-                    Seq(
-                      '§', '¤', '¥', '¢', '±', '×', '÷', '∞', '∑', '∏',
-                      '∆', '∇', '∈', '∩', '∪', '≈', '≠', '≤', '≥', '⌘',
-                      '⌬', '⌖', '⌗', '⌑',
-                      '◊', '○', '●', '◎', '◇', '◆', '□', '■',
-                      '★', '☆', '☉', '☯', '☢', '☣',
-                      '♠', '♣', '♥', '♦',
-                      '⚙', '⚛', '⚡', '☄',
-                      '0', '1'
-                    )
-                  ).distinct
-
-                def generate(length: Int, lineWidth: Int): String = {
-                  val sb = new StringBuilder(length + length / lineWidth)
-
-                  for (i <- 0 until length) {
-                    sb += chars(Random.nextInt(chars.length))
-
-                    if ((i + 1) % lineWidth == 0 && i + 1 < length)
-                      sb += '\n'
-                  }
-
-                  sb.result()
-                }
+                
 
                 if (opts.lintOpts.skips.contains(fiCodeSkipBinaryRepo)) {
-                  out.println(generate(1000, 80))
+                  out.println(Util.generateSymbols(1000, 80))
                   return WARN_EXIT_CODE
                 }
                 val failedGet = resultTry.failed.get
