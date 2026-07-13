@@ -1053,8 +1053,8 @@ object Lint {
                 
 
                 if (opts.lintOpts.skips.contains(fiCodeSkipBinaryRepo)) {
-                  val str = Util.toGlitchy("Dependency updates intentionally skipped. ")
-                  val str1 = Util.generateSymbols(1000, 80)
+                  val str = Util.toGlitchy("Dependency updates intentionally skipped. ") + fiCodeSkipBinaryRepo + " "
+                  val str1 = Util.generateSymbols(1000, 72)
                   Term.wrap(out, Term.warn, str + str1, opts)
                   return WARN_EXIT_CODE
                 }
