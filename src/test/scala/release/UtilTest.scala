@@ -360,4 +360,15 @@ class UtilTest extends AssertionsForJUnit {
         |.....""".stripMargin
       , Util.generateSymbols(30, 5).replaceAll(".", "."))
   }
+
+  @Test
+  def testToGlitchy(): Unit = {
+    val value = "Hallo Hallo"
+    Assert.assertFalse(Util.isGlitchy(value))
+    Assert.assertFalse(Util.isGlitchy(null))
+    Assert.assertFalse(Util.isGlitchy(5))
+    val str = Util.toGlitchy(value)
+    Assert.assertNotEquals(value, str)
+    Assert.assertTrue(Util.isGlitchy(str))
+  }
 }

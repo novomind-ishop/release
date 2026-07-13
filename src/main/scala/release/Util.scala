@@ -488,4 +488,69 @@ object Util {
 
     sb.result()
   }
+
+  private val glitchMap: Map[Char, Seq[String]] = Map(
+    'a' -> Seq("a", "𝖺", "α", "ᴀ", "à", "á", "ä"),
+    'b' -> Seq("b", "𝖻", "Ƅ", "Ь", "ƅ"),
+    'c' -> Seq("c", "𝖼", "ϲ", "ς", "č"),
+    'd' -> Seq("d", "𝖽", "ԁ", "đ"),
+    'e' -> Seq("e", "𝖾", "е", "є", "ë", "ê"),
+    'f' -> Seq("f", "𝖿", "ƒ"),
+    'g' -> Seq("g", "𝗀", "ɡ", "ġ"),
+    'h' -> Seq("h", "𝗁", "һ", "ḩ"),
+    'i' -> Seq("i", "𝗂", "і", "í", "ï"),
+    'j' -> Seq("j", "𝗃", "ј"),
+    'k' -> Seq("k", "𝗄", "κ"),
+    'l' -> Seq("l", "𝗅", "ĺ"),
+    'm' -> Seq("m", "𝗆", "ｍ"),
+    'n' -> Seq("n", "𝗇", "ո", "ñ"),
+    'o' -> Seq("o", "𝗈", "ο", "օ", "ö", "ó", "ô"),
+    'p' -> Seq("p", "𝗉", "ρ", "р"),
+    'q' -> Seq("q", "𝗊", "զ"),
+    'r' -> Seq("r", "𝗋", "г", "ř"),
+    's' -> Seq("s", "𝗌", "ѕ", "ş"),
+    't' -> Seq("t", "𝗍", "τ", "ť"),
+    'u' -> Seq("u", "𝗎", "υ", "ü", "û", "ú"),
+    'v' -> Seq("v", "𝗏", "ѵ"),
+    'w' -> Seq("w", "𝗐", "ԝ"),
+    'x' -> Seq("x", "𝗑", "х"),
+    'y' -> Seq("y", "𝗒", "у", "ÿ"),
+    'z' -> Seq("z", "𝗓", "ž")
+  )
+  private val glitchLetters: Set[String] = glitchMap.flatMap(t => {
+    t._2.filterNot(_.charAt(0) == t._1)
+  }).toSet
+  private val rnd = new scala.util.Random()
+
+  def isGlitchy(input: Any): Boolean = {
+    input match {
+      case str: String =>
+        glitchLetters.exists(gl => str.contains(gl))
+      case _ =>
+        false
+    }
+  }
+
+  def toGlitchy(input: String, limit:Int = 2): String = {
+    if (!input.exists(_.isLetter)) {
+      input
+    } else if (limit < 0) {
+      input
+    } else {
+      val firstTry = input.map { c =>
+        val lower = c.toLower
+        glitchMap.get(lower) match {
+          case Some(variants) =>
+            val choice = variants(rnd.nextInt(variants.size))
+            if (c.isUpper) choice.toUpperCase else choice
+          case None => c.toString
+        }
+      }.mkString
+      if (isGlitchy(firstTry)) {
+        firstTry
+      } else {
+        toGlitchy(input, limit - 1)
+      }
+    }
+  }
 }
