@@ -181,9 +181,9 @@ case class Repo private(_mirrorNexus: RemoteRepository, _workNexus: RemoteReposi
 
   def isReachable(showTrace: Boolean = true): Repo.ReachableResult = {
     val config = RequestConfig.custom()
-      .setConnectTimeout(1000)
-      .setConnectionRequestTimeout(1000)
-      .setSocketTimeout(1000)
+      .setConnectTimeout(10_000) // TODO default 1000
+      .setConnectionRequestTimeout(10_000) // TODO default 1000
+      .setSocketTimeout(10_000) // TODO default 1000
       .build();
     val httpclient = HttpClients.custom()
       .setDefaultRequestConfig(config)

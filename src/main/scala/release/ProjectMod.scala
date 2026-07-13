@@ -72,8 +72,9 @@ object ProjectMod extends LazyLogging {
 
   def createEnvRul(urlS: String): String = {
     val envrl = URI.create(urlS).getHost.toUpperCase.replaceAll("\\W", "_")
-    
-    " " + Seq("_CONNECT_TIMEOUT", "_CONNECTION_REQUEST_TIMEOUT", "_SOCKET_TIMEOUT").map(e => envrl + e).mkString(", ")
+    val keys = Seq("_CONNECT_TIMEOUT", "_CONNECTION_REQUEST_TIMEOUT", "_SOCKET_TIMEOUT").map(e => envrl + e)
+
+    " " + keys.mkString(", ")
   }
   def toUpdats(refs: Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])], fx: (Gav3, Seq[String]) => String): Seq[(Gav3, String)] = {
     refs.map(in => {
