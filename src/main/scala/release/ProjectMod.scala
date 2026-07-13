@@ -70,12 +70,6 @@ object ProjectMod extends LazyLogging {
   private val sArtifactId = "scala-library"
   private val s3ArtifactId = "scala3-library_3"
 
-  def createEnvRul(urlS: String): String = {
-    val envrl = URI.create(urlS).getHost.toUpperCase.replaceAll("\\W", "_")
-    val keys = Seq("_CONNECT_TIMEOUT", "_CONNECTION_REQUEST_TIMEOUT", "_SOCKET_TIMEOUT").map(e => envrl + e)
-
-    " " + keys.mkString(", ")
-  }
   def toUpdats(refs: Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])], fx: (Gav3, Seq[String]) => String): Seq[(Gav3, String)] = {
     refs.map(in => {
       (in._1.gav.simpleGav(), fx.apply(in._1.gav.simpleGav(), in._2.map(_._1)))
@@ -600,10 +594,9 @@ object ProjectMod extends LazyLogging {
                                checkOnline: Boolean, ws: String): Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = {
     if (checkOnline) {
       repoDelegator.repos.foreach(repo => {
-        // depUpOpts. TODO configure timeouts
-        val reachableResult = repo.isReachable(false)
+        val reachableResult = repo.isReachable(false, RepoZ.confFromEnv(repo.workNexusUrl(), envs))
         if (!reachableResult.online) {
-          throw new PreconditionsException(repo.workNexusUrl() + " - repo feels offline - " + reachableResult.msg + createEnvRul(repo.workNexusUrl()))
+          throw new PreconditionsException(repo.workNexusUrl() + " - repo feels offline - " + reachableResult.msg + RepoZ.createEnvRul(repo.workNexusUrl()))
         }
       })
 

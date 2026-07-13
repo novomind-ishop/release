@@ -463,8 +463,32 @@ class ProjectModTest extends AssertionsForJUnit {
 
   @Test
   def testCreateEnvRul(): Unit = {
+    val url = "https://www.example.org:8080/path/to.file"
     Assert.assertEquals(" WWW_EXAMPLE_ORG_CONNECT_TIMEOUT, WWW_EXAMPLE_ORG_CONNECTION_REQUEST_TIMEOUT, WWW_EXAMPLE_ORG_SOCKET_TIMEOUT",
-      ProjectMod.createEnvRul("https://www.example.org:8080/path/to.file"))
+      RepoZ.createEnvRul(url))
+    {
+      val config = RepoZ.confFromEnv(url, Map())
+      Assert.assertEquals(1000, config.getConnectTimeout)
+      Assert.assertEquals(1000, config.getConnectionRequestTimeout)
+      Assert.assertEquals(1000, config.getSocketTimeout)
+    }
+    {
+      val config = RepoZ.confFromEnv(null, Map())
+      Assert.assertEquals(1000, config.getConnectTimeout)
+      Assert.assertEquals(1000, config.getConnectionRequestTimeout)
+      Assert.assertEquals(1000, config.getSocketTimeout)
+    }
+    {
+      val config = RepoZ.confFromEnv(url, Map(
+        "WWW_EXAMPLE_ORG_CONNECT_TIMEOUT" -> "1",
+        "WWW_EXAMPLE_ORG_CONNECTION_REQUEST_TIMEOUT" -> "2",
+        "WWW_EXAMPLE_ORG_SOCKET_TIMEOUT" -> "3",
+      ))
+      Assert.assertEquals(1, config.getConnectTimeout)
+      Assert.assertEquals(2, config.getConnectionRequestTimeout)
+      Assert.assertEquals(3, config.getSocketTimeout)
+    }
+
   }
 
 }

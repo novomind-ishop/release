@@ -1,6 +1,6 @@
 package release
 
-import com.google.common.base.Stopwatch
+import com.google.common.base.{Stopwatch, Strings}
 import com.google.common.cache.{Cache, CacheBuilder}
 import com.google.common.collect.ImmutableList
 import com.typesafe.scalalogging.LazyLogging
@@ -17,7 +17,7 @@ import org.eclipse.aether.metadata.Metadata.Nature
 import org.eclipse.aether.repository.{LocalRepository, RemoteRepository}
 import org.eclipse.aether.resolution.{ArtifactRequest, DependencyRequest, MetadataRequest, MetadataResult, VersionRangeRequest, VersionRangeResolutionException}
 import org.eclipse.aether.supplier.RepositorySystemSupplier
-import org.eclipse.aether.transfer._
+import org.eclipse.aether.transfer.*
 import org.eclipse.aether.util.repository.AuthenticationBuilder
 import org.eclipse.aether.version.Version
 import org.eclipse.aether.{DefaultRepositorySystemSession, RepositorySystem}
@@ -25,15 +25,16 @@ import release.ProjectMod.Gav3
 import release.Repo.ArtifactRepos
 
 import java.io.{File, IOException}
+import java.net.URI
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{FileVisitResult, FileVisitor, Files, Path}
 import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder, SignStyle, TextStyle}
 import java.time.temporal.ChronoField
-import java.time.temporal.ChronoField._
+import java.time.temporal.ChronoField.*
 import java.time.{Duration, ZoneOffset, ZonedDateTime}
 import java.util
 import java.util.concurrent.CopyOnWriteArrayList
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.{Failure, Success, Try}
 
 case class RepoMetrics(dateCollection: Duration, dateCollectionCount: Int,
@@ -43,6 +44,41 @@ object RepoMetrics {
   def empty(): RepoMetrics = {
     RepoMetrics(dateCollection = Duration.ZERO, dateCollectionCount = 0,
       versionCollection = Duration.ZERO, versionCollectionCount = 0)
+  }
+}
+
+object RepoZ {
+  private val ct = "_CONNECT_TIMEOUT"
+  private val crt = "_CONNECTION_REQUEST_TIMEOUT"
+  private val st = "_SOCKET_TIMEOUT"
+
+  private def enfr(urlS: String) = Strings.nullToEmpty(URI.create(urlS).getHost).toUpperCase.replaceAll("\\W", "_")
+
+  def createEnvRul(urlS: String): String = {
+    val envrl = enfr(Strings.nullToEmpty(urlS))
+    val keys = Seq(ct, crt, st).map(e => envrl + e)
+
+    " " + keys.mkString(", ")
+  }
+
+  def confFromEnv(url: String, envs: Map[String, String]): RequestConfig = {
+    if (Strings.isNullOrEmpty(url)) {
+      defaultConf()
+    } else {
+      RequestConfig.custom()
+        .setConnectTimeout(envs.get(enfr(url) + ct).map(_.toInt).getOrElse(1000))
+        .setConnectionRequestTimeout(envs.get(enfr(url) + crt).map(_.toInt).getOrElse(1000))
+        .setSocketTimeout(envs.get(enfr(url) + st).map(_.toInt).getOrElse(1000))
+        .build()
+    }
+  }
+
+  def defaultConf(): RequestConfig = {
+    RequestConfig.custom()
+      .setConnectTimeout(1000)
+      .setConnectionRequestTimeout(1000)
+      .setSocketTimeout(1000)
+      .build()
   }
 }
 
@@ -68,7 +104,7 @@ trait RepoZ {
 
   def allRepoUrls(): Seq[String]
 
-  def isReachable(showTrace: Boolean = true): Repo.ReachableResult
+  def isReachable(showTrace: Boolean = true, config: RequestConfig = RepoZ.defaultConf()): Repo.ReachableResult
 
   def existsGav(groupID: String, artifactId: String, version: String): Boolean
 
@@ -122,8 +158,8 @@ case class RepoProxy(_repos: Seq[RepoZ]) extends RepoZ {
     s"RepoProxy: ${repos.map(_.workNexusUrl()).mkString(", ")}"
   }
 
-  override def isReachable(showTrace: Boolean): Repo.ReachableResult = {
-    Util.only(repos.map(_.isReachable(showTrace)).distinct, "mutliple results")
+  override def isReachable(showTrace: Boolean, conf: RequestConfig = RepoZ.defaultConf()): Repo.ReachableResult = {
+    Util.only(repos.map(_.isReachable(showTrace, conf)).distinct, "mutliple results")
   }
 
   override def existsGav(groupID: String, artifactId: String, version: String): Boolean = {
@@ -179,12 +215,8 @@ case class Repo private(_mirrorNexus: RemoteRepository, _workNexus: RemoteReposi
     r
   }
 
-  def isReachable(showTrace: Boolean = true): Repo.ReachableResult = {
-    val config = RequestConfig.custom()
-      .setConnectTimeout(10_000) // TODO default 1000
-      .setConnectionRequestTimeout(10_000) // TODO default 1000
-      .setSocketTimeout(10_000) // TODO default 1000
-      .build();
+  def isReachable(showTrace: Boolean = true, config: RequestConfig = RepoZ.defaultConf()): Repo.ReachableResult = {
+
     val httpclient = HttpClients.custom()
       .setDefaultRequestConfig(config)
       .build()
@@ -244,7 +276,7 @@ case class Repo private(_mirrorNexus: RemoteRepository, _workNexus: RemoteReposi
       val system = ArtifactRepos.newRepositorySystem
       val session = ArtifactRepos.newRepositorySystemSession(system)
       val artifact = new DefaultArtifact(s"${groupID}:$artifactId:pom:[1.6.5,)")
-      val collectRequest: CollectRequest  = new CollectRequest()
+      val collectRequest: CollectRequest = new CollectRequest()
       collectRequest.setRoot(new Dependency(artifact, ""))
 
       val req = new MetadataRequest()

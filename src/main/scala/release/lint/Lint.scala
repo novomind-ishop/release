@@ -798,6 +798,7 @@ object Lint {
             out.println(info("      a valid branch : " + ciCommitRefName, opts))
           } else if (Lint.isValidMergeRequest(tagBranchInfo)) {
             out.println(info("      a valid merge request : " + ciCommitRefName, opts))
+            usedLintSkips = usedLintSkips :+ fiCodeVersionMismatch
           } else {
             out.println(warn(s"   an INVALID branch/tag: " +
               s"ciRef: ${ciCommitRefName}, " +
