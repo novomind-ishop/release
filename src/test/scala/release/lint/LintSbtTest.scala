@@ -33,6 +33,13 @@ class LintSbtTest extends AssertionsForJUnit {
         |version := "1.0-SNAPSHOT"
         |""".stripMargin.linesIterator.toSeq)
     gitA.add(sbtFile)
+    val tree = new File(remote, "dep.tree")
+    FileUtils.write(tree,
+      """scalaVersion := "2.13.10"
+        |
+        |version := "1.0-SNAPSHOT"
+        |""".stripMargin.linesIterator.toSeq)
+    gitA.add(tree)
     gitA.commitAll("bla")
     @unused
     val gitB = Sgit.doCloneRemote(remote.toURI.toString.replaceFirst("file:/", "file:///"), fileB)
@@ -97,6 +104,7 @@ class LintSbtTest extends AssertionsForJUnit {
         |
         |/tmp/junit-REPLACED/release-lint-sbt-simple/.git
         |/tmp/junit-REPLACED/release-lint-sbt-simple/build.sbt
+        |/tmp/junit-REPLACED/release-lint-sbt-simple/dep.tree
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[INFO]     used memory: ∞m""".stripMargin
 

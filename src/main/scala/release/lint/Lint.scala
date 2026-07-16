@@ -1051,7 +1051,7 @@ object Lint {
                 ProjectMod.removeOlderVersions(resultTry.get._1)
               } else {
                 out.println(warn(" Dependency updated failed", opts))
-                
+
 
                 if (opts.lintOpts.skips.contains(fiCodeSkipBinaryRepo)) {
                   val str = Util.toGlitchy("Dependency updates intentionally skipped. ") + fiCodeSkipBinaryRepo + " "
@@ -1154,33 +1154,35 @@ object Lint {
             val depTrees = modTry.get.getDepTreeFileContents
             out.println(info(s"    found ${depTrees.size} trees", opts))
             val seq = depTrees.keys.toSeq
-            if (seq.nonEmpty) {
-              val orphanTrees = ProjectMod.findOrphanTrees(modTry.get.file, seq)
-              if (orphanTrees.nonEmpty) {
-                val orphanTreesFound = new AtomicBoolean()
-                orphanTrees.foreach(t => {
-                  val code = fiCodeOrphanTree.apply(t)
-                  val skipped = opts.lintOpts.skips.contains(code)
-                  val value = s"  orphan ${t} ${code}"
-                  if (skipped) {
-                    usedLintSkips = usedLintSkips :+ code
-                    warnSoft(value, opts, limit = lineMax)
-                  } else {
-                    warn(value, opts, limit = lineMax)
-                    orphanTreesFound.set(true)
-                    warnExit.trigger()
-                  }
-                })
-                val value = s" found ${orphanTrees.size} orphan ${"tree".pluralize(orphanTrees.size)}"
-                if (orphanTreesFound.get()) {
-                  out.println(warn(value, opts))
-                } else {
-                  out.println(warnSoft(value, opts))
-                }
 
+            val orphanTrees:Seq[Path] = modTry.map(f => ProjectMod.findOrphanTrees(f.file, seq)).getOrElse(Nil)
+            val buffer = new StringBuilder
+            if (orphanTrees.nonEmpty) {
+              val orphanTreesFound = new AtomicBoolean()
+              orphanTrees.foreach(t => {
+                val code = fiCodeOrphanTree.apply(FileUtils.read(t.toFile))
+                val skipped = opts.lintOpts.skips.contains(code)
+                val value = s" orphan ${t} ${code}"
+                if (skipped) {
+                  usedLintSkips = usedLintSkips :+ code
+                  buffer.append(warnSoft(value, opts, limit = lineMax))
+                } else {
+                  buffer.append(warn(value, opts, limit = lineMax))
+                  orphanTreesFound.set(true)
+                  warnExit.trigger()
+                }
+              })
+              val value = s" found ${orphanTrees.size} orphan ${"tree".pluralize(orphanTrees.size)}"
+              if (orphanTreesFound.get()) {
+                out.println(warn(value, opts))
+              } else {
+                out.println(warnSoft(value, opts))
               }
-              TreeGav.format(depTrees.map(t => (t._1, PomMod.DepTree.parseGavsOnly(t._2))), out, opts)
+              out.println(buffer)
+
             }
+            TreeGav.format(depTrees.map(t => (t._1, PomMod.DepTree.parseGavsOnly(t._2))), out, opts)
+
           }
 
         }

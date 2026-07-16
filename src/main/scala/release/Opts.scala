@@ -42,6 +42,10 @@ object Opts {
         val skips = Strings.nullToEmpty(k).split(",").toSeq.map(_.trim).distinct.filterNot(_.isEmpty)
         inOpt.copy(lintOpts = inOpt.lintOpts.copy(skips = inOpt.lintOpts.skips ++ skips))
       })
+      case ("RELEASE_LINT_TIMEOUT_SEC", k) :: tail => envRead(tail, {
+        val secs = Strings.nullToEmpty(k)
+        inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(timeoutSec = secs.toIntOption))
+      })
       case ("RELEASE_LINT_WARN_TO_ERROR", k) :: tail => envRead(tail, {
         val bool = Strings.nullToEmpty(k).toBooleanOption.getOrElse(false)
         inOpt.copy(lintOpts = inOpt.lintOpts.copy(warningsToErrors = bool, warningsToErrorsTag = bool))

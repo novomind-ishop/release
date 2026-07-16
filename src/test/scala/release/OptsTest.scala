@@ -70,6 +70,12 @@ class OptsTest extends AssertionsForJUnit with LazyLogging {
   }
 
   @Test
+  def testEnvRead_timeout_sec(): Unit = {
+    val result = Opts.envRead(Seq(("RELEASE_LINT_TIMEOUT_SEC", "1")), Opts())
+    Assert.assertEquals(Opts(depUpOpts = OptsDepUp(timeoutSec = Some(1))), result)
+  }
+
+  @Test
   def testEnvRead_lint_warn_to_err_tag(): Unit = {
     val result = Opts.envRead(Seq(("RELEASE_LINT_WARN_TO_ERROR_TAG", "true")), Opts())
     Assert.assertEquals(Opts(lintOpts = LintOpts(warningsToErrorsTag = true)), result)

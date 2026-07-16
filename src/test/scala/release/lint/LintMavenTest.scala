@@ -150,6 +150,12 @@ class LintMavenTest extends AssertionsForJUnit {
         |</project>
         |""".stripMargin.linesIterator.toSeq)
     gitA.add(pom)
+
+    val tree = new File(remote, "dep.tree")
+    FileUtils.write(tree,
+      """some
+        |""".stripMargin.linesIterator.toSeq)
+    gitA.add(tree)
     gitA.commitAll("bla")
     @unused
     val gitB = Sgit.doCloneRemote(remote.toURI.toString.replaceFirst("file:/", "file:///"), fileB)
@@ -214,8 +220,11 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     found 0 trees
+        |[WARNING]  found 1 orphan tree
+        |[WARNING]  orphan /tmp/junit-REPLACED/release-lint-mvn-simple/dep.tree RL1023-f1672fd5
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
+        |/tmp/junit-REPLACED/release-lint-mvn-simple/dep.tree
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[INFO]     used memory: ∞m
