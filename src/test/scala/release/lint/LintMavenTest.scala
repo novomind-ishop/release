@@ -151,11 +151,25 @@ class LintMavenTest extends AssertionsForJUnit {
         |""".stripMargin.linesIterator.toSeq)
     gitA.add(pom)
 
-    val tree = new File(remote, "dep.tree")
-    FileUtils.write(tree,
-      """some
-        |""".stripMargin.linesIterator.toSeq)
-    gitA.add(tree)
+    {
+      val tree = new File(remote, "dep.tree")
+      FileUtils.write(tree,
+        """some
+          |""".stripMargin.linesIterator.toSeq)
+      gitA.add(tree)  
+    }
+    
+    val sub1 = new File(remote, "subfolder")
+    sub1.mkdir()
+
+    {
+      val tree = new File(sub1, "dep.tree")
+      FileUtils.write(tree,
+        """some
+          |""".stripMargin.linesIterator.toSeq)
+      gitA.add(tree)
+    }
+    
     gitA.commitAll("bla")
     @unused
     val gitB = Sgit.doCloneRemote(remote.toURI.toString.replaceFirst("file:/", "file:///"), fileB)
@@ -166,7 +180,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_WARN_TO_ERROR ---
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     used memory: ∞m
-        |[INFO]     no skips
+        |[INFO]     skips: RL1023-82a96f52
         |[INFO] --- version / git ---
         |[INFO]     ✅ git  version: git version 2.999.999
         |[INFO]     ✅ self version: 2222ffff
@@ -220,17 +234,20 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     WIP
         |[INFO] --- dep.tree @ maven ---
         |[INFO]     found 0 trees
-        |[WARNING]  found 1 orphan tree
-        |[WARNING]  orphan /tmp/junit-REPLACED/release-lint-mvn-simple/dep.tree RL1023-f1672fd5
+        |[WARNING]  found 2 orphan trees 😬
+        |[WARNING]  orphan dep.tree RL1023-96763194 😬
+        |[warning]  orphan subfolder/dep.tree RL1023-82a96f52 🤐
+        |
         |
         |/tmp/junit-REPLACED/release-lint-mvn-simple/.git
         |/tmp/junit-REPLACED/release-lint-mvn-simple/dep.tree
         |/tmp/junit-REPLACED/release-lint-mvn-simple/pom.xml
+        |/tmp/junit-REPLACED/release-lint-mvn-simple/subfolder
         |[INFO] ----------------------------[ end of lint ]----------------------------
         |[INFO]     used memory: ∞m
         |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
-      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1023-82a96f52")))
       val mockRepo = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.getMetrics).thenReturn(RepoMetrics.empty())
       Mockito.when(mockRepo.workNexusUrl()).thenReturn("https://repo.example.org")

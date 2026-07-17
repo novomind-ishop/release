@@ -1160,23 +1160,24 @@ object Lint {
             if (orphanTrees.nonEmpty) {
               val orphanTreesFound = new AtomicBoolean()
               orphanTrees.foreach(t => {
-                val code = fiCodeOrphanTree.apply(FileUtils.read(t.toFile))
+                val path = file.toPath.relativize(t)
+                val code = fiCodeOrphanTree.apply(FileUtils.read(t.toFile) + path)
                 val skipped = opts.lintOpts.skips.contains(code)
-                val value = s" orphan ${t} ${code}"
+                val value = s" orphan $path ${code}"
                 if (skipped) {
                   usedLintSkips = usedLintSkips :+ code
-                  buffer.append(warnSoft(value, opts, limit = lineMax))
+                  buffer.append(warnSoft(value + s" ${fiWarnMuted}", opts, limit = lineMax)).append("\n")
                 } else {
-                  buffer.append(warn(value, opts, limit = lineMax))
+                  buffer.append(warn(value + s" ${fiWarn}", opts, limit = lineMax)).append("\n")
                   orphanTreesFound.set(true)
                   warnExit.trigger()
                 }
               })
               val value = s" found ${orphanTrees.size} orphan ${"tree".pluralize(orphanTrees.size)}"
               if (orphanTreesFound.get()) {
-                out.println(warn(value, opts))
+                out.println(warn(value + s" ${fiWarn}", opts))
               } else {
-                out.println(warnSoft(value, opts))
+                out.println(warnSoft(value + s" ${fiWarnMuted}", opts))
               }
               out.println(buffer)
 
