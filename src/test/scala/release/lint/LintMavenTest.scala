@@ -318,7 +318,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]       CI_COMMIT_TAG : vU
         |[INFO]       CI_COMMIT_REF_NAME : vU
         |[INFO]       CI_COMMIT_BRANCH :
-        |[WARNING]    an INVALID branch/tag: ciRef: vU, ciTag: vU, ciBranch: , gitTags: , gitBranch:
+        |[WARNING]    an INVALID branch/tag: ciRef: vU, ciTag: vU, ciBranch: , gitTags: , gitBranch:  😬 RL1025-e4da1152
         |[ERROR]      docker tag : auto suggested docker tag » vU « is no valid docker tag
         |[ERROR]        name. This could lead to build problems later. A git tag must match
         |[ERROR]        the pattern » ^v[0-9]+\.[0-9]+\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$ « to

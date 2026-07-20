@@ -3,12 +3,13 @@ package release.lint
 import com.google.googlejavaformat.java.Formatter
 import org.junit.rules.TemporaryFolder
 import org.junit.{Assert, Ignore, Rule, Test}
+import org.mockito.{ArgumentMatchers, Mockito}
 import org.scalatestplus.junit.AssertionsForJUnit
+import release.*
 import release.ProjectMod.Gav3
 import release.Sgit.{GitShaBranch, GitShaTag}
 import release.lint.Lint
 import release.lint.Lint.{BranchTagMerge, NePrLa, PackageImportResult}
-import release.{FileUtils, UtilTest}
 
 import java.nio.file.Paths
 import java.time.{Duration, Period, ZonedDateTime}
@@ -340,6 +341,24 @@ class LintTest extends AssertionsForJUnit {
     Assert.assertEquals("PT34S (D)", Lint.withoutNano(Duration.parse("PT34.181865249S"), Range.inclusive(0, 60)))
     Assert.assertEquals("PT1M6S (F-)", Lint.withoutNano(Duration.parse("PT66.181865249S"), Range.inclusive(0, 60)))
     Assert.assertEquals("PT1M6S (A+)", Lint.withoutNano(Duration.parse("PT66.181865249S"), Range.inclusive(70, 100)))
+  }
+
+  @Test
+  def testPrintWarnInvalidBranch(): Unit = {
+    val expected = "[warning]    an INVALID branch/tag: ciRef: refName, ciTag: ciTag, ciBranch: ciComBra, gitTags: , gitBranch:  \uD83D\uDE2C RL1025-2c6b26db"
+    TermTest.testSys(Nil, expected, "", expectedExitCode = 99)(sys => {
+      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, 
+        skips = Seq("RL1025-2c6b26db")))
+      val sgitMock = Mockito.mock(classOf[Sgit])
+      Mockito.when(sgitMock.currentTags).thenReturn(None)
+      Mockito.when(sgitMock.currentBranchOpt).thenReturn(None)
+      val warnExit = new OneTimeSwitch()
+      val result = Lint.printWarnInvalidBranch(sys.out, warnExit, sgitMock, opts, "refName", "ciTag", "ciComBra")
+      Assert.assertEquals(Some("RL1025-2c6b26db"), result)
+      Assert.assertFalse(warnExit.isTriggered())
+      sys.exit(99)
+    })
+
   }
 
   @Test

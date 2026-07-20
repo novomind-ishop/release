@@ -504,6 +504,7 @@ object Lint {
   private[release] val fiCodeDockerHost = uniqCode(1022)
   private val fiCodeOrphanTree = uniqCode(1023)
   private val fiCodeSkipBinaryRepo = uniqCode(1024)(())
+  private val fiCodeInvalidBranchTag = uniqCode(1025)
   val fiWarn = "\uD83D\uDE2C"
   val fiWarnMuted = "\uD83E\uDD10"
   val fiError = "❌"
@@ -800,13 +801,7 @@ object Lint {
             out.println(info("      a valid merge request : " + ciCommitRefName, opts))
             usedLintSkips = usedLintSkips :+ fiCodeVersionMismatch
           } else {
-            out.println(warn(s"   an INVALID branch/tag: " +
-              s"ciRef: ${ciCommitRefName}, " +
-              s"ciTag: ${ciCommitTag}, " +
-              s"ciBranch: ${ciCommitBranch}, " +
-              s"gitTags: ${sgit.currentTags.getOrElse(Nil).mkString(",")}, " +
-              s"gitBranch: ${sgit.currentBranchOpt.getOrElse("")}", opts, limit = lineMax))
-            warnExit.trigger()
+            usedLintSkips = usedLintSkips ++ printWarnInvalidBranch(out, warnExit, sgit, opts, ciCommitRefName, ciCommitTag, ciCommitBranch).toSeq
           }
           val dockerTag = SuggestDockerTag.findTagname(ciCommitRefName, ciCommitTag, pompom.flatMap(_.toOption.map(_.selfVersion)), hasDockerFiles)
           if (dockerTag.isSuccess) {
@@ -1155,7 +1150,7 @@ object Lint {
             out.println(info(s"    found ${depTrees.size} trees", opts))
             val seq = depTrees.keys.toSeq
 
-            val orphanTrees:Seq[Path] = modTry.map(f => ProjectMod.findOrphanTrees(f.file, seq)).getOrElse(Nil)
+            val orphanTrees: Seq[Path] = modTry.map(f => ProjectMod.findOrphanTrees(f.file, seq)).getOrElse(Nil)
             val buffer = new StringBuilder
             if (orphanTrees.nonEmpty) {
               val orphanTreesFound = new AtomicBoolean()
@@ -1297,6 +1292,29 @@ object Lint {
       }
     }
     1
+  }
+
+  def printWarnInvalidBranch(out: PrintStream, warnExit: OneTimeSwitch, sgit: Sgit, opts: Opts,
+                             ciCommitRefName: String, ciCommitTag: String, ciCommitBranch: String): Option[UniqCode] = {
+    val str = sgit.currentTags.getOrElse(Nil).mkString(",")
+    val str1 = sgit.currentBranchOpt.getOrElse("")
+    val fiCode = fiCodeInvalidBranchTag(Seq(ciCommitRefName, ciCommitTag, ciCommitBranch, str, str1))
+
+    val str2 = s"   an INVALID branch/tag: " +
+      s"ciRef: ${ciCommitRefName}, " +
+      s"ciTag: ${ciCommitTag}, " +
+      s"ciBranch: ${ciCommitBranch}, " +
+      s"gitTags: $str, " +
+      s"gitBranch: $str1 ${fiWarn} ${fiCode}"
+    if (opts.lintOpts.skips.contains(fiCode)) {
+      out.println(warnSoft(str2, opts, limit = lineMax))
+      Some(fiCode)
+    } else {
+      out.println(warn(str2, opts, limit = lineMax))
+      warnExit.trigger()
+      None
+    }
+
   }
 
   def filteredStacktrace(in: Array[StackTraceElement]): Array[StackTraceElement] = {
