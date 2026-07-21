@@ -71,7 +71,8 @@ class UtilTest extends AssertionsForJUnit {
   @Test
   def testCreateURI(): Unit = {
     Assert.assertEquals(URI.create("as"), Util.createUri("as"))
-    Assert.assertEquals(URI.create(s"https://${Util.urlEncode("user@name:pw")}@example.org/a?a=b"), Util.createUri("https://user@name:pw@example.org/a?a=b"))
+    Assert.assertEquals(
+      URI.create(s"https://${Util.urlEncode("user@name:pw")}@example.org/a?a=b"), Util.createUri("https://user@name:pw@example.org/a?a=b"))
     Assert.assertEquals(URI.create(s"http://${Util.urlEncode("user@na@:;me:pw")}@e"), Util.createUri("http://user@na@:;me:pw@e"))
   }
 
@@ -80,9 +81,12 @@ class UtilTest extends AssertionsForJUnit {
     Assert.assertEquals(UrlUserInfo("A", None, None), Util.extractedUserInfoUrl("A"))
     Assert.assertEquals(UrlUserInfo("", None, None), Util.extractedUserInfoUrl(""))
     Assert.assertEquals(UrlUserInfo("", None, None), Util.extractedUserInfoUrl(null))
-    Assert.assertEquals(UrlUserInfo("https://example.org/a?a=b", Some("username"), None), Util.extractedUserInfoUrl("https://username@example.org/a?a=b"))
-    Assert.assertEquals(UrlUserInfo("https://example.org/a?a=b", Some("user@name"), Some("pw")), Util.extractedUserInfoUrl("https://user@name:pw@example.org/a?a=b"))
-    Assert.assertEquals(UrlUserInfo("git.example.com:some/repo.git", None, None), Util.extractedUserInfoUrl("git@git.example.com:some/repo.git"))
+    Assert.assertEquals(
+      UrlUserInfo("https://example.org/a?a=b", Some("username"), None), Util.extractedUserInfoUrl("https://username@example.org/a?a=b"))
+    Assert.assertEquals(UrlUserInfo("https://example.org/a?a=b", Some("user@name"), Some("pw")),
+      Util.extractedUserInfoUrl("https://user@name:pw@example.org/a?a=b"))
+    Assert.assertEquals(
+      UrlUserInfo("git.example.com:some/repo.git", None, None), Util.extractedUserInfoUrl("git@git.example.com:some/repo.git"))
   }
 
   @Test
@@ -192,9 +196,9 @@ class UtilTest extends AssertionsForJUnit {
 
     Assert.assertEquals(Map.empty, Util.groupedFiltered(Nil))
     Assert.assertEquals(Map(
-      "a" -> Seq("b", "c"),
-      "b" -> Seq("a", "c"),
-      "c" -> Seq("a", "b")),
+        "a" -> Seq("b", "c"),
+        "b" -> Seq("a", "c"),
+        "c" -> Seq("a", "b")),
       Util.groupedFiltered(Seq("a", "b", "c")))
   }
 
@@ -212,7 +216,6 @@ class UtilTest extends AssertionsForJUnit {
     Assert.assertEquals("v\u200Ca\u200Cl\u200Cu\u200Ce   s\u200Co\u200Ca\u200Cp", "value   soap".withNonVisibles())
 
   }
-
 
   @Test
   def testPluralize(): Unit = {
@@ -345,8 +348,10 @@ class UtilTest extends AssertionsForJUnit {
     case class Bert(name: String, s: Seq[Int], otherNames: List[String], innerBerts: Seq[Bert])
     Assert.assertEquals(
       """Bert(name = "Bert", s = Seq(1, 2), otherNames = Seq("otto", "man"), innerBerts = List(Bert(name = "Treb", s = List(), otherNames = List(), innerBerts = List())))
-        |""".stripMargin.trim, Util.show(Bert(name = "Bert", s = Seq(1, 2), otherNames = List("otto", "man"),
-        innerBerts = List(Bert(name = "Treb", Nil, Nil, Nil)))))
+        |""".stripMargin.trim,
+      Util.show(Bert(name = "Bert", s = Seq(1, 2), otherNames = List("otto", "man"),
+          innerBerts = List(Bert(name = "Treb", Nil, Nil, Nil))))
+    )
   }
 
   @Test
@@ -357,8 +362,7 @@ class UtilTest extends AssertionsForJUnit {
         |.....
         |.....
         |.....
-        |.....""".stripMargin
-      , Util.generateSymbols(30, 5).replaceAll(".", "."))
+        |.....""".stripMargin, Util.generateSymbols(30, 5).replaceAll(".", "."))
   }
 
   @Test

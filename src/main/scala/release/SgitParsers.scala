@@ -34,7 +34,6 @@ object SgitParsers {
 
   val isoDateR = "[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:[+-][0-9]{2}:[0-9]{2}|Z)".r
 
-
   def parseIsoDate(in: String): ZonedDateTime = {
     ZonedDateTime.parse(in)
   }
@@ -50,9 +49,10 @@ object SgitParsers {
   object LogParser extends RegexParsers with LazyLogging {
     override val skipWhitespace = false
 
-    def parts: Parser[Option[Seq[String]]] = "(" ~> "[^\\)]+".r <~ ") " ^^ (term => {
-      Some(term.split(", ").toSeq)
-    })
+    def parts: Parser[Option[Seq[String]]] = "(" ~> "[^\\)]+".r <~ ") " ^^
+      (term => {
+        Some(term.split(", ").toSeq)
+      })
 
     def isoDate: Parser[Option[ZonedDateTime]] = isoDateR ^^ (term => parseIsoDateOpt(term))
 
@@ -75,14 +75,12 @@ object SgitParsers {
               val isoDate: Option[ZonedDateTime] = e._2
               val sha1su = e._1._2
 
-              val allRefs:Seq[String] = e._1._1.flatten.getOrElse(Nil)
+              val allRefs: Seq[String] = e._1._1.flatten.getOrElse(Nil)
               val tagNames: Seq[String] = allRefs
                 .filter(_.startsWith("tag: "))
                 .map(_.replaceFirst("^tag: ", ""))
               val branchNames: Seq[String] = allRefs
                 .filterNot(_.startsWith("tag: "))
-
-
 
               if (isoDate.isDefined) {
                 Some(SlogLine(branchNames = branchNames, tagNames = tagNames, sha1 = sha1su, date = isoDate.get))

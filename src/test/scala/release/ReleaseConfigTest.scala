@@ -75,10 +75,12 @@ class ReleaseConfigTest extends AssertionsForJUnit {
         |</settings>
         |""".stripMargin
 
-    Assert.assertEquals(WorkAndMirror(
-      workUrl = "https://work-nexus.example.org/content/repositories/public",
-      mirrorUrl = "https://ref-nexus.example.org/content/repositories/public"),
-      ReleaseConfig.extractWorkAndMirror(content).get)
+    Assert.assertEquals(
+      WorkAndMirror(
+        workUrl = "https://work-nexus.example.org/content/repositories/public",
+        mirrorUrl = "https://ref-nexus.example.org/content/repositories/public"),
+      ReleaseConfig.extractWorkAndMirror(content).get
+    )
   }
 
   @Test
@@ -111,10 +113,12 @@ class ReleaseConfigTest extends AssertionsForJUnit {
         |</settings>
         |""".stripMargin
 
-    Assert.assertEquals(WorkAndMirror(
-      workUrl = "https://work-nexus.example.org/content/repositories/public",
-      mirrorUrl = "https://work-nexus.example.org/content/repositories/public"),
-      ReleaseConfig.extractWorkAndMirror(content).get)
+    Assert.assertEquals(
+      WorkAndMirror(
+        workUrl = "https://work-nexus.example.org/content/repositories/public",
+        mirrorUrl = "https://work-nexus.example.org/content/repositories/public"),
+      ReleaseConfig.extractWorkAndMirror(content).get
+    )
   }
 
   @Test

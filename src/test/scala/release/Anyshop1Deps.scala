@@ -7,68 +7,237 @@ import scala.annotation.nowarn
 object Anyshop1Deps {
 
   def plugins(): Seq[PluginDep] = Seq(
-    PluginDep(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
-      "org.jacoco", "jacoco-maven-plugin", None, Seq(PluginExec("default-prepare-agent", Seq("prepare-agent"), "", Map()), PluginExec("default-report", Seq("report"), "prepare-package", Map())),
-      Seq("plugin", "plugins", "build", "project")),
-    PluginDep(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
-      "org.apache.maven.plugins", "maven-dependency-plugin", Some("2.8"), Seq(PluginExec("pre-build-validate-tree", Seq("tree"), "validate", Map("outputFile" -> "dep.tree")), PluginExec("pre-build-validate-list", Seq("list"), "validate", Map("outputFile" -> "dep.list", "sort" -> "true"))),
-      Seq("plugin", "plugins", "build", "project")),
-    PluginDep(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
-      "com.novomind.maven", "zkm-maven-plugin", None, Seq(PluginExec("", Seq(), "", Map())),
-      Seq("plugin", "plugins", "build", "project")),
-    PluginDep(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
-      "org.apache.maven.plugins", "maven-checkstyle-plugin", Some("2.17"), Seq(PluginExec("validate", Seq("check"), "validate", Map("configLocation" -> "checkstyle.xml", "includeTestSourceDirectory" -> "true", "consoleOutput" -> "true", "encoding" -> "UTF-8", "failsOnError" -> "true"))),
-      Seq("plugin", "plugins", "build", "project")),
-    PluginDep(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
-      "org.codehaus.mojo", "aspectj-maven-plugin", Some("1.8"), Seq(PluginExec("", Seq("compile", "test-compile"), "", Map())),
-      Seq("plugin", "plugins", "pluginManagement", "build", "project")),
-    PluginDep(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
-      "", "maven-surefire-plugin", None, Seq(),
-      Seq("plugin", "plugins", "build", "profile", "profiles", "project")),
-    PluginDep(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
-      "", "maven-failsafe-plugin", Some("2.19.1"), Seq(PluginExec("", Seq("integration-test", "verify"), "", Map())),
-      Seq("plugin", "plugins", "build", "profile", "profiles", "project")),
-    PluginDep(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war"),
-      "org.apache.maven.plugins", "maven-compiler-plugin", None, Seq(),
-      Seq("plugin", "plugins", "build", "project"))
+    PluginDep(
+      ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
+      "org.jacoco",
+      "jacoco-maven-plugin",
+      None,
+      Seq(PluginExec("default-prepare-agent", Seq("prepare-agent"), "", Map()),
+        PluginExec("default-report", Seq("report"), "prepare-package", Map())),
+      Seq("plugin", "plugins", "build", "project")
+    ),
+    PluginDep(
+      ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
+      "org.apache.maven.plugins",
+      "maven-dependency-plugin",
+      Some("2.8"),
+      Seq(
+        PluginExec("pre-build-validate-tree", Seq("tree"), "validate", Map("outputFile" -> "dep.tree")),
+        PluginExec("pre-build-validate-list", Seq("list"), "validate", Map("outputFile" -> "dep.list", "sort" -> "true"))
+      ),
+      Seq("plugin", "plugins", "build", "project")
+    ),
+    PluginDep(
+      ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
+      "com.novomind.maven",
+      "zkm-maven-plugin",
+      None,
+      Seq(PluginExec("", Seq(), "", Map())),
+      Seq("plugin", "plugins", "build", "project")
+    ),
+    PluginDep(
+      ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
+      "org.apache.maven.plugins",
+      "maven-checkstyle-plugin",
+      Some("2.17"),
+      Seq(PluginExec(
+          "validate",
+          Seq("check"),
+          "validate",
+          Map(
+            "configLocation" -> "checkstyle.xml", "includeTestSourceDirectory" -> "true", "consoleOutput" -> "true", "encoding" -> "UTF-8",
+            "failsOnError" -> "true")
+        )),
+      Seq("plugin", "plugins", "build", "project")
+    ),
+    PluginDep(
+      ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
+      "org.codehaus.mojo",
+      "aspectj-maven-plugin",
+      Some("1.8"),
+      Seq(PluginExec("", Seq("compile", "test-compile"), "", Map())),
+      Seq("plugin", "plugins", "pluginManagement", "build", "project")
+    ),
+    PluginDep(
+      ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
+      "",
+      "maven-surefire-plugin",
+      None,
+      Seq(),
+      Seq("plugin", "plugins", "build", "profile", "profiles", "project")
+    ),
+    PluginDep(
+      ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
+      "",
+      "maven-failsafe-plugin",
+      Some("2.19.1"),
+      Seq(PluginExec("", Seq("integration-test", "verify"), "", Map())),
+      Seq("plugin", "plugins", "build", "profile", "profiles", "project")
+    ),
+    PluginDep(
+      ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT:war"),
+      "org.apache.maven.plugins",
+      "maven-compiler-plugin",
+      None,
+      Seq(),
+      Seq("plugin", "plugins", "build", "project")
+    )
   )
 
   def snapshots(): Seq[Dep] = {
     Seq(
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops", "ishop-shop-parent", Some("27.0.0-SNAPSHOT"), "", "", "", "", Seq("project", "parent", "artifactId")),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.core", "ishop-core-all", Some("27.1.2-SNAPSHOT"), "pom", "", "", "", Seq("project", "dependencyManagement", "dependencies", "dependency")),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.core", "ishop-core-all-tests", Some("27.1.2-SNAPSHOT"), "pom", "test", "", "", Seq("project", "dependencyManagement", "dependencies", "dependency")),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops-ext", "ishop-shops-ext-shop-base", Some("27.0.0-SNAPSHOT"), "", "", "", "", Seq("project", "dependencyManagement", "dependencies", "dependency")),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.core", "ishop-core-projects", Some("27.1.2-SNAPSHOT"), "pom", "import", "", "", Seq("project", "dependencyManagement", "dependencies", "dependency")),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-commons", Some("27.0.0-SNAPSHOT"), "", "", "", "", Seq("project", "dependencies", "dependency")),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-commons", Some("27.0.0-SNAPSHOT"), "", "test", "", "tests", pomPath = Seq("project", "dependencies", "dependency")),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.core", "ishop-core-projects", Some("27.1.2-SNAPSHOT"), "pom", "import", "", "", Seq("project", "dependencyManagement", "dependencies", "dependency")),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-commons", Some("27.0.0-SNAPSHOT"), "", "", "", "", pomPath = Seq("project", "dependencies", "dependency")),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-commons", Some("27.0.0-SNAPSHOT"), "", "test", "", "tests", pomPath = Seq("project", "dependencies", "dependency")),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-erp", Some("27.0.0-SNAPSHOT"), "", "", "", "pom", pomPath = Seq("project", "dependencies", "dependency")),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.backoffice", "bo-services", Some("27.1.2-SNAPSHOT"), "", "", "", "", pomPath = Seq("project", "dependencies", "dependency")),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.backoffice", "bo-core", Some("27.1.2-SNAPSHOT"), "", "", "", "", pomPath = Seq("project", "dependencies", "dependency"))
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops",
+        "ishop-shop-parent",
+        Some("27.0.0-SNAPSHOT"),
+        "",
+        "",
+        "",
+        "",
+        Seq("project", "parent", "artifactId")
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.core",
+        "ishop-core-all",
+        Some("27.1.2-SNAPSHOT"),
+        "pom",
+        "",
+        "",
+        "",
+        Seq("project", "dependencyManagement", "dependencies", "dependency")
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.core",
+        "ishop-core-all-tests",
+        Some("27.1.2-SNAPSHOT"),
+        "pom",
+        "test",
+        "",
+        "",
+        Seq("project", "dependencyManagement", "dependencies", "dependency")
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops-ext",
+        "ishop-shops-ext-shop-base",
+        Some("27.0.0-SNAPSHOT"),
+        "",
+        "",
+        "",
+        "",
+        Seq("project", "dependencyManagement", "dependencies", "dependency")
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.core",
+        "ishop-core-projects",
+        Some("27.1.2-SNAPSHOT"),
+        "pom",
+        "import",
+        "",
+        "",
+        Seq("project", "dependencyManagement", "dependencies", "dependency")
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-commons",
+        Some("27.0.0-SNAPSHOT"),
+        "",
+        "",
+        "",
+        "",
+        Seq("project", "dependencies", "dependency")
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-commons",
+        Some("27.0.0-SNAPSHOT"),
+        "",
+        "test",
+        "",
+        "tests",
+        pomPath = Seq("project", "dependencies", "dependency")
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.core",
+        "ishop-core-projects",
+        Some("27.1.2-SNAPSHOT"),
+        "pom",
+        "import",
+        "",
+        "",
+        Seq("project", "dependencyManagement", "dependencies", "dependency")
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-commons",
+        Some("27.0.0-SNAPSHOT"),
+        "",
+        "",
+        "",
+        "",
+        pomPath = Seq("project", "dependencies", "dependency")
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-commons",
+        Some("27.0.0-SNAPSHOT"),
+        "",
+        "test",
+        "",
+        "tests",
+        pomPath = Seq("project", "dependencies", "dependency")
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-erp",
+        Some("27.0.0-SNAPSHOT"),
+        "",
+        "",
+        "",
+        "pom",
+        pomPath = Seq("project", "dependencies", "dependency")
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.backoffice",
+        "bo-services",
+        Some("27.1.2-SNAPSHOT"),
+        "",
+        "",
+        "",
+        "",
+        pomPath = Seq("project", "dependencies", "dependency")
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.backoffice",
+        "bo-core",
+        Some("27.1.2-SNAPSHOT"),
+        "",
+        "",
+        "",
+        "",
+        pomPath = Seq("project", "dependencies", "dependency")
+      )
     )
   }
 
   def selfMod(): Seq[Dep] = {
 
     val k = Nil
-    Seq(ProjectModTest.depOf(SelfRef.undef,
-      "com.novomind.ishop.shops", "anyshop", Some("27.0.0-SNAPSHOT"), "", "", "", "", k),
+    Seq(
+      ProjectModTest.depOf(SelfRef.undef,
+        "com.novomind.ishop.shops", "anyshop", Some("27.0.0-SNAPSHOT"), "", "", "", "", k),
       ProjectModTest.depOf(SelfRef.undef,
         "com.novomind.ishop.shops", "anyshop", Some("27.0.0-SNAPSHOT"), "", "", "", "tests", k),
       ProjectModTest.depOf(SelfRef.undef,
@@ -202,12 +371,39 @@ object Anyshop1Deps {
 
   def selfVersion(version: String): Seq[Dep] = {
     Seq(
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:" + version),
-        "com.novomind.ishop.shops.anyshop", "anyshop-projects", Some(version), "", "", "pom", "", pomPath = Seq("project", "artifactId")),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:" + version),
-        "com.novomind.ishop.shops.anyshop", "anyshop-erp", Some(version), "", "", "", "", pomPath = Seq("project", "artifactId")),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:" + version),
-        "com.novomind.ishop.shops", "anyshop", Some(version), "", "", "war", "", pomPath = Seq("project", "artifactId"))
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:" + version),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-projects",
+        Some(version),
+        "",
+        "",
+        "pom",
+        "",
+        pomPath = Seq("project", "artifactId")
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:" + version),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-erp",
+        Some(version),
+        "",
+        "",
+        "",
+        "",
+        pomPath = Seq("project", "artifactId")
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:" + version),
+        "com.novomind.ishop.shops",
+        "anyshop",
+        Some(version),
+        "",
+        "",
+        "war",
+        "",
+        pomPath = Seq("project", "artifactId")
+      )
     )
   }
 
@@ -217,28 +413,127 @@ object Anyshop1Deps {
     val pPath = List("project", "dependencyManagement", "dependencies", "dependency")
     val oPath = List("project", "dependencies", "dependency")
     Seq(
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-erp", Some("27.0.0-SNAPSHOT"), "", "", "", "", pPath),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-projects", Some("27.0.0-SNAPSHOT"), "", "", "", "", Seq("project", "parent", "artifactId")),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-commons", Some("27.0.0-SNAPSHOT"), "", "", "", "", oPath),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-commons", Some("27.0.0-SNAPSHOT"), "", "test", "", "tests", oPath),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-projects", Some("27.0.0-SNAPSHOT"), "", "", "", "", Seq("project", "parent", "artifactId")),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-commons", Some("27.0.0-SNAPSHOT"), "", "", "", "", oPath),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-commons", Some("27.0.0-SNAPSHOT"), "", "test", "", "tests", oPath),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-erp", None, "", "", "", "", oPath),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-erp", Some("27.0.0-SNAPSHOT"), "", "test", "", "", oPath),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-erp", Some("27.0.0-SNAPSHOT"), "", "test", "", "tests", oPath),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-erp", Some("27.0.0-SNAPSHOT"), "", "", "", "pom", oPath),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-erp",
+        Some("27.0.0-SNAPSHOT"),
+        "",
+        "",
+        "",
+        "",
+        pPath
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-projects",
+        Some("27.0.0-SNAPSHOT"),
+        "",
+        "",
+        "",
+        "",
+        Seq("project", "parent", "artifactId")
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-commons",
+        Some("27.0.0-SNAPSHOT"),
+        "",
+        "",
+        "",
+        "",
+        oPath
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-commons",
+        Some("27.0.0-SNAPSHOT"),
+        "",
+        "test",
+        "",
+        "tests",
+        oPath
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-projects",
+        Some("27.0.0-SNAPSHOT"),
+        "",
+        "",
+        "",
+        "",
+        Seq("project", "parent", "artifactId")
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-commons",
+        Some("27.0.0-SNAPSHOT"),
+        "",
+        "",
+        "",
+        "",
+        oPath
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-commons",
+        Some("27.0.0-SNAPSHOT"),
+        "",
+        "test",
+        "",
+        "tests",
+        oPath
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-erp",
+        None,
+        "",
+        "",
+        "",
+        "",
+        oPath
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-erp",
+        Some("27.0.0-SNAPSHOT"),
+        "",
+        "test",
+        "",
+        "",
+        oPath
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-erp",
+        Some("27.0.0-SNAPSHOT"),
+        "",
+        "test",
+        "",
+        "tests",
+        oPath
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-erp",
+        Some("27.0.0-SNAPSHOT"),
+        "",
+        "",
+        "",
+        "pom",
+        oPath
+      )
     )
   }
 
@@ -247,89 +542,439 @@ object Anyshop1Deps {
     val mng = Seq("project", "dependencyManagement", "dependencies", "dependency")
     val plugins = Seq("project", "build", "pluginManagement", "plugins", "plugin", "dependencies", "dependency")
     Seq(
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops", "ishop-shop-parent", Some("27.0.0-SNAPSHOT"), pomPath = Seq("project", "parent", "artifactId")),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
-        "org.apache.httpcomponents", "httpclient", Some("4.5.1"), pomPath = mng),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
-        "org.apache.commons", "commons-lang3", Some("3.4"), "", "", "", "", pomPath = mng),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
-        "io.reactivex", "rxjava", Some("1.0.12"), "", "", "", "", pomPath = mng),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
-        "com.netflix.hystrix", "hystrix-core", Some("1.4.12"), "", "", "", "", pomPath = mng),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
-        "com.github.dreamhead", "moco-core", Some("0.10.2"), "", "test", "", "", pomPath = mng),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.core", "ishop-core-all", Some("27.1.2-SNAPSHOT"), "pom", "", "", "", pomPath = mng),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.core", "ishop-core-all-tests", Some("27.1.2-SNAPSHOT"), "pom", "test", "", "", pomPath = mng),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops-ext", "ishop-shops-ext-shop-base", Some("27.0.0-SNAPSHOT"), "", "", "", "", pomPath = mng),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-erp", Some("27.0.0-SNAPSHOT"), "", "", "", "", pomPath = mng),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
-        "org.apache.httpcomponents", "httpclient", None, "", "", "", "", pomPath = pomP),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
-        "org.apache.commons", "commons-lang3", None, "", "", "", "", pomPath = pomP),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
-        "com.github.dreamhead", "moco-core", None, "", "test", "", "", pomPath = pomP),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
-        "com.netflix.hystrix", "hystrix-core", None, "", "", "", "", pomPath = pomP),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
-        "io.reactivex", "rxjava", None, "", "", "", "", pomPath = pomP),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.core", "ishop-core-all", None, "pom", "", "", "", pomPath = pomP),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.core", "ishop-core-all-tests", None, "pom", "", "", "", pomPath = pomP),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
-        "org.aspectj", "aspectjrt", Some("1.8.8"), "", "", "", "", pomPath = plugins),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
-        "org.aspectj", "aspectjtools", Some("1.8.8"), "", "", "", "", pomPath = plugins),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-projects", Some("27.0.0-SNAPSHOT"), "", "", "", "", pomPath =
-          Seq("project", "parent", "artifactId")),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.core", "ishop-core-projects", Some("27.1.2-SNAPSHOT"), "pom", "import", "", "", pomPath = mng),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-commons", Some("27.0.0-SNAPSHOT"), "", "", "", "", pomPath = pomP),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-commons", Some("27.0.0-SNAPSHOT"), "", "test", "", "tests", pomPath = pomP),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.core", "ishop-core-all", None, "pom", "", "", "", pomPath = pomP),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.core", "ishop-core-all-tests", None, "pom", "test", "", "", pomPath = pomP),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-projects", Some("27.0.0-SNAPSHOT"), "", "", "", "",
-        pomPath =  Seq("project", "parent", "artifactId")),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.core", "ishop-core-projects", Some("27.1.2-SNAPSHOT"), "pom", "import", "", "",
-        pomPath = Seq("project", "dependencyManagement", "dependencies", "dependency")),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-commons", Some("27.0.0-SNAPSHOT"), "", "", "", "", pomPath = pomP),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-commons", Some("27.0.0-SNAPSHOT"), "", "test", "", "tests", pomPath = pomP),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-erp", None, "", "", "", "", pomPath = pomP),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-erp", Some("27.0.0-SNAPSHOT"), "", "test", "", "", pomPath = pomP),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-erp", Some("27.0.0-SNAPSHOT"), "", "test", "", "tests", pomPath = pomP),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-erp", Some("27.0.0-SNAPSHOT"), "", "", "", "pom", pomPath = pomP),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.core", "ishop-core-all", None, "pom", "", "", "", pomPath = pomP),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.core", "ishop-core-all-tests", None, "pom", "test", "", "", pomPath = pomP),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops-ext", "ishop-shops-ext-shop-base", None, "", "", "", "", pomPath = pomP),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.backoffice", "bo-services", Some("27.1.2-SNAPSHOT"), "", "", "", "", pomPath = pomP),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.backoffice", "bo-core", Some("27.1.2-SNAPSHOT"), "", "", "", "", pomPath = pomP),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "javax.servlet.jsp", "jsp-api", Some("2.2"), "", "provided", "", "", pomPath = pomP),
-      ProjectModTest.depOf(ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "javax.el", "javax.el-api", Some("3.0.0"), "", "test", "", "", pomPath = pomP)
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops",
+        "ishop-shop-parent",
+        Some("27.0.0-SNAPSHOT"),
+        pomPath = Seq("project", "parent", "artifactId")
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
+        "org.apache.httpcomponents",
+        "httpclient",
+        Some("4.5.1"),
+        pomPath = mng
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
+        "org.apache.commons",
+        "commons-lang3",
+        Some("3.4"),
+        "",
+        "",
+        "",
+        "",
+        pomPath = mng
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
+        "io.reactivex",
+        "rxjava",
+        Some("1.0.12"),
+        "",
+        "",
+        "",
+        "",
+        pomPath = mng
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
+        "com.netflix.hystrix",
+        "hystrix-core",
+        Some("1.4.12"),
+        "",
+        "",
+        "",
+        "",
+        pomPath = mng
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
+        "com.github.dreamhead",
+        "moco-core",
+        Some("0.10.2"),
+        "",
+        "test",
+        "",
+        "",
+        pomPath = mng
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.core",
+        "ishop-core-all",
+        Some("27.1.2-SNAPSHOT"),
+        "pom",
+        "",
+        "",
+        "",
+        pomPath = mng
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.core",
+        "ishop-core-all-tests",
+        Some("27.1.2-SNAPSHOT"),
+        "pom",
+        "test",
+        "",
+        "",
+        pomPath = mng
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops-ext",
+        "ishop-shops-ext-shop-base",
+        Some("27.0.0-SNAPSHOT"),
+        "",
+        "",
+        "",
+        "",
+        pomPath = mng
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-erp",
+        Some("27.0.0-SNAPSHOT"),
+        "",
+        "",
+        "",
+        "",
+        pomPath = mng
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
+        "org.apache.httpcomponents",
+        "httpclient",
+        None,
+        "",
+        "",
+        "",
+        "",
+        pomPath = pomP
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
+        "org.apache.commons",
+        "commons-lang3",
+        None,
+        "",
+        "",
+        "",
+        "",
+        pomPath = pomP
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
+        "com.github.dreamhead",
+        "moco-core",
+        None,
+        "",
+        "test",
+        "",
+        "",
+        pomPath = pomP
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
+        "com.netflix.hystrix",
+        "hystrix-core",
+        None,
+        "",
+        "",
+        "",
+        "",
+        pomPath = pomP
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
+        "io.reactivex",
+        "rxjava",
+        None,
+        "",
+        "",
+        "",
+        "",
+        pomPath = pomP
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.core",
+        "ishop-core-all",
+        None,
+        "pom",
+        "",
+        "",
+        "",
+        pomPath = pomP
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.core",
+        "ishop-core-all-tests",
+        None,
+        "pom",
+        "",
+        "",
+        "",
+        pomPath = pomP
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
+        "org.aspectj",
+        "aspectjrt",
+        Some("1.8.8"),
+        "",
+        "",
+        "",
+        "",
+        pomPath = plugins
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
+        "org.aspectj",
+        "aspectjtools",
+        Some("1.8.8"),
+        "",
+        "",
+        "",
+        "",
+        pomPath = plugins
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-projects",
+        Some("27.0.0-SNAPSHOT"),
+        "",
+        "",
+        "",
+        "",
+        pomPath =
+          Seq("project", "parent", "artifactId")
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.core",
+        "ishop-core-projects",
+        Some("27.1.2-SNAPSHOT"),
+        "pom",
+        "import",
+        "",
+        "",
+        pomPath = mng
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-commons",
+        Some("27.0.0-SNAPSHOT"),
+        "",
+        "",
+        "",
+        "",
+        pomPath = pomP
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-commons",
+        Some("27.0.0-SNAPSHOT"),
+        "",
+        "test",
+        "",
+        "tests",
+        pomPath = pomP
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.core",
+        "ishop-core-all",
+        None,
+        "pom",
+        "",
+        "",
+        "",
+        pomPath = pomP
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.core",
+        "ishop-core-all-tests",
+        None,
+        "pom",
+        "test",
+        "",
+        "",
+        pomPath = pomP
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-projects",
+        Some("27.0.0-SNAPSHOT"),
+        "",
+        "",
+        "",
+        "",
+        pomPath = Seq("project", "parent", "artifactId")
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.core",
+        "ishop-core-projects",
+        Some("27.1.2-SNAPSHOT"),
+        "pom",
+        "import",
+        "",
+        "",
+        pomPath = Seq("project", "dependencyManagement", "dependencies", "dependency")
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-commons",
+        Some("27.0.0-SNAPSHOT"),
+        "",
+        "",
+        "",
+        "",
+        pomPath = pomP
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-commons",
+        Some("27.0.0-SNAPSHOT"),
+        "",
+        "test",
+        "",
+        "tests",
+        pomPath = pomP
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-erp",
+        None,
+        "",
+        "",
+        "",
+        "",
+        pomPath = pomP
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-erp",
+        Some("27.0.0-SNAPSHOT"),
+        "",
+        "test",
+        "",
+        "",
+        pomPath = pomP
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-erp",
+        Some("27.0.0-SNAPSHOT"),
+        "",
+        "test",
+        "",
+        "tests",
+        pomPath = pomP
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-erp",
+        Some("27.0.0-SNAPSHOT"),
+        "",
+        "",
+        "",
+        "pom",
+        pomPath = pomP
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.core",
+        "ishop-core-all",
+        None,
+        "pom",
+        "",
+        "",
+        "",
+        pomPath = pomP
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.core",
+        "ishop-core-all-tests",
+        None,
+        "pom",
+        "test",
+        "",
+        "",
+        pomPath = pomP
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops-ext",
+        "ishop-shops-ext-shop-base",
+        None,
+        "",
+        "",
+        "",
+        "",
+        pomPath = pomP
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.backoffice",
+        "bo-services",
+        Some("27.1.2-SNAPSHOT"),
+        "",
+        "",
+        "",
+        "",
+        pomPath = pomP
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.backoffice",
+        "bo-core",
+        Some("27.1.2-SNAPSHOT"),
+        "",
+        "",
+        "",
+        "",
+        pomPath = pomP
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "javax.servlet.jsp",
+        "jsp-api",
+        Some("2.2"),
+        "",
+        "provided",
+        "",
+        "",
+        pomPath = pomP
+      ),
+      ProjectModTest.depOf(
+        ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "javax.el",
+        "javax.el-api",
+        Some("3.0.0"),
+        "",
+        "test",
+        "",
+        "",
+        pomPath = pomP
+      )
     )
   }
   @nowarn("msg=possible missing interpolator")

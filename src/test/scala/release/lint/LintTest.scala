@@ -32,27 +32,27 @@ class LintTest extends AssertionsForJUnit {
   @Test
   def testIndentMailboxes_1(): Unit = {
     val result = Lint.indentMailboxes(Seq(
-      "as",
-      "Some Name <some@example.org>",
-    ))
+        "as",
+        "Some Name <some@example.org>"
+      ))
     Assert.assertEquals(Seq(
-      "as",
-      "Some Name <some@example.org>",
-    ), result)
+        "as",
+        "Some Name <some@example.org>"
+      ), result)
   }
 
   @Test
   def testIndentMailboxes_2(): Unit = {
     val result = Lint.indentMailboxes(Seq(
-      "as",
-      "Other Person <some@example.org>",
-      "Anna Nass <some@example.org>",
-    ))
+        "as",
+        "Other Person <some@example.org>",
+        "Anna Nass <some@example.org>"
+      ))
     Assert.assertEquals(Seq(
-      "as",
-      "Other Person <some@example.org>",
-      "Anna Nass    <some@example.org>",
-    ), result)
+        "as",
+        "Other Person <some@example.org>",
+        "Anna Nass    <some@example.org>"
+      ), result)
   }
 
   @Test
@@ -73,12 +73,13 @@ class LintTest extends AssertionsForJUnit {
         |com.novomind.i.g
         |""".stripMargin.trim,
       PackageImportResult.formatGroupImports(Seq(
-        "com.novomind.i.web.context",
-        "com.novomind.i.web.context.config",
-        "com.novomind.i.web.ctx",
-        "com.novomind.i.g",
-        "com.guava",
-      ), lineLimit = 4))
+          "com.novomind.i.web.context",
+          "com.novomind.i.web.context.config",
+          "com.novomind.i.web.ctx",
+          "com.novomind.i.g",
+          "com.guava"
+        ), lineLimit = 4)
+    )
 
     Assert.assertEquals(
       """com.novomind.i.web.context
@@ -87,17 +88,19 @@ class LintTest extends AssertionsForJUnit {
         |2 omitted
         |""".stripMargin.trim,
       PackageImportResult.formatGroupImports(Seq(
-        "com.novomind.i.web.context",
-        "com.novomind.i.web.context.config",
-        "com.novomind.i.web.ctx",
-        "com.novomind.i.g",
-        "com.guava",
-      ), lineLimit = 2))
+          "com.novomind.i.web.context",
+          "com.novomind.i.web.context.config",
+          "com.novomind.i.web.ctx",
+          "com.novomind.i.g",
+          "com.guava"
+        ), lineLimit = 2)
+    )
     Assert.assertEquals("", PackageImportResult.formatGroupImports(Seq()))
 
-    Assert.assertEquals("com.novomind.i.web.context", PackageImportResult.formatGroupImports(Seq(
-      "com.novomind.i.web.context",
-    )))
+    Assert.assertEquals("com.novomind.i.web.context",
+      PackageImportResult.formatGroupImports(Seq(
+          "com.novomind.i.web.context"
+        )))
   }
 
   @Test
@@ -114,23 +117,28 @@ class LintTest extends AssertionsForJUnit {
       "package oi.io;",
       "package oi.package.io;",
       "package   a.j; ",
-      " package a.s",
+      " package a.s"
     )
-    val testee = PackageImportResult(packagesWithSrcPath = g.map(p => (p, Paths.get("a"))), Nil, Duration.ZERO,
+    val testee = PackageImportResult(
+      packagesWithSrcPath = g.map(p => (p, Paths.get("a"))),
+      Nil,
+      Duration.ZERO,
       """a.bl;
         |oi.
         |package a.j;
         |package oi.package.io;
         |package a.s
-        |""".stripMargin, msg = "")
+        |""".stripMargin,
+      msg = ""
+    )
     Assert.assertEquals(g, testee.packages)
     Assert.assertEquals(Seq(
-      "a.bl",
-      "oi.io;",
-      "oi.package.io;",
-      "a.j;",
-      "a.s",
-    ), testee.unwantedPackages)
+        "a.bl",
+        "oi.io;",
+        "oi.package.io;",
+        "a.j;",
+        "a.s"
+      ), testee.unwantedPackages)
     Assert.assertEquals(Some("List((package a.bl,a))"), testee.select("a.bl"))
   }
 
@@ -139,41 +147,49 @@ class LintTest extends AssertionsForJUnit {
     val in = Gav3("a", "b", Some("1.0.0-M1"))
     Assert.assertEquals(None, Lint.selectNextAndPrevious(None, in))
 
-    Assert.assertEquals(Some(
-      NePrLa(next = Some(in.copy(version = Some("1.0.0"))),
-        previous = Some(in.copy(version = Some("0.9"))),
-        latest = None)),
-      Lint.selectNextAndPrevious(Some(Seq("0.9", "1.0.0")), in))
-    Assert.assertEquals(Some(
-      NePrLa(next = Some(in.copy(version = Some("1.0.0"))),
-        previous = Some(in.copy(version = Some("0.9"))),
-        latest = Some(in.copy(version = Some("2.2.2"))))),
-      Lint.selectNextAndPrevious(Some(Seq("0.8", "0.9", "1.0.0", "2.2.2")), in))
+    Assert.assertEquals(
+      Some(
+        NePrLa(next = Some(in.copy(version = Some("1.0.0"))),
+          previous = Some(in.copy(version = Some("0.9"))),
+          latest = None)),
+      Lint.selectNextAndPrevious(Some(Seq("0.9", "1.0.0")), in)
+    )
+    Assert.assertEquals(
+      Some(
+        NePrLa(next = Some(in.copy(version = Some("1.0.0"))),
+          previous = Some(in.copy(version = Some("0.9"))),
+          latest = Some(in.copy(version = Some("2.2.2"))))),
+      Lint.selectNextAndPrevious(Some(Seq("0.8", "0.9", "1.0.0", "2.2.2")), in)
+    )
 
     Assert.assertEquals(Some(
-      NePrLa(next = Some(in.copy(version = Some("1.0.0"))),
-        previous = None,
-        latest = None)),
+        NePrLa(next = Some(in.copy(version = Some("1.0.0"))),
+          previous = None,
+          latest = None)),
       Lint.selectNextAndPrevious(Some(Seq("1.0.0")), in))
 
     Assert.assertEquals(Some(
-      NePrLa(next = Some(in.copy(version = Some("1.0.1"))),
-        previous = None,
-        latest = None)),
+        NePrLa(next = Some(in.copy(version = Some("1.0.1"))),
+          previous = None,
+          latest = None)),
       Lint.selectNextAndPrevious(Some(Seq("1.0.1")), in))
 
-    Assert.assertEquals(Some(
-      NePrLa(next = Some(in.copy(version = Some("1.0.0-M2"))),
-        previous = None,
-        latest = Some(in.copy(version = Some("1.0.0-M3")))
-      )),
-      Lint.selectNextAndPrevious(Some(Seq("1.0.0-M2", "1.0.0-M3")), in))
+    Assert.assertEquals(
+      Some(
+        NePrLa(
+          next = Some(in.copy(version = Some("1.0.0-M2"))),
+          previous = None,
+          latest = Some(in.copy(version = Some("1.0.0-M3")))
+        )),
+      Lint.selectNextAndPrevious(Some(Seq("1.0.0-M2", "1.0.0-M3")), in)
+    )
 
     Assert.assertEquals(Some(
-      NePrLa(next = None,
-        previous = Some(in.copy(version = Some("0.0.9"))),
-        latest = None
-      )),
+        NePrLa(
+          next = None,
+          previous = Some(in.copy(version = Some("0.0.9"))),
+          latest = None
+        )),
       Lint.selectNextAndPrevious(Some(Seq("1.0.0-M1", "0.0.9")), in))
 
   }
@@ -182,73 +198,120 @@ class LintTest extends AssertionsForJUnit {
   def testVersionMatches(): Unit = {
     Assert.assertEquals(Lint.MismatchResult.valid,
       Lint.versionMismatches("1.2.3", tag("v1.2.3", branchName = Some("HEAD")), isShop = false, headBranchName = None))
-    Assert.assertEquals(Lint.MismatchResult.valid,
-      Lint.versionMismatches(selfVersion = "RC-2024.31-SNAPSHOT", tagBranchInfo = br("release/RC-2024.31"), isShop = false, headBranchName = None))
-    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("45x-SNAPSHOT", br("feature/45x"), isShop = false, headBranchName = None))
-    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("0.0.8-SNAPSHOT", br("feature/0x"), isShop = false, headBranchName = None))
-    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("0.0.8-SNAPSHOT", br("feature/0.0x"), isShop = false, headBranchName = None))
-    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("1.1.1-SNAPSHOT", br("main"), isShop = false, headBranchName = None))
-    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("3.2.1-SNAPSHOT", br("master"), isShop = false, headBranchName = None))
-    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("master-SNAPSHOT", br("master"), isShop = false, headBranchName = None))
-    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("test-SNAPSHOT", br("feature/test"), isShop = false, headBranchName = None))
-    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("bert-SNAPSHOT", br("release/bert"), isShop = false, headBranchName = None))
-    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("core44-SNAPSHOT", br("feature/core44"), isShop = false, headBranchName = None))
+    Assert.assertEquals(
+      Lint.MismatchResult.valid,
+      Lint.versionMismatches(
+        selfVersion = "RC-2024.31-SNAPSHOT", tagBranchInfo = br("release/RC-2024.31"), isShop = false, headBranchName = None)
+    )
+    Assert.assertEquals(
+      Lint.MismatchResult.valid, Lint.versionMismatches("45x-SNAPSHOT", br("feature/45x"), isShop = false, headBranchName = None))
+    Assert.assertEquals(
+      Lint.MismatchResult.valid, Lint.versionMismatches("0.0.8-SNAPSHOT", br("feature/0x"), isShop = false, headBranchName = None))
+    Assert.assertEquals(
+      Lint.MismatchResult.valid, Lint.versionMismatches("0.0.8-SNAPSHOT", br("feature/0.0x"), isShop = false, headBranchName = None))
+    Assert.assertEquals(
+      Lint.MismatchResult.valid, Lint.versionMismatches("1.1.1-SNAPSHOT", br("main"), isShop = false, headBranchName = None))
+    Assert.assertEquals(
+      Lint.MismatchResult.valid, Lint.versionMismatches("3.2.1-SNAPSHOT", br("master"), isShop = false, headBranchName = None))
+    Assert.assertEquals(
+      Lint.MismatchResult.valid, Lint.versionMismatches("master-SNAPSHOT", br("master"), isShop = false, headBranchName = None))
+    Assert.assertEquals(
+      Lint.MismatchResult.valid, Lint.versionMismatches("test-SNAPSHOT", br("feature/test"), isShop = false, headBranchName = None))
+    Assert.assertEquals(
+      Lint.MismatchResult.valid, Lint.versionMismatches("bert-SNAPSHOT", br("release/bert"), isShop = false, headBranchName = None))
+    Assert.assertEquals(
+      Lint.MismatchResult.valid, Lint.versionMismatches("core44-SNAPSHOT", br("feature/core44"), isShop = false, headBranchName = None))
     Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("1.2.3", tag("v1.2.3"), isShop = false, headBranchName = None))
     Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("main", tag("vmain"), isShop = false, headBranchName = None))
-    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("main", BranchTagMerge.merge, isShop = false, headBranchName = None))
-    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("core45-SNAPSHOT", br("feature/core_45"), isShop = false, headBranchName = None))
-    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("RC-2024.31-SNAPSHOT", br("master"), isShop = true, headBranchName = None))
-    Assert.assertEquals(Lint.MismatchResult.valid, Lint.versionMismatches("RC-2024.31-SNAPSHOT", br("master"), isShop = false, headBranchName = None))
+    Assert.assertEquals(
+      Lint.MismatchResult.valid, Lint.versionMismatches("main", BranchTagMerge.merge, isShop = false, headBranchName = None))
+    Assert.assertEquals(
+      Lint.MismatchResult.valid, Lint.versionMismatches("core45-SNAPSHOT", br("feature/core_45"), isShop = false, headBranchName = None))
+    Assert.assertEquals(
+      Lint.MismatchResult.valid, Lint.versionMismatches("RC-2024.31-SNAPSHOT", br("master"), isShop = true, headBranchName = None))
+    Assert.assertEquals(
+      Lint.MismatchResult.valid, Lint.versionMismatches("RC-2024.31-SNAPSHOT", br("master"), isShop = false, headBranchName = None))
 
     Assert.assertEquals(
       Lint.MismatchResult.problem(" project.version »master« has no git. Please add some .git folder. \uD83D\uDE2C RL1014"),
-      Lint.versionMismatches("master", None, isShop = false, headBranchName = None))
-    Assert.assertEquals(Lint.MismatchResult.problem(" project.version »master« is detached. Maybe add a ref. \uD83D\uDE2C RL1014"),
-      Lint.versionMismatches(selfVersion = "master", tagBranchInfo = Some(BranchTagMerge(tagName = None, branchName = None)), isShop = false, headBranchName = None))
-    Assert.assertEquals(Lint.MismatchResult.problem(" project.version »« is detached. Maybe add a ref. \uD83D\uDE2C RL1014"),
-      Lint.versionMismatches(selfVersion = "", tagBranchInfo = Some(BranchTagMerge(tagName = None, branchName = None)), isShop = false, headBranchName = None))
+      Lint.versionMismatches("master", None, isShop = false, headBranchName = None)
+    )
+    Assert.assertEquals(
+      Lint.MismatchResult.problem(" project.version »master« is detached. Maybe add a ref. \uD83D\uDE2C RL1014"),
+      Lint.versionMismatches(selfVersion = "master", tagBranchInfo = Some(BranchTagMerge(tagName = None, branchName = None)),
+        isShop = false, headBranchName = None)
+    )
+    Assert.assertEquals(
+      Lint.MismatchResult.problem(" project.version »« is detached. Maybe add a ref. \uD83D\uDE2C RL1014"),
+      Lint.versionMismatches(
+        selfVersion = "", tagBranchInfo = Some(BranchTagMerge(tagName = None, branchName = None)), isShop = false, headBranchName = None)
+    )
     Assert.assertEquals(
       Lint.MismatchResult.problem(" »1.0.0-M1-SNAPSHOT« does not relate to git branch: »feature/0x«." +
         " Please use a plausible version marker and git marker combination like:" +
         " (project.version: 1.0.0-M1-SNAPSHOT -> git branch: feature/1x), ... \uD83D\uDE2C RL1014"),
-      Lint.versionMismatches("1.0.0-M1-SNAPSHOT", br("feature/0x"), isShop = false, headBranchName = None))
-    Assert.assertEquals(Lint.MismatchResult.problem(" »1.0.0-M1-SNAPSHOT« does not relate to git branch: »feature/1.1x«." +
-      " Please use a plausible version marker and git marker combination like:" +
-      " (project.version: 1.0.0-M1-SNAPSHOT -> git branch: feature/1x), ... \uD83D\uDE2C RL1014"),
-      Lint.versionMismatches("1.0.0-M1-SNAPSHOT", br("feature/1.1x"), isShop = false, headBranchName = None))
+      Lint.versionMismatches("1.0.0-M1-SNAPSHOT", br("feature/0x"), isShop = false, headBranchName = None)
+    )
+    Assert.assertEquals(
+      Lint.MismatchResult.problem(" »1.0.0-M1-SNAPSHOT« does not relate to git branch: »feature/1.1x«." +
+        " Please use a plausible version marker and git marker combination like:" +
+        " (project.version: 1.0.0-M1-SNAPSHOT -> git branch: feature/1x), ... \uD83D\uDE2C RL1014"),
+      Lint.versionMismatches("1.0.0-M1-SNAPSHOT", br("feature/1.1x"), isShop = false, headBranchName = None)
+    )
 
-    Assert.assertEquals(Lint.MismatchResult.problem(" »main-SNAPSHOT« does not relate to git tag: »master«." +
-      " Please use a plausible version marker and git marker combination like:" +
-      " (project.version: 1.2.3 -> git tag:v1.2.3), ... (hint: a git tag should not be a SNAPSHOT) \uD83D\uDE2C RL1014"),
-      Lint.versionMismatches("main-SNAPSHOT", tag("master"), isShop = false, headBranchName = None))
-    Assert.assertEquals(Lint.MismatchResult.problem(" »main-SNAPSHOT« does not relate to git tag: »main«." +
-      " Please use a plausible version marker and git marker combination like:" +
-      " (project.version: 1.2.3 -> git tag:v1.2.3), ... (hint: a git tag should not be a SNAPSHOT) \uD83D\uDE2C RL1014"),
-      Lint.versionMismatches("main-SNAPSHOT", tag("main"), isShop = false, headBranchName = None))
-    Assert.assertEquals(Lint.MismatchResult.problem(" »main« does not relate to git tag: »master«." +
-      " Please use a plausible version marker and git marker combination like:" +
-      " (project.version: 1.2.3 -> git tag:v1.2.3), ... \uD83D\uDE2C RL1014"), Lint.versionMismatches("main", tag("master"), isShop = false, headBranchName = None))
-    Assert.assertEquals(Lint.MismatchResult.problem(" project.version »main-SNAPSHOT« does not relate to git branch: »master«." +
-      " Please use a plausible version marker and git marker combination like:" +
-      " (project.version: main-SNAPSHOT -> git branch:main), ... \uD83D\uDE2C RL1014"),
-      Lint.versionMismatches("main-SNAPSHOT", br("master"), isShop = false, headBranchName = None))
+    Assert.assertEquals(
+      Lint.MismatchResult.problem(" »main-SNAPSHOT« does not relate to git tag: »master«." +
+        " Please use a plausible version marker and git marker combination like:" +
+        " (project.version: 1.2.3 -> git tag:v1.2.3), ... (hint: a git tag should not be a SNAPSHOT) \uD83D\uDE2C RL1014"),
+      Lint.versionMismatches("main-SNAPSHOT", tag("master"), isShop = false, headBranchName = None)
+    )
+    Assert.assertEquals(
+      Lint.MismatchResult.problem(" »main-SNAPSHOT« does not relate to git tag: »main«." +
+        " Please use a plausible version marker and git marker combination like:" +
+        " (project.version: 1.2.3 -> git tag:v1.2.3), ... (hint: a git tag should not be a SNAPSHOT) \uD83D\uDE2C RL1014"),
+      Lint.versionMismatches("main-SNAPSHOT", tag("main"), isShop = false, headBranchName = None)
+    )
+    Assert.assertEquals(
+      Lint.MismatchResult.problem(" »main« does not relate to git tag: »master«." +
+        " Please use a plausible version marker and git marker combination like:" +
+        " (project.version: 1.2.3 -> git tag:v1.2.3), ... \uD83D\uDE2C RL1014"),
+      Lint.versionMismatches("main", tag("master"), isShop = false, headBranchName = None)
+    )
+    Assert.assertEquals(
+      Lint.MismatchResult.problem(" project.version »main-SNAPSHOT« does not relate to git branch: »master«." +
+        " Please use a plausible version marker and git marker combination like:" +
+        " (project.version: main-SNAPSHOT -> git branch:main), ... \uD83D\uDE2C RL1014"),
+      Lint.versionMismatches("main-SNAPSHOT", br("master"), isShop = false, headBranchName = None)
+    )
     Assert.assertEquals(
       Lint.MismatchResult.problem(" »1.0.0-M1« does not relate to git branch: »feature/0x«." +
         " Please use a plausible version marker and git marker combination like:" +
-        " (project.version: 1.2.3 -> git tag:v1.2.3), ... \uD83D\uDE2C RL1014"), Lint.versionMismatches("1.0.0-M1", br("feature/0x"), isShop = false, headBranchName = None))
-    Assert.assertEquals(Lint.MismatchResult.problem(" project.version »RC-2024.25-SNAPSHOT« is detached (HEAD). Maybe add a ref. \uD83D\uDE2C RL1014"),
-      Lint.versionMismatches("RC-2024.25-SNAPSHOT", Some(BranchTagMerge(tagName = None, branchName = Some("HEAD"))), isShop = false, headBranchName = None))
-    Assert.assertEquals(Lint.MismatchResult.problem(" »master-SNAPSHOT« does not relate to git branch: »feature/core44«. " +
-      "Please use a plausible version marker and git marker combination.\uD83D\uDE2C RL1014"),
-      Lint.versionMismatches("master-SNAPSHOT", br("feature/core44"), isShop = false, headBranchName = None))
-    Assert.assertEquals(Lint.MismatchResult.problem(" »core45-SNAPSHOT« does not relate to git branch: »feature/core44«. " +
-      "Please use a plausible version marker and git marker combination.\uD83D\uDE2C RL1014"),
-      Lint.versionMismatches("core45-SNAPSHOT", br("feature/core44"), isShop = false, headBranchName = None))
-    Assert.assertEquals(Lint.MismatchResult.problem(" »main« does not relate to git tag: »RC-2025.02«." +
-      " Immutable tags are not recommended for shops, because cleanup is not intended. Suggested names:" +
-      "  (project.version: RC-2025.02 -> git branch:release/RC-2025.02), ..." +
-      " Please use a plausible version marker and git marker combination like:" +
-      " (project.version: 1.2.3 -> git tag:v1.2.3), ... \uD83D\uDE2C RL1014"), Lint.versionMismatches("main", tag("RC-2025.02"), isShop = true, headBranchName = None))
+        " (project.version: 1.2.3 -> git tag:v1.2.3), ... \uD83D\uDE2C RL1014"),
+      Lint.versionMismatches("1.0.0-M1", br("feature/0x"), isShop = false, headBranchName = None)
+    )
+    Assert.assertEquals(
+      Lint.MismatchResult.problem(" project.version »RC-2024.25-SNAPSHOT« is detached (HEAD). Maybe add a ref. \uD83D\uDE2C RL1014"),
+      Lint.versionMismatches(
+        "RC-2024.25-SNAPSHOT", Some(BranchTagMerge(tagName = None, branchName = Some("HEAD"))), isShop = false, headBranchName = None)
+    )
+    Assert.assertEquals(
+      Lint.MismatchResult.problem(" »master-SNAPSHOT« does not relate to git branch: »feature/core44«. " +
+        "Please use a plausible version marker and git marker combination.\uD83D\uDE2C RL1014"),
+      Lint.versionMismatches("master-SNAPSHOT", br("feature/core44"), isShop = false, headBranchName = None)
+    )
+    Assert.assertEquals(
+      Lint.MismatchResult.problem(" »core45-SNAPSHOT« does not relate to git branch: »feature/core44«. " +
+        "Please use a plausible version marker and git marker combination.\uD83D\uDE2C RL1014"),
+      Lint.versionMismatches("core45-SNAPSHOT", br("feature/core44"), isShop = false, headBranchName = None)
+    )
+    Assert.assertEquals(
+      Lint.MismatchResult.problem(" »main« does not relate to git tag: »RC-2025.02«." +
+        " Immutable tags are not recommended for shops, because cleanup is not intended. Suggested names:" +
+        "  (project.version: RC-2025.02 -> git branch:release/RC-2025.02), ..." +
+        " Please use a plausible version marker and git marker combination like:" +
+        " (project.version: 1.2.3 -> git tag:v1.2.3), ... \uD83D\uDE2C RL1014"),
+      Lint.versionMismatches("main", tag("RC-2025.02"), isShop = true, headBranchName = None)
+    )
 
     val str = " project.version »RC-2025-13-SNAPSHOT« does not relate to git branch: »master«. " +
       "Please use a plausible version marker and git marker combination like: " +
@@ -258,15 +321,21 @@ class LintTest extends AssertionsForJUnit {
     Assert.assertEquals(Lint.MismatchResult.problem(str),
       Lint.versionMismatches("RC-2025-13-SNAPSHOT", br("master"), isShop = false, headBranchName = None))
 
-    Assert.assertEquals(Lint.MismatchResult.problem(" project.version »SNAPSHOT« does not relate to git branch: »master«. " +
-      "Please use a plausible version marker and git marker combination like: (project.version: SNAPSHOT -> git branch:SNAPSHOT), ... 😬 RL1014"),
-      Lint.versionMismatches("SNAPSHOT", br("master"), isShop = false, headBranchName = None))
-    Assert.assertEquals(Lint.MismatchResult.problem(" project.version »LATEST« does not relate to git branch: »master«. " +
-      "Please use a plausible version marker and git marker combination like: (project.version: LATEST -> git branch:LATEST), ... 😬 RL1014"),
-      Lint.versionMismatches("LATEST", br("master"), isShop = false, headBranchName = None))
-    Assert.assertEquals(Lint.MismatchResult.problem(" project.version »RELEASE« does not relate to git branch: »master«. " +
-      "Please use a plausible version marker and git marker combination like: (project.version: RELEASE -> git branch:RELEASE), ... 😬 RL1014"),
-      Lint.versionMismatches("RELEASE", br("master"), isShop = false, headBranchName = None))
+    Assert.assertEquals(
+      Lint.MismatchResult.problem(" project.version »SNAPSHOT« does not relate to git branch: »master«. " +
+        "Please use a plausible version marker and git marker combination like: (project.version: SNAPSHOT -> git branch:SNAPSHOT), ... 😬 RL1014"),
+      Lint.versionMismatches("SNAPSHOT", br("master"), isShop = false, headBranchName = None)
+    )
+    Assert.assertEquals(
+      Lint.MismatchResult.problem(" project.version »LATEST« does not relate to git branch: »master«. " +
+        "Please use a plausible version marker and git marker combination like: (project.version: LATEST -> git branch:LATEST), ... 😬 RL1014"),
+      Lint.versionMismatches("LATEST", br("master"), isShop = false, headBranchName = None)
+    )
+    Assert.assertEquals(
+      Lint.MismatchResult.problem(" project.version »RELEASE« does not relate to git branch: »master«. " +
+        "Please use a plausible version marker and git marker combination like: (project.version: RELEASE -> git branch:RELEASE), ... 😬 RL1014"),
+      Lint.versionMismatches("RELEASE", br("master"), isShop = false, headBranchName = None)
+    )
   }
 
   @Test
@@ -275,10 +344,13 @@ class LintTest extends AssertionsForJUnit {
     val result = Lint.versionMismatches("1.0.1-management-SNAPSHOT",
       Some(BranchTagMerge(tagName = None, branchName = Some("feature/management"))), isShop = false, headBranchName = None)
     Assert.assertTrue(result.isMismatch)
-    Assert.assertEquals(" »1.0.1-management-SNAPSHOT« does not relate to git branch: »feature/management«." +
-      " Please use a plausible version marker and git marker combination like:" +
-      " (project.version: 1.0.1-management-SNAPSHOT -> git branch: feature/1x)," +
-      " (project.version: management-SNAPSHOT -> git branch: feature/management), ... \uD83D\uDE2C RL1014", result.msg)
+    Assert.assertEquals(
+      " »1.0.1-management-SNAPSHOT« does not relate to git branch: »feature/management«." +
+        " Please use a plausible version marker and git marker combination like:" +
+        " (project.version: 1.0.1-management-SNAPSHOT -> git branch: feature/1x)," +
+        " (project.version: management-SNAPSHOT -> git branch: feature/management), ... \uD83D\uDE2C RL1014",
+      result.msg
+    )
   }
 
   def tag(name: String, dateTime: ZonedDateTime) = {
@@ -295,42 +367,54 @@ class LintTest extends AssertionsForJUnit {
 
   @Test
   def testRefFreq_single(): Unit = {
-    val result = Lint.refFreqBranchTag(Seq(
-      brn("develop", null),
-      tag("v1.2.3", ZonedDateTime.parse("2024-02-13T08:19:20+01:00")),
-      brn("main", ZonedDateTime.parse("2024-02-14T08:19:20+01:00")),
-    ), currentDate = ZonedDateTime.parse("2024-03-13T08:19:20+01:00"))
+    val result = Lint.refFreqBranchTag(
+      Seq(
+        brn("develop", null),
+        tag("v1.2.3", ZonedDateTime.parse("2024-02-13T08:19:20+01:00")),
+        brn("main", ZonedDateTime.parse("2024-02-14T08:19:20+01:00"))
+      ),
+      currentDate = ZonedDateTime.parse("2024-03-13T08:19:20+01:00")
+    )
     Assert.assertEquals((Period.parse("P-1D"), Period.parse("P-1D")), result)
   }
 
   @Test
   def testRefFreq_branch_2(): Unit = {
-    val result = Lint.refFreqBranchTag(Seq(
-      brn("feature/a", ZonedDateTime.parse("2024-02-13T08:19:20+01:00")),
-      brn("main", ZonedDateTime.parse("2024-02-14T08:19:20+01:00")),
-    ), currentDate = ZonedDateTime.parse("2024-03-13T08:19:20+01:00"))
+    val result = Lint.refFreqBranchTag(
+      Seq(
+        brn("feature/a", ZonedDateTime.parse("2024-02-13T08:19:20+01:00")),
+        brn("main", ZonedDateTime.parse("2024-02-14T08:19:20+01:00"))
+      ),
+      currentDate = ZonedDateTime.parse("2024-03-13T08:19:20+01:00")
+    )
     Assert.assertEquals((Period.parse("P1D"), Period.parse("P-1D")), result)
   }
 
   @Test
   def testRefFreq_branch_3(): Unit = {
-    val result = Lint.refFreqBranchTag(Seq(
-      brn("feature/a", ZonedDateTime.parse("2024-02-15T08:19:20+01:00")),
-      brn("feature/b", ZonedDateTime.parse("2024-02-13T08:19:20+01:00")),
-      brn("main", ZonedDateTime.parse("2024-02-14T08:19:20+01:00")),
-    ), currentDate = ZonedDateTime.parse("2024-03-13T08:19:20+01:00"))
+    val result = Lint.refFreqBranchTag(
+      Seq(
+        brn("feature/a", ZonedDateTime.parse("2024-02-15T08:19:20+01:00")),
+        brn("feature/b", ZonedDateTime.parse("2024-02-13T08:19:20+01:00")),
+        brn("main", ZonedDateTime.parse("2024-02-14T08:19:20+01:00"))
+      ),
+      currentDate = ZonedDateTime.parse("2024-03-13T08:19:20+01:00")
+    )
     Assert.assertEquals((Period.parse("P1D"), Period.parse("P-1D")), result)
   }
 
   @Test
   def testRefFreq_branch_tag(): Unit = {
-    val result = Lint.refFreqBranchTag(Seq(
-      rbrn("origin/feature/a", ZonedDateTime.parse("2024-02-10T08:19:20+01:00")),
-      brn("feature/forgotten", ZonedDateTime.parse("1909-02-20T08:19:20+01:00")),
-      brn("main", ZonedDateTime.parse("2024-02-20T08:19:20+01:00")),
-      tag("v1.2.3", ZonedDateTime.parse("2024-02-13T08:19:20+01:00")),
-      tag("v1.2.4", ZonedDateTime.parse("2024-02-14T08:19:20+01:00")),
-    ), currentDate = ZonedDateTime.parse("2024-03-13T08:19:20+01:00"))
+    val result = Lint.refFreqBranchTag(
+      Seq(
+        rbrn("origin/feature/a", ZonedDateTime.parse("2024-02-10T08:19:20+01:00")),
+        brn("feature/forgotten", ZonedDateTime.parse("1909-02-20T08:19:20+01:00")),
+        brn("main", ZonedDateTime.parse("2024-02-20T08:19:20+01:00")),
+        tag("v1.2.3", ZonedDateTime.parse("2024-02-13T08:19:20+01:00")),
+        tag("v1.2.4", ZonedDateTime.parse("2024-02-14T08:19:20+01:00"))
+      ),
+      currentDate = ZonedDateTime.parse("2024-03-13T08:19:20+01:00")
+    )
     Assert.assertEquals((Period.parse("P10D"), Period.parse("P1D")), result)
   }
 
@@ -345,10 +429,12 @@ class LintTest extends AssertionsForJUnit {
 
   @Test
   def testPrintWarnInvalidBranch(): Unit = {
-    val expected = "[warning]    an INVALID branch/tag: ciRef: refName, ciTag: ciTag, ciBranch: ciComBra, gitTags: , gitBranch:  \uD83D\uDE2C RL1025-2c6b26db"
+    val expected =
+      "[warning]    an INVALID branch/tag: ciRef: refName, ciTag: ciTag, ciBranch: ciComBra, gitTags: , gitBranch:  \uD83D\uDE2C RL1025-2c6b26db"
     TermTest.testSys(Nil, expected, "", expectedExitCode = 99)(sys => {
-      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, 
-        skips = Seq("RL1025-2c6b26db")))
+      val opts = Opts(colors = false,
+        lintOpts = Opts().lintOpts.copy(showTimer = false,
+          skips = Seq("RL1025-2c6b26db")))
       val sgitMock = Mockito.mock(classOf[Sgit])
       Mockito.when(sgitMock.currentTags).thenReturn(None)
       Mockito.when(sgitMock.currentBranchOpt).thenReturn(None)

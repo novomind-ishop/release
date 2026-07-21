@@ -12,20 +12,28 @@ class GavTest extends AssertionsForJUnit {
 
   @Test
   def testSelectUnusualReason_SNAPSHOT(): Unit = {
-    Assert.assertEquals(Some("uses strange version SNAPSHOT, please do not use reserved words »SNAPSHOT«."),
-      Gav.selectUnusualReason(Gav(groupId = "a", artifactId = "a", version = Some("SNAPSHOT"))))
-    Assert.assertEquals(Some("uses strange version SNAPSHOT, please do not use reserved words »SNAPSHOT-SNAPSHOT«."),
-      Gav.selectUnusualReason(Gav(groupId = "a", artifactId = "a", version = Some("SNAPSHOT-SNAPSHOT"))))
+    Assert.assertEquals(
+      Some("uses strange version SNAPSHOT, please do not use reserved words »SNAPSHOT«."),
+      Gav.selectUnusualReason(Gav(groupId = "a", artifactId = "a", version = Some("SNAPSHOT")))
+    )
+    Assert.assertEquals(
+      Some("uses strange version SNAPSHOT, please do not use reserved words »SNAPSHOT-SNAPSHOT«."),
+      Gav.selectUnusualReason(Gav(groupId = "a", artifactId = "a", version = Some("SNAPSHOT-SNAPSHOT")))
+    )
   }
 
   @Test
   def testSelectUnusualReason_RELEASE(): Unit = {
-    Assert.assertEquals(Some("uses version »RELEASE« that is part of unstable markers LATEST and RELEASE. " +
-      "Please use unambiguous versions only."),
-      Gav.selectUnusualReason(Gav(groupId = "a", artifactId = "a", version = Some("RELEASE"))))
-    Assert.assertEquals(Some("uses version »LATEST« that is part of unstable markers LATEST and RELEASE. " +
-      "Please use unambiguous versions only."),
-      Gav.selectUnusualReason(Gav(groupId = "a", artifactId = "a", version = Some("LATEST"))))
+    Assert.assertEquals(
+      Some("uses version »RELEASE« that is part of unstable markers LATEST and RELEASE. " +
+        "Please use unambiguous versions only."),
+      Gav.selectUnusualReason(Gav(groupId = "a", artifactId = "a", version = Some("RELEASE")))
+    )
+    Assert.assertEquals(
+      Some("uses version »LATEST« that is part of unstable markers LATEST and RELEASE. " +
+        "Please use unambiguous versions only."),
+      Gav.selectUnusualReason(Gav(groupId = "a", artifactId = "a", version = Some("LATEST")))
+    )
     // TODO RELEASE-SNAPSHOT, LATEST-SNAPSHOT
   }
 }

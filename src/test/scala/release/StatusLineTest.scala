@@ -48,11 +48,12 @@ class StatusLineTest extends AssertionsForJUnit {
     status.start()
     status.end()
     // THEN
-    assertMsg("" +
-      "Progress: (000/002)[                                                                        ]\r" +
-      "Progress: (000/002)[------------------------------------                                    ]\r" +
-      "Progress: (000/002)[------------------------------------------------------------------------]\r" +
-      "Progress: (001/002)[====================================------------------------------------]"
+    assertMsg(
+      "" +
+        "Progress: (000/002)[                                                                        ]\r" +
+        "Progress: (000/002)[------------------------------------                                    ]\r" +
+        "Progress: (000/002)[------------------------------------------------------------------------]\r" +
+        "Progress: (001/002)[====================================------------------------------------]"
     )
   }
 
@@ -64,11 +65,12 @@ class StatusLineTest extends AssertionsForJUnit {
     status.start()
     status.end()
     // THEN
-    assertMsg("" +
-      "Progress: (000/072)[                                                                        ]\r" +
-      "Progress: (000/072)[-                                                                       ]\r" +
-      "Progress: (000/072)[--                                                                      ]\r" +
-      "Progress: (001/072)[=-                                                                      ]"
+    assertMsg(
+      "" +
+        "Progress: (000/072)[                                                                        ]\r" +
+        "Progress: (000/072)[-                                                                       ]\r" +
+        "Progress: (000/072)[--                                                                      ]\r" +
+        "Progress: (001/072)[=-                                                                      ]"
     )
   }
 

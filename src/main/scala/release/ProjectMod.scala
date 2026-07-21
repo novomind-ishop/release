@@ -39,7 +39,8 @@ object ProjectMod extends LazyLogging {
     in.toSeq.map(e => (GavWithRef(SelfRef.ofGav3(e._1), e._1.toGav()), e._2)).sortBy(_.toString())
   }
 
-  def removeOlderVersions(in: Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])]): Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])] = {
+  def removeOlderVersions(in: Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])])
+      : Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])] = {
     toDepChangeSeq(removeOlderVersions(toDepChangeMap(in)))
   }
 
@@ -51,16 +52,16 @@ object ProjectMod extends LazyLogging {
         (gavAndVersion._1, Nil)
       } else {
         (gavAndVersion._1, {
-          val current = Version.parseSloppy(gavAndVersion._1.version.get)
-          val value = versionLiterals._2
-            .filter(v => Version.ordering.gteq(v._1, current))
-            .map(e => (e._1.rawInput, e._2))
-          if (Seq(current.rawInput) == value.map(_._1)) {
-            Nil
-          } else {
-            value
-          }
-        })
+            val current = Version.parseSloppy(gavAndVersion._1.version.get)
+            val value = versionLiterals._2
+              .filter(v => Version.ordering.gteq(v._1, current))
+              .map(e => (e._1.rawInput, e._2))
+            if (Seq(current.rawInput) == value.map(_._1)) {
+              Nil
+            } else {
+              value
+            }
+          })
       }
     })
   }
@@ -82,7 +83,7 @@ object ProjectMod extends LazyLogging {
   }
 
   def libyear(showYear: Boolean, currentGav: Gav3, major: Option[String], versionTimestamps: Seq[(String, Try[ZonedDateTime])],
-              yearsFn: ((Gav3, Option[Int], Duration)) => Unit): String = {
+      yearsFn: ((Gav3, Option[Int], Duration)) => Unit): String = {
     try {
       if (showYear) {
         val workStamps = versionTimestamps.sortBy(k => Version.parseSloppy(k._1))
@@ -175,8 +176,9 @@ object ProjectMod extends LazyLogging {
       // TODO handle remote relocation
       Seq(dep)
     } else {
-      val sFind = deps.find(gavk => gavk.groupId == sGroupId &&
-        (gavk.artifactId == sArtifactId || gavk.artifactId == s3ArtifactId))
+      val sFind = deps.find(gavk =>
+        gavk.groupId == sGroupId &&
+          (gavk.artifactId == sArtifactId || gavk.artifactId == s3ArtifactId))
       if (sFind.isDefined) {
         val scalaLib = sFind.get
         val scalaMinor = scalaLib.version.get match {
@@ -207,48 +209,48 @@ object ProjectMod extends LazyLogging {
 
   def isUnwantedLiteral(gav: Gav2)(versionLiteral: String): Boolean = {
     versionLiteral.endsWith("-SNAPSHOT") ||
-      versionLiteral.contains("patch") ||
-      versionLiteral.matches(".*[Mm][0-9]+$") ||
-      versionLiteral.matches(".*-[Mm][0-9]+-.*") ||
-      versionLiteral.matches(".*-ea-[0-9]+$") || // used by org.immutables
-      versionLiteral.matches(".*-rc[0-9]+-.*") || // com.fasterxml.jackson.module:jackson-module-scala_2.13:2.13.0-rc3-preview2
-      versionLiteral.matches(".*-rc-[0-9]+$") ||
-      versionLiteral.matches(".*-rc\\.[0-9]+$") || // nosqlunit-redis 1.0.0-rc.4, 1.0.0-rc.5
-      versionLiteral.matches(".*-rc$") || // org.mariadb.jdbc:mariadb-java-client:3.0.2-rc
-      versionLiteral.matches(".*-[0-9a-f]{7}$") || // used by org.typelevel:cats-effect
-      versionLiteral.matches(".*-g[0-9a-f]{9}$") || // used by coursier
-      versionLiteral.matches(".*-dev$") || // used by commons-discovery:commons-discovery
-      versionLiteral.matches(".*pr[0-9]+$") ||
-      versionLiteral.contains("alpha") ||
-      versionLiteral.contains("Alpha") ||
-      versionLiteral.contains("ALPHA") ||
-      versionLiteral.contains("BETA") ||
-      versionLiteral.contains("Beta") ||
-      versionLiteral.contains("beta") ||
-      versionLiteral.contains("brew") ||
-      versionLiteral.matches(".*b[0-9]+.*") ||
-      versionLiteral.matches(".*\\-beta$") ||
-      versionLiteral.matches(".*SP[0-9]+$") ||
-      versionLiteral.matches(".*-SNAP[0-9]+$") ||
-      versionLiteral.matches(".*[(sec|SEC)][0-9]+$") ||
-      versionLiteral.endsWith("-incubating") ||
-      versionLiteral.endsWith("SONATYPE") ||
-      versionLiteral.contains("jbossorg") ||
-      versionLiteral.contains("-atlassian-") ||
-      versionLiteral.matches(".*jenkins-[0-9]+$") ||
-      versionLiteral.contains("PFD") ||
-      versionLiteral.matches(".*\\.CR[0-9]+$") || // hibernate-validator
-      // .versionLiteral.contains("-cdh") || // Cloudera Distribution Including Apache Hadoop
-      versionLiteral.contains("darft") ||
-      versionLiteral.startsWith("2003") || // too old
-      versionLiteral.startsWith("2004") || // too old
-      versionLiteral.endsWith("0.11.0-sshd-314-1") || // org.apache.sshd:sshd-sftp
-      versionLiteral.endsWith("-NIGHTLY") || // org.scala-lang:scala3-library_3
-      versionLiteral.endsWith("does-not-exist") || // commons-logging:commons-logging:99.0-does-not-exist
-      versionLiteral.endsWith("-PUBLISHED-BY-MISTAKE") ||
-      versionLiteral.endsWith("230521-nf-execution") || // com.graphql-java:graphql-java
-      versionLiteral.matches("^[1-9][0-9]{3}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}.*$") || // com.graphql-java:graphql-java
-      (versionLiteral.contains("android") && gav == Gav2(groupId = "com.google.guava", artifactId = "guava"))
+    versionLiteral.contains("patch") ||
+    versionLiteral.matches(".*[Mm][0-9]+$") ||
+    versionLiteral.matches(".*-[Mm][0-9]+-.*") ||
+    versionLiteral.matches(".*-ea-[0-9]+$") || // used by org.immutables
+    versionLiteral.matches(".*-rc[0-9]+-.*") || // com.fasterxml.jackson.module:jackson-module-scala_2.13:2.13.0-rc3-preview2
+    versionLiteral.matches(".*-rc-[0-9]+$") ||
+    versionLiteral.matches(".*-rc\\.[0-9]+$") || // nosqlunit-redis 1.0.0-rc.4, 1.0.0-rc.5
+    versionLiteral.matches(".*-rc$") || // org.mariadb.jdbc:mariadb-java-client:3.0.2-rc
+    versionLiteral.matches(".*-[0-9a-f]{7}$") || // used by org.typelevel:cats-effect
+    versionLiteral.matches(".*-g[0-9a-f]{9}$") || // used by coursier
+    versionLiteral.matches(".*-dev$") || // used by commons-discovery:commons-discovery
+    versionLiteral.matches(".*pr[0-9]+$") ||
+    versionLiteral.contains("alpha") ||
+    versionLiteral.contains("Alpha") ||
+    versionLiteral.contains("ALPHA") ||
+    versionLiteral.contains("BETA") ||
+    versionLiteral.contains("Beta") ||
+    versionLiteral.contains("beta") ||
+    versionLiteral.contains("brew") ||
+    versionLiteral.matches(".*b[0-9]+.*") ||
+    versionLiteral.matches(".*\\-beta$") ||
+    versionLiteral.matches(".*SP[0-9]+$") ||
+    versionLiteral.matches(".*-SNAP[0-9]+$") ||
+    versionLiteral.matches(".*[(sec|SEC)][0-9]+$") ||
+    versionLiteral.endsWith("-incubating") ||
+    versionLiteral.endsWith("SONATYPE") ||
+    versionLiteral.contains("jbossorg") ||
+    versionLiteral.contains("-atlassian-") ||
+    versionLiteral.matches(".*jenkins-[0-9]+$") ||
+    versionLiteral.contains("PFD") ||
+    versionLiteral.matches(".*\\.CR[0-9]+$") || // hibernate-validator
+    // .versionLiteral.contains("-cdh") || // Cloudera Distribution Including Apache Hadoop
+    versionLiteral.contains("darft") ||
+    versionLiteral.startsWith("2003") || // too old
+    versionLiteral.startsWith("2004") || // too old
+    versionLiteral.endsWith("0.11.0-sshd-314-1") || // org.apache.sshd:sshd-sftp
+    versionLiteral.endsWith("-NIGHTLY") || // org.scala-lang:scala3-library_3
+    versionLiteral.endsWith("does-not-exist") || // commons-logging:commons-logging:99.0-does-not-exist
+    versionLiteral.endsWith("-PUBLISHED-BY-MISTAKE") ||
+    versionLiteral.endsWith("230521-nf-execution") || // com.graphql-java:graphql-java
+    versionLiteral.matches("^[1-9][0-9]{3}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}.*$") || // com.graphql-java:graphql-java
+    (versionLiteral.contains("android") && gav == Gav2(groupId = "com.google.guava", artifactId = "guava"))
 
   }
 
@@ -285,7 +287,7 @@ object ProjectMod extends LazyLogging {
   }
 
   case class Dep(pomRef: SelfRef, groupId: String, artifactId: String, version: Option[String], typeN: String,
-                 scope: String, packaging: String, classifier: String, pomPath: Seq[String]) {
+      scope: String, packaging: String, classifier: String, pomPath: Seq[String]) {
     val gavWithDetailsFormatted: String = Gav.format(Seq(groupId, artifactId, version.getOrElse(""), typeN, scope, packaging, classifier))
 
     def gav() = Gav(groupId, artifactId, version, packaging, classifier, scope)
@@ -293,7 +295,8 @@ object ProjectMod extends LazyLogging {
 
   case class PluginExec(id: String, goals: Seq[String], phase: String, config: Map[String, String])
 
-  case class PluginDep(pomRef: SelfRef, groupId: String, artifactId: String, version: Option[String], execs: Seq[PluginExec], pomPath: Seq[String]) {
+  case class PluginDep(pomRef: SelfRef, groupId: String, artifactId: String, version: Option[String], execs: Seq[PluginExec],
+      pomPath: Seq[String]) {
 
     def fakeDep() = Dep(pomRef, groupId, artifactId, version, "", "", "", "", pomPath)
 
@@ -324,8 +327,9 @@ object ProjectMod extends LazyLogging {
     def slashedMeta: String = (groupId + '/' + artifactId).replace('.', '/') + "/maven-metadata.xml"
   }
 
-  case class Gav(groupId: String, artifactId: String, version: Option[String], packageing: String = "", classifier: String = "", scope: String = "")
-    extends Formated {
+  case class Gav(groupId: String, artifactId: String, version: Option[String], packageing: String = "", classifier: String = "",
+      scope: String = "")
+      extends Formated {
     def formatted: String = Gav.format(Seq(groupId, artifactId, version.getOrElse(""), packageing, classifier, scope))
 
     def simpleGav(): Gav3 = Gav3(groupId, artifactId, version)
@@ -383,10 +387,11 @@ object ProjectMod extends LazyLogging {
       if (parsed.isDefined) {
         val text = parsed.get.removeAllSnapshots().textLowerCase
         Gav.isUnusualElementValue(gav.groupId) || Gav.isUnusualElementValue(gav.artifactId) ||
-          (gav.version.isDefined && (Gav.isUnusualElementValue(gav.version.get) ||
+        (gav.version.isDefined &&
+          (Gav.isUnusualElementValue(gav.version.get) ||
             gav.version.get == "RELEASE" || gav.version.get == "LATEST")) ||
-          text == "snapshot" ||
-          Gav.isUnusualElementValue(gav.packageing) || Gav.isUnusualElementValue(gav.classifier) || Gav.isUnknownScope(gav.scope)
+        text == "snapshot" ||
+        Gav.isUnusualElementValue(gav.packageing) || Gav.isUnusualElementValue(gav.classifier) || Gav.isUnknownScope(gav.scope)
       } else {
         // TODO log version
         false
@@ -403,9 +408,7 @@ object ProjectMod extends LazyLogging {
       inSet.diff(rangeSet) != inSet
     }
 
-
-    private
-    val unusualCharsPattern = (
+    private val unusualCharsPattern = (
       "[\\p{C}" + // Control characters
         "\\u0020" + // Regular space
         "\\u00A0" + // NBSP
@@ -415,7 +418,7 @@ object ProjectMod extends LazyLogging {
         "\\u205F" + // Medium mathematical space
         "\\u3000" + // Ideographic space
         "]"
-      ).r
+    ).r
 
     def replaceUnusualElements(s: String): String = {
       unusualCharsPattern.replaceAllIn(s, "\u2423")
@@ -458,63 +461,70 @@ object ProjectMod extends LazyLogging {
     }
   }
 
-  def checkForUpdates(in: Seq[Gav3], depUpOpts: OptsDepUp, repo: RepoZ, updatePrinter: UpdateCon, ws: String): Map[Gav3, Seq[(String, Try[ZonedDateTime])]] = {
+  def checkForUpdates(in: Seq[Gav3], depUpOpts: OptsDepUp, repo: RepoZ, updatePrinter: UpdateCon, ws: String)
+      : Map[Gav3, Seq[(String, Try[ZonedDateTime])]] = {
 
-    val statusLine = StatusLine(in.size, updatePrinter.shellWidth, new StatusPrinter() {
-      override def print(string: String): Unit = updatePrinter.println(string)
+    val statusLine = StatusLine(
+      in.size,
+      updatePrinter.shellWidth,
+      new StatusPrinter() {
+        override def print(string: String): Unit = updatePrinter.println(string)
 
-      override def println(): Unit = updatePrinter.println(ws)
-    }, updatePrinter.printProgress)
+        override def println(): Unit = updatePrinter.println(ws)
+      },
+      updatePrinter.printProgress
+    )
     val updates: Map[Gav3, Seq[(String, Try[ZonedDateTime])]] = in
       .par
-      .map(dep => (dep, {
-        statusLine.start()
-        val newerVersions = if (depUpOpts.hideUpdates) {
-          Nil
-        } else {
-          if (depUpOpts.filter.isDefined && !depUpOpts.filter.get.matches(dep.formatted)) {
-            repo.newerAndPrevVersionsOf(dep.groupId, dep.artifactId, dep.version.get).headOption.toSeq
-          } else {
-            repo.newerAndPrevVersionsOf(dep.groupId, dep.artifactId, dep.version.get)
-          }
-        }
-
-        val selectedVersions: Seq[String] = if (depUpOpts.filter.isDefined) {
-          val value = newerVersions.map(v => dep.copy(version = Some(v)))
-            .filter(gav => depUpOpts.filter.get.matches(gav.formatted))
-            .map(_.version.get)
-          value
-        } else if (depUpOpts.hideUpdates) {
-          Seq(dep.version.get)
-        } else if (depUpOpts.hideStageVersions) {
-          ProjectMod.normalizeUnwantedVersions(dep, newerVersions)
-        } else {
-          newerVersions
-        }
-
-        val reduced = ProjectMod.onlySelfAndRangeLast(dep.toGav().simpleGav(), selectedVersions)
-
-        def selectReleaseDate(gav2: Gav2, v: String): Try[ZonedDateTime] = {
-          if (depUpOpts.showLibYears && reduced.nonEmpty && reduced.contains(v)) {
-            val latestDate = repo.depDate(gav2.groupId, gav2.artifactId, v)
-            if (latestDate.isDefined) {
-              Success(latestDate.get)
+      .map(dep =>
+        (dep, {
+            statusLine.start()
+            val newerVersions = if (depUpOpts.hideUpdates) {
+              Nil
             } else {
-              Failure(new UnsupportedOperationException(s"no date found for ${gav2.formatted}:${v}"))
+              if (depUpOpts.filter.isDefined && !depUpOpts.filter.get.matches(dep.formatted)) {
+                repo.newerAndPrevVersionsOf(dep.groupId, dep.artifactId, dep.version.get).headOption.toSeq
+              } else {
+                repo.newerAndPrevVersionsOf(dep.groupId, dep.artifactId, dep.version.get)
+              }
             }
-          } else {
-            Failure(new UnsupportedOperationException(s"libyears are not computed for ${gav2.formatted}:${v}"))
-          }
 
-        }
+            val selectedVersions: Seq[String] = if (depUpOpts.filter.isDefined) {
+              val value = newerVersions.map(v => dep.copy(version = Some(v)))
+                .filter(gav => depUpOpts.filter.get.matches(gav.formatted))
+                .map(_.version.get)
+              value
+            } else if (depUpOpts.hideUpdates) {
+              Seq(dep.version.get)
+            } else if (depUpOpts.hideStageVersions) {
+              ProjectMod.normalizeUnwantedVersions(dep, newerVersions)
+            } else {
+              newerVersions
+            }
 
-        statusLine.end()
-        val x: Seq[(String, Try[ZonedDateTime])] = selectedVersions
-          .par
-          .map(version => (version, selectReleaseDate(dep.toGav2(), version)))
-          .seq
-        x
-      }))
+            val reduced = ProjectMod.onlySelfAndRangeLast(dep.toGav().simpleGav(), selectedVersions)
+
+            def selectReleaseDate(gav2: Gav2, v: String): Try[ZonedDateTime] = {
+              if (depUpOpts.showLibYears && reduced.nonEmpty && reduced.contains(v)) {
+                val latestDate = repo.depDate(gav2.groupId, gav2.artifactId, v)
+                if (latestDate.isDefined) {
+                  Success(latestDate.get)
+                } else {
+                  Failure(new UnsupportedOperationException(s"no date found for ${gav2.formatted}:${v}"))
+                }
+              } else {
+                Failure(new UnsupportedOperationException(s"libyears are not computed for ${gav2.formatted}:${v}"))
+              }
+
+            }
+
+            statusLine.end()
+            val x: Seq[(String, Try[ZonedDateTime])] = selectedVersions
+              .par
+              .map(version => (version, selectReleaseDate(dep.toGav2(), version)))
+              .seq
+            x
+          }))
       .seq
       .toMap
 
@@ -588,15 +598,17 @@ object ProjectMod extends LazyLogging {
     }
   }
 
-  def collectDependencyUpdates(updatePrinter: UpdateCon, depUpOpts: OptsDepUp,
-                               envs: Map[String, String],
-                               rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], repoDelegator: RepoProxy,
-                               checkOnline: Boolean, ws: String): Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = {
+  def collectDependencyUpdates(updatePrinter: UpdateCon, opts: Opts,
+      envs: Map[String, String],
+      rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], repoDelegator: RepoProxy,
+      checkOnline: Boolean, ws: String, warnExit: OneTimeSwitch, errorExit: OneTimeSwitch)
+      : Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = {
     if (checkOnline) {
       repoDelegator.repos.foreach(repo => {
         val reachableResult = repo.isReachable(false, RepoZ.confFromEnv(repo.workNexusUrl(), envs))
         if (!reachableResult.online) {
-          throw new PreconditionsException(repo.workNexusUrl() + " - repo feels offline - " + reachableResult.msg + RepoZ.createEnvRul(repo.workNexusUrl()))
+          throw new PreconditionsException(
+            repo.workNexusUrl() + " - repo feels offline - " + reachableResult.msg + RepoZ.createEnvRul(repo.workNexusUrl()))
         }
       })
 
@@ -628,11 +640,11 @@ object ProjectMod extends LazyLogging {
       })
 
     val value: Seq[Gav3] = prepared.flatMap(ProjectMod.relocateGavs(prepared, repoDelegator)).map(_.gav().simpleGav())
-    val updates = checkForUpdates(value, depUpOpts, repoDelegator, updatePrinter, ws = ws)
+    val updates = checkForUpdates(value, opts.depUpOpts, repoDelegator, updatePrinter, ws = ws)
     val now = LocalDate.now()
     updatePrinter.println(s"I: checked ${value.size} dependencies in ${stopw.toString} (${now.toString})")
 
-    val checkedUpdates: Map[Gav3, Seq[(String, Try[ZonedDateTime])]] = if (depUpOpts.allowDependencyDowngrades) {
+    val checkedUpdates: Map[Gav3, Seq[(String, Try[ZonedDateTime])]] = if (opts.depUpOpts.allowDependencyDowngrades) {
       updates
     } else {
       ProjectMod.removeOlderVersions(updates)
@@ -645,7 +657,7 @@ object ProjectMod extends LazyLogging {
           val a: Seq[(String, Try[ZonedDateTime])] = inp.getOrElse(in.gav().simpleGav(), Nil)
           (ref, a)
         })
-        .filterNot((in: (GavWithRef, Seq[(String, Try[ZonedDateTime])])) => depUpOpts.hideLatest && in._2.isEmpty)
+        .filterNot((in: (GavWithRef, Seq[(String, Try[ZonedDateTime])])) => opts.depUpOpts.hideLatest && in._2.isEmpty)
     }
 
     val allWithUpdate: Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = change(checkedUpdates)
@@ -679,22 +691,23 @@ object ProjectMod extends LazyLogging {
         }).filterNot(_._2.isEmpty)
         if (majorVersionWithoutSelf.size == 1) {
 
-          val year = libyear(depUpOpts.showLibYears, subElement._1.gav.simpleGav(), None, subElement._2,
+          val year = libyear(opts.depUpOpts.showLibYears, subElement._1.gav.simpleGav(), None, subElement._2,
             yearsFn = y => years = years :+ y)
           updatePrinter.println(ch("║ ╚═══ ", "| +--- ") +
-            abbreviate(depUpOpts.versionRangeLimit)(majorVersionWithoutSelf.head._2).mkString(", ") + year)
+            abbreviate(opts.depUpOpts.versionRangeLimit)(majorVersionWithoutSelf.head._2).mkString(", ") + year)
         } else {
           if (majorVersionWithoutSelf != Nil) {
             majorVersionWithoutSelf.tail.reverse.foreach(el => {
-              val year = libyear(depUpOpts.showLibYears, subElement._1.gav.simpleGav(), Some(el._1), subElement._2,
+              val year = libyear(opts.depUpOpts.showLibYears, subElement._1.gav.simpleGav(), Some(el._1), subElement._2,
                 yearsFn = y => years = years :+ y)
               updatePrinter.println(ch("║ ╠═══ ", "| +--- ") + "(" + el._1 + ") " +
-                abbreviate(depUpOpts.versionRangeLimit)(el._2).mkString(", ") + year)
+                abbreviate(opts.depUpOpts.versionRangeLimit)(el._2).mkString(", ") + year)
             })
-            val year = libyear(depUpOpts.showLibYears, subElement._1.gav.simpleGav(), Some(majorVersionWithoutSelf.head._1), subElement._2,
-              yearsFn = y => years = years :+ y)
+            val year =
+              libyear(opts.depUpOpts.showLibYears, subElement._1.gav.simpleGav(), Some(majorVersionWithoutSelf.head._1), subElement._2,
+                yearsFn = y => years = years :+ y)
             updatePrinter.println(ch("║ ╚═══ ", "| +--- ") + "(" + majorVersionWithoutSelf.head._1 + ") " +
-              abbreviate(depUpOpts.versionRangeLimit)(majorVersionWithoutSelf.head._2).mkString(", ") + year)
+              abbreviate(opts.depUpOpts.versionRangeLimit)(majorVersionWithoutSelf.head._2).mkString(", ") + year)
           }
         }
 
@@ -704,19 +717,22 @@ object ProjectMod extends LazyLogging {
 
     // TODO check versions before
     val versionNotFound: Map[Gav3, Seq[(String, Try[ZonedDateTime])]] = updates
-      .filterNot(t => if (depUpOpts.filter.isEmpty) {
-        false
-      } else {
-        !depUpOpts.filter.get.matches(t._1.formatted)
-      })
+      .filterNot(t =>
+        if (opts.depUpOpts.filter.isEmpty) {
+          false
+        } else {
+          !opts.depUpOpts.filter.get.matches(t._1.formatted)
+        })
       .filter(_._2 == Nil)
     if (versionNotFound.nonEmpty) {
       // TODO throw new PreconditionsException
       updatePrinter.printlnErr("Non existing dependencies for:\n" +
-        versionNotFound.toList.map(in => s"»${in._1.formatted}« -> " + (in._2 match {
-          case Nil => "Nil"
-          case e => e
-        }) + "\n  " + repoDelegator.workNexusUrl() + in._1.slashedMeta).sorted.mkString("\n"))
+        versionNotFound.toList.map(in =>
+          s"»${in._1.formatted}« -> " +
+            (in._2 match {
+              case Nil => "Nil"
+              case e => e
+            }) + "\n  " + repoDelegator.workNexusUrl() + in._1.slashedMeta).sorted.mkString("\n"))
       updatePrinter.printlnErr(ws)
     }
 
@@ -727,7 +743,7 @@ object ProjectMod extends LazyLogging {
       updatePrinter.printlnErr(ws)
     }
 
-    if (depUpOpts.showLibYears) {
+    if (opts.depUpOpts.showLibYears) {
       // https://libyear.com/
       // https://ericbouwers.github.io/papers/icse15.pdf
       updatePrinter.println(ws)
@@ -755,6 +771,14 @@ object ProjectMod extends LazyLogging {
       }
       val period = Util.toPeriod(sum)
       updatePrinter.println(s"Σ libyears: ${period.getYears}Y ${period.getMonths}M (${sum.toDays} days) [${now.toString}]")
+      if (opts.lintOpts.libYearsWarnPeriod.isDefined && period.minus(opts.lintOpts.libYearsWarnPeriod.get).isNegative) {
+        updatePrinter.println(s"Σ libyears: will trigger a warning") // TODO
+        warnExit.trigger()
+      }
+      if (opts.lintOpts.libYearsErrorPeriod.isDefined && period.minus(opts.lintOpts.libYearsErrorPeriod.get).isNegative) {
+        updatePrinter.println(s"Σ libyears: will trigger an error") // TODO
+        errorExit.trigger()
+      }
     }
     allWithUpdate
   }
@@ -789,24 +813,29 @@ trait ProjectMod extends LazyLogging {
   val listProperties: Map[String, String]
   val skipPropertyReplacement: Boolean
 
-  def tryCollectDependencyUpdates(depUpOpts: OptsDepUp, checkOn: Boolean = true, updatePrinter: UpdateCon, ws: String,
-                                  envs: Map[String, String]):
-  Try[(Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])], RepoProxy)] = {
-    Util.timeout(depUpOpts.timeoutSec.getOrElse(90), TimeUnit.SECONDS, _ => {
-      try {
-        Success(collectDependencyUpdates(depUpOpts, checkOn, updatePrinter, ws, envs = envs))
-      } catch {
-        case e: Exception => {
-          Failure(e)
+  def tryCollectDependencyUpdates(opts: Opts, checkOn: Boolean = true, updatePrinter: UpdateCon, ws: String,
+      warnExit: OneTimeSwitch, errorExit: OneTimeSwitch,
+      envs: Map[String, String]): Try[(Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])], RepoProxy)] = {
+    Util.timeout(
+      opts.depUpOpts.timeoutSec.getOrElse(90),
+      TimeUnit.SECONDS,
+      _ => {
+        try {
+          Success(collectDependencyUpdates(opts, checkOn, updatePrinter, ws, warnExit = warnExit, errorExit = errorExit, envs = envs))
+        } catch {
+          case e: Exception => {
+            Failure(e)
+          }
         }
-      }
-    }, (e, _) => Failure(e))._1
+      },
+      (e, _) => Failure(e)
+    )._1
 
   }
 
-  def collectDependencyUpdates(depUpOpts: OptsDepUp, checkOn: Boolean = true, updatePrinter: UpdateCon, ws: String,
-                               envs: Map[String, String]):
-  (Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])], RepoProxy) = {
+  def collectDependencyUpdates(opts: Opts, checkOn: Boolean = true, updatePrinter: UpdateCon, ws: String,
+      warnExit: OneTimeSwitch, errorExit: OneTimeSwitch,
+      envs: Map[String, String]): (Seq[(ProjectMod.GavWithRef, Seq[(String, Try[ZonedDateTime])])], RepoProxy) = {
     val depForCheck: Seq[Dep] = listGavsForCheck()
     val sdm = selfDepsMod
 
@@ -815,10 +844,19 @@ trait ProjectMod extends LazyLogging {
     if (allRepoUrls.nonEmpty) {
       updatePrinter.println("... " + allRepoUrls.mkString(", "))
     }
-    val result = ProjectMod.collectDependencyUpdates(updatePrinter = updatePrinter,
-      depUpOpts = depUpOpts, rootDeps = depForCheck, selfDepsMod = sdm, repoDelegator = proxy, checkOnline = checkOn,
-      ws = ws, envs = envs)
-    if (depUpOpts.changeToLatest) {
+    val result = ProjectMod.collectDependencyUpdates(
+      updatePrinter = updatePrinter,
+      opts = opts,
+      rootDeps = depForCheck,
+      selfDepsMod = sdm,
+      repoDelegator = proxy,
+      checkOnline = checkOn,
+      ws = ws,
+      envs = envs,
+      warnExit = warnExit,
+      errorExit = errorExit
+    )
+    if (opts.depUpOpts.changeToLatest) {
       val localDepUpFile = new File(file, ".release-dependency-updates")
       val fn: (Gav3, Seq[String]) => String = if (localDepUpFile.canRead) {
         ProjectMod.rangeFnOf(FileUtils.read(localDepUpFile))
@@ -834,10 +872,11 @@ trait ProjectMod extends LazyLogging {
   private[release] def listDeps(): Seq[ProjectMod.Dep] = {
     val fromDeps = PomMod.replacedVersionProperties(listProperties, skipPropertyReplacement)(listDependencies)
     val fromPlugins = listPluginDependencies.map(_.fakeDep())
-      .map(in => in.groupId match {
-        case "" => in.copy(groupId = "org.apache.maven.plugins")
-        case _ => in
-      })
+      .map(in =>
+        in.groupId match {
+          case "" => in.copy(groupId = "org.apache.maven.plugins")
+          case _ => in
+        })
     (fromDeps ++ fromPlugins).filterNot(d => d.gav().isEmpty())
   }
 

@@ -134,7 +134,7 @@ object Lint {
   }
 
   case class PackageImportResult(packagesWithSrcPath: Seq[(String, Path)], importsWithSrcPath: Seq[(String, Path)], d: Duration,
-                                 private val unwantedPackageDefinition: String, msg: String) {
+      private val unwantedPackageDefinition: String, msg: String) {
 
     import PackageImportResult.*
 
@@ -151,14 +151,15 @@ object Lint {
     lazy val unwantedPackages: Seq[String] = {
 
       val normalized = packages.map(nomPackage)
-      normalized.filter(e => allNames.exists(k => {
-        if (k.endsWith(";")) {
-          e.replace(";", "").endsWith(k.replace(";", ""))
-        } else {
-          e.startsWith(k)
-        }
+      normalized.filter(e =>
+        allNames.exists(k => {
+          if (k.endsWith(";")) {
+            e.replace(";", "").endsWith(k.replace(";", ""))
+          } else {
+            e.startsWith(k)
+          }
 
-      }))
+        }))
     }
     lazy val unwantedDefinitionSum: String = {
       Util.hashMurmur3_32_fixed(allNames.sorted.mkString("\n"))
@@ -188,10 +189,11 @@ object Lint {
         .flatMap(f => {
           try {
             val rel = rootFile.toPath.relativize(f)
-            val result = FileUtils.findAllInFile(f, sel => {
-              val trimmed = sel.trim
-              (trimmed.startsWith("package ") || trimmed.startsWith("import "), trimmed)
-            })
+            val result = FileUtils.findAllInFile(f,
+              sel => {
+                val trimmed = sel.trim
+                (trimmed.startsWith("package ") || trimmed.startsWith("import "), trimmed)
+              })
             result.map(e => (e._1, rel))
           } catch {
             case _: Exception => None
@@ -200,14 +202,20 @@ object Lint {
         })
       val packageLines: List[(String, Path)] = both.filter(_._1.startsWith("package")).toList.sorted.distinctBy(_._2)
       val importLines: List[(String, Path)] = both.filter(_._1.startsWith("import")).distinct.toList.sorted
-      PackageImportResult(packagesWithSrcPath = packageLines, importsWithSrcPath = importLines,
-        d = stopwatch.elapsed().withNanos(0), unwantedPackageDefinition = FileUtils.read(packageScanFile), msg = "")
+      PackageImportResult(
+        packagesWithSrcPath = packageLines,
+        importsWithSrcPath = importLines,
+        d = stopwatch.elapsed().withNanos(0),
+        unwantedPackageDefinition = FileUtils.read(packageScanFile),
+        msg = ""
+      )
 
     }
 
-    Util.timeout(50, TimeUnit.SECONDS, toResult, (e, d) => {
-      PackageImportResult.timeout(d, e.getMessage + ". Big projects with more then 10k files took ~2 seconds")
-    })._1
+    Util.timeout(50, TimeUnit.SECONDS, toResult,
+      (e, d) => {
+        PackageImportResult.timeout(d, e.getMessage + ". Big projects with more then 10k files took ~2 seconds")
+      })._1
   }
 
   case class NePrLa(next: Option[Gav3], previous: Option[Gav3], latest: Option[Gav3])
@@ -267,7 +275,7 @@ object Lint {
   case class MismatchResult(isMismatch: Boolean, msg: String)
 
   def versionMismatches(selfVersion: String, tagBranchInfo: Option[BranchTagMerge], isShop: Boolean,
-                        headBranchName: Option[String], allBranches: Seq[String] = Nil): MismatchResult = {
+      headBranchName: Option[String], allBranches: Seq[String] = Nil): MismatchResult = {
     val defaultBranchnames = Set("main", "master") ++ headBranchName.toSet
 
     if (tagBranchInfo.isDefined) {
@@ -418,17 +426,21 @@ object Lint {
   }
 
   def toBranchTag(ciCommitRefName: String, ciCommitTag: String, currentBranchOpt: Option[String], ciCommitBranch: String,
-                  currentTagsIn: Seq[String]): Option[BranchTagMerge] = {
-    if (Strings.emptyToNull(ciCommitTag) == null && Strings.emptyToNull(ciCommitBranch) == null &&
-      Strings.emptyToNull(ciCommitRefName) != null) {
+      currentTagsIn: Seq[String]): Option[BranchTagMerge] = {
+    if (
+      Strings.emptyToNull(ciCommitTag) == null && Strings.emptyToNull(ciCommitBranch) == null &&
+      Strings.emptyToNull(ciCommitRefName) != null
+    ) {
       return BranchTagMerge.merge
     }
     val currentTags = currentTagsIn
       .filterNot(tagName => tagName.matches(".*-[0-9]+-g[0-9a-f]+$"))
     if (ciCommitRefName == ciCommitTag && currentTags.contains(ciCommitTag) && Strings.emptyToNull(ciCommitBranch) == null) {
       Some(BranchTagMerge(tagName = Some(ciCommitTag), branchName = None))
-    } else if (Strings.emptyToNull(ciCommitTag) == null &&
-      (currentBranchOpt.getOrElse("") == ciCommitRefName || ciCommitRefName == ciCommitBranch)) {
+    } else if (
+      Strings.emptyToNull(ciCommitTag) == null &&
+      (currentBranchOpt.getOrElse("") == ciCommitRefName || ciCommitRefName == ciCommitBranch)
+    ) {
       Some(BranchTagMerge(tagName = currentTags.headOption, branchName = Some(ciCommitRefName)))
     } else if (currentBranchOpt.isDefined) {
       Some(BranchTagMerge(tagName = currentTags.headOption, branchName = Some(currentBranchOpt.get)))
@@ -445,12 +457,12 @@ object Lint {
 
   def isValidBranch(maybeBranch: Option[BranchTagMerge]): Boolean = {
     maybeBranch.isDefined && maybeBranch.get.branchName.isDefined &&
-      maybeBranch.get.tagName.isEmpty
+    maybeBranch.get.tagName.isEmpty
   }
 
   def isValidTag(maybeTag: Option[BranchTagMerge]): Boolean = {
     maybeTag.isDefined && maybeTag.get.tagName.isDefined &&
-      maybeTag.get.branchName.filterNot(_ == "HEAD").isEmpty
+    maybeTag.get.branchName.filterNot(_ == "HEAD").isEmpty
   }
 
   type UniqCode = String
@@ -510,10 +522,9 @@ object Lint {
   val fiError = "❌"
 
   def run(out: PrintStream, err: PrintStream, sysOpts: Opts,
-          systemEnvs: Map[String, String],
-          file: File = new File(".").getAbsoluteFile,
-          mockMod: Option[Try[ProjectMod]] = None): Int = {
-
+      systemEnvs: Map[String, String],
+      file: File = new File(".").getAbsoluteFile,
+      mockMod: Option[Try[ProjectMod]] = None): Int = {
 
     val isGitlab: Boolean = systemEnvs.get("CI_COMMIT_SHA").isDefined
     val ws: String = {
@@ -580,7 +591,6 @@ object Lint {
           systemEnvs
         }
 
-
         val opts = workOpts // TODO merge early
         out.println(info("--- version / git ---", opts))
         out.println(info(s"    ${fiFine} git  version: " + sgit.version(), opts))
@@ -608,7 +618,7 @@ object Lint {
           if (remoteHead.isFailure) {
             val exception = remoteHead.failed.get
             out.println(warn(s" ${fiWarn} remote call exception: ${exception.getClass.getName} message: ${exception.getMessage}",
-              opts, limit = lineMax))
+                opts, limit = lineMax))
           }
           warnExit.trigger()
         }
@@ -648,7 +658,9 @@ object Lint {
         })
         out.println(info("--- check clone config / no shallow clone @ git ---", opts))
         if (sgit.isShallowClone) {
-          Term.wrap(out, Term.warn,
+          Term.wrap(
+            out,
+            Term.warn,
             s""" shallow clone detected ${fiWarn}
                |% git rev-parse --is-shallow-repository # returns ${sgit.isShallowClone}
                |% git log -n1 --pretty=%H # returns
@@ -660,7 +672,9 @@ object Lint {
                |  If this does not fix this warning, toggle
                |  the .. -> 'Git strategy' to 'git clone' for maybe a
                |  single build to wipe out gitlab caches.
-               |""".stripMargin, opts)
+               |""".stripMargin,
+            opts
+          )
           warnExit.trigger()
         } else {
           out.println(info(s"    ${fiFine} NO shallow clone", opts))
@@ -740,14 +754,16 @@ object Lint {
         val ciCommitTag = ciTagEnv.orNull
         val ciCommitBranchEnv = envs.get("CI_COMMIT_BRANCH") // not present on gitlab merge requests
         val ciCommitBranch = ciCommitBranchEnv.getOrElse("")
-        val tagBranchInfo = Lint.toBranchTag(ciCommitRefName, ciCommitTag, sgit.currentBranchOpt, ciCommitBranch, sgit.currentTagsWithoutAnnotated.getOrElse(Nil))
+        val tagBranchInfo = Lint.toBranchTag(
+          ciCommitRefName, ciCommitTag, sgit.currentBranchOpt, ciCommitBranch, sgit.currentTagsWithoutAnnotated.getOrElse(Nil))
         val isGitOrCiTag: Boolean = Lint.isValidTag(tagBranchInfo)
         val rootFolderFiles = files.toSeq
         var pomFailures: Seq[Exception] = Nil
         val pompom: Option[Try[ProjectMod]] = if (rootFolderFiles.exists(_.getName == "pom.xml")) {
-          Some(PomMod.withRepoTry(file, opts, opts.newRepo, failureCollector = Some(e => {
-            pomFailures = pomFailures :+ e
-          })))
+          Some(PomMod.withRepoTry(file, opts, opts.newRepo,
+              failureCollector = Some(e => {
+                pomFailures = pomFailures :+ e
+              })))
         } else {
           None
         }
@@ -801,9 +817,11 @@ object Lint {
             out.println(info("      a valid merge request : " + ciCommitRefName, opts))
             usedLintSkips = usedLintSkips :+ fiCodeVersionMismatch
           } else {
-            usedLintSkips = usedLintSkips ++ printWarnInvalidBranch(out, warnExit, sgit, opts, ciCommitRefName, ciCommitTag, ciCommitBranch).toSeq
+            usedLintSkips = usedLintSkips ++
+              printWarnInvalidBranch(out, warnExit, sgit, opts, ciCommitRefName, ciCommitTag, ciCommitBranch).toSeq
           }
-          val dockerTag = SuggestDockerTag.findTagname(ciCommitRefName, ciCommitTag, pompom.flatMap(_.toOption.map(_.selfVersion)), hasDockerFiles)
+          val dockerTag =
+            SuggestDockerTag.findTagname(ciCommitRefName, ciCommitTag, pompom.flatMap(_.toOption.map(_.selfVersion)), hasDockerFiles)
           if (dockerTag.isSuccess) {
             if (dockerTag.get.isSuccess) {
               out.println(info("      docker tag : " + dockerTag.get.get, opts))
@@ -813,10 +831,12 @@ object Lint {
                 usedLintSkips = usedLintSkips :+ fiCodeGitlabCiTagname
               }
               if (bool) {
-                Term.wrap(out, Term.warn, "  docker tag : " + dockerTag.get.failed.get.getMessage + s" ${fiWarn}\u00A0${fiCodeGitlabCiTagname}", opts)
+                Term.wrap(out, Term.warn,
+                  "  docker tag : " + dockerTag.get.failed.get.getMessage + s" ${fiWarn}\u00A0${fiCodeGitlabCiTagname}", opts)
                 warnExit.trigger()
               } else {
-                Term.wrap(out, Term.error, "     docker tag : " + dockerTag.get.failed.get.getMessage + s" ${fiError}\u00A0${fiCodeGitlabCiTagname}", opts)
+                Term.wrap(out, Term.error,
+                  "     docker tag : " + dockerTag.get.failed.get.getMessage + s" ${fiError}\u00A0${fiCodeGitlabCiTagname}", opts)
                 errorExit.trigger()
               }
             }
@@ -934,8 +954,18 @@ object Lint {
               out.println(info("    WIP", opts)) // TODO check extensions present
             }
             out.println(info("--- project version @ maven ---", opts))
-            usedLintSkips = usedLintSkips ++ LintMaven.lintProjectVersion(out, opts, modTry.get.selfVersionReplaced, warnExit, errorExit, tagBranchInfo,
-              sgit.listAllTags(), mod.isShop, remoteHead.toOption.flatMap(_.map(_.name)), sgit.listBranchNamesAllFull())
+            usedLintSkips = usedLintSkips ++ LintMaven.lintProjectVersion(
+              out,
+              opts,
+              modTry.get.selfVersionReplaced,
+              warnExit,
+              errorExit,
+              tagBranchInfo,
+              sgit.listAllTags(),
+              mod.isShop,
+              remoteHead.toOption.flatMap(_.map(_.name)),
+              sgit.listBranchNamesAllFull()
+            )
 
             out.println(info("--- check for snapshots @ maven ---", opts))
             val snaps = mod.listGavsForCheck()
@@ -964,8 +994,10 @@ object Lint {
             }
             out.println(info("--- check for preview releases @ maven ---", opts))
             val updatePrinter = new StaticPrinter()
-            val updateOpts = opts.depUpOpts.copy(hideStageVersions = true, allowDependencyDowngrades = true, showLibYears = true)
-            val resultTry = mod.tryCollectDependencyUpdates(updateOpts, checkOn = true, updatePrinter, ws = ws, envs = envs)
+            val updateOpts =
+              opts.copy(depUpOpts = opts.depUpOpts.copy(hideStageVersions = true, allowDependencyDowngrades = true, showLibYears = true))
+            val resultTry = mod.tryCollectDependencyUpdates(opts = updateOpts, checkOn = true, updatePrinter, ws = ws, envs = envs,
+              warnExit = warnExit, errorExit = errorExit)
             val lookupUpAndDowngrades: Map[Gav3, Seq[String]] = if (resultTry.isSuccess) {
               resultTry.get._1.map(t => (t._1.gav.simpleGav(), t._2.map(_._1))).toMap
             } else {
@@ -989,7 +1021,8 @@ object Lint {
                 }
 
                 if (resultTry.isSuccess) {
-                  out.println(warn("  found preview: " + dep.gav().formatted + s" ${fiWarn} ${code}", opts, limit = lineMax, soft = skipped))
+                  out.println(warn("  found preview: " + dep.gav().formatted + s" ${fiWarn} ${code}", opts, limit = lineMax,
+                      soft = skipped))
                   val gav = dep.gav().simpleGav()
                   val versionRangeFor = lookupUpAndDowngrades.get(gav)
                   val npo = Lint.selectNextAndPrevious(versionRangeFor, gav)
@@ -1006,7 +1039,8 @@ object Lint {
                     }
                   }
                 } else {
-                  out.println(warn("  found preview without any stable release: " + dep.gav().formatted + s" ${fiWarn} ${code}", opts, limit = lineMax, soft = skipped))
+                  out.println(warn("  found preview without any stable release: " + dep.gav().formatted + s" ${fiWarn} ${code}", opts,
+                      limit = lineMax, soft = skipped))
                 }
               })
             if (warnExitForDepCheck.isTriggered()) {
@@ -1022,20 +1056,27 @@ object Lint {
             val releasenexusworkurl: String = ReleaseConfig.releaseNexusEnv(envs).orNull
             val repo = mod.repo
             if (repo.workNexusUrl() == Repo.centralUrl) {
-              out.println(warn(s" work nexus points to central ${repo.workNexusUrl()} ${fiWarn} ${fiCodeNexusCentral}", opts, limit = lineMax))
-              out.println(info(s"    RELEASE_NEXUS_WORK_URL=${releasenexusworkurl} # (${Util.ipFromUrl(releasenexusworkurl).getOrElse("no ip")})", opts, limit = lineMax))
+              out.println(warn(s" work nexus points to central ${repo.workNexusUrl()} ${fiWarn} ${fiCodeNexusCentral}", opts,
+                  limit = lineMax))
+              out.println(
+                info(s"    RELEASE_NEXUS_WORK_URL=${releasenexusworkurl} # (${Util.ipFromUrl(releasenexusworkurl).getOrElse("no ip")})",
+                  opts, limit = lineMax))
               warnExit.trigger()
             } else {
-              out.println(info(s"    RELEASE_NEXUS_WORK_URL=${repo.workNexusUrl()} # (${Util.ipFromUrl(repo.workNexusUrl()).getOrElse("no ip")})", opts, limit = lineMax))
+              out.println(
+                info(s"    RELEASE_NEXUS_WORK_URL=${repo.workNexusUrl()} # (${Util.ipFromUrl(repo.workNexusUrl()).getOrElse("no ip")})",
+                  opts, limit = lineMax))
             }
             if (!repo.workNexusUrl().endsWith("/")) {
-              out.println(warn(s" nexus work url must end with a '/' - ${repo.workNexusUrl()} ${fiWarn} ${fiCodeNexusUrlSlash}", opts, limit = lineMax))
+              out.println(warn(s" nexus work url must end with a '/' - ${repo.workNexusUrl()} ${fiWarn} ${fiCodeNexusUrlSlash}", opts,
+                  limit = lineMax))
               warnExit.trigger()
             }
             val settingsNexusMirrors = mod.listRemoteRepoUrls()
             if (settingsNexusMirrors != Nil) {
               settingsNexusMirrors.foreach(url => {
-                out.println(info(s"    settings.xml nexus mirror=${url} # (${Util.ipFromUrl(url).getOrElse("no ip")})", opts, limit = lineMax))
+                out.println(info(s"    settings.xml nexus mirror=${url} # (${Util.ipFromUrl(url).getOrElse("no ip")})", opts,
+                    limit = lineMax))
               })
             }
 
@@ -1046,7 +1087,6 @@ object Lint {
                 ProjectMod.removeOlderVersions(resultTry.get._1)
               } else {
                 out.println(warn(" Dependency updated failed", opts))
-
 
                 if (opts.lintOpts.skips.contains(fiCodeSkipBinaryRepo)) {
                   val str = Util.toGlitchy("Dependency updates intentionally skipped. ") + fiCodeSkipBinaryRepo + " "
@@ -1059,7 +1099,8 @@ object Lint {
                   out.println(error("   " + failedGet.getMessage, opts, limit = lineMax)) // TODO improve format
                   errorExit.trigger()
                 } else {
-                  out.println(warn(failedGet.getClass.getCanonicalName + " " + failedGet.getMessage, opts, limit = lineMax)) // TODO improve format
+                  out.println(warn(failedGet.getClass.getCanonicalName + " " + failedGet.getMessage, opts,
+                      limit = lineMax)) // TODO improve format
                   warnExit.trigger()
                   // TODO trigger
                 }
@@ -1075,7 +1116,9 @@ object Lint {
               if (releaseOfSnapshotPresent.nonEmpty) {
                 // TODO handle filter fiCode
                 releaseOfSnapshotPresent.map(_._1).foreach(found => {
-                  out.println(warn(s"${found.formatted} is already released, remove '-SNAPSHOT' suffix ${fiWarn} ${fiCodeNexusFoundRelease(found)}", opts, limit = lineMax))
+                  out.println(
+                    warn(s"${found.formatted} is already released, remove '-SNAPSHOT' suffix ${fiWarn} ${fiCodeNexusFoundRelease(found)}",
+                      opts, limit = lineMax))
                 })
                 warnExit.trigger()
               }
@@ -1107,8 +1150,12 @@ object Lint {
                   })
                 withCode
                   .foreach(found => {
-                    out.println(warn(s"${found._1.formatted} is not released, but next release (${found._2.rawInput}) " +
-                      s"was found (maybe orphan snapshot) ${fiWarn} ${found._3}", opts, limit = lineMax))
+                    out.println(warn(
+                        s"${found._1.formatted} is not released, but next release (${found._2.rawInput}) " +
+                          s"was found (maybe orphan snapshot) ${fiWarn} ${found._3}",
+                        opts,
+                        limit = lineMax
+                      ))
                   })
                 if (withCode.nonEmpty) {
                   warnExit.trigger()
@@ -1137,7 +1184,8 @@ object Lint {
 
             out.println(info("    WIP", opts))
           } else {
-            out.println(warn(s"    skipped because of previous problems - ${modTry.failed.get.getMessage} ${fiWarn}", opts, limit = lineMax))
+            out.println(warn(s"    skipped because of previous problems - ${modTry.failed.get.getMessage} ${fiWarn}", opts,
+                limit = lineMax))
             warnExit.trigger()
           }
           if (pomFailures.nonEmpty) {
@@ -1210,8 +1258,8 @@ object Lint {
         }
         if (packageNamesDetails.imports.nonEmpty) {
           out.println(info(s"    imports //\n${
-            PackageImportResult.formatGroupImports(packageNamesDetails.importsNom)
-          }", opts, limit = lineMax))
+                  PackageImportResult.formatGroupImports(packageNamesDetails.importsNom)
+                }", opts, limit = lineMax))
         }
         if (sbt.isDefined) {
           out.println(info("--- ??? @ sbt ---", opts))
@@ -1226,7 +1274,8 @@ object Lint {
           val unusedSkips = opts.lintOpts.skips.diff(usedLintSkips)
           if (unusedSkips.nonEmpty) {
             out.println(info("--- skip-conf / self / end ---", opts))
-            out.println(warn(s"    found unused skips, please remove from your config: " + unusedSkips.sorted.mkString(", "), opts, limit = lineMax))
+            out.println(warn(s"    found unused skips, please remove from your config: " + unusedSkips.sorted.mkString(", "), opts,
+                limit = lineMax))
             out.println(warn(s"    active skips: " + opts.lintOpts.skips.diff(unusedSkips).sorted.mkString(", "), opts, limit = lineMax))
             warnExit.trigger()
           }
@@ -1295,7 +1344,7 @@ object Lint {
   }
 
   def printWarnInvalidBranch(out: PrintStream, warnExit: OneTimeSwitch, sgit: Sgit, opts: Opts,
-                             ciCommitRefName: String, ciCommitTag: String, ciCommitBranch: String): Option[UniqCode] = {
+      ciCommitRefName: String, ciCommitTag: String, ciCommitBranch: String): Option[UniqCode] = {
     val str = sgit.currentTags.getOrElse(Nil).mkString(",")
     val str1 = sgit.currentBranchOpt.getOrElse("")
     val fiCode = fiCodeInvalidBranchTag(Seq(ciCommitRefName, ciCommitTag, ciCommitBranch, str, str1))
@@ -1327,8 +1376,9 @@ object Lint {
       .filterNot(_.getClassName.startsWith("com.novocode.junit."))
       .filterNot(_.getClassName.startsWith("org.junit."))
       .filterNot(_.getClassName.startsWith("com.intellij."))
-      .filterNot(k => k.getClassName.startsWith("release.") &&
-        (k.getClassName.endsWith("Test$") || k.getClassName.endsWith("Test")))
+      .filterNot(k =>
+        k.getClassName.startsWith("release.") &&
+          (k.getClassName.endsWith("Test$") || k.getClassName.endsWith("Test")))
   }
 
   def doGoogleFmt(formatter: Formatter, src: File): (Try[Unit], File) = {

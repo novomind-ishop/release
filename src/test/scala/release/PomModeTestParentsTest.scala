@@ -21,7 +21,8 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
   @Test
   def testStrip(): Unit = {
     // GIVEN
-    val in = document(<project>
+    val in = document(
+      <project>
       <modelVersion>4.0.0</modelVersion>
       <packaging>war</packaging>
       <groupId>com.some</groupId>
@@ -76,8 +77,9 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
 
     // THEN
     val result = Seq(doc)
-    PomModTest.assertElems(Seq(
-      <project>
+    PomModTest.assertElems(
+      Seq(
+        <project>
         <modelVersion>4.0.0</modelVersion>
         <packaging>war</packaging>
         <groupId>com.some</groupId>
@@ -121,12 +123,17 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
             <scope>test</scope>
           </dependency>
         </dependencies>
-      </project>), result)
+      </project>),
+      result
+    )
   }
 
   @Test
   def testChangeOfChildWithDifferentParent(): Unit = {
-    val srcPoms: File = pomTestFile(temp, document(<project>
+    val srcPoms: File = pomTestFile(
+      temp,
+      document(
+        <project>
       <modelVersion>4.0.0</modelVersion>
       <groupId>com.novomind.ishop.shops.any</groupId>
       <artifactId>any-projects</artifactId>
@@ -137,8 +144,13 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
         <module>any</module>
       </modules>
     </project>
-    ), "com.novomind.ishop.shops:any-projects:pom:28.0.0-SNAPSHOT")
-      .sub("any-erp", document(<project>
+      ),
+      "com.novomind.ishop.shops:any-projects:pom:28.0.0-SNAPSHOT"
+    )
+      .sub(
+        "any-erp",
+        document(
+          <project>
         <modelVersion>4.0.0</modelVersion>
         <parent>
           <groupId>com.novomind.ishop.shops.any</groupId>
@@ -149,8 +161,13 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
         <artifactId>any-erp</artifactId>
         <name>any-erp</name>
       </project>
-      ), "com.novomind.ishop.shops:any-erp:jar:28.0.0-SNAPSHOT")
-      .sub("any", document(<project>
+        ),
+        "com.novomind.ishop.shops:any-erp:jar:28.0.0-SNAPSHOT"
+      )
+      .sub(
+        "any",
+        document(
+          <project>
         <modelVersion>4.0.0</modelVersion>
         <parent>
           <groupId>com.novomind.any</groupId>
@@ -161,32 +178,64 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
         <name>any</name>
         <version>28.0.0-SNAPSHOT</version>
       </project>
-      ), "com.novomind.any:any:jar:28.0.0-SNAPSHOT").create()
+        ),
+        "com.novomind.any:any:jar:28.0.0-SNAPSHOT"
+      ).create()
 
     // WHEN
     val newpom = PomModTest.withRepoForTests(srcPoms, repo)
     Assert.assertEquals(None, newpom.mvnExtension)
-    assertDeps(Seq(
-      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("com.novomind.ishop.shops.any:any-erp:28.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.any", "any-projects", Some("28.0.0-SNAPSHOT"), pomPath = List("project", "parent", "artifactId")),
-      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("com.novomind.any:any:28.0.0-SNAPSHOT"),
-        "com.novomind.any", "any-projects", Some("27.0.0"), pomPath = List("project", "parent", "artifactId"))), newpom.listDependencies)
+    assertDeps(
+      Seq(
+        ProjectModTest.depOf(
+          pomRef = ProjectModTest.parseSelfRef("com.novomind.ishop.shops.any:any-erp:28.0.0-SNAPSHOT"),
+          "com.novomind.ishop.shops.any",
+          "any-projects",
+          Some("28.0.0-SNAPSHOT"),
+          pomPath = List("project", "parent", "artifactId")
+        ),
+        ProjectModTest.depOf(
+          pomRef = ProjectModTest.parseSelfRef("com.novomind.any:any:28.0.0-SNAPSHOT"),
+          "com.novomind.any",
+          "any-projects",
+          Some("27.0.0"),
+          pomPath = List("project", "parent",
+            "artifactId")
+        )
+      ),
+      newpom.listDependencies
+    )
 
     Assert.assertEquals(Map.empty, depTreeMap(newpom))
 
     newpom.changeVersion("12.12")
     newpom.writeTo(srcPoms)
-    assertDeps(Seq(
-      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("com.novomind.ishop.shops.any:any-erp:12.12"),
-        "com.novomind.ishop.shops.any", "any-projects", Some("12.12"), pomPath = List("project", "parent", "artifactId")),
-      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("com.novomind.any:any:12.12"),
-        "com.novomind.any", "any-projects", Some("27.0.0"), pomPath = List("project", "parent", "artifactId"))),
-      PomModTest.withRepoForTests(srcPoms, repo).listDependencies)
+    assertDeps(
+      Seq(
+        ProjectModTest.depOf(
+          pomRef = ProjectModTest.parseSelfRef("com.novomind.ishop.shops.any:any-erp:12.12"),
+          "com.novomind.ishop.shops.any",
+          "any-projects",
+          Some("12.12"),
+          pomPath = List("project", "parent", "artifactId")
+        ),
+        ProjectModTest.depOf(
+          pomRef = ProjectModTest.parseSelfRef("com.novomind.any:any:12.12"),
+          "com.novomind.any",
+          "any-projects",
+          Some("27.0.0"),
+          pomPath = List("project", "parent",
+            "artifactId")
+        )
+      ),
+      PomModTest.withRepoForTests(srcPoms, repo).listDependencies
+    )
     Assert.assertEquals(3, newpom.allPomsDocs.size)
     val result = newpom.allPomsDocs
 
-    PomModTest.assertElems(Seq(
-      <project>
+    PomModTest.assertElems(
+      Seq(
+        <project>
         <modelVersion>4.0.0</modelVersion>
         <groupId>com.novomind.ishop.shops.any</groupId>
         <artifactId>any-projects</artifactId>
@@ -197,7 +246,7 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
           <module>any</module>
         </modules>
       </project>,
-      <project>
+        <project>
         <modelVersion>4.0.0</modelVersion>
         <parent>
           <groupId>com.novomind.ishop.shops.any</groupId>
@@ -208,7 +257,7 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
         <artifactId>any-erp</artifactId>
         <name>any-erp</name>
       </project>,
-      <project>
+        <project>
         <modelVersion>4.0.0</modelVersion>
         <parent>
           <groupId>com.novomind.any</groupId>
@@ -218,12 +267,18 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
         <artifactId>any</artifactId>
         <name>any</name>
         <version>12.12</version>
-      </project>), result)
+      </project>
+      ),
+      result
+    )
   }
 
   @Test
   def testChangeOfChildWithDifferentParent_sub(): Unit = {
-    val srcPoms: File = pomTestFile(temp, document(<project>
+    val srcPoms: File = pomTestFile(
+      temp,
+      document(
+        <project>
       <modelVersion>4.0.0</modelVersion>
       <groupId>com.novomind.ishop.shops.any</groupId>
       <artifactId>any-projects</artifactId>
@@ -234,8 +289,12 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
         <module>any-parent</module>
       </modules>
     </project>
-    ))
-      .sub("any-erp", document(<project>
+      )
+    )
+      .sub(
+        "any-erp",
+        document(
+          <project>
         <modelVersion>4.0.0</modelVersion>
         <parent>
           <groupId>com.novomind.ishop.shops.any</groupId>
@@ -246,8 +305,12 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
         <artifactId>any-erp</artifactId>
         <name>any-erp</name>
       </project>
-      ))
-      .sub("any-parent", document(<project>
+        )
+      )
+      .sub(
+        "any-parent",
+        document(
+          <project>
         <modelVersion>4.0.0</modelVersion>
         <parent>
           <groupId>com.novomind.ishop.shops.any</groupId>
@@ -262,7 +325,10 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
           <module>any</module>
         </modules>
       </project>
-      ), subsub = Seq(("any", document(<project>
+        ),
+        subsub = Seq(("any",
+            document(
+              <project>
         <modelVersion>4.0.0</modelVersion>
         <parent>
           <groupId>com.novomind.ishop.shops.any</groupId>
@@ -274,9 +340,10 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
         <name>any</name>
         <version>28.0.0-SNAPSHOT</version>
       </project>
-      ), "")))
+            ), ""))
+      )
       .extension(document(
-        <extensions>
+          <extensions>
           <extension>
             <groupId>a.b.maven</groupId>
             <artifactId>any</artifactId>
@@ -288,47 +355,89 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
             <version>3.2</version>
           </extension>
         </extensions>
-      ))
+        ))
       .create()
 
     // WHEN
     val newpom = PomModTest.withRepoForTests(srcPoms, repo)
     Assert.assertTrue(newpom.mvnExtension.isDefined)
-    Assert.assertEquals(Seq(
-      PluginDep(SelfRef.extensions,
-        "a.b.maven", "any", Some("1.10.20-SNAPSHOT"),
-        Nil, Nil),
-      PluginDep(SelfRef.extensions,
-        "some.maven", "other", Some("3.2"),
-        Nil, Nil),
-    ), newpom.listPluginDependencies)
-    assertDeps(Seq(
-      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("com.novomind.ishop.shops.any:any-erp:28.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.any", "any-projects", Some("28.0.0-SNAPSHOT"), pomPath = Seq("project", "parent", "artifactId")),
-      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("com.novomind.ishop.shops.any:any-parent:28.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.any", "any-projects", Some("28.0.0-SNAPSHOT"), pomPath = Seq("project", "parent", "artifactId")),
-      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("com.novomind.ishop.shops.any:any:28.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.any", "any-parent", Some("28.0.0-SNAPSHOT"), pomPath = Seq("project", "parent", "artifactId"))),
-      newpom.listDependencies)
+    Assert.assertEquals(
+      Seq(
+        PluginDep(SelfRef.extensions,
+          "a.b.maven", "any", Some("1.10.20-SNAPSHOT"),
+          Nil, Nil),
+        PluginDep(SelfRef.extensions,
+          "some.maven", "other", Some("3.2"),
+          Nil, Nil)
+      ),
+      newpom.listPluginDependencies
+    )
+    assertDeps(
+      Seq(
+        ProjectModTest.depOf(
+          pomRef = ProjectModTest.parseSelfRef("com.novomind.ishop.shops.any:any-erp:28.0.0-SNAPSHOT"),
+          "com.novomind.ishop.shops.any",
+          "any-projects",
+          Some("28.0.0-SNAPSHOT"),
+          pomPath = Seq("project", "parent", "artifactId")
+        ),
+        ProjectModTest.depOf(
+          pomRef = ProjectModTest.parseSelfRef("com.novomind.ishop.shops.any:any-parent:28.0.0-SNAPSHOT"),
+          "com.novomind.ishop.shops.any",
+          "any-projects",
+          Some("28.0.0-SNAPSHOT"),
+          pomPath = Seq("project", "parent", "artifactId")
+        ),
+        ProjectModTest.depOf(
+          pomRef = ProjectModTest.parseSelfRef("com.novomind.ishop.shops.any:any:28.0.0-SNAPSHOT"),
+          "com.novomind.ishop.shops.any",
+          "any-parent",
+          Some("28.0.0-SNAPSHOT"),
+          pomPath = Seq("project", "parent",
+            "artifactId")
+        )
+      ),
+      newpom.listDependencies
+    )
 
     Assert.assertEquals(Map.empty, depTreeMap(newpom))
     Assert.assertEquals(4, newpom.allPomsDocs.size)
 
     newpom.changeVersion("12.12")
     newpom.writeTo(srcPoms)
-    assertDeps(Seq(
-      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("com.novomind.ishop.shops.any:any-erp:12.12"),
-        "com.novomind.ishop.shops.any", "any-projects", Some("12.12"), pomPath = List("project", "parent", "artifactId")),
-      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("com.novomind.ishop.shops.any:any-parent:12.12"),
-        "com.novomind.ishop.shops.any", "any-projects", Some("12.12"), pomPath = List("project", "parent", "artifactId")),
-      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("com.novomind.ishop.shops.any:any:12.12"),
-        "com.novomind.ishop.shops.any", "any-parent", Some("12.12"), pomPath = List("project", "parent", "artifactId"))),
-      PomModTest.withRepoForTests(srcPoms, repo).listDependencies)
+    assertDeps(
+      Seq(
+        ProjectModTest.depOf(
+          pomRef = ProjectModTest.parseSelfRef("com.novomind.ishop.shops.any:any-erp:12.12"),
+          "com.novomind.ishop.shops.any",
+          "any-projects",
+          Some("12.12"),
+          pomPath = List("project", "parent", "artifactId")
+        ),
+        ProjectModTest.depOf(
+          pomRef = ProjectModTest.parseSelfRef("com.novomind.ishop.shops.any:any-parent:12.12"),
+          "com.novomind.ishop.shops.any",
+          "any-projects",
+          Some("12.12"),
+          pomPath = List("project", "parent", "artifactId")
+        ),
+        ProjectModTest.depOf(
+          pomRef = ProjectModTest.parseSelfRef("com.novomind.ishop.shops.any:any:12.12"),
+          "com.novomind.ishop.shops.any",
+          "any-parent",
+          Some("12.12"),
+          pomPath = List("project", "parent",
+            "artifactId")
+        )
+      ),
+      PomModTest.withRepoForTests(srcPoms, repo).listDependencies
+    )
     Assert.assertEquals(4, newpom.allPomsDocs.size)
     val result = newpom.allPomsDocs
 
-    PomModTest.assertElems(Seq(
-      <project>
+    PomModTest.assertElems(
+      Seq(
+        <project>
         <modelVersion>4.0.0</modelVersion>
         <groupId>com.novomind.ishop.shops.any</groupId>
         <artifactId>any-projects</artifactId>
@@ -339,7 +448,7 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
           <module>any-parent</module>
         </modules>
       </project>,
-      <project>
+        <project>
         <modelVersion>4.0.0</modelVersion>
         <parent>
           <groupId>com.novomind.ishop.shops.any</groupId>
@@ -350,7 +459,7 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
         <artifactId>any-erp</artifactId>
         <name>any-erp</name>
       </project>,
-      <project>
+        <project>
         <modelVersion>4.0.0</modelVersion>
         <parent>
           <groupId>com.novomind.ishop.shops.any</groupId>
@@ -365,7 +474,7 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
           <module>any</module>
         </modules>
       </project>,
-      <project>
+        <project>
         <modelVersion>4.0.0</modelVersion>
         <parent>
           <groupId>com.novomind.ishop.shops.any</groupId>
@@ -376,7 +485,10 @@ class PomModeTestParentsTest extends AssertionsForJUnit {
         <artifactId>any</artifactId>
         <name>any</name>
         <version>12.12</version>
-      </project>), result)
+      </project>
+      ),
+      result
+    )
   }
 
 }

@@ -38,9 +38,9 @@ trait SgitDetached {
 case class SlogLine(branchNames: Seq[String], tagNames: Seq[String], sha1: String, date: ZonedDateTime)
 
 case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStream,
-                checkExisting: Boolean = true, checkGitRoot: Boolean = true, findGitRoot: Boolean = false,
-                gitBin: Option[String], opts: Opts) extends LazyLogging with SgitVersion with SgitDiff with SgitDetached
-  with SgitUpstream {
+    checkExisting: Boolean = true, checkGitRoot: Boolean = true, findGitRoot: Boolean = false,
+    gitBin: Option[String], opts: Opts) extends LazyLogging with SgitVersion with SgitDiff with SgitDetached
+    with SgitUpstream {
 
   private val gitRoot: File = if (checkGitRoot) {
     if (findGitRoot) {
@@ -59,7 +59,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     gitNative(Seq("--version"), useWorkdir = false).get.mkString("")
   }
 
-  private def init(initBranchName:String): Unit = {
+  private def init(initBranchName: String): Unit = {
     gitNative(Seq("init", s"--initial-branch=${initBranchName}", file.getAbsolutePath), useWorkdir = false)
   }
 
@@ -217,10 +217,12 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
             |I: see %s/Documentation/user-changeid.html#creation
             |# scp -p -P %s $USERNAME@%s:hooks/commit-msg .git/hooks/
             |
-        """.stripMargin.format(commitMsgHook.getAbsolutePath,
+        """.stripMargin.format(
+            commitMsgHook.getAbsolutePath,
             ReleaseConfig.default(opts.useDefaults).gerritBaseUrl(),
             ReleaseConfig.default(opts.useDefaults).gerritPort(),
-            ReleaseConfig.default(opts.useDefaults).gerritHostname()))
+            ReleaseConfig.default(opts.useDefaults).gerritHostname()
+          ))
       }
     }
 
@@ -237,7 +239,8 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     verify()
   }
 
-  def currentBranch: String = Util.only(gitNative(Seq("rev-parse", "--abbrev-ref", "HEAD"), showErrorsOnStdErr = false).get, "only one branch expected")
+  def currentBranch: String =
+    Util.only(gitNative(Seq("rev-parse", "--abbrev-ref", "HEAD"), showErrorsOnStdErr = false).get, "only one branch expected")
 
   def currentBranchOpt: Option[String] = {
     try {
@@ -291,11 +294,12 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     }
   }
 
-  def lsFiles(): Seq[String] = gitNative(Seq("ls-files")).get.map(_.trim).map(in => if (in.startsWith("\"") && in.endsWith("\"")) {
-    SgitParsers.unescape(in.substring(1).dropRight(1))
-  } else {
-    in
-  })
+  def lsFiles(): Seq[String] = gitNative(Seq("ls-files")).get.map(_.trim).map(in =>
+    if (in.startsWith("\"") && in.endsWith("\"")) {
+      SgitParsers.unescape(in.substring(1).dropRight(1))
+    } else {
+      in
+    })
 
   def lsFilesAbsolute(): Seq[File] = {
     lsFiles().map(entry => new File(gitRoot, entry).getAbsoluteFile)
@@ -361,11 +365,12 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   def listBranchesLocal(): Seq[GitShaBranch] = {
     gitNative(Seq("branch", "--list", "--verbose", "--no-abbrev")).get
       .flatMap(Sgit.splitLineOnBranchlistErr(err))
-      .flatMap(in => if (in._1 == in._2) {
-        None
-      } else {
-        Some(in)
-      })
+      .flatMap(in =>
+        if (in._1 == in._2) {
+          None
+        } else {
+          Some(in)
+        })
       .map(parts => {
         GitShaBranch(parts._2, "refs/heads/" + parts._1, () => Some(ZonedDateTime.now()))
       }).toList
@@ -402,8 +407,10 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     } catch {
       case te: java.util.concurrent.TimeoutException => {
         future.cancel(true)
-        return Failure(new java.util.concurrent.TimeoutException(
-          (Strings.nullToEmpty(te.getMessage) + " after " + timeout.toString + " to " + listRemotes().map(_.position).map(Util.stripUserinfo).distinct.mkString(", ")).trim)
+        return Failure(
+          new java.util.concurrent.TimeoutException(
+            (Strings.nullToEmpty(te.getMessage) + " after " + timeout.toString + " to " +
+              listRemotes().map(_.position).map(Util.stripUserinfo).distinct.mkString(", ")).trim)
         )
       }
     } finally {
@@ -443,14 +450,15 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     val branchT = slogs.flatMap(s => s.branchNames.map((_, s.sha1, s.date)))
 
     if (branchT.nonEmpty) {
-      branchT.flatMap(in => in match {
-        case (name: String, _: String, _: ZonedDateTime) if name.startsWith("origin/HEAD") => None
-        case (name: String, sha1: String, date: ZonedDateTime) if name.startsWith("origin/") => {
-          val remoteName = name.replaceFirst("^\\*", "").trim
-          Some(GitShaBranch(sha1, remoteName, () => Some(date)))
-        }
-        case _ => None
-      }).toList
+      branchT.flatMap(in =>
+        in match {
+          case (name: String, _: String, _: ZonedDateTime) if name.startsWith("origin/HEAD") => None
+          case (name: String, sha1: String, date: ZonedDateTime) if name.startsWith("origin/") => {
+            val remoteName = name.replaceFirst("^\\*", "").trim
+            Some(GitShaBranch(sha1, remoteName, () => Some(date)))
+          }
+          case _ => None
+        }).toList
     } else {
       Nil
     }
@@ -535,7 +543,8 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     val mod = modDistinct.filterNot(in => filter.contains(in))
     if (mod.nonEmpty) {
       throw new IllegalStateException("only (" + filter.mkString(", ") + ") changes are allowed => " +
-        modPom.mkString(", ") + " => " + modDistinct.filterNot(in => filter.contains(in)).mkString(", ") + " <= " + modDistinct.mkString(", "))
+        modPom.mkString(", ") + " => " + modDistinct.filterNot(in => filter.contains(in)).mkString(", ") + " <= " +
+        modDistinct.mkString(", "))
     }
     modWithoutState
   }
@@ -731,7 +740,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   def logGraph(): String = {
     try {
       gitNative(Seq("log", "HEAD", "--no-color", "--branches", "--remotes", "--tags", "--graph",
-        "-3", "--oneline", "--decorate", "--")).get
+          "-3", "--oneline", "--decorate", "--")).get
         .map(_.trim).mkString("\n")
     } catch {
       case e: Exception => e.printStackTrace(); "no - graph"
@@ -857,8 +866,8 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   }
 
   private[release] def gitNative(args: Seq[String], showErrorsOnStdErr: Boolean = true, useWorkdir: Boolean = true,
-                                 cmdFilter: String => Boolean = _ => false,
-                                 errMapper: String => Option[String] = errLine => Some(errLine)): Try[Seq[String]] = {
+      cmdFilter: String => Boolean = _ => false,
+      errMapper: String => Option[String] = errLine => Some(errLine)): Try[Seq[String]] = {
     if (checkExisting && !gitRoot.isDirectory) {
       throw new IllegalStateException("invalid git dir: " + gitRoot.getAbsolutePath)
     }
@@ -917,11 +926,12 @@ object Sgit {
       .replaceFirst("^\\+", "") // worktree
       .trim.replaceFirst("^\\([^\\)]+", "(branch_name_replaced")
     val out = trimmed.split("[ \t]+").toList
-    val result = out.flatMap(in => if (in == "(branch_name_replaced)") {
-      Seq(out(1))
-    } else {
-      Seq(in)
-    })
+    val result = out.flatMap(in =>
+      if (in == "(branch_name_replaced)") {
+        Seq(out(1))
+      } else {
+        Seq(in)
+      })
     if (result.size >= 2 && GitShaBranch.matchesGitSha(result(1))) {
       Some((result.head, result(1)))
     } else {
@@ -982,165 +992,166 @@ object Sgit {
   private var gits = Map.empty[Seq[String], Unit]
   private val checkVersionGitSmd = new AtomicReference[Option[Seq[String]]](None)
 
-  private[release] def checkVersion(sgitVersion: SgitVersion, out: PrintStream, err: PrintStream, gitBin: Option[String]): Unit = synchronized {
-    val cmd: Seq[String] = checkVersionGitSmd.updateAndGet {
-      case None => Some(selectedGitCmd(err, gitBin).get)
-      case s => s
-    }.get
-    val cmdLine = cmd.mkString(" ")
-    val git = gits.get(cmd)
-    if (git.isEmpty) {
+  private[release] def checkVersion(sgitVersion: SgitVersion, out: PrintStream, err: PrintStream, gitBin: Option[String]): Unit =
+    synchronized {
+      val cmd: Seq[String] = checkVersionGitSmd.updateAndGet {
+        case None => Some(selectedGitCmd(err, gitBin).get)
+        case s => s
+      }.get
+      val cmdLine = cmd.mkString(" ")
+      val git = gits.get(cmd)
+      if (git.isEmpty) {
 
-      val result: Unit = sgitVersion.version() match {
-        case v: String if v.startsWith("git version 1") => // (2014-12-17) - (tag: v1.9.5)
-          throw new YourGitInstallationIsToOldException("1.9.5", "2016-01-01", "n/a", "", cmdLine)
-        case v: String if v.startsWith("git version 2.0.") =>
-          throw new YourGitInstallationIsToOldException("2.0", "2017-07-01", "n/a", "", cmdLine)
-        case v: String if v.startsWith("git version 2.1.") =>
-          throw new YourGitInstallationIsToOldException("2.1", "2017-07-01", "n/a", "", cmdLine)
-        case v: String if v.startsWith("git version 2.2.") =>
-          throw new YourGitInstallationIsToOldException("2.2", "2017-07-01", "n/a", "", cmdLine)
-        case v: String if v.startsWith("git version 2.3.") =>
-          throw new YourGitInstallationIsToOldException("2.3", "2017-07-01", "n/a", "", cmdLine)
-        case v: String if v.startsWith("git version 2.4.") =>
-          throw new YourGitInstallationIsToOldException("2.4", "2017-07-01", "n/a", "", cmdLine)
-        case v: String if v.startsWith("git version 2.5.") =>
-          throw new YourGitInstallationIsToOldException("2.5", "2017-07-01", "n/a", "", cmdLine)
-        case v: String if v.startsWith("git version 2.6.") => // (2017-05-05) - (tag: v2.6.7)
-          throw new YourGitInstallationIsToOldException("2.6", "2017-07-01", "n/a", "", cmdLine)
-        case v: String if v.startsWith("git version 2.7.") => // (2017-07-30) - (tag: v2.7.6)
-          throw new YourGitInstallationIsToOldException("2.7", "2017-07-01", "n/a", "", cmdLine)
-        case v: String if v.startsWith("git version 2.8.") => // (2016-06-06) - (tag: v2.8.4)
-          throw new YourGitInstallationIsToOldException("2.8", "2017-07-01", "n/a", "", cmdLine)
-        case v: String if v.startsWith("git version 2.9.") => // (2016-08-12) - (tag: v2.9.3)
-          throw new YourGitInstallationIsToOldException("2.9", "2017-08-01", "n/a", "", cmdLine)
-        case v: String if v.startsWith("git version 2.10.") => // (2016-10-28) - (tag: v2.10.2)
-          throw new YourGitInstallationIsToOldException("2.10", "2017-11-01", "n/a", "", cmdLine)
-        case v: String if v.startsWith("git version 2.11.") => // 2017-02-02) - (tag: v2.11.1)
-          throw new YourGitInstallationIsToOldException("2.11", "2017-11-01", "n/a", "", cmdLine)
-        case v: String if v.startsWith("git version 2.12.") => // (2017-03-20) - (tag: v2.12.1)
-          throw new YourGitInstallationIsToOldException("2.12", "2018-04-02", "n/a", "", cmdLine)
-        case v: String if v.startsWith("git version 2.13.") => // (2017-09-22) - (tag: v2.13.6)
-          throw new YourGitInstallationIsToOldException("2.13", "2018-05-02", "n/a", "", cmdLine)
-        case v: String if v.startsWith("git version 2.14.") => // (2017-10-23) - (tag: v2.14.3)
-          throw new YourGitInstallationIsToOldException("2.13", "2018-07-02", "n/a", "", cmdLine)
-        case v: String if v.startsWith("git version 2.15.") => // (2017-11-28) - (tag: v2.15.1)
-          throw new YourGitInstallationIsToOldException("2.15", "2018-10-18", "n/a", " because of CVE-2018-17456", cmdLine)
-        case v: String if v.startsWith("git version 2.16.") => // (2018-02-15) - (tag: v2.16.2)
-          throw new YourGitInstallationIsToOldException("2.16", "2018-10-18", "n/a", " because of CVE-2018-17456", cmdLine)
-        case v: String if v.startsWith("git version 2.17.") => // (2018-04-02) - (tag: v2.17.0)
-          throw new YourGitInstallationIsToOldException("2.17", "2018-10-18", "n/a", " because of CVE-2018-17456", cmdLine)
-        case v: String if v.startsWith("git version 2.18.") => // (2018-06-21) - (tag: v2.18.0)
-          throw new YourGitInstallationIsToOldException("2.18", "2018-10-18", "n/a", " because of CVE-2018-17456", cmdLine)
-        case v: String if v.startsWith("git version 2.19.0") => // (2018-09-10) - (tag: v2.19.0)
-          throw new YourGitInstallationIsToOldException("2.19.0", "2018-10-18", "n/a", " because of CVE-2018-17456", cmdLine)
-        case v: String if v.startsWith("git version 2.19.") => // (2018-09-27) - (tag: v2.19.1) -- fixes CVE-2018-17456
-          throw new YourGitInstallationIsToOldException("2.19", "2019-09-03", "n/a", "", cmdLine)
-        case v: String if v.startsWith("git version 2.20.") => // (2018-12-09) (tag: v2.20.0) -- no format change
-          throw new YourGitInstallationIsToOldException("2.20", "2019-09-03", "n/a", "", cmdLine)
-        case v: String if v.startsWith("git version 2.21.") => // (2019-02-24) (tag: v2.21.0) -- introduce output change
-          throw new YourGitInstallationIsToOldException("2.21", "2020-03-07", "n/a", "", cmdLine)
-        case v: String if v.startsWith("git version 2.22.") => // (2019-06-07) (tag: v2.22.0)
-          throw new YourGitInstallationIsToOldException("2.22", "2020-03-07", "n/a", "", cmdLine)
-        case v: String if v.startsWith("git version 2.23.") => // (2019-08-16) (tag: v2.23.0)
-          throw new YourGitInstallationIsToOldException("2.23", "2020-03-07", "n/a", "", cmdLine)
-        case v: String if v.startsWith("git version 2.24.") => // (2019-11-04) (tag: v2.24.0)
-          throw new YourGitInstallationIsToOldException("2.24", "2020-03-07", "n/a", "", cmdLine)
-        case v: String if v.startsWith("git version 2.25.") => // (2020-01-13) (tag: v2.25.0)
-          throw new YourGitInstallationIsToOldException(version = "2.25", ended = "2020-09-11", announced = "2020-08-11",
-            msg = "", gitPath = cmdLine)
-        case v: String if v.startsWith("git version 2.26.") => // (2020-04-19) (tag: v2.26.2)
-          throw new YourGitInstallationIsToOldException(version = "2.26",
-            ended = "2021-06-24", announced = "2021-02-11", announcedEnd = "2021-03-11",
-            msg = "", gitPath = cmdLine)
-        case v: String if v.startsWith("git version 2.27.") => // (2020-05-31) (tag: v2.27.0)
-          throw new YourGitInstallationIsToOldException(version = "2.27",
-            ended = "2021-06-24", announced = "2021-02-11", announcedEnd = "2021-03-11",
-            msg = "", gitPath = cmdLine)
-        case v: String if v.startsWith("git version 2.28.") => // (2020-07-26) (tag: v2.28.0)
-          throw new YourGitInstallationIsToOldException(version = "2.28",
-            ended = "2021-06-24", announced = "2021-02-11", announcedEnd = "2021-03-11",
-            msg = "", gitPath = cmdLine)
-        case v: String if v.startsWith("git version 2.29.") => // (2020-10-19) (tag: v2.29.0)
-          throw new YourGitInstallationIsToOldException(version = "2.29",
-            ended = "2021-11-01", announced = "2021-06-24", announcedEnd = "2021-09-11",
-            msg = "", gitPath = cmdLine)
-        case v: String if v.startsWith("git version 2.30.") => // (2020-12-27) (tag: v2.30.0)
-          if (ReleaseConfig.isJenkinsK()) {
-            List.tabulate(10)(_ =>
-              err.println("W: please update your git version, \"" + v + "\" support endet at 2021-11-01")
-            )
-          } else {
-            throw new YourGitInstallationIsToOldException(version = "2.30",
+        val result: Unit = sgitVersion.version() match {
+          case v: String if v.startsWith("git version 1") => // (2014-12-17) - (tag: v1.9.5)
+            throw new YourGitInstallationIsToOldException("1.9.5", "2016-01-01", "n/a", "", cmdLine)
+          case v: String if v.startsWith("git version 2.0.") =>
+            throw new YourGitInstallationIsToOldException("2.0", "2017-07-01", "n/a", "", cmdLine)
+          case v: String if v.startsWith("git version 2.1.") =>
+            throw new YourGitInstallationIsToOldException("2.1", "2017-07-01", "n/a", "", cmdLine)
+          case v: String if v.startsWith("git version 2.2.") =>
+            throw new YourGitInstallationIsToOldException("2.2", "2017-07-01", "n/a", "", cmdLine)
+          case v: String if v.startsWith("git version 2.3.") =>
+            throw new YourGitInstallationIsToOldException("2.3", "2017-07-01", "n/a", "", cmdLine)
+          case v: String if v.startsWith("git version 2.4.") =>
+            throw new YourGitInstallationIsToOldException("2.4", "2017-07-01", "n/a", "", cmdLine)
+          case v: String if v.startsWith("git version 2.5.") =>
+            throw new YourGitInstallationIsToOldException("2.5", "2017-07-01", "n/a", "", cmdLine)
+          case v: String if v.startsWith("git version 2.6.") => // (2017-05-05) - (tag: v2.6.7)
+            throw new YourGitInstallationIsToOldException("2.6", "2017-07-01", "n/a", "", cmdLine)
+          case v: String if v.startsWith("git version 2.7.") => // (2017-07-30) - (tag: v2.7.6)
+            throw new YourGitInstallationIsToOldException("2.7", "2017-07-01", "n/a", "", cmdLine)
+          case v: String if v.startsWith("git version 2.8.") => // (2016-06-06) - (tag: v2.8.4)
+            throw new YourGitInstallationIsToOldException("2.8", "2017-07-01", "n/a", "", cmdLine)
+          case v: String if v.startsWith("git version 2.9.") => // (2016-08-12) - (tag: v2.9.3)
+            throw new YourGitInstallationIsToOldException("2.9", "2017-08-01", "n/a", "", cmdLine)
+          case v: String if v.startsWith("git version 2.10.") => // (2016-10-28) - (tag: v2.10.2)
+            throw new YourGitInstallationIsToOldException("2.10", "2017-11-01", "n/a", "", cmdLine)
+          case v: String if v.startsWith("git version 2.11.") => // 2017-02-02) - (tag: v2.11.1)
+            throw new YourGitInstallationIsToOldException("2.11", "2017-11-01", "n/a", "", cmdLine)
+          case v: String if v.startsWith("git version 2.12.") => // (2017-03-20) - (tag: v2.12.1)
+            throw new YourGitInstallationIsToOldException("2.12", "2018-04-02", "n/a", "", cmdLine)
+          case v: String if v.startsWith("git version 2.13.") => // (2017-09-22) - (tag: v2.13.6)
+            throw new YourGitInstallationIsToOldException("2.13", "2018-05-02", "n/a", "", cmdLine)
+          case v: String if v.startsWith("git version 2.14.") => // (2017-10-23) - (tag: v2.14.3)
+            throw new YourGitInstallationIsToOldException("2.13", "2018-07-02", "n/a", "", cmdLine)
+          case v: String if v.startsWith("git version 2.15.") => // (2017-11-28) - (tag: v2.15.1)
+            throw new YourGitInstallationIsToOldException("2.15", "2018-10-18", "n/a", " because of CVE-2018-17456", cmdLine)
+          case v: String if v.startsWith("git version 2.16.") => // (2018-02-15) - (tag: v2.16.2)
+            throw new YourGitInstallationIsToOldException("2.16", "2018-10-18", "n/a", " because of CVE-2018-17456", cmdLine)
+          case v: String if v.startsWith("git version 2.17.") => // (2018-04-02) - (tag: v2.17.0)
+            throw new YourGitInstallationIsToOldException("2.17", "2018-10-18", "n/a", " because of CVE-2018-17456", cmdLine)
+          case v: String if v.startsWith("git version 2.18.") => // (2018-06-21) - (tag: v2.18.0)
+            throw new YourGitInstallationIsToOldException("2.18", "2018-10-18", "n/a", " because of CVE-2018-17456", cmdLine)
+          case v: String if v.startsWith("git version 2.19.0") => // (2018-09-10) - (tag: v2.19.0)
+            throw new YourGitInstallationIsToOldException("2.19.0", "2018-10-18", "n/a", " because of CVE-2018-17456", cmdLine)
+          case v: String if v.startsWith("git version 2.19.") => // (2018-09-27) - (tag: v2.19.1) -- fixes CVE-2018-17456
+            throw new YourGitInstallationIsToOldException("2.19", "2019-09-03", "n/a", "", cmdLine)
+          case v: String if v.startsWith("git version 2.20.") => // (2018-12-09) (tag: v2.20.0) -- no format change
+            throw new YourGitInstallationIsToOldException("2.20", "2019-09-03", "n/a", "", cmdLine)
+          case v: String if v.startsWith("git version 2.21.") => // (2019-02-24) (tag: v2.21.0) -- introduce output change
+            throw new YourGitInstallationIsToOldException("2.21", "2020-03-07", "n/a", "", cmdLine)
+          case v: String if v.startsWith("git version 2.22.") => // (2019-06-07) (tag: v2.22.0)
+            throw new YourGitInstallationIsToOldException("2.22", "2020-03-07", "n/a", "", cmdLine)
+          case v: String if v.startsWith("git version 2.23.") => // (2019-08-16) (tag: v2.23.0)
+            throw new YourGitInstallationIsToOldException("2.23", "2020-03-07", "n/a", "", cmdLine)
+          case v: String if v.startsWith("git version 2.24.") => // (2019-11-04) (tag: v2.24.0)
+            throw new YourGitInstallationIsToOldException("2.24", "2020-03-07", "n/a", "", cmdLine)
+          case v: String if v.startsWith("git version 2.25.") => // (2020-01-13) (tag: v2.25.0)
+            throw new YourGitInstallationIsToOldException(version = "2.25", ended = "2020-09-11", announced = "2020-08-11",
+              msg = "", gitPath = cmdLine)
+          case v: String if v.startsWith("git version 2.26.") => // (2020-04-19) (tag: v2.26.2)
+            throw new YourGitInstallationIsToOldException(version = "2.26",
+              ended = "2021-06-24", announced = "2021-02-11", announcedEnd = "2021-03-11",
+              msg = "", gitPath = cmdLine)
+          case v: String if v.startsWith("git version 2.27.") => // (2020-05-31) (tag: v2.27.0)
+            throw new YourGitInstallationIsToOldException(version = "2.27",
+              ended = "2021-06-24", announced = "2021-02-11", announcedEnd = "2021-03-11",
+              msg = "", gitPath = cmdLine)
+          case v: String if v.startsWith("git version 2.28.") => // (2020-07-26) (tag: v2.28.0)
+            throw new YourGitInstallationIsToOldException(version = "2.28",
+              ended = "2021-06-24", announced = "2021-02-11", announcedEnd = "2021-03-11",
+              msg = "", gitPath = cmdLine)
+          case v: String if v.startsWith("git version 2.29.") => // (2020-10-19) (tag: v2.29.0)
+            throw new YourGitInstallationIsToOldException(version = "2.29",
               ended = "2021-11-01", announced = "2021-06-24", announcedEnd = "2021-09-11",
               msg = "", gitPath = cmdLine)
-          }
-        case v: String if v.startsWith("git version 2.31.") => // do nothing (2021-03-15) (tag: v2.31.0)
-          err.println("W: please update your git version, \"" + v + "\" support ends at 2022-02-01")
-          throw new YourGitInstallationIsToOldException(version = "2.31",
-            ended = "2022-02-22", announced = "2021-11-01", announcedEnd = "2022-02-01",
-            msg = "", gitPath = cmdLine)
-        case v: String if v.startsWith("git version 2.32.") => // do nothing (2021-06-06) (tag: v2.32.0)
-          throw new YourGitInstallationIsToOldException(version = "2.32",
-            ended = "2023-01-03", announced = "2021-02-22", announcedEnd = "2022-04-01",
-            msg = "", gitPath = cmdLine)
-        case v: String if v.startsWith("git version 2.33.") => // do nothing (2021-08-16) (tag: v2.33.0)
-          throw new YourGitInstallationIsToOldException(version = "2.33",
-            ended = "2023-01-03", announced = "2022-06-29", announcedEnd = "2022-08-01",
-            msg = "", gitPath = cmdLine)
-        case v: String if v.startsWith("git version 2.34.") => // do nothing (2021-11-14) (tag: v2.34.0)
-          if (false && ReleaseConfig.isDocker()) {
-            // do nothing
-          } else {
-            throw new YourGitInstallationIsToOldException(version = "2.34",
+          case v: String if v.startsWith("git version 2.30.") => // (2020-12-27) (tag: v2.30.0)
+            if (ReleaseConfig.isJenkinsK()) {
+              List.tabulate(10)(_ =>
+                err.println("W: please update your git version, \"" + v + "\" support endet at 2021-11-01")
+              )
+            } else {
+              throw new YourGitInstallationIsToOldException(version = "2.30",
+                ended = "2021-11-01", announced = "2021-06-24", announcedEnd = "2021-09-11",
+                msg = "", gitPath = cmdLine)
+            }
+          case v: String if v.startsWith("git version 2.31.") => // do nothing (2021-03-15) (tag: v2.31.0)
+            err.println("W: please update your git version, \"" + v + "\" support ends at 2022-02-01")
+            throw new YourGitInstallationIsToOldException(version = "2.31",
+              ended = "2022-02-22", announced = "2021-11-01", announcedEnd = "2022-02-01",
+              msg = "", gitPath = cmdLine)
+          case v: String if v.startsWith("git version 2.32.") => // do nothing (2021-06-06) (tag: v2.32.0)
+            throw new YourGitInstallationIsToOldException(version = "2.32",
+              ended = "2023-01-03", announced = "2021-02-22", announcedEnd = "2022-04-01",
+              msg = "", gitPath = cmdLine)
+          case v: String if v.startsWith("git version 2.33.") => // do nothing (2021-08-16) (tag: v2.33.0)
+            throw new YourGitInstallationIsToOldException(version = "2.33",
               ended = "2023-01-03", announced = "2022-06-29", announcedEnd = "2022-08-01",
               msg = "", gitPath = cmdLine)
-          }
-        case v: String if v.startsWith("git version 2.35.") => // do nothing (2022-01-24) (tag: v2.35.0)
-          throw new YourGitInstallationIsToOldException(version = "2.35",
-            ended = "2023-01-03", announced = "2022-06-29", announcedEnd = "2022-08-01",
-            msg = "", gitPath = cmdLine)
-        case v: String if v.startsWith("git version 2.36.") =>
-          // do nothing (2022-04-17) (tag: v2.36.0)
-          err.println("W: please update your git version, \"" + v + "\" support ends at 2023-03-01")
-        case v: String if v.startsWith("git version 2.37.") =>
-          // do nothing (2022-07-04) (tag: v2.37.1)
-          err.println("W: please update your git version, \"" + v + "\" support ends at 2023-09-01")
-        case v: String if v.startsWith("git version 2.38.") =>
-          // do nothing (2022-10-02) (tag: v2.38.0)
-          if (ReleaseConfig.isDocker()) {
-            List.tabulate(3)(_ =>
-              err.println("W: please update your git version, \"" + v + "\" support ends at 2023-09-01")
-            )
-          } else {
+          case v: String if v.startsWith("git version 2.34.") => // do nothing (2021-11-14) (tag: v2.34.0)
+            if (false && ReleaseConfig.isDocker()) {
+              // do nothing
+            } else {
+              throw new YourGitInstallationIsToOldException(version = "2.34",
+                ended = "2023-01-03", announced = "2022-06-29", announcedEnd = "2022-08-01",
+                msg = "", gitPath = cmdLine)
+            }
+          case v: String if v.startsWith("git version 2.35.") => // do nothing (2022-01-24) (tag: v2.35.0)
+            throw new YourGitInstallationIsToOldException(version = "2.35",
+              ended = "2023-01-03", announced = "2022-06-29", announcedEnd = "2022-08-01",
+              msg = "", gitPath = cmdLine)
+          case v: String if v.startsWith("git version 2.36.") =>
+            // do nothing (2022-04-17) (tag: v2.36.0)
+            err.println("W: please update your git version, \"" + v + "\" support ends at 2023-03-01")
+          case v: String if v.startsWith("git version 2.37.") =>
+            // do nothing (2022-07-04) (tag: v2.37.1)
             err.println("W: please update your git version, \"" + v + "\" support ends at 2023-09-01")
-          }
+          case v: String if v.startsWith("git version 2.38.") =>
+            // do nothing (2022-10-02) (tag: v2.38.0)
+            if (ReleaseConfig.isDocker()) {
+              List.tabulate(3)(_ =>
+                err.println("W: please update your git version, \"" + v + "\" support ends at 2023-09-01")
+              )
+            } else {
+              err.println("W: please update your git version, \"" + v + "\" support ends at 2023-09-01")
+            }
 
-        case v: String if v.startsWith("git version 2.39.") =>
-        // do nothing (2022-12-13) (tag: v2.39.1)
-        case v: String if v.startsWith("git version 2.40.") => // do nothing (2023-04-17) (tag: v2.40.1)
-        case v: String if v.startsWith("git version 2.41.") => // do nothing (2023-06-01) (tag: v2.41.0)
-        case v: String if v.startsWith("git version 2.42.") => // do nothing (2023-08-21) (tag: v2.42.0)
-        case v: String if v.startsWith("git version 2.43.") => // do nothing (2023-11-20) (tag: v2.43.0)
-        case v: String if v.startsWith("git version 2.44.") => // do nothing (2024-02-22) (tag: v2.44.0)
-        case v: String if v.startsWith("git version 2.45.") => // do nothing (2024-05-30) (tag: v2.45.2)
-        case v: String if v.startsWith("git version 2.46.") => // do nothing (2024-11-26) (tag: v2.46.3)
-        case v: String if v.startsWith("git version 2.47.") => // do nothing (2024-11-26) (tag: v2.47.2)
-        case v: String if v.startsWith("git version 2.48.") => // do nothing (2025-01-13) (tag: v2.48.1)
-        case v: String if v.startsWith("git version 2.49.") => // do nothing (2025-03-14) (tag: v2.49.0)
-        case v: String if v.startsWith("git version 2.50.") => // do nothing (2025-06-15) (tag: v2.50.0)
-        case v: String if v.startsWith("git version 2.54.") => // do nothing (2026-04-19) (tag: v2.54.0)
-        case v: String => out.println("W: unknown/untested git version: \"" + v + "\". Please create a ticket at ISBO.");
-        //  if (!ReleaseConfig.isTravisCi()) {
-        //    if (Sgit.getOs == Os.Darwin) {
-        // git fetch --tags && git lg --tags --date=short --simplify-by-decoration --pretty=format:'(%cd)%d'
+          case v: String if v.startsWith("git version 2.39.") =>
+          // do nothing (2022-12-13) (tag: v2.39.1)
+          case v: String if v.startsWith("git version 2.40.") => // do nothing (2023-04-17) (tag: v2.40.1)
+          case v: String if v.startsWith("git version 2.41.") => // do nothing (2023-06-01) (tag: v2.41.0)
+          case v: String if v.startsWith("git version 2.42.") => // do nothing (2023-08-21) (tag: v2.42.0)
+          case v: String if v.startsWith("git version 2.43.") => // do nothing (2023-11-20) (tag: v2.43.0)
+          case v: String if v.startsWith("git version 2.44.") => // do nothing (2024-02-22) (tag: v2.44.0)
+          case v: String if v.startsWith("git version 2.45.") => // do nothing (2024-05-30) (tag: v2.45.2)
+          case v: String if v.startsWith("git version 2.46.") => // do nothing (2024-11-26) (tag: v2.46.3)
+          case v: String if v.startsWith("git version 2.47.") => // do nothing (2024-11-26) (tag: v2.47.2)
+          case v: String if v.startsWith("git version 2.48.") => // do nothing (2025-01-13) (tag: v2.48.1)
+          case v: String if v.startsWith("git version 2.49.") => // do nothing (2025-03-14) (tag: v2.49.0)
+          case v: String if v.startsWith("git version 2.50.") => // do nothing (2025-06-15) (tag: v2.50.0)
+          case v: String if v.startsWith("git version 2.54.") => // do nothing (2026-04-19) (tag: v2.54.0)
+          case v: String => out.println("W: unknown/untested git version: \"" + v + "\". Please create a ticket at ISBO.");
+          //  if (!ReleaseConfig.isTravisCi()) {
+          //    if (Sgit.getOs == Os.Darwin) {
+          // git fetch --tags && git lg --tags --date=short --simplify-by-decoration --pretty=format:'(%cd)%d'
+        }
+        gits = gits ++ Map(cmd -> result)
       }
-      gits = gits ++ Map(cmd -> result)
     }
-  }
 
   private[release] def outLogger(errOut: String => Unit, outLog: String => Unit,
-                                 errorLineMapper: String => Option[String]): ProcessLogger = {
+      errorLineMapper: String => Option[String]): ProcessLogger = {
     new ProcessLogger {
       override def out(s: => String): Unit = {
         outLog.apply(s)
@@ -1197,8 +1208,8 @@ object Sgit {
   }
 
   private[release] def native(cmd: Seq[String], errOnStdout: Boolean,
-                              cmdFilter: String => Boolean, err: PrintStream,
-                              errLineMapper: String => Option[String]): Try[String] = {
+      cmdFilter: String => Boolean, err: PrintStream,
+      errLineMapper: String => Option[String]): Try[String] = {
     import sys.process._
 
     var errors: String = ""
@@ -1219,8 +1230,9 @@ object Sgit {
       val result: String = cmd !! outLogger(logError, logOut, errLineMapper)
       Success(result.trim)
     } catch {
-      case e: RuntimeException if e.getMessage != null &&
-        e.getMessage.startsWith("Nonzero exit value:") && cmd.head.contains("git") =>
+      case e: RuntimeException
+          if e.getMessage != null &&
+            e.getMessage.startsWith("Nonzero exit value:") && cmd.head.contains("git") =>
         val msg = e.getMessage + "; git " + cmd.drop(3).mkString(" ") +
           "; " + Seq(errors, stdout).filterNot(_.isEmpty).mkString("; ")
         if (e.getMessage.startsWith("Nonzero exit value: 130")) {
@@ -1270,9 +1282,9 @@ object Sgit {
 
   class BranchAlreadyExistsException(msg: String) extends RuntimeException(msg)
 
-  class YourGitInstallationIsToOldException(version: String, ended: String, announced: String, msg: String = "", gitPath: String, announcedEnd: String = "") extends
-    RuntimeException(s"Your git version ${version} support ended at ${ended} announced at ${announced}${msg}; please update. " + gitPath)
-
+  class YourGitInstallationIsToOldException(version: String, ended: String, announced: String, msg: String = "", gitPath: String,
+      announcedEnd: String = "") extends RuntimeException(
+        s"Your git version ${version} support ended at ${ended} announced at ${announced}${msg}; please update. " + gitPath)
 
   private[release] def findGit(start: File): File = {
     findGitInner(start, start)
@@ -1317,9 +1329,9 @@ object Sgit {
     o.copy(doVerify = false, checkExisting = true)
   }
 
-  private[release] def init(f: File, verify: Boolean = true, initBranchName:String = "master"): Sgit = {
+  private[release] def init(f: File, verify: Boolean = true, initBranchName: String = "master"): Sgit = {
     val sgit = Sgit(f, doVerify = verify, out = System.out, err = System.err, checkExisting = false, gitBin = None, opts = Opts())
-    sgit.init( initBranchName)
+    sgit.init(initBranchName)
     sgit
   }
 }

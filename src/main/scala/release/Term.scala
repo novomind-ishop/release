@@ -67,8 +67,9 @@ object Term {
 
   @tailrec
   def readFromOneOf(sys: Term.Sys, text: String, possibleValues: Seq[String], opts: Opts): String = {
-    val line = readLineWithPrompt(sys, text + " [%s]: ".format(
-      possibleValues.map(line => line.replace(' ', ' ')).mkString("/")), opts)
+    val line = readLineWithPrompt(sys,
+      text + " [%s]: ".format(
+        possibleValues.map(line => line.replace(' ', ' ')).mkString("/")), opts)
     line match {
       case null => {
         sys.err.println("invalid readFromOneOf(..)")
@@ -110,8 +111,8 @@ object Term {
   }
 
   def readChooseOneOfOrType(sys: Term.Sys, text: String, possibleValues: Seq[String], opts: Opts,
-                            valSelectF: Seq[String] => String = _.head,
-                            mappedF: Map[String, String] => (String, String) = _.head): String = {
+      valSelectF: Seq[String] => String = _.head,
+      mappedF: Map[String, String] => (String, String) = _.head): String = {
     possibleValues match {
       case Nil => throw new IllegalArgumentException("possible value size must not be empty")
       case values if values.size == 1 => readFrom(sys, text, possibleValues.head, opts)
@@ -137,12 +138,12 @@ object Term {
     if (useColor) {
       "\u001B[" + color + "m" + text + "\u001B[0m"
     } else {
-     noColorText.getOrElse(text)
+      noColorText.getOrElse(text)
     }
   }
-  
+
   def colorB(color: Int, text: String, useColor: Boolean, noColorText: Option[String] = None): String = {
-      "[" + colorRaw(color, text, useColor, noColorText) + "] "
+    "[" + colorRaw(color, text, useColor, noColorText) + "] "
   }
 
   def checkedLength(length: Int)(in: String): String = {
@@ -173,14 +174,18 @@ object Term {
     }
   }
 
-  val info = ColoredLiner(82 - 4, (text, useColor, limit) =>
-    colorB(34, "INFO", useColor) + checkedLength(limit)(text))
-  val warnSoft = ColoredLiner(82 - 7, (text, useColor, limit) =>
-    colorB(36, "WARNING", useColor, Some("warning")) + checkedLength(limit)(text))
-  val warn = ColoredLiner(82 - 7, (text, useColor, limit) =>
-    colorB(33, "WARNING", useColor) + checkedLength(limit)(text))
-  val error = ColoredLiner(82 - 5, (text, useColor, limit) =>
-    colorB(31, "ERROR", useColor) + checkedLength(limit)(text))
+  val info = ColoredLiner(82 - 4,
+    (text, useColor, limit) =>
+      colorB(34, "INFO", useColor) + checkedLength(limit)(text))
+  val warnSoft = ColoredLiner(82 - 7,
+    (text, useColor, limit) =>
+      colorB(36, "WARNING", useColor, Some("warning")) + checkedLength(limit)(text))
+  val warn = ColoredLiner(82 - 7,
+    (text, useColor, limit) =>
+      colorB(33, "WARNING", useColor) + checkedLength(limit)(text))
+  val error = ColoredLiner(82 - 5,
+    (text, useColor, limit) =>
+      colorB(31, "ERROR", useColor) + checkedLength(limit)(text))
 
   def wrap(out: PrintStream, coloredLiner: ColoredLiner, text: String, opts: Opts): Unit = {
     wrapText(text, coloredLiner.defaultLimit)
@@ -308,7 +313,7 @@ object Term {
       }
       throw new SecurityException("EXIT")
     }
-    def getExitCode(expected:Int):Int = {
+    def getExitCode(expected: Int): Int = {
       if (!atomicExitSet.get()) {
         throw new IllegalStateException(s"exit never set, expected: ${expected}")
       }

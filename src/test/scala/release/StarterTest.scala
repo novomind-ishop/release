@@ -143,9 +143,10 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
       """found too long lines:
         |12345
         |""".stripMargin.trim
-    TestHelper.assertAssertionError(msg, classOf[AssertionError], () => {
-      assertLongLines("12345\n12", 4)
-    })
+    TestHelper.assertAssertionError(msg, classOf[AssertionError],
+      () => {
+        assertLongLines("12345\n12", 4)
+      })
     assertLongLines("123", 4)
   }
 
@@ -175,12 +176,17 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
 
     // WHEN
     val in = TermTest.willReadFrom("master\n")
-    TestHelper.assertExceptionWithCheck(in => Assert.assertEquals("E: please download a commit-message hook and retry",
-      in.linesIterator.toSeq(1)),
-      classOf[Sgit.MissingCommitHookException], () => {
-        TermTest.withOutErrIn[Unit](in)(sys => Starter.fetchGitAndAskForBranch(sys, noVerify = true, None,
-          testRepoD, Opts(), skipFetch = true, skipAskForBranchFetch = false))
-      })
+    TestHelper.assertExceptionWithCheck(
+      in =>
+        Assert.assertEquals("E: please download a commit-message hook and retry",
+          in.linesIterator.toSeq(1)),
+      classOf[Sgit.MissingCommitHookException],
+      () => {
+        TermTest.withOutErrIn[Unit](in)(sys =>
+          Starter.fetchGitAndAskForBranch(sys, noVerify = true, None,
+            testRepoD, Opts(), skipFetch = true, skipAskForBranchFetch = false))
+      }
+    )
   }
 
   @Test
@@ -189,8 +195,9 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
     SgitTest.copyMsgHook(testRepoD)
     // WHEN
     val in = TermTest.willReadFrom("master\n")
-    val result = TermTest.withOutErrIn[Unit](in)(sys => Starter.fetchGitAndAskForBranch(sys,
-      noVerify = SgitTest.hasCommitMsg, None, testRepoD, Opts(useJlineInput = false), skipFetch = true, skipAskForBranchFetch = false))
+    val result = TermTest.withOutErrIn[Unit](in)(sys =>
+      Starter.fetchGitAndAskForBranch(sys,
+        noVerify = SgitTest.hasCommitMsg, None, testRepoD, Opts(useJlineInput = false), skipFetch = true, skipAskForBranchFetch = false))
 
     // THEN
     Assert.assertEquals("Enter branch name where to start from [master]:", result.out)
@@ -202,14 +209,14 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
     val testRepoD = testRepo(SgitTest.ensureAbsent("g"), SgitTest.ensureAbsent("h"))
     // WHEN
     val in = TermTest.willReadFrom("master\n")
-    val result = TermTest.withOutErrIn[Unit](in)(sys => Starter.fetchGitAndAskForBranch(sys, noVerify = false,
-      None, testRepoD, Opts(useJlineInput = false), skipFetch = true, skipAskForBranchFetch = false))
+    val result = TermTest.withOutErrIn[Unit](in)(sys =>
+      Starter.fetchGitAndAskForBranch(sys, noVerify = false,
+        None, testRepoD, Opts(useJlineInput = false), skipFetch = true, skipAskForBranchFetch = false))
 
     // THEN
     Assert.assertEquals("Enter branch name where to start from [master]:", result.out)
     Assert.assertEquals("", result.err)
   }
-
 
   @Test
   def testSuggestRebase_detached(): Unit = {
@@ -237,7 +244,6 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
     })
   }
 
-
   @Test
   def testHandleException_TimeoutException(): Unit = {
     val result = TermTest.withOutErr[Int]()(sys => {
@@ -264,8 +270,10 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
   def testCompressToGav(): Unit = {
 
     val dep0 = ProjectModTest.depOfUndef(groupId = "groupId", artifactId = "artifactId", version = Some(""), packaging = "jar")
-    val dep1 = ProjectModTest.depOfUndef(groupId = "groupId", artifactId = "artifactId", version = Some("version${a}${b}"), packaging = "jar")
-    val dep2 = ProjectModTest.depOfUndef(groupId = "groupId2", artifactId = "artifactId", version = Some("version${a}${b}"), packaging = "jar")
+    val dep1 =
+      ProjectModTest.depOfUndef(groupId = "groupId", artifactId = "artifactId", version = Some("version${a}${b}"), packaging = "jar")
+    val dep2 =
+      ProjectModTest.depOfUndef(groupId = "groupId2", artifactId = "artifactId", version = Some("version${a}${b}"), packaging = "jar")
     val dep3 = ProjectModTest.depOfUndef(groupId = "groupId2", artifactId = "artifactId", version = Some(""))
     val dep4 = ProjectModTest.depOfUndef(groupId = "groupId2", artifactId = "artifactId", version = Some(""))
     val dep5 = ProjectModTest.depOfUndef(groupId = "groupId5", artifactId = "artifactId", version = None)
@@ -296,22 +304,24 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
     val gavUpMore3 = Gav3("groupId", "artifactIdUpMore", Some("4"))
 
     val out = Starter.connectLeftRight((
-      Seq(gav0, gavUp0, gavRemove, gavUpMore0, gavUpMore1),
-      Seq(gav0, gavUp1, gavNew, gavUpMore2, gavUpMore3)))
+        Seq(gav0, gavUp0, gavRemove, gavUpMore0, gavUpMore1),
+        Seq(gav0, gavUp1, gavNew, gavUpMore2, gavUpMore3)))
 
     Assert.assertEquals(Seq(
-      (Nil, Seq(gavNew)),
-      (Seq(gavRemove), Nil),
-      (Seq(gavUp0), Seq(gavUp1)),
-      (Seq(gavUpMore0, gavUpMore1), Seq(gavUpMore2, gavUpMore3)),
-    ), out)
+        (Nil, Seq(gavNew)),
+        (Seq(gavRemove), Nil),
+        (Seq(gavUp0), Seq(gavUp1)),
+        (Seq(gavUpMore0, gavUpMore1), Seq(gavUpMore2, gavUpMore3))
+      ), out)
 
     Assert.assertEquals(
       """NEW => groupId:artifactIdNew:1
         |groupId:artifactIdRemove:1 => REMOVED
         |groupId:artifactIdUp:1 => groupId:artifactIdUp:2
         |groupId:artifactIdUpMore:1, groupId:artifactIdUpMore:2 => groupId:artifactIdUpMore:3, groupId:artifactIdUpMore:4
-        |""".stripMargin.trim, Starter.formatLeftRight(out))
+        |""".stripMargin.trim,
+      Starter.formatLeftRight(out)
+    )
     Assert.assertEquals(
       """+ groupId:artifactIdNew:1
         |- groupId:artifactIdRemove:1
@@ -321,7 +331,9 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
         |- groupId:artifactIdUpMore:2
         |+ groupId:artifactIdUpMore:3
         |+ groupId:artifactIdUpMore:4
-        |""".stripMargin.trim, Starter.formatLeftRightUnifiedLike(out, colors = false))
+        |""".stripMargin.trim,
+      Starter.formatLeftRightUnifiedLike(out, colors = false)
+    )
   }
 
   @Test
@@ -332,12 +344,13 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
     val gavUpMore2 = Gav3("groupId", "artifactIdUpMore", None)
     val gavUpMore3 = Gav3("groupId", "artifactIdUpMore", Some("4"))
     val out = Seq(
-      (Seq(gavUpMore0, gavUpMore1), Seq(gavUpMore2, gavUpMore3)),
+      (Seq(gavUpMore0, gavUpMore1), Seq(gavUpMore2, gavUpMore3))
     )
     Assert.assertEquals(
       """|[31m- groupId:artifactIdUpMore:2[0m
          |[32m+ groupId:artifactIdUpMore:4[0m""".stripMargin,
-      Starter.formatLeftRightUnifiedLike(out, colors = true))
+      Starter.formatLeftRightUnifiedLike(out, colors = true)
+    )
   }
 
   @Test
@@ -347,10 +360,16 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
     val gavUpMore0 = Gav3("groupId", "artifactIdUpMore", None)
     val gavUpMore1 = Gav3("groupId", "artifactIdUpMore", Some("2"))
     Assert.assertEquals(Seq(
-      gavUpMore1, gavNew, gavUp1
-    ), Starter.compressIdenticals(Seq(
-      gavUpMore0, gavUpMore1, gavNew, gavUp1
-    )))
+        gavUpMore1,
+        gavNew,
+        gavUp1
+      ),
+      Starter.compressIdenticals(Seq(
+          gavUpMore0,
+          gavUpMore1,
+          gavNew,
+          gavUp1
+        )))
   }
 
   @Test
@@ -395,13 +414,12 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
     verify(sgit).checkout("test")
     verify(sgit).setUpstream("bert")
 
-    //verify(out, times(2)).println("No upstream found, please set")
-    //verify(out, times(2)).println("[2] origin/test")
-    //verify(out).println("W: unknown upstream branch; known are blabla")
-    //verify(out, times(1)).println("Enter option or type [origin/master]: ")
+    // verify(out, times(2)).println("No upstream found, please set")
+    // verify(out, times(2)).println("[2] origin/test")
+    // verify(out).println("W: unknown upstream branch; known are blabla")
+    // verify(out, times(1)).println("Enter option or type [origin/master]: ")
     // verifyNoMoreInteractions(out)
   }
-
 
   @Test
   def testFutures(): Unit = {
@@ -458,5 +476,3 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
   }
 
 }
-
-

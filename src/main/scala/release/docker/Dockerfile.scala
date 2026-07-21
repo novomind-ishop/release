@@ -23,7 +23,7 @@ object Dockerfile {
   }
 
   def parseLines(fileLines: Seq[String], allowedFromHosts: String,
-                 out: PrintStream, opts: Opts, warnExit: OneTimeSwitch, errorExit: OneTimeSwitch): Seq[Lint.UniqCode] = {
+      out: PrintStream, opts: Opts, warnExit: OneTimeSwitch, errorExit: OneTimeSwitch): Seq[Lint.UniqCode] = {
     val fromLines = fileLines.filter(l => l.trim.startsWith("FROM "))
     val alH = allowedDockerHostnames(allowedFromHosts)
 
@@ -56,11 +56,10 @@ object Dockerfile {
       Nil
     }
 
-
   }
 
   def parse(f: Path, allowedFromHostsEnv: String,
-            out: PrintStream, opts: Opts, warnExit: OneTimeSwitch, errorExit: OneTimeSwitch): Seq[Lint.UniqCode] = {
+      out: PrintStream, opts: Opts, warnExit: OneTimeSwitch, errorExit: OneTimeSwitch): Seq[Lint.UniqCode] = {
 
     val fileLines = FileUtils.readLines(f.toFile)
     parseLines(fileLines, allowedFromHostsEnv, out, opts, warnExit, errorExit)

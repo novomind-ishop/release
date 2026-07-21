@@ -12,13 +12,17 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 object LintMaven {
   def lintProjectVersion(out: PrintStream, opts: Opts, currentVersion: String, warnExit: OneTimeSwitch, errorExit: OneTimeSwitch,
-                         tagBranchInfo: Option[BranchTagMerge], allGitTags: Seq[String], isShop: Boolean,
-                         headBranchName: Option[String], allBranches: Seq[String] = Nil, now: YearMonth = YearMonth.now()): Seq[Lint.UniqCode] = {
+      tagBranchInfo: Option[BranchTagMerge], allGitTags: Seq[String], isShop: Boolean,
+      headBranchName: Option[String], allBranches: Seq[String] = Nil, now: YearMonth = YearMonth.now()): Seq[Lint.UniqCode] = {
     out.println(info(s"    $currentVersion", opts))
-    if (PomMod.isUnknownVersionPattern(currentVersion) && tagBranchInfo.isDefined && tagBranchInfo.get.branchName.getOrElse("").startsWith("release/")) {
+    if (
+      PomMod.isUnknownVersionPattern(currentVersion) && tagBranchInfo.isDefined &&
+      tagBranchInfo.get.branchName.getOrElse("").startsWith("release/")
+    ) {
 
-      out.println(warnSoft(s" unknown release/version pattern: $currentVersion ${PomMod.trySuggestKnownPattern(currentVersion).getOrElse("-")}"
-        , opts, limit = Lint.lineMax))
+      out.println(
+        warnSoft(s" unknown release/version pattern: $currentVersion ${PomMod.trySuggestKnownPattern(currentVersion).getOrElse("-")}", opts,
+          limit = Lint.lineMax))
     }
     // TODO check if current version is older then released tags
     // TODO check if current version out of range of all major versions; e.g. currentVersion: 40; existing (1,2,3)
@@ -37,8 +41,11 @@ object LintMaven {
     }
     if (v.isUndef && v.hasNoDigits && Lint.isValidTag(tagBranchInfo)) {
       // TODO describe why this is important
-      out.println(warn(s" version »${currentVersion}« is not recommended, please use at least a single digit e.g. 1.0.0. This helps us to cleanup older versions. ${fiWarn}"
-        , opts, limit = Lint.lineMax))
+      out.println(warn(
+          s" version »${currentVersion}« is not recommended, please use at least a single digit e.g. 1.0.0. This helps us to cleanup older versions. ${fiWarn}",
+          opts,
+          limit = Lint.lineMax
+        ))
       // TODO skip
       warnExit.trigger()
     }
@@ -46,8 +53,8 @@ object LintMaven {
     val usedSkips: Seq[Lint.UniqCode] = if (!Lint.isValidTag(tagBranchInfo)) {
       if (!v.isSnapshot) {
         // TODO non snapshots are only allowed in tags, because if someone install it to its local repo this will lead to problems
-        out.println(warn(s" version »${currentVersion}« must be a SNAPSHOT; non snapshots are only allowed in tags ${fiWarn}"
-          , opts, limit = Lint.lineMax))
+        out.println(warn(s" version »${currentVersion}« must be a SNAPSHOT; non snapshots are only allowed in tags ${fiWarn}", opts,
+            limit = Lint.lineMax))
         warnExit.trigger()
         // TODO skip
         ()
@@ -55,7 +62,8 @@ object LintMaven {
       val asVersion = v.removeAllSnapshots()
       if (allGitTagVersions.contains(asVersion.rawInput)) {
         val suggested = PomMod.suggestNextReleaseBy(v.rawInput, v.rawInput) + "-SNAPSHOT"
-        val msg = s" tag v${asVersion.rawInput} is already existing. Please increment to next version e.g. ${suggested} ${fiWarn} ${fiCodeVersionMismatchNoTag}"
+        val msg =
+          s" tag v${asVersion.rawInput} is already existing. Please increment to next version e.g. ${suggested} ${fiWarn} ${fiCodeVersionMismatchNoTag}"
         if (opts.lintOpts.skips.contains(fiCodeVersionMismatchNoTag)) {
           out.println(warnSoft(msg, opts, limit = Lint.lineMax))
           Seq(fiCodeVersionMismatchNoTag)
@@ -109,7 +117,6 @@ object LintMaven {
     }
   }
 
-
   private def containsValidCurrentYearWeek(years: Seq[String], ef: Version): Either[String, Boolean] = {
     ef.digits
       .sliding(2)
@@ -126,10 +133,12 @@ object LintMaven {
 
   def selectYearLikesProblems(in: Seq[String], now: YearMonth): Seq[String] = {
     val keys = Seq(now.getYear - 1, now.getYear, now.getYear + 1).map(_.toString)
-    in.map(Version.parseSloppy).filter(vs => ({
-      val strings = keys.diff(vs.digits)
-      strings != keys
-    })).map(v => {
+    in.map(Version.parseSloppy).filter(vs =>
+      ({
+        val strings = keys.diff(vs.digits)
+        strings != keys
+      }
+    )).map(v => {
       containsValidCurrentYearWeek(keys, v)
     }).flatMap(_.swap.map(e => Some(e)).getOrElse(None))
   }

@@ -32,13 +32,14 @@ class VersionSkewTest extends AssertionsForJUnit {
   def testCoreMajorResult_Release_deps_2(): Unit = {
     val deps = Seq(
       Gav3("g", "a", Some("1.2.3")),
-      Gav3("g", "aa", Some("1.2.3")),
+      Gav3("g", "aa", Some("1.2.3"))
     ).map(_.toDep(SelfRef.undef))
     val result = VersionSkew.skewResultOfLayer(relevantDeps = deps, isNoShop = true, releaseVersion = Some("1.2.3"))
-    Assert.assertEquals(SkewResult(hasDifferentMajors = false, Seq("1"), "1", Seq(
-      ("1", deps(0).gav()),
-      ("1", deps(1).gav()),
-    ), Nil), result)
+    Assert.assertEquals(SkewResult(hasDifferentMajors = false, Seq("1"), "1",
+        Seq(
+          ("1", deps(0).gav()),
+          ("1", deps(1).gav())
+        ), Nil), result)
   }
 
   @Test
@@ -46,13 +47,14 @@ class VersionSkewTest extends AssertionsForJUnit {
     val deps = Seq(
       Gav3("g", "a", Some("1.2.3")),
       Gav3("g", "aa", Some("2.2.3")),
-      Gav3("g", "aaa", None),
+      Gav3("g", "aaa", None)
     ).map(_.toDep(SelfRef.undef))
     val result = VersionSkew.skewResultOfLayer(relevantDeps = deps, isNoShop = true, releaseVersion = Some("1.2.3"))
-    Assert.assertEquals(SkewResult(hasDifferentMajors = true, Seq("1", "2"), "1", Seq(
-      ("1", deps(0).gav()),
-      ("2", deps(1).gav()),
-    ), Nil), result)
+    Assert.assertEquals(SkewResult(hasDifferentMajors = true, Seq("1", "2"), "1",
+        Seq(
+          ("1", deps(0).gav()),
+          ("2", deps(1).gav())
+        ), Nil), result)
   }
 
   @Test
@@ -60,13 +62,14 @@ class VersionSkewTest extends AssertionsForJUnit {
     val deps = Seq(
       Gav3("g", "a", Some("1.2.3")),
       Gav3("g", "aa", Some("2.2.3")),
-      Gav3("g", "aaa", None),
+      Gav3("g", "aaa", None)
     ).map(_.toDep(SelfRef.undef))
     val result = VersionSkew.skewResultOfLayer(relevantDeps = deps, isNoShop = false, releaseVersion = Some("1.2.3"))
-    Assert.assertEquals(SkewResult(hasDifferentMajors = true, Seq("1", "2"), "2", Seq(
-      ("1", deps(0).gav()),
-      ("2", deps(1).gav()),
-    ), Nil), result)
+    Assert.assertEquals(SkewResult(hasDifferentMajors = true, Seq("1", "2"), "2",
+        Seq(
+          ("1", deps(0).gav()),
+          ("2", deps(1).gav())
+        ), Nil), result)
   }
 
   @Test
@@ -77,7 +80,7 @@ class VersionSkewTest extends AssertionsForJUnit {
         Gav3("g", "some-rele-a", Some("1.2.3")),
         Gav3("g", "some-rele-b", Some("1.2.4")),
         Gav3("g", "aa", Some("2.2.3")),
-        Gav3("g", "aaa", None),
+        Gav3("g", "aaa", None)
       ).map(_.toDep(SelfRef.undef))
       val sk = VersionSkew.innerSkewResult(None, warnExit = wx, out = Some(sys.out),
         Opts().copy(colors = false, lintOpts = Opts().lintOpts.copy(skips = Seq("RL1013-2a36fc66"))), isNoShop = false, deps).usedLintSkips
@@ -89,7 +92,9 @@ class VersionSkewTest extends AssertionsForJUnit {
         |[WARNING]       g:some-rele-a:1.2.3 😬 RL1013-ee567cda
         |[INFO]          g:some-rele-b:1.2.4 🤐 RL1013-2a36fc66
         |[WARNING]       - 2 -
-        |[WARNING]       g:aa:2.2.3 😬 RL1013-7e9bf46f""".stripMargin, term.out)
+        |[WARNING]       g:aa:2.2.3 😬 RL1013-7e9bf46f""".stripMargin,
+      term.out
+    )
     Assert.assertTrue(wx.get.isTriggered())
   }
 
@@ -100,7 +105,7 @@ class VersionSkewTest extends AssertionsForJUnit {
       val deps = Seq(
         Gav3("g", "some-rele-b", Some("1.2.4")),
         Gav3("g", "aa", Some("2.2.3")),
-        Gav3("g", "aaa", None),
+        Gav3("g", "aaa", None)
       ).map(_.toDep(SelfRef.undef))
       val sk = VersionSkew.innerSkewResult(None, warnExit = wx, out = Some(sys.out),
         Opts().copy(colors = false, lintOpts = Opts().lintOpts.copy(skips = Seq("RL1013-2a36fc66"))), isNoShop = false, deps).usedLintSkips
@@ -111,7 +116,9 @@ class VersionSkewTest extends AssertionsForJUnit {
         |[warning]       - 1 -
         |[INFO]          g:some-rele-b:1.2.4 🤐 RL1013-2a36fc66
         |[warning]       - 2 -
-        |[warning]       g:aa:2.2.3 😬 RL1013-7e9bf46f""".stripMargin, term.out)
+        |[warning]       g:aa:2.2.3 😬 RL1013-7e9bf46f""".stripMargin,
+      term.out
+    )
     Assert.assertFalse(wx.get.isTriggered())
   }
 
@@ -123,7 +130,7 @@ class VersionSkewTest extends AssertionsForJUnit {
         Gav3("g", "some-rele-a", Some("1.2.3")),
         Gav3("g", "some-rele-b", Some("1.2.4")),
         Gav3("g", "aa", Some("2.2.3")),
-        Gav3("g", "aaa", None),
+        Gav3("g", "aaa", None)
       ).map(_.toDep(SelfRef.undef))
       val sk = VersionSkew.innerSkewResult(None, warnExit = wx, out = Some(sys.out),
         Opts().copy(colors = false, lintOpts = Opts().lintOpts.copy(skips = Seq("RL1013-5d42b383"))), isNoShop = false, deps).usedLintSkips
@@ -135,7 +142,9 @@ class VersionSkewTest extends AssertionsForJUnit {
         |[INFO]          g:some-rele-a:1.2.3 🤐 RL1013-ee567cda
         |[INFO]          g:some-rele-b:1.2.4 🤐 RL1013-2a36fc66
         |[INFO]          - 2 -
-        |[INFO]          g:aa:2.2.3 🤐 RL1013-7e9bf46f""".stripMargin, term.out)
+        |[INFO]          g:aa:2.2.3 🤐 RL1013-7e9bf46f""".stripMargin,
+      term.out
+    )
     Assert.assertFalse(wx.get.isTriggered())
   }
 

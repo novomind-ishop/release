@@ -31,7 +31,7 @@ object Util {
         "\\u00A0\\u1680\\u2000-\\u200F" +
         "\\u2028-\\u202F\\u205F\\u2060-\\u206F\\uFEFF" +
         "\\s]"
-      ).r
+    ).r
     extension (in: String) {
 
       private def isInvisible(ch: Char): Boolean =
@@ -63,9 +63,9 @@ object Util {
         }
       }
 
-      /**
-       * @see jdk11 has isBlank()
-       */
+      /** @see
+        *   jdk11 has isBlank()
+        */
       def blank(): Boolean = {
         in == null || in != null && in.trim.isEmpty
       }
@@ -134,12 +134,11 @@ object Util {
       (filledSeq1, filledSeq2)
     }
 
-
     private val predefScores: Map[(String, String), Int] = Map(
       ("bre", "core") -> 2,
       ("ui", "vue") -> 2,
       ("api", "web") -> 2,
-      ("app", "sba") -> 2,
+      ("app", "sba") -> 2
     )
 
     def caverphone(a: String, b: String): Int = {
@@ -462,7 +461,7 @@ object Util {
   }
 
   private val chars: IndexedSeq[Char] = (
-      ('Α' to 'Ω') ++ // Griechisch Groß
+    ('Α' to 'Ω') ++ // Griechisch Groß
       ('α' to 'ω') ++ // Griechisch Klein
       Seq(
         '§', '¤', '¥', '¢', '±', '×', '÷', '∞', '∑', '∏',
@@ -474,7 +473,7 @@ object Util {
         '⚙', '⚛', '⚡', '☄',
         '0', '1'
       )
-    ).distinct
+  ).distinct
 
   def generateSymbols(length: Int, lineWidth: Int): String = {
     val sb = new StringBuilder(length + length / lineWidth)
@@ -531,7 +530,7 @@ object Util {
     }
   }
 
-  def toGlitchy(input: String, limit:Int = 2): String = {
+  def toGlitchy(input: String, limit: Int = 2): String = {
     if (!input.exists(_.isLetter)) {
       input
     } else if (limit < 0) {

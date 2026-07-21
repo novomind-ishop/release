@@ -10,8 +10,7 @@ import javassist.bytecode.annotation.MemberValue
 
 import scala.jdk.CollectionConverters.*
 
-class XoutOutputGenerator(options: Options, jApiClasses: util.List[JApiClass]) extends
-  OutputGenerator[String](options, jApiClasses) {
+class XoutOutputGenerator(options: Options, jApiClasses: util.List[JApiClass]) extends OutputGenerator[String](options, jApiClasses) {
 
   override def generate: String = {
     val outputFilter: OutputFilter = new OutputFilter(options)
@@ -25,8 +24,7 @@ class XoutOutputGenerator(options: Options, jApiClasses: util.List[JApiClass]) e
         processMethods(sb, jApiClass)
         processAnnotations(sb, jApiClass, 1)
       }
-    }
-    else {
+    } else {
       sb.append("No changes.")
     }
     sb.toString
@@ -68,7 +66,8 @@ class XoutOutputGenerator(options: Options, jApiClasses: util.List[JApiClass]) e
   }
 
   private def appendException(sb: StringBuilder, signs: String, jApiException: JApiException, indent: Int): Unit = {
-    sb.append(tabs(indent)).append(signs).append(" ").append(jApiException.getChangeStatus).append(" EXCEPTION: ").append(jApiException.getName).append("\n")
+    sb.append(tabs(indent)).append(signs).append(" ").append(jApiException.getChangeStatus).append(" EXCEPTION: ").append(
+      jApiException.getName).append("\n")
   }
 
   private def processClass(sb: StringBuilder, jApiClass: JApiClass): Unit = {
@@ -102,19 +101,21 @@ class XoutOutputGenerator(options: Options, jApiClasses: util.List[JApiClass]) e
     if (binaryCompatible) {
       if (sourceCompatible) {
         retVal += " "
-      }
-      else {
+      } else {
         retVal += "*"
       }
-    }
-    else {
+    } else {
       retVal += "!"
     }
     return retVal
   }
 
   private def appendMethod(sb: StringBuilder, signs: String, jApiBehavior: JApiBehavior, classMemberType: String): Unit = {
-    sb.append("\t").append(signs).append(" ").append(jApiBehavior.getChangeStatus).append(" ").append(classMemberType).append(" ").append(accessModifierAsString(jApiBehavior)).append(abstractModifierAsString(jApiBehavior)).append(staticModifierAsString(jApiBehavior)).append(finalModifierAsString(jApiBehavior)).append(syntheticModifierAsString(jApiBehavior)).append(bridgeModifierAsString(jApiBehavior)).append(returnType(jApiBehavior)).append(jApiBehavior.getName).append("(")
+    sb.append("\t").append(signs).append(" ").append(jApiBehavior.getChangeStatus).append(" ").append(classMemberType).append(" ").append(
+      accessModifierAsString(jApiBehavior)).append(abstractModifierAsString(jApiBehavior)).append(
+      staticModifierAsString(jApiBehavior)).append(finalModifierAsString(jApiBehavior)).append(
+      syntheticModifierAsString(jApiBehavior)).append(bridgeModifierAsString(jApiBehavior)).append(returnType(jApiBehavior)).append(
+      jApiBehavior.getName).append("(")
     var paramCount: Int = 0
     for (jApiParameter <- jApiBehavior.getParameters.asScala) {
       if (paramCount > 0) {
@@ -133,16 +134,13 @@ class XoutOutputGenerator(options: Options, jApiClasses: util.List[JApiClass]) e
       val jApiReturnType: JApiReturnType = method.getReturnType
       if (jApiReturnType.getChangeStatus eq JApiChangeStatus.UNCHANGED) {
         returnTypeAsString = jApiReturnType.getNewReturnType + " "
-      }
-      else {
+      } else {
         if (jApiReturnType.getChangeStatus eq JApiChangeStatus.MODIFIED) {
           returnTypeAsString = jApiReturnType.getNewReturnType + " (<-" + jApiReturnType.getOldReturnType + ") "
-        }
-        else {
+        } else {
           if (jApiReturnType.getChangeStatus eq JApiChangeStatus.NEW) {
             returnTypeAsString = jApiReturnType.getNewReturnType + " "
-          }
-          else {
+          } else {
             returnTypeAsString = jApiReturnType.getOldReturnType + " "
           }
         }
@@ -152,42 +150,40 @@ class XoutOutputGenerator(options: Options, jApiClasses: util.List[JApiClass]) e
   }
 
   private def appendAnnotation(sb: StringBuilder, signs: String, jApiAnnotation: JApiAnnotation, numberOfTabs: Int): Unit = {
-    sb.append(String.format("%s%s %s ANNOTATION: %s\n", tabs(numberOfTabs), signs, jApiAnnotation.getChangeStatus, jApiAnnotation.getFullyQualifiedName))
+    sb.append(String.format("%s%s %s ANNOTATION: %s\n", tabs(numberOfTabs), signs, jApiAnnotation.getChangeStatus,
+        jApiAnnotation.getFullyQualifiedName))
   }
 
-  private def appendAnnotationElement(sb: StringBuilder, signs: String, jApiAnnotationElement: JApiAnnotationElement, numberOfTabs: Int): Unit = {
-    sb.append(String.format("%s%s %s ELEMENT: %s=", tabs(numberOfTabs), signs, jApiAnnotationElement.getChangeStatus, jApiAnnotationElement.getName))
+  private def appendAnnotationElement(sb: StringBuilder, signs: String, jApiAnnotationElement: JApiAnnotationElement, numberOfTabs: Int)
+      : Unit = {
+    sb.append(String.format("%s%s %s ELEMENT: %s=", tabs(numberOfTabs), signs, jApiAnnotationElement.getChangeStatus,
+        jApiAnnotationElement.getName))
     val oldValue: Optional[MemberValue] = jApiAnnotationElement.getOldValue
     val newValue: Optional[MemberValue] = jApiAnnotationElement.getNewValue
     if (oldValue.isPresent && newValue.isPresent) {
       if (jApiAnnotationElement.getChangeStatus eq JApiChangeStatus.UNCHANGED) {
         sb.append(elementValueList2String(jApiAnnotationElement.getNewElementValues))
-      }
-      else {
+      } else {
         if (jApiAnnotationElement.getChangeStatus eq JApiChangeStatus.REMOVED) {
           sb.append(String.format("%s (-)", elementValueList2String(jApiAnnotationElement.getOldElementValues)))
-        }
-        else {
+        } else {
           if (jApiAnnotationElement.getChangeStatus eq JApiChangeStatus.NEW) {
             sb.append(String.format("%s (+)", elementValueList2String(jApiAnnotationElement.getNewElementValues)))
-          }
-          else {
+          } else {
             if (jApiAnnotationElement.getChangeStatus eq JApiChangeStatus.MODIFIED) {
-              sb.append(String.format("%s (<- %s)", elementValueList2String(jApiAnnotationElement.getNewElementValues), elementValueList2String(jApiAnnotationElement.getOldElementValues)))
+              sb.append(String.format("%s (<- %s)", elementValueList2String(jApiAnnotationElement.getNewElementValues),
+                  elementValueList2String(jApiAnnotationElement.getOldElementValues)))
             }
           }
         }
       }
-    }
-    else {
+    } else {
       if (!(oldValue.isPresent) && newValue.isPresent) {
         sb.append(String.format("%s (+)", elementValueList2String(jApiAnnotationElement.getNewElementValues)))
-      }
-      else {
+      } else {
         if (oldValue.isPresent && !(newValue.isPresent)) {
           sb.append(String.format("%s (-)", elementValueList2String(jApiAnnotationElement.getOldElementValues)))
-        }
-        else {
+        } else {
           sb.append(" n.a.")
         }
       }
@@ -207,16 +203,13 @@ class XoutOutputGenerator(options: Options, jApiClasses: util.List[JApiClass]) e
       if ((value.getType ne Type.Array) && (value.getType ne Type.Annotation)) {
         if (value.getType eq Type.Enum) {
           sb.append(value.getFullyQualifiedName).append(".").append(value.getValueString)
-        }
-        else {
+        } else {
           sb.append(value.getValueString)
         }
-      }
-      else {
+      } else {
         if (value.getType eq Type.Array) {
           sb.append("{").append(elementValueList2String(value.getValues)).append("}")
-        }
-        else {
+        } else {
           if (value.getType eq Type.Annotation) {
             sb.append("@").append(value.getFullyQualifiedName).append("(").append(elementValueList2String(value.getValues)).append(")")
           }
@@ -229,16 +222,13 @@ class XoutOutputGenerator(options: Options, jApiClasses: util.List[JApiClass]) e
   private def tabs(numberOfTabs: Int): String = {
     if (numberOfTabs <= 0) {
       return ""
-    }
-    else {
+    } else {
       if (numberOfTabs == 1) {
         return "\t"
-      }
-      else {
+      } else {
         if (numberOfTabs == 2) {
           return "\t\t"
-        }
-        else {
+        } else {
           val sb: StringBuilder = new StringBuilder
           for (i <- 0 until numberOfTabs) {
             sb.append("\t")
@@ -250,7 +240,10 @@ class XoutOutputGenerator(options: Options, jApiClasses: util.List[JApiClass]) e
   }
 
   private def appendClass(sb: StringBuilder, signs: String, jApiClass: JApiClass): Unit = {
-    sb.append(signs).append(" ").append(jApiClass.getChangeStatus).append(" ").append(processClassType(jApiClass)).append(": ").append(accessModifierAsString(jApiClass)).append(abstractModifierAsString(jApiClass)).append(staticModifierAsString(jApiClass)).append(finalModifierAsString(jApiClass)).append(syntheticModifierAsString(jApiClass)).append(jApiClass.getFullyQualifiedName).append(" ").append(javaObjectSerializationStatus(jApiClass)).append("\n")
+    sb.append(signs).append(" ").append(jApiClass.getChangeStatus).append(" ").append(processClassType(jApiClass)).append(": ").append(
+      accessModifierAsString(jApiClass)).append(abstractModifierAsString(jApiClass)).append(staticModifierAsString(jApiClass)).append(
+      finalModifierAsString(jApiClass)).append(syntheticModifierAsString(jApiClass)).append(jApiClass.getFullyQualifiedName).append(
+      " ").append(javaObjectSerializationStatus(jApiClass)).append("\n")
     processClassFileFormatVersionChanges(sb, jApiClass)
     processInterfaceChanges(sb, jApiClass)
     processSuperclassChanges(sb, jApiClass)
@@ -261,7 +254,8 @@ class XoutOutputGenerator(options: Options, jApiClasses: util.List[JApiClass]) e
     val classFileFormatVersion: JApiClassFileFormatVersion = jApiClass.getClassFileFormatVersion
 
     val show = classFileFormatVersion.getMajorVersionNew != -1 && classFileFormatVersion.getMinorVersionNew != -1 &&
-      classFileFormatVersion.getMajorVersionOld != -(1) && classFileFormatVersion.getMinorVersionOld != -1 &&
+      classFileFormatVersion.getMajorVersionOld !=
+      -(1) && classFileFormatVersion.getMinorVersionOld != -1 &&
       classFileFormatVersion.getMajorVersionNew != classFileFormatVersion.getMajorVersionOld &&
       classFileFormatVersion.getMinorVersionNew != classFileFormatVersion.getMinorVersionNew
 
@@ -271,15 +265,13 @@ class XoutOutputGenerator(options: Options, jApiClasses: util.List[JApiClass]) e
         .append(" CLASS FILE FORMAT VERSION: ")
       if (classFileFormatVersion.getMajorVersionNew != -(1) && classFileFormatVersion.getMinorVersionNew != -(1)) {
         sb.append(classFileFormatVersion.getMajorVersionNew).append(".").append(classFileFormatVersion.getMinorVersionNew)
-      }
-      else {
+      } else {
         sb.append("n.a.")
       }
       sb.append(" <- ")
       if (classFileFormatVersion.getMajorVersionOld != -(1) && classFileFormatVersion.getMinorVersionNew != -(1)) {
         sb.append(classFileFormatVersion.getMajorVersionOld).append(".").append(classFileFormatVersion.getMinorVersionOld)
-      }
-      else {
+      } else {
         sb.append("n.a.")
       }
       sb.append("\n")
@@ -308,7 +300,9 @@ class XoutOutputGenerator(options: Options, jApiClasses: util.List[JApiClass]) e
   private def processFieldChanges(sb: StringBuilder, jApiClass: JApiClass): Unit = {
     val jApiFields: List[JApiField] = jApiClass.getFields
     for (jApiField <- jApiFields.asScala) {
-      sb.append(tabs(1)).append(signs(jApiField)).append(" ").append(jApiField.getChangeStatus).append(" FIELD: ").append(accessModifierAsString(jApiField)).append(staticModifierAsString(jApiField)).append(finalModifierAsString(jApiField)).append(syntheticModifierAsString(jApiField)).append(fieldTypeChangeAsString(jApiField)).append(jApiField.getName).append("\n")
+      sb.append(tabs(1)).append(signs(jApiField)).append(" ").append(jApiField.getChangeStatus).append(" FIELD: ").append(
+        accessModifierAsString(jApiField)).append(staticModifierAsString(jApiField)).append(finalModifierAsString(jApiField)).append(
+        syntheticModifierAsString(jApiField)).append(fieldTypeChangeAsString(jApiField)).append(jApiField.getName).append("\n")
       processAnnotations(sb, jApiField, 2)
     }
   }
@@ -347,34 +341,29 @@ class XoutOutputGenerator(options: Options, jApiClasses: util.List[JApiClass]) e
     if (modifier.getOldModifier.isPresent && modifier.getNewModifier.isPresent) {
       if (modifier.getChangeStatus eq JApiChangeStatus.MODIFIED) {
         return modifier.getNewModifier.get.toString + " (<- " + modifier.getOldModifier.get + ") "
-      }
-      else {
+      } else {
         if (modifier.getChangeStatus eq JApiChangeStatus.NEW) {
           if (modifier.getNewModifier.get.toString != notPrintValue) {
             return modifier.getNewModifier.get.toString + "(+) "
           }
-        }
-        else {
+        } else {
           if (modifier.getChangeStatus eq JApiChangeStatus.REMOVED) {
             if (modifier.getOldModifier.get != notPrintValue) {
               return modifier.getOldModifier.get.toString + "(-) "
             }
-          }
-          else {
+          } else {
             if (modifier.getNewModifier.get.toString != notPrintValue) {
               return modifier.getNewModifier.get.toString + " "
             }
           }
         }
       }
-    }
-    else {
+    } else {
       if (modifier.getOldModifier.isPresent) {
         if (modifier.getOldModifier.get != notPrintValue) {
           return modifier.getOldModifier.get.toString + "(-) "
         }
-      }
-      else {
+      } else {
         if (modifier.getNewModifier.isPresent) {
           if (modifier.getNewModifier.get.toString != notPrintValue) {
             return modifier.getNewModifier.get.toString + "(+) "
@@ -390,26 +379,21 @@ class XoutOutputGenerator(options: Options, jApiClasses: util.List[JApiClass]) e
     if (`type`.getOldTypeOptional.isPresent && `type`.getNewTypeOptional.isPresent) {
       if (`type`.getChangeStatus eq JApiChangeStatus.MODIFIED) {
         return `type`.getNewTypeOptional.get + " (<- " + `type`.getOldTypeOptional.get + ") "
-      }
-      else {
+      } else {
         if (`type`.getChangeStatus eq JApiChangeStatus.NEW) {
           return `type`.getNewTypeOptional.get + "(+) "
-        }
-        else {
+        } else {
           if (`type`.getChangeStatus eq JApiChangeStatus.REMOVED) {
             return `type`.getOldTypeOptional.get + "(-) "
-          }
-          else {
+          } else {
             return `type`.getNewTypeOptional.get + " "
           }
         }
       }
-    }
-    else {
+    } else {
       if (`type`.getOldTypeOptional.isPresent && !(`type`.getNewTypeOptional.isPresent)) {
         return `type`.getOldTypeOptional.get + " "
-      }
-      else {
+      } else {
         if (!(`type`.getOldTypeOptional.isPresent) && `type`.getNewTypeOptional.isPresent) {
           return `type`.getNewTypeOptional.get + " "
         }
@@ -421,19 +405,18 @@ class XoutOutputGenerator(options: Options, jApiClasses: util.List[JApiClass]) e
   private def processSuperclassChanges(sb: StringBuilder, jApiClass: JApiClass): Unit = {
     val jApiSuperclass: JApiSuperclass = jApiClass.getSuperclass
     if (options.isOutputOnlyModifications && (jApiSuperclass.getChangeStatus ne JApiChangeStatus.UNCHANGED)) {
-      sb.append(tabs(1)).append(signs(jApiSuperclass)).append(" ").append(jApiSuperclass.getChangeStatus).append(" SUPERCLASS: ").append(superclassChangeAsString(jApiSuperclass)).append("\n")
+      sb.append(tabs(1)).append(signs(jApiSuperclass)).append(" ").append(jApiSuperclass.getChangeStatus).append(" SUPERCLASS: ").append(
+        superclassChangeAsString(jApiSuperclass)).append("\n")
     }
   }
 
   private def superclassChangeAsString(jApiSuperclass: JApiSuperclass): String = {
     if (jApiSuperclass.getOldSuperclassName.isPresent && jApiSuperclass.getNewSuperclassName.isPresent) {
       return jApiSuperclass.getNewSuperclassName.get + " (<- " + jApiSuperclass.getOldSuperclassName.get + ")"
-    }
-    else {
+    } else {
       if (jApiSuperclass.getOldSuperclassName.isPresent && !(jApiSuperclass.getNewSuperclassName.isPresent)) {
         return jApiSuperclass.getOldSuperclassName.get
-      }
-      else {
+      } else {
         if (!(jApiSuperclass.getOldSuperclassName.isPresent) && jApiSuperclass.getNewSuperclassName.isPresent) {
           return jApiSuperclass.getNewSuperclassName.get
         }
@@ -445,7 +428,8 @@ class XoutOutputGenerator(options: Options, jApiClasses: util.List[JApiClass]) e
   private def processInterfaceChanges(sb: StringBuilder, jApiClass: JApiClass): Unit = {
     val interfaces: List[JApiImplementedInterface] = jApiClass.getInterfaces
     for (implementedInterface <- interfaces.asScala) {
-      sb.append(tabs(1)).append(signs(implementedInterface)).append(" ").append(implementedInterface.getChangeStatus).append(" INTERFACE: ").append(implementedInterface.getFullyQualifiedName).append("\n")
+      sb.append(tabs(1)).append(signs(implementedInterface)).append(" ").append(implementedInterface.getChangeStatus).append(
+        " INTERFACE: ").append(implementedInterface.getFullyQualifiedName).append("\n")
     }
   }
 }

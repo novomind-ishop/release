@@ -5,7 +5,7 @@ import scala.quoted.*
 sealed trait OptsChange[T] {
   def replace(in: T): Opts
 }
-sealed class DepInvalidsFocus(io:Opts) extends OptsChange[Seq[String]] {
+sealed class DepInvalidsFocus(io: Opts) extends OptsChange[Seq[String]] {
 
   override def replace(in: Seq[String]): Opts = {
     io.copy(depUpOpts = io.depUpOpts.copy(diag = io.depUpOpts.diag.copy(invalids = in)))
@@ -51,5 +51,3 @@ extension (c: Opts) {
   }
 
 }
-
-

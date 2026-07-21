@@ -30,8 +30,10 @@ class PomModTest extends AssertionsForJUnit {
 
   @Test
   def testTeset(): Unit = {
-    val srcPoms: File = pomTestFile(temp, document(
-      <project>
+    val srcPoms: File = pomTestFile(
+      temp,
+      document(
+        <project>
         <modelVersion>4.0.0</modelVersion>
         <groupId>com.novomind.ishop.shops.any</groupId>
         <artifactId>any-projects</artifactId>
@@ -41,7 +43,11 @@ class PomModTest extends AssertionsForJUnit {
           <module>any-erp</module>
         </modules>
       </project>
-    )).sub("any-erp", document(<project>
+      )
+    ).sub(
+      "any-erp",
+      document(
+        <project>
       <modelVersion>4.0.0</modelVersion>
       <parent>
         <groupId>com.novomind.ishop.shops.any</groupId>
@@ -52,14 +58,18 @@ class PomModTest extends AssertionsForJUnit {
       <artifactId>any-erp</artifactId>
       <name>any-erp</name>
     </project>
-    )).create()
+      )
+    ).create()
     val out = PomMod.allRawModulePomsFiles(Seq(srcPoms), withSubPoms = true).map(in => srcPoms.toPath.relativize(in.toPath))
     Assert.assertEquals(Seq(Paths.get("pom.xml"), Paths.get("any-erp", "pom.xml")), out)
   }
 
   @Test
   def defectSelfPom(): Unit = {
-    val srcPoms: File = pomTestFile(temp, document(<project>
+    val srcPoms: File = pomTestFile(
+      temp,
+      document(
+        <project>
       <modelVersion>4.0.0</modelVersion>
       <groupId>com.novomind.ishop.shops.any</groupId>
       <artifactId>any-projects</artifactId>
@@ -70,7 +80,11 @@ class PomModTest extends AssertionsForJUnit {
         <module>any-erp</module>
       </modules>
     </project>
-    )).sub("any-erp", document(<project>
+      )
+    ).sub(
+      "any-erp",
+      document(
+        <project>
       <modelVersion>4.0.0</modelVersion>
 
       <parent>
@@ -83,23 +97,30 @@ class PomModTest extends AssertionsForJUnit {
       <artifactId>any-erp</artifactId>
       <name>any-erp</name>
     </project>
-    )).create()
+      )
+    ).create()
 
     // WHEN
-    TestHelper.assertException("More then one Version found in your pom.xmls: " +
-      "Dep(SelfRef(Gav3(com.novomind.ishop.shops.any,any-erp,Some(28.0.0-SNAPSHOT)))," +
-      "com.novomind.ishop.shops.any,any-erp,Some(28.0.0-SNAPSHOT),,,,,List(project, artifactId)) (27.0.0-SNAPSHOT, 28.0.0-SNAPSHOT)",
-      classOf[IllegalArgumentException], () => {
+    TestHelper.assertException(
+      "More then one Version found in your pom.xmls: " +
+        "Dep(SelfRef(Gav3(com.novomind.ishop.shops.any,any-erp,Some(28.0.0-SNAPSHOT)))," +
+        "com.novomind.ishop.shops.any,any-erp,Some(28.0.0-SNAPSHOT),,,,,List(project, artifactId)) (27.0.0-SNAPSHOT, 28.0.0-SNAPSHOT)",
+      classOf[IllegalArgumentException],
+      () => {
         PomModTest.withRepoForTests(srcPoms, repo)
           .selfVersion
 
-      })
+      }
+    )
 
   }
 
   @Test
   def defectSelfPomMultiple(): Unit = {
-    val srcPoms: File = pomTestFile(temp, document(<project>
+    val srcPoms: File = pomTestFile(
+      temp,
+      document(
+        <project>
       <modelVersion>4.0.0</modelVersion>
       <groupId>com.novomind.ishop.shops.any</groupId>
       <artifactId>any</artifactId>
@@ -110,7 +131,11 @@ class PomModTest extends AssertionsForJUnit {
         <module>any</module>
       </modules>
     </project>
-    )).sub("any", document(<project>
+      )
+    ).sub(
+      "any",
+      document(
+        <project>
       <modelVersion>4.0.0</modelVersion>
 
       <parent>
@@ -123,21 +148,26 @@ class PomModTest extends AssertionsForJUnit {
       <artifactId>any</artifactId>
       <name>any</name>
     </project>
-    )).create()
+      )
+    ).create()
 
     // WHEN
-    TestHelper.assertException("" +
-      "»com.novomind.ishop.shops.any:any« (in any/pom.xml) is identical to " +
-      "»com.novomind.ishop.shops.any:any« (in pom.xml). Please choose distinguishable names.",
-      classOf[ValidationException], () => {
+    TestHelper.assertException(
+      "" +
+        "»com.novomind.ishop.shops.any:any« (in any/pom.xml) is identical to " +
+        "»com.novomind.ishop.shops.any:any« (in pom.xml). Please choose distinguishable names.",
+      classOf[ValidationException],
+      () => {
         PomModTest.withRepoForTests(srcPoms, repo)
-      })
+      }
+    )
 
   }
 
   @Test
   def testApplyValueOfXpath(): Unit = {
-    val doc = document(<project>
+    val doc = document(
+      <project>
       <modelVersion>4.0.0</modelVersion>
       <groupId>com.novomind.ishop.shops.any</groupId>
       <artifactId>any-projects</artifactId>
@@ -177,7 +207,8 @@ class PomModTest extends AssertionsForJUnit {
 
   @Test
   def testApplyVersionTo(): Unit = {
-    val doc = document(<project>
+    val doc = document(
+      <project>
       <modelVersion>4.0.0</modelVersion>
       <groupId>com.novomind.ishop.shops.any</groupId>
       <artifactId>any-projects</artifactId>
@@ -213,7 +244,8 @@ class PomModTest extends AssertionsForJUnit {
 
   @Test
   def testVersionFrom(): Unit = {
-    val doc = document(<project>
+    val doc = document(
+      <project>
       <modelVersion>4.0.0</modelVersion>
       <groupId>com.novomind.ishop.shops.any</groupId>
       <artifactId>any-projects</artifactId>
@@ -236,7 +268,10 @@ class PomModTest extends AssertionsForJUnit {
 
   @Test
   def testDepVersions(): Unit = {
-    val srcPoms: File = pomTestFile(temp, document(<project>
+    val srcPoms: File = pomTestFile(
+      temp,
+      document(
+        <project>
       <modelVersion>4.0.0</modelVersion>
       <groupId>com.novomind.ishop.shops.any</groupId>
       <artifactId>any-projects</artifactId>
@@ -265,7 +300,8 @@ class PomModTest extends AssertionsForJUnit {
         </dependency>
       </dependencies>
     </project>
-    )).create()
+      )
+    ).create()
     val mod = PomModTest.withRepoForTests(srcPoms, repo)
 
     def selectVersion(artiId: String) = Util.only(mod.listDependencies.filter(_.artifactId == artiId).map(_.version), "mop")
@@ -317,7 +353,8 @@ class PomModTest extends AssertionsForJUnit {
     @nowarn("msg=possible missing interpolator")
     val msg = "Project variables are not allowed in external dependencies: org.glassfish.jaxb:jaxb-core:${project.version}"
     TestHelper.assertException(msg,
-      classOf[ValidationException], () => {
+      classOf[ValidationException],
+      () => {
         PomModTest.withRepoForTests(srcPoms, repo)
       })
   }
@@ -339,11 +376,13 @@ class PomModTest extends AssertionsForJUnit {
     // GIVEN
     val ref = GavWithRef(
       ProjectModTest.parseSelfRef("com.novomind.ishop:ishop-shop-frontend:42.0.0-SNAPSHOT:pom"),
-      Gav(groupId = "com.github.eirslett", artifactId = "frontend-maven-plugin", version = Some("1.11.2")))
-    val in: Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = Seq((ref, List(
-      ("1.11.3", Success(ZonedDateTime.now())),
-      ("1.12.0", Success(ZonedDateTime.now())),
-    )))
+      Gav(groupId = "com.github.eirslett", artifactId = "frontend-maven-plugin", version = Some("1.11.2"))
+    )
+    val in: Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = Seq((ref,
+        List(
+          ("1.11.3", Success(ZonedDateTime.now())),
+          ("1.12.0", Success(ZonedDateTime.now()))
+        )))
 
     // WHEN
     val out = ProjectMod.toUpdats(in, ProjectMod.rangeFnOf(""))
@@ -425,11 +464,14 @@ class PomModTest extends AssertionsForJUnit {
 
     Assert.assertEquals(Seq(baseVersion, noVersion, testScope, testsScope, pomClassifier).sortBy(_.toString()),
       Xpath.mapToSeqMap(nodes).sortBy(_.toString()))
-    Assert.assertEquals(Seq(
-      Gav3("com.novomind.ishop.shops", "anyshop", None),
-      Gav3("com.novomind.ishop.shops.anyshop", "anyshop-erp", None),
-      Gav3("com.novomind.ishop.shops.anyshop", "anyshop-projects", None),
-    ), pomMod.selfDepsModGavs())
+    Assert.assertEquals(
+      Seq(
+        Gav3("com.novomind.ishop.shops", "anyshop", None),
+        Gav3("com.novomind.ishop.shops.anyshop", "anyshop-erp", None),
+        Gav3("com.novomind.ishop.shops.anyshop", "anyshop-projects", None)
+      ),
+      pomMod.selfDepsModGavs()
+    )
   }
 
   @Test
@@ -444,10 +486,12 @@ class PomModTest extends AssertionsForJUnit {
 
     // THEN
     Assert.assertEquals(Some("dep.tree"), treeFile)
-    Assert.assertEquals(Seq("src/test/resources/shop1/dep.tree",
-      "src/test/resources/shop1/anyshop-erp/dep.tree",
-      "src/test/resources/shop1/anyshop-shop/dep.tree"),
-      pomMod.depTreeFiles(treeFile, pomMod.rawSub).map(f => path.relativize(f.toPath).toStringLinux))
+    Assert.assertEquals(
+      Seq("src/test/resources/shop1/dep.tree",
+        "src/test/resources/shop1/anyshop-erp/dep.tree",
+        "src/test/resources/shop1/anyshop-shop/dep.tree"),
+      pomMod.depTreeFiles(treeFile, pomMod.rawSub).map(f => path.relativize(f.toPath).toStringLinux)
+    )
   }
 
   @Test
@@ -487,12 +531,21 @@ class PomModTest extends AssertionsForJUnit {
     val dep: Seq[PluginDep] = pomMod.mavenDependencyPlugins
 
     // THEN
-    assertPluginDeps(Seq(PluginDep(ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
-      "org.apache.maven.plugins", "maven-dependency-plugin", Some("2.8"),
-      Seq(
-        PluginExec("pre-build-validate-tree", Seq("tree"), "validate", Map("outputFile" -> "dep.tree")),
-        PluginExec("pre-build-validate-list", Seq("list"), "validate", Map("outputFile" -> "dep.list", "sort" -> "true"))),
-      Seq("plugin", "plugins", "build", "project"))), dep)
+    assertPluginDeps(
+      Seq(PluginDep(
+          ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT:pom"),
+          "org.apache.maven.plugins",
+          "maven-dependency-plugin",
+          Some("2.8"),
+          Seq(
+            PluginExec("pre-build-validate-tree", Seq("tree"), "validate", Map("outputFile" -> "dep.tree")),
+            PluginExec("pre-build-validate-list", Seq("list"), "validate", Map("outputFile" -> "dep.list", "sort" -> "true"))
+          ),
+          Seq("plugin", "plugins", "build",
+            "project")
+        )),
+      dep
+    )
   }
 
   @Test
@@ -502,19 +555,50 @@ class PomModTest extends AssertionsForJUnit {
     val orgMod = PomModTest.withRepoForTests(orgPoms, repo)
     Assert.assertEquals("27.0.0-SNAPSHOT", orgMod.selfVersion)
     assertDeps(Anyshop1Deps.ownDeps(), orgMod.listDependencies.filter(_.artifactId.contains("anyshop")))
-    assertDeps(Seq(
-      Dep(pomRef = SelfRef(id = "com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT",
-        gav3 = Gav3(groupId = "com.novomind.ishop.shops.anyshop", artifactId = "anyshop-projects", version = Some(value = "27.0.0-SNAPSHOT"))),
-        groupId = "org.aspectj", artifactId = "aspectjrt", version = Some(value = "1.8.8"), typeN = "", scope = "", packaging = "", classifier = "", pomPath = Seq("project", "build", "pluginManagement", "plugins", "plugin", "dependencies", "dependency")),
-      Dep(pomRef = SelfRef(id = "com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT",
-        gav3 = Gav3(groupId = "com.novomind.ishop.shops.anyshop", artifactId = "anyshop-projects", version = Some(value = "27.0.0-SNAPSHOT"))),
-        groupId = "org.aspectj", artifactId = "aspectjtools", version = Some(value = "1.8.8"), typeN = "", scope = "", packaging = "", classifier = "", pomPath = Seq("project", "build", "pluginManagement", "plugins", "plugin", "dependencies", "dependency")),
+    assertDeps(
+      Seq(
+        Dep(
+          pomRef = SelfRef(
+            id = "com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT",
+            gav3 = Gav3(
+              groupId = "com.novomind.ishop.shops.anyshop", artifactId = "anyshop-projects", version = Some(value = "27.0.0-SNAPSHOT"))
+          ),
+          groupId = "org.aspectj",
+          artifactId = "aspectjrt",
+          version = Some(value = "1.8.8"),
+          typeN = "",
+          scope = "",
+          packaging = "",
+          classifier = "",
+          pomPath = Seq("project", "build", "pluginManagement", "plugins", "plugin", "dependencies", "dependency")
+        ),
+        Dep(
+          pomRef = SelfRef(
+            id = "com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT",
+            gav3 = Gav3(
+              groupId = "com.novomind.ishop.shops.anyshop", artifactId = "anyshop-projects", version = Some(value = "27.0.0-SNAPSHOT"))
+          ),
+          groupId = "org.aspectj",
+          artifactId = "aspectjtools",
+          version = Some(value = "1.8.8"),
+          typeN = "",
+          scope = "",
+          packaging = "",
+          classifier = "",
+          pomPath = Seq("project", "build", "pluginManagement", "plugins", "plugin", "dependencies", "dependency")
+        )
 
-    ), orgMod.listDependenciesPlugin)
-    val value = Map("dep.tree" -> Nil,
+      ),
+      orgMod.listDependenciesPlugin
+    )
+    val value = Map(
+      "dep.tree" -> Nil,
       "anyshop-erp" -> Seq("com.novomind.ishop.shops.anyshop:anyshop-erp:jar:27.0.0-SNAPSHOT"),
-      "anyshop-shop" -> Seq("+- com.novomind.ishop.shops.anyshop:anyshop-erp:jar:tests:27.0.0-SNAPSHOT:test",
-        "+- com.novomind.ishop.shops.anyshop:anyshop-erp:jar:27.0.0-SNAPSHOT:compile"))
+      "anyshop-shop" -> Seq(
+        "+- com.novomind.ishop.shops.anyshop:anyshop-erp:jar:tests:27.0.0-SNAPSHOT:test",
+        "+- com.novomind.ishop.shops.anyshop:anyshop-erp:jar:27.0.0-SNAPSHOT:compile"
+      )
+    )
     Assert.assertEquals(value, depTreeMap(orgMod))
     val targetPoms = TestHelper.testResources("shop4")
     FileUtils.deleteRecursive(targetPoms)
@@ -527,21 +611,28 @@ class PomModTest extends AssertionsForJUnit {
     val newVersion = "ubglu-SNAPSHOT"
     targetMod.findNodesAndChangeVersion("com.novomind.ishop.shops.anyshop", "anyshop-erp", "27.0.0-SNAPSHOT", newVersion)
 
-    Assert.assertEquals(Map("dep.tree" -> Nil,
-      "anyshop-erp" -> Seq("com.novomind.ishop.shops.anyshop:anyshop-erp:jar:" + newVersion),
-      "anyshop-shop" -> Seq("+- com.novomind.ishop.shops.anyshop:anyshop-erp:jar:tests:" + newVersion + ":test",
-        "+- com.novomind.ishop.shops.anyshop:anyshop-erp:jar:" + newVersion + ":compile")),
-      depTreeMap(targetMod))
+    Assert.assertEquals(
+      Map(
+        "dep.tree" -> Nil,
+        "anyshop-erp" -> Seq("com.novomind.ishop.shops.anyshop:anyshop-erp:jar:" + newVersion),
+        "anyshop-shop" -> Seq(
+          "+- com.novomind.ishop.shops.anyshop:anyshop-erp:jar:tests:" + newVersion + ":test",
+          "+- com.novomind.ishop.shops.anyshop:anyshop-erp:jar:" + newVersion + ":compile"
+        )
+      ),
+      depTreeMap(targetMod)
+    )
     targetMod.writeTo(targetPoms)
 
     // THEN
     val newTargetMod = PomModTest.withRepoForTests(targetPoms, repo)
     Assert.assertEquals("27.0.0-SNAPSHOT", newTargetMod.selfVersion)
-    val erpVersionChanged = Anyshop1Deps.ownDeps().map(in => if (in.artifactId.contains("anyshop-erp") && in.version.nonEmpty) {
-      in.copy(version = Some(newVersion))
-    } else {
-      in
-    })
+    val erpVersionChanged = Anyshop1Deps.ownDeps().map(in =>
+      if (in.artifactId.contains("anyshop-erp") && in.version.nonEmpty) {
+        in.copy(version = Some(newVersion))
+      } else {
+        in
+      })
     assertDeps(erpVersionChanged, newTargetMod.listDependencies.filter(_.artifactId.contains("anyshop")))
     targetMod.findNodesAndChangeVersion("com.novomind.ishop.shops.anyshop", "anyshop-erp", newVersion, "27.0.0-SNAPSHOT")
     targetMod.writeTo(targetPoms)
@@ -554,29 +645,35 @@ class PomModTest extends AssertionsForJUnit {
     val orgPoms = TestHelper.testResources("pom-packed-sub-sub")
     val orgMod = PomModTest.withRepoForTests(orgPoms, repo, opts = Opts().copy(checkOverlapping = false))
 
-    assertDeps(Seq(
-      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("other:a:1.0.0-SNAPSHOT"),
-        "any", "a-parent", "1.0.0-SNAPSHOT", pomPath = Seq("project", "parent", "artifactId")),
-      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("any:bparent:1.0.0-SNAPSHOT"),
-        "any", "a-parent", "1.0.0-SNAPSHOT", pomPath = Seq("project", "parent", "artifactId")),
-      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("any:bsub:1.0.0-SNAPSHOT"),
-        "any", "bparent", "1.0.0-SNAPSHOT", pomPath = Seq("project", "parent", "artifactId")),
-      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("any:bsub:1.0.0-SNAPSHOT"),
-        "other", "a", "1.0.0-SNAPSHOT", pomPath = Seq("project", "dependencies", "dependency")),
-      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("any:c:1.0.0-SNAPSHOT"),
-        "any", "a-parent", "1.0.0-SNAPSHOT", pomPath = Seq("project", "parent", "artifactId")),
-      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("any:c:1.0.0-SNAPSHOT"),
-        "any", "bsub", "1.0.0-SNAPSHOT", pomPath = Seq("project", "dependencies", "dependency")),
-      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("any:c:1.0.0-SNAPSHOT"),
-        "any", "other", "1.0.0-SNAPSHOT", pomPath = Seq("project", "dependencies", "dependency")),
-      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("any:c:1.0.0-SNAPSHOT"),
-        "any", "final", "1.0.1", pomPath = Seq("project", "dependencies", "dependency"))
-    ), orgMod.listDependencies)
-    assertDeps(Seq(
-      ProjectModTest.depOf(
-        pomRef = ProjectModTest.parseSelfRef("any:c:1.0.0-SNAPSHOT"), "any", "other", "1.0.0-SNAPSHOT",
-        pomPath = Seq("project", "dependencies", "dependency")),
-    ), orgMod.listSnapshotDependencies)
+    assertDeps(
+      Seq(
+        ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("other:a:1.0.0-SNAPSHOT"),
+          "any", "a-parent", "1.0.0-SNAPSHOT", pomPath = Seq("project", "parent", "artifactId")),
+        ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("any:bparent:1.0.0-SNAPSHOT"),
+          "any", "a-parent", "1.0.0-SNAPSHOT", pomPath = Seq("project", "parent", "artifactId")),
+        ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("any:bsub:1.0.0-SNAPSHOT"),
+          "any", "bparent", "1.0.0-SNAPSHOT", pomPath = Seq("project", "parent", "artifactId")),
+        ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("any:bsub:1.0.0-SNAPSHOT"),
+          "other", "a", "1.0.0-SNAPSHOT", pomPath = Seq("project", "dependencies", "dependency")),
+        ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("any:c:1.0.0-SNAPSHOT"),
+          "any", "a-parent", "1.0.0-SNAPSHOT", pomPath = Seq("project", "parent", "artifactId")),
+        ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("any:c:1.0.0-SNAPSHOT"),
+          "any", "bsub", "1.0.0-SNAPSHOT", pomPath = Seq("project", "dependencies", "dependency")),
+        ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("any:c:1.0.0-SNAPSHOT"),
+          "any", "other", "1.0.0-SNAPSHOT", pomPath = Seq("project", "dependencies", "dependency")),
+        ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("any:c:1.0.0-SNAPSHOT"),
+          "any", "final", "1.0.1", pomPath = Seq("project", "dependencies", "dependency"))
+      ),
+      orgMod.listDependencies
+    )
+    assertDeps(
+      Seq(
+        ProjectModTest.depOf(
+          pomRef = ProjectModTest.parseSelfRef("any:c:1.0.0-SNAPSHOT"), "any", "other", "1.0.0-SNAPSHOT",
+          pomPath = Seq("project", "dependencies", "dependency"))
+      ),
+      orgMod.listSnapshotDependencies
+    )
     orgMod.changeVersion("master-SNAPSHOT")
     orgMod.writeTo(orgPoms)
     val orgMod1 = PomModTest.withRepoForTests(orgPoms, repo, opts = Opts().copy(checkOverlapping = false))
@@ -602,13 +699,14 @@ class PomModTest extends AssertionsForJUnit {
     mod.writeTo(srcPoms)
 
     val allMod = Anyshop1Deps.all()
-      .map(dep => if (dep.artifactId == "anyshop-erp" && dep.version.nonEmpty) {
-        dep.copy(version = "RC-2017.01-SNAPSHOT")
-      } else if (dep.artifactId == "anyshop-projects" && dep.version.nonEmpty) {
-        dep.copy(version = "RC-2017.01-SNAPSHOT")
-      } else {
-        dep
-      }).map(dep =>
+      .map(dep =>
+        if (dep.artifactId == "anyshop-erp" && dep.version.nonEmpty) {
+          dep.copy(version = "RC-2017.01-SNAPSHOT")
+        } else if (dep.artifactId == "anyshop-projects" && dep.version.nonEmpty) {
+          dep.copy(version = "RC-2017.01-SNAPSHOT")
+        } else {
+          dep
+        }).map(dep =>
         dep.copy(pomRef = ProjectModTest.parseSelfRef(dep.pomRef.id.replace("27.0.0-SNAPSHOT", "RC-2017.01-SNAPSHOT")))
       )
 
@@ -632,14 +730,16 @@ class PomModTest extends AssertionsForJUnit {
       PomMod.replaceProperty(Map("a" -> "b", "x" -> "x"), sloppy = true)("a${a}${b}${a}${b}"))
 
     TestHelper.assertException("unbalanced curly braces: a${",
-      classOf[IllegalArgumentException], () => {
+      classOf[IllegalArgumentException],
+      () => {
         PomMod.replaceProperty(Map("a" -> "b"), sloppy = true)("a${")
       })
 
     Assert.assertEquals("a${b}", PomMod.replaceProperty(Map("a" -> "b"), sloppy = true)("a${b}"))
 
     TestHelper.assertException("empty curly braces: a${}",
-      classOf[IllegalArgumentException], () => {
+      classOf[IllegalArgumentException],
+      () => {
         PomMod.replaceProperty(Map("a" -> "b"), sloppy = true)("a${}")
       })
 
@@ -652,33 +752,46 @@ class PomModTest extends AssertionsForJUnit {
   def replaceProperty(): Unit = {
     Assert.assertEquals("ab", PomMod.replaceProperty(Map("a" -> "b"))("a${a}"))
 
-    TestHelper.assertException("No property replacement found in pom.xmls for: \"a${\" " +
-      "- define properties where they are required and not in parent pom.xml. Input is Nil.",
-      classOf[IllegalArgumentException], () => {
+    TestHelper.assertException(
+      "No property replacement found in pom.xmls for: \"a${\" " +
+        "- define properties where they are required and not in parent pom.xml. Input is Nil.",
+      classOf[IllegalArgumentException],
+      () => {
         PomMod.replaceProperty(Map("a" -> "b"))("a${")
-      })
+      }
+    )
 
-    TestHelper.assertException("No property replacement found in pom.xmls for: \"a${b}\" " +
-      "- define properties where they are required and not in parent pom.xml. Input is Nil.",
-      classOf[IllegalArgumentException], () => {
+    TestHelper.assertException(
+      "No property replacement found in pom.xmls for: \"a${b}\" " +
+        "- define properties where they are required and not in parent pom.xml. Input is Nil.",
+      classOf[IllegalArgumentException],
+      () => {
         PomMod.replaceProperty(Map("a" -> "b"))("a${b}")
-      })
+      }
+    )
 
-    TestHelper.assertException("No property replacement found in pom.xmls for: \"a${}\" " +
-      "- define properties where they are required and not in parent pom.xml. Input is Nil.",
-      classOf[IllegalArgumentException], () => {
+    TestHelper.assertException(
+      "No property replacement found in pom.xmls for: \"a${}\" " +
+        "- define properties where they are required and not in parent pom.xml. Input is Nil.",
+      classOf[IllegalArgumentException],
+      () => {
         PomMod.replaceProperty(Map("a" -> "b"))("a${}")
-      })
+      }
+    )
 
-    TestHelper.assertException("No property replacement found in pom.xmls for: \"${u}\" " +
-      "- define properties where they are required and not in parent pom.xml. Input is Nil.",
-      classOf[IllegalArgumentException], () => {
+    TestHelper.assertException(
+      "No property replacement found in pom.xmls for: \"${u}\" " +
+        "- define properties where they are required and not in parent pom.xml. Input is Nil.",
+      classOf[IllegalArgumentException],
+      () => {
         PomMod.replaceProperty(Map("a" -> "b"))("${u}")
-      })
+      }
+    )
 
-    TestHelper.assertException("property map is empty", classOf[IllegalStateException], () => {
-      PomMod.replaceProperty(Map.empty)("a${b}")
-    })
+    TestHelper.assertException("property map is empty", classOf[IllegalStateException],
+      () => {
+        PomMod.replaceProperty(Map.empty)("a${b}")
+      })
   }
 
   @Test
@@ -692,9 +805,12 @@ class PomModTest extends AssertionsForJUnit {
       "invalid groupidArtifactName \"x-anyshop\"; must match '[a-z0-9]+'" +
         " - We enforce this to build GAs like: 'org.example.{groupidArtifactName}.main:{groupidArtifactName}-service'" +
         " - for example dashes (-) are not part of the naming conventions for groupIds and dots (.) not for artifactIds" +
-        " - see also: https://maven.apache.org/guides/mini/guide-naming-conventions.html", classOf[PreconditionsException], () => {
+        " - see also: https://maven.apache.org/guides/mini/guide-naming-conventions.html",
+      classOf[PreconditionsException],
+      () => {
         mod.changeShopGroupArtifact("x-anyshop")
-      })
+      }
+    )
 
   }
 
@@ -716,22 +832,52 @@ class PomModTest extends AssertionsForJUnit {
     mod.writeTo(srcPoms)
 
     val allMod: Seq[Dep] = Anyshop1Deps.all()
-      .map(dep => if (!Seq("anyshop-commons", "anyshop-db-migration", "anyshop-ipim-reviews").contains(dep.artifactId)) {
-        dep.copy(groupId = dep.groupId.replace("anyshop", "anyshop"),
-          artifactId = dep.artifactId.replace("anyshop", "anyshop"),
-          pomRef = dep.pomRef.copy(id = dep.pomRef.id.replace("anyshop", "anyshop")))
-      } else {
-        dep.copy(pomRef = dep.pomRef.copy(id = dep.pomRef.id.replace("anyshop", "anyshop")))
-      })
+      .map(dep =>
+        if (!Seq("anyshop-commons", "anyshop-db-migration", "anyshop-ipim-reviews").contains(dep.artifactId)) {
+          dep.copy(
+            groupId = dep.groupId.replace("anyshop", "anyshop"),
+            artifactId = dep.artifactId.replace("anyshop", "anyshop"),
+            pomRef = dep.pomRef.copy(id = dep.pomRef.id.replace("anyshop", "anyshop"))
+          )
+        } else {
+          dep.copy(pomRef = dep.pomRef.copy(id = dep.pomRef.id.replace("anyshop", "anyshop")))
+        })
 
     // THEN
     val s = Seq(
-      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-projects", "27.0.0-SNAPSHOT", "", "", "pom", "", Seq("project", "artifactId")),
-      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops.anyshop", "anyshop-erp", "27.0.0-SNAPSHOT", "", "", "", "", Seq("project", "artifactId")),
-      ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
-        "com.novomind.ishop.shops", "anyshop", "27.0.0-SNAPSHOT", "", "", "war", "", Seq("project", "artifactId"))
+      ProjectModTest.depOf(
+        pomRef = ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-projects:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-projects",
+        "27.0.0-SNAPSHOT",
+        "",
+        "",
+        "pom",
+        "",
+        Seq("project", "artifactId")
+      ),
+      ProjectModTest.depOf(
+        pomRef = ProjectModTest.parseSelfRef("com.novomind.ishop.shops.anyshop:anyshop-erp:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops.anyshop",
+        "anyshop-erp",
+        "27.0.0-SNAPSHOT",
+        "",
+        "",
+        "",
+        "",
+        Seq("project", "artifactId")
+      ),
+      ProjectModTest.depOf(
+        pomRef = ProjectModTest.parseSelfRef("com.novomind.ishop.shops:anyshop:27.0.0-SNAPSHOT"),
+        "com.novomind.ishop.shops",
+        "anyshop",
+        "27.0.0-SNAPSHOT",
+        "",
+        "",
+        "war",
+        "",
+        Seq("project", "artifactId")
+      )
     )
     val newMod = PomModTest.withRepoForTests(srcPoms, repo)
     assertDeps(s, newMod.listSelf)
@@ -1274,8 +1420,12 @@ class PomModTest extends AssertionsForJUnit {
   def suggestRelease_shop_master_used(): Unit = {
 
     // GIVEN/WHEN
-    val release = PomMod.suggestReleaseBy(LocalDate.of(2017, Month.FEBRUARY, 1), "master-SNAPSHOT", hasShopPom = true,
-      Seq("hula", "release/RC-2017.05", "release/RC-2017.07", "release/RC-2017.07.1", "release/RC-2017.07.2"))
+    val release = PomMod.suggestReleaseBy(
+      LocalDate.of(2017, Month.FEBRUARY, 1),
+      "master-SNAPSHOT",
+      hasShopPom = true,
+      Seq("hula", "release/RC-2017.05", "release/RC-2017.07", "release/RC-2017.07.1", "release/RC-2017.07.2")
+    )
 
     // THEN
     Assert.assertEquals(Seq("RC-2017.05.1-SNAPSHOT", "RC-2017.06-SNAPSHOT", "RC-2017.07.3-SNAPSHOT"), release)
@@ -1432,8 +1582,17 @@ class PomModTest extends AssertionsForJUnit {
     val deps = PomModTest.withRepoForTests(srcPoms, repo).listSnapshotDependencies
 
     // THEN
-    assertDeps(Seq(ProjectModTest.depOf(pomRef = ProjectModTest.parseSelfRef("com.novomind.ishop.any:any:0.11-SNAPSHOT"),
-      "org.springframework", "spring-other", "0.11-SNAPSHOT", pomPath = Seq("project", "dependencies", "dependency"))), deps)
+    assertDeps(
+      Seq(ProjectModTest.depOf(
+          pomRef = ProjectModTest.parseSelfRef("com.novomind.ishop.any:any:0.11-SNAPSHOT"),
+          "org.springframework",
+          "spring-other",
+          "0.11-SNAPSHOT",
+          pomPath = Seq("project", "dependencies",
+            "dependency")
+        )),
+      deps
+    )
   }
 
   @Test
@@ -1542,11 +1701,14 @@ class PomModTest extends AssertionsForJUnit {
     try {
       Term.Os.getCurrent match {
         case Term.Os.Windows => {
-          TestHelper.assertException("Windows tends to lock file handles." +
-            " Try to find handle or DLL that locks the file. e.g. with Sysinternals Process Explorer",
-            classOf[IllegalStateException], () => {
+          TestHelper.assertException(
+            "Windows tends to lock file handles." +
+              " Try to find handle or DLL that locks the file. e.g. with Sysinternals Process Explorer",
+            classOf[IllegalStateException],
+            () => {
               PomMod.writeContent(file.getParentFile)(file, "asdf")
-            })
+            }
+          )
         }
         case _ => // do not test
       }
@@ -1599,9 +1761,9 @@ class PomModTest extends AssertionsForJUnit {
 
     // THEN
     Assert.assertEquals(Map(
-      "a" -> "a",
-      "project.version" -> "1.0.0",
-    ), props)
+        "a" -> "a",
+        "project.version" -> "1.0.0"
+      ), props)
   }
 
   @Test
@@ -1612,26 +1774,35 @@ class PomModTest extends AssertionsForJUnit {
 
     // THEN
     Assert.assertEquals(Map(
-      "a" -> "1.0.0",
-      "project.version" -> "1.0.0",
-    ), props)
+        "a" -> "1.0.0",
+        "project.version" -> "1.0.0"
+      ), props)
   }
-
 
   @Test
   @nowarn("msg=possible missing interpolator")
   def testReplacedProperties_problem(): Unit = {
-    TestHelper.assertException("do not use properties in properties: Map(a -> ${yolo})",
-      classOf[IllegalStateException], () => PomMod.replacedProperties(Map("a" -> "${yolo}"), Some("1.0.0")))
+    TestHelper.assertException(
+      "do not use properties in properties: Map(a -> ${yolo})",
+      classOf[IllegalStateException],
+      () => PomMod.replacedProperties(Map("a" -> "${yolo}"), Some("1.0.0"))
+    )
 
-    TestHelper.assertException("do not use properties in properties: Map(any -> ${yolo}, yolo -> ${any})",
-      classOf[IllegalStateException], () => PomMod.replacedProperties(Map("any" -> "${yolo}", "yolo" -> "${any}"), Some("1.0.0")))
-    TestHelper.assertException("No property replacement found in pom.xmls for: \"${any}\" - define properties where they are required and not in parent pom.xml. Input is Nil.",
-      classOf[IllegalArgumentException], () => PomMod.replacedProperties(Map(
-        "any" -> "${yolo}",
-        "yolo" -> "${some}",
-        "some" -> "${any}",
-      ), Some("${any}")))
+    TestHelper.assertException(
+      "do not use properties in properties: Map(any -> ${yolo}, yolo -> ${any})",
+      classOf[IllegalStateException],
+      () => PomMod.replacedProperties(Map("any" -> "${yolo}", "yolo" -> "${any}"), Some("1.0.0"))
+    )
+    TestHelper.assertException(
+      "No property replacement found in pom.xmls for: \"${any}\" - define properties where they are required and not in parent pom.xml. Input is Nil.",
+      classOf[IllegalArgumentException],
+      () =>
+        PomMod.replacedProperties(Map(
+            "any" -> "${yolo}",
+            "yolo" -> "${some}",
+            "some" -> "${any}"
+          ), Some("${any}"))
+    )
 
   }
 
@@ -1658,7 +1829,8 @@ class PomModTest extends AssertionsForJUnit {
       "bo-client" -> "27.0.0-SNAPSHOT",
       "allowedProjectDir" -> "skip/any",
       "project.reporting.outputEncoding" -> "UTF-8",
-      "java.version" -> "1.8")
+      "java.version" -> "1.8"
+    )
     Assert.assertEquals(expected, props)
   }
 
@@ -1694,7 +1866,9 @@ class PomModTest extends AssertionsForJUnit {
         |  <dependency>   <groupId>com.novomind.ishop.shops.anyshop</groupId>
         |      <artifactId>anyshop-erp</artifactId>
         |     <version>27.0.0</version></dependency>
-        |      </dependencies>""".stripMargin, result)
+        |      </dependencies>""".stripMargin,
+      result
+    )
   }
 
   @Test
@@ -1744,19 +1918,24 @@ class PomModTest extends AssertionsForJUnit {
   @Test
   def testUnmanaged(): Unit = {
     Assert.assertEquals(Nil, PomMod.unmanaged(Nil, Nil))
-    TestHelper.assertException("invalid empty versions:\na.b:a:1.0.0", classOf[PreconditionsException],
-      () => PomMod.unmanaged(
-        Seq(Gav(groupId = "a.b", artifactId = "a", version = "1.0.0")),
-        Seq(Gav(groupId = "a.b", artifactId = "a", version = "1.0.0"))
-      )
+    TestHelper.assertException(
+      "invalid empty versions:\na.b:a:1.0.0",
+      classOf[PreconditionsException],
+      () =>
+        PomMod.unmanaged(
+          Seq(Gav(groupId = "a.b", artifactId = "a", version = "1.0.0")),
+          Seq(Gav(groupId = "a.b", artifactId = "a", version = "1.0.0"))
+        )
     )
 
     Assert.assertEquals(Nil, PomMod.unmanaged(Seq(Gav(groupId = "", artifactId = "", version = None)), Nil))
     Assert.assertEquals(Nil, PomMod.unmanaged(Seq(Gav.empty.copy(groupId = "a")), Seq(Gav.empty.copy(groupId = "a"))))
     Assert.assertEquals(Nil, PomMod.unmanaged(Seq(Gav.empty.copy(artifactId = "a")), Seq(Gav.empty.copy(artifactId = "a"))))
-    Assert.assertEquals(Nil, PomMod.unmanaged(
-      Seq(Gav(groupId = "a.b", artifactId = "a", version = None, scope = "test")),
-      Seq(Gav(groupId = "a.b", artifactId = "a", version = Some("1.0.0"), scope = "compile")))
+    Assert.assertEquals(
+      Nil,
+      PomMod.unmanaged(
+        Seq(Gav(groupId = "a.b", artifactId = "a", version = None, scope = "test")),
+        Seq(Gav(groupId = "a.b", artifactId = "a", version = Some("1.0.0"), scope = "compile")))
     )
 
   }
@@ -1818,23 +1997,29 @@ class PomModTest extends AssertionsForJUnit {
     PomModTest.assertDocs(Seq(doc), Seq(Xpath.newDocument(value)))
     TestHelper.assertAssertionError(
       "expected:<<test>\n<!-- [bla] --></test>> but was:<<test>\n<!-- [invalid] --></test>>",
-      classOf[ComparisonFailure], () => {
+      classOf[ComparisonFailure],
+      () => {
         PomModTest.assertDocs(Seq(doc), Seq(Xpath.newDocument("<test>\n  <!-- invalid --></test>")))
-      })
+      }
+    )
     PomModTest.assertElems(Seq(elem), Seq(Xpath.newDocument(value)))
     TestHelper.assertAssertionError(
       "expected:<<test>\n<!-- [bla] --></test>> but was:<<test>\n<!-- [invalid] --></test>>",
-      classOf[ComparisonFailure], () => {
+      classOf[ComparisonFailure],
+      () => {
         PomModTest.assertElems(Seq(elem), Seq(Xpath.newDocument("<test>\n  <!-- invalid --></test>")))
-      })
+      }
+    )
   }
 
   @Test
   def testNormalizeUnwanted(): Unit = {
     val gav = Gav3("some.group", "artifcat", "1.0.0-M1")
-    val result = ProjectMod.normalizeUnwantedVersions(gav,
+    val result = ProjectMod.normalizeUnwantedVersions(
+      gav,
       Seq("a", "beta", "3.0.2-rc", "2019-03-15T05-03-30-4d2c0d53", "2018-11-16T06-01-54-efdaa48-ignored-chars", "2018-06-04T04-23-07",
-        "1.0.0-M1", "1.0.0-M2"))
+        "1.0.0-M1", "1.0.0-M2")
+    )
     Assert.assertEquals(Seq("1.0.0-M1", "a"), result)
   }
 
@@ -1847,9 +2032,10 @@ class PomModTest extends AssertionsForJUnit {
         "0.0.9",
         "1.0.0-M1", "1.0.0-M2"))
     Assert.assertEquals(Seq(
-      "3.0.2-rc",
-      "1.0.0-M1", "1.0.0-M2",
-    ), result)
+        "3.0.2-rc",
+        "1.0.0-M1",
+        "1.0.0-M2"
+      ), result)
   }
 
   @Test
@@ -1903,13 +2089,16 @@ class PomModTest extends AssertionsForJUnit {
         |  </mirrors>
         |</settings>
         |""".stripMargin)
-    Assert.assertEquals(Seq(
-      "https://nexus3.example.org/content/repositories/public/",
-      "https://nexus1.example.org/content/repositories/public/",
-      "http://central1",
-      "https://nexus2.example.org/content/repositories/public/",
-      "http://central2",
-    ), urls)
+    Assert.assertEquals(
+      Seq(
+        "https://nexus3.example.org/content/repositories/public/",
+        "https://nexus1.example.org/content/repositories/public/",
+        "http://central1",
+        "https://nexus2.example.org/content/repositories/public/",
+        "http://central2"
+      ),
+      urls
+    )
   }
 
   @Test
@@ -1920,16 +2109,22 @@ class PomModTest extends AssertionsForJUnit {
 
   @Test
   def testCheckSnapshots_fail(): Unit = {
-    TestHelper.assertException("invalid SNAPSHOT definition in »invalid-snapshot«. SNAPSHOT has to be in upper case.",
-      classOf[PreconditionsException], () => PomMod.checkSnapshots(Seq("invalid-snapshot")))
-    TestHelper.assertException("invalid SNAPSHOT definition in »invalidSnapsHot«. SNAPSHOT has to be in upper case.",
-      classOf[PreconditionsException], () => PomMod.checkSnapshots(Seq("invalidSnapsHot")))
+    TestHelper.assertException(
+      "invalid SNAPSHOT definition in »invalid-snapshot«. SNAPSHOT has to be in upper case.",
+      classOf[PreconditionsException],
+      () => PomMod.checkSnapshots(Seq("invalid-snapshot"))
+    )
+    TestHelper.assertException(
+      "invalid SNAPSHOT definition in »invalidSnapsHot«. SNAPSHOT has to be in upper case.",
+      classOf[PreconditionsException],
+      () => PomMod.checkSnapshots(Seq("invalidSnapsHot"))
+    )
   }
 
   @Test
   def testParseTree(): Unit = {
     val result = PomMod.DepTree.parseGavsOnly(DepTree(
-      """com.novomind:any:pom:1.0.0
+        """com.novomind:any:pom:1.0.0
         |""".stripMargin))
     Assert.assertEquals(Seq(Gav3(groupId = "com.novomind", artifactId = "any", version = "1.0.0")), result)
   }
@@ -1938,7 +2133,7 @@ class PomModTest extends AssertionsForJUnit {
 object PomModTest {
 
   def withRepoForTests(file: File, repo: RepoZ, skipPropertyReplacement: Boolean = false,
-                       withSubPoms: Boolean = true, failureCollector: Option[Exception => Unit] = None, opts: Opts = Opts()): PomMod = {
+      withSubPoms: Boolean = true, failureCollector: Option[Exception => Unit] = None, opts: Opts = Opts()): PomMod = {
     PomMod(file, repo, opts, skipPropertyReplacement, withSubPoms, failureCollector)
   }
 
@@ -1972,11 +2167,11 @@ object PomModTest {
   def pomfile(doc: Document): RawPomFile = RawPomFile(new File("f"), doc, new File("f"))
 
   sealed case class TestFileBuilder(temp: TemporaryFolder, root: Document, treeFileContent: String = "",
-                                    subs: Seq[(String, Document, String, Seq[(String, Document, String)])],
-                                    extensions: Option[Document]) {
+      subs: Seq[(String, Document, String, Seq[(String, Document, String)])],
+      extensions: Option[Document]) {
 
     def sub(foldername: String, document: Document, treeFileContent: String = "",
-            subsub: Seq[(String, Document, String)] = Nil): TestFileBuilder = {
+        subsub: Seq[(String, Document, String)] = Nil): TestFileBuilder = {
       // TODO create readable signature for subsub
       this.copy(subs = subs ++ Seq((foldername, document, treeFileContent, subsub)))
     }

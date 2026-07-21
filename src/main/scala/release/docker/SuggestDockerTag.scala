@@ -34,9 +34,9 @@ object SuggestDockerTag {
           Success(Success(tag))
         } else {
           Success(Failure(new IllegalStateException(s"auto suggested docker tag »\u00A0${suggested}\u00A0« is no valid docker tag name. " +
-            s"This could lead to build problems later. " +
-            s"A git tag must match the pattern »\u00A0${Version.semverGitTagForDockerTagPattern.regex}\u00A0« to suggest valid docker tags. " +
-            "It is also possible to export an environment variable e.g. HARBOR_TAG")))
+                s"This could lead to build problems later. " +
+                s"A git tag must match the pattern »\u00A0${Version.semverGitTagForDockerTagPattern.regex}\u00A0« to suggest valid docker tags. " +
+                "It is also possible to export an environment variable e.g. HARBOR_TAG")))
         }
 
       } else {
@@ -53,12 +53,13 @@ object SuggestDockerTag {
       if (masterPattern.matches(externalTag)) {
         (externalTag, 0)
       } else {
-        val msg = s"invalid docker tag »${
-          externalTag.replaceAll("\\r", "␍").replaceAll("\\n", "␊")
-            .replaceAll("[\\p{Cntrl}\\p{Space}]", "\uFFFD")
-        }«; " +
-          s"docker tags must match pattern »${masterPattern.regex}«. This will lead " +
-          s"to »Error response from daemon: invalid reference format« from docker"
+        val msg =
+          s"invalid docker tag »${
+              externalTag.replaceAll("\\r", "␍").replaceAll("\\n", "␊")
+                .replaceAll("[\\p{Cntrl}\\p{Space}]", "\uFFFD")
+            }«; " +
+            s"docker tags must match pattern »${masterPattern.regex}«. This will lead " +
+            s"to »Error response from daemon: invalid reference format« from docker"
         throw new IllegalArgumentException(msg)
       }
     } else {
@@ -71,7 +72,7 @@ object SuggestDockerTag {
       .replaceFirst("^_", "").replaceFirst("_$", "")
   }
 
-  private[docker] def fallback(org:String)(innn: String): (String, Int) = {
+  private[docker] def fallback(org: String)(innn: String): (String, Int) = {
     val suffix = "_" + Util.hashMurmur3_32_fixed(org) + "_TEMP"
     val max = 127 - suffix.length
     val str = normlize(innn.replaceAll("[\\:/]+", "-")).toLowerCase()

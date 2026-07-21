@@ -3,9 +3,10 @@ package release
 import com.google.common.base.Strings
 import org.eclipse.aether.repository.RemoteRepository
 import release.Util.Ext.*
+
+import java.time.Period
 import scala.annotation.tailrec
 import scala.util.matching.Regex
-
 
 object Opts {
   def newRepoZ(opts: Opts): RepoZ = {
@@ -16,7 +17,6 @@ object Opts {
 
     Repo.of(mirrorNexus, workNexus)
   }
-
 
   def showDemoChars(inOpt: Opts): Opts = {
     val sys = Term.Sys.default
@@ -33,35 +33,54 @@ object Opts {
 
   @tailrec
   def envRead(envs: Seq[(String, String)], inOpt: Opts): Opts = {
+
+    def tryParsePeriod(in: String): Option[Period] = {
+      try {
+        Some(Period.parse(in))
+      } catch {
+        case _: Throwable => None
+      }
+    }
+
     envs match {
       case Nil => inOpt
       case ("RELEASE_NO_GERRIT", k) :: tail => envRead(tail, {
-        inOpt.copy(useGerrit = k.toBooleanOption.forall(b => !b))
-      })
-      case ("RELEASE_LINT_SKIP", k) :: tail => envRead(tail, {
-        val skips = Strings.nullToEmpty(k).split(",").toSeq.map(_.trim).distinct.filterNot(_.isEmpty)
-        inOpt.copy(lintOpts = inOpt.lintOpts.copy(skips = inOpt.lintOpts.skips ++ skips))
-      })
+            inOpt.copy(useGerrit = k.toBooleanOption.forall(b => !b))
+          })
+      case ("RELEASE_LINT_SKIP", k) :: tail => envRead(
+          tail, {
+            val skips = Strings.nullToEmpty(k).split(",").toSeq.map(_.trim).distinct.filterNot(_.isEmpty)
+            inOpt.copy(lintOpts = inOpt.lintOpts.copy(skips = inOpt.lintOpts.skips ++ skips))
+          }
+        )
       case ("RELEASE_LINT_TIMEOUT_SEC", k) :: tail => envRead(tail, {
-        val secs = Strings.nullToEmpty(k)
-        inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(timeoutSec = secs.toIntOption))
-      })
-      case ("RELEASE_LINT_WARN_TO_ERROR", k) :: tail => envRead(tail, {
-        val bool = Strings.nullToEmpty(k).toBooleanOption.getOrElse(false)
-        inOpt.copy(lintOpts = inOpt.lintOpts.copy(warningsToErrors = bool, warningsToErrorsTag = bool))
-      })
+            val secs = Strings.nullToEmpty(k)
+            inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(timeoutSec = secs.toIntOption))
+          })
+      case ("RELEASE_LINT_WARN_TO_ERROR", k) :: tail => envRead(
+          tail, {
+            val bool = Strings.nullToEmpty(k).toBooleanOption.getOrElse(false)
+            inOpt.copy(lintOpts = inOpt.lintOpts.copy(warningsToErrors = bool, warningsToErrorsTag = bool))
+          }
+        )
       case ("RELEASE_LINT_WARN_TO_ERROR_TAG", k) :: tail => envRead(tail, {
-        inOpt.copy(lintOpts = inOpt.lintOpts.copy(warningsToErrorsTag = Strings.nullToEmpty(k).toBooleanOption.getOrElse(false)))
-      })
+            inOpt.copy(lintOpts = inOpt.lintOpts.copy(warningsToErrorsTag = Strings.nullToEmpty(k).toBooleanOption.getOrElse(false)))
+          })
       case ("RELEASE_LINT_TIMESTAMPS", k) :: tail => envRead(tail, {
-        inOpt.copy(lintOpts = inOpt.lintOpts.copy(showTimeStamps = Strings.nullToEmpty(k).toBooleanOption.getOrElse(false)))
-      })
+            inOpt.copy(lintOpts = inOpt.lintOpts.copy(showTimeStamps = Strings.nullToEmpty(k).toBooleanOption.getOrElse(false)))
+          })
       case ("RELEASE_LINT_CHECKPACKAGES", k) :: tail => envRead(tail, {
-        inOpt.copy(lintOpts = inOpt.lintOpts.copy(checkPackages = Strings.nullToEmpty(k).toBooleanOption.getOrElse(false)))
-      })
+            inOpt.copy(lintOpts = inOpt.lintOpts.copy(checkPackages = Strings.nullToEmpty(k).toBooleanOption.getOrElse(false)))
+          })
+      case ("RELEASE_LINT_LIB_YEARS_WARN_PERIOD", k) :: tail => envRead(tail, {
+            inOpt.copy(lintOpts = inOpt.lintOpts.copy(libYearsWarnPeriod = Option(Strings.nullToEmpty(k)).flatMap(tryParsePeriod)))
+          })
+      case ("RELEASE_LINT_LIB_YEARS_ERROR_PERIOD", k) :: tail => envRead(tail, {
+            inOpt.copy(lintOpts = inOpt.lintOpts.copy(libYearsErrorPeriod = Option(Strings.nullToEmpty(k)).flatMap(tryParsePeriod)))
+          })
       case ("RELEASE_SHOW_OPTS", k) :: tail => envRead(tail, {
-        inOpt.copy(showOpts = Strings.nullToEmpty(k).toBooleanOption.getOrElse(false))
-      })
+            inOpt.copy(showOpts = Strings.nullToEmpty(k).toBooleanOption.getOrElse(false))
+          })
       case (_, _) :: tail => envRead(tail, inOpt)
       case _ => throw new IllegalStateException("not expected")
     }
@@ -74,10 +93,12 @@ object Opts {
       case "--help" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(showHelp = true)))
       case "-h" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(showHelp = true)))
       case "--matches" :: pattern :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(filter = Some(pattern.r))))
-      case "--no-filter" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts
-        .copy(hideStageVersions = false, hideLatest = false)))
-      case "--no-updates" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts
-        .copy(hideStageVersions = true, hideLatest = false, hideUpdates = true)))
+      case "--no-filter" :: tail => argsDepRead(tail,
+          inOpt.copy(depUpOpts = inOpt.depUpOpts
+            .copy(hideStageVersions = false, hideLatest = false)))
+      case "--no-updates" :: tail => argsDepRead(tail,
+          inOpt.copy(depUpOpts = inOpt.depUpOpts
+            .copy(hideStageVersions = true, hideLatest = false, hideUpdates = true)))
       case "--no-omit" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(versionRangeLimit = Integer.MAX_VALUE)))
       case "--show-libyears" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(showLibYears = true)))
       case "--create-patch" :: tail => argsDepRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(changeToLatest = true)))
@@ -87,7 +108,6 @@ object Opts {
       case _ => throw new IllegalStateException("not expected")
     }
   }
-
 
   @tailrec
   def argsRead(params: Seq[String], inOpt: Opts): Opts = {
@@ -124,7 +144,8 @@ object Opts {
       case "showSelf" :: tail => argsRead(tail, inOpt.copy(showSelfGa = true))
       case "apidiff" :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(showApiDiff = true)))
       case "suggest-docker-tag" :: tail => argsRead(tail, inOpt.copy(suggestDockerTag = true, showStartupDone = false))
-      case "suggest-remote-branch" :: tail => argsRead(tail, inOpt.copy(suggestRemoteBranch = true, showStartupDone = false, isInteractive = false))
+      case "suggest-remote-branch" :: tail =>
+        argsRead(tail, inOpt.copy(suggestRemoteBranch = true, showStartupDone = false, isInteractive = false))
       case "versionSet" :: value :: _ => argsRead(Nil, inOpt.copy(versionSet = Some(value)))
       case "shopGASet" :: value :: _ => argsRead(Nil, inOpt.copy(shopGA = Some(value)))
       case "nothing-but-create-feature-branch" :: _ => argsRead(Nil, inOpt.copy(createFeature = true))
@@ -156,11 +177,12 @@ object Opts {
       case "--all" :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(allModifications = true)))
       case "--help" :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(showHelp = true)))
       case "-h" :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(showHelp = true)))
-      case string1 :: string2 :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff =
-        inOpt.apiDiff.copy(left = string1, right = string2)))
+      case string1 :: string2 :: tail => argsApiDiffRead(tail,
+          inOpt.copy(apiDiff =
+            inOpt.apiDiff.copy(left = string1, right = string2)))
       // --
       case string :: Nil => argsApiDiffRead(Nil, inOpt.focusApiInvalids().replace(inOpt.apiDiff.diag.invalids :+ string))
-      //case string :: tail => argsApiDiffRead(tail, inOpt.focusApiInvalids().replace(inOpt.apiDiff.diag.invalids :+ string))
+      // case string :: tail => argsApiDiffRead(tail, inOpt.focusApiInvalids().replace(inOpt.apiDiff.diag.invalids :+ string))
       case _ => throw new IllegalStateException("not expected")
     }
   }
@@ -171,12 +193,16 @@ object Opts {
       case Nil => inOpt.copy(lintOpts = inOpt.lintOpts.copy(doLint = true), showStartupDone = false)
       case "--help" :: tail => argsLintRead(tail, inOpt.copy(lintOpts = inOpt.lintOpts.copy(showHelp = true)))
       case "-h" :: tail => argsLintRead(tail, inOpt.copy(lintOpts = inOpt.lintOpts.copy(showHelp = true)))
-      case "--timeout-secs" :: secs :: tail => argsLintRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(timeoutSec = secs.toIntOption)))
-      case "--strict" :: tail => argsLintRead(tail, inOpt.copy(lintOpts = inOpt.lintOpts.copy(warningsToErrors = true, warningsToErrorsTag = true)))
+      case "--timeout-secs" :: secs :: tail =>
+        argsLintRead(tail, inOpt.copy(depUpOpts = inOpt.depUpOpts.copy(timeoutSec = secs.toIntOption)))
+      case "--strict" :: tail =>
+        argsLintRead(tail, inOpt.copy(lintOpts = inOpt.lintOpts.copy(warningsToErrors = true, warningsToErrorsTag = true)))
       case "--strict-only-for-tags" :: tail => argsLintRead(tail, inOpt.copy(lintOpts = inOpt.lintOpts.copy(warningsToErrorsTag = true)))
-      case v :: tail if v.startsWith("--skip-") => argsLintRead(tail, inOpt.copy(lintOpts = {
-        inOpt.lintOpts.copy(skips = inOpt.lintOpts.skips :+ v.replaceFirst("^--skip-", ""))
-      }))
+      case v :: tail if v.startsWith("--skip-") =>
+        argsLintRead(tail,
+          inOpt.copy(lintOpts = {
+            inOpt.lintOpts.copy(skips = inOpt.lintOpts.skips :+ v.replaceFirst("^--skip-", ""))
+          }))
       // --
       case string :: Nil => argsLintRead(Nil, inOpt.focusLintInvalids().replace(inOpt.lintOpts.diag.invalids :+ string))
       case string :: tail => argsLintRead(tail, inOpt.focusLintInvalids().replace(inOpt.lintOpts.diag.invalids :+ string))
@@ -187,11 +213,11 @@ object Opts {
 }
 
 case class OptsApidiff(showApiDiff: Boolean = false, showHelp: Boolean = false,
-                       pomOnly: Boolean = false,
-                       unifiedDiffLike: Boolean = false,
-                       allModifications: Boolean = false,
-                       left: String = null, right: String = null,
-                       diag: OptsDiag = OptsDiag.empty()) {
+    pomOnly: Boolean = false,
+    unifiedDiffLike: Boolean = false,
+    allModifications: Boolean = false,
+    left: String = null, right: String = null,
+    diag: OptsDiag = OptsDiag.empty()) {
 
   import Util._
 
@@ -206,32 +232,49 @@ object OptsDiag {
 }
 
 case class LintOpts(doLint: Boolean = false, showTimer: Boolean = true, showTimeStamps: Boolean = false,
-                    showHelp: Boolean = false, checkPackages: Boolean = true,
-                    skips: Seq[String] = Nil, warningsToErrors: Boolean = false, warningsToErrorsTag: Boolean = false,
-                    diag: OptsDiag = OptsDiag.empty())
-
+    showHelp: Boolean = false, checkPackages: Boolean = true,
+    skips: Seq[String] = Nil, warningsToErrors: Boolean = false, warningsToErrorsTag: Boolean = false,
+    libYearsWarnPeriod: Option[Period] = None,
+    libYearsErrorPeriod: Option[Period] = None,
+    diag: OptsDiag = OptsDiag.empty())
 
 case class OptsDepUp(showDependencyUpdates: Boolean = false, showHelp: Boolean = false,
-                     hideLatest: Boolean = true, versionRangeLimit: Integer = 3,
-                     hideUpdates: Boolean = false,
-                     hideStageVersions: Boolean = true, showLibYears: Boolean = false,
-                     changeToLatest: Boolean = false, allowDependencyDowngrades: Boolean = false,
-                     timeoutSec: Option[Int] = None,
-                     filter: Option[Regex] = None,
-                     diag: OptsDiag = OptsDiag.empty())
+    hideLatest: Boolean = true, versionRangeLimit: Integer = 3,
+    hideUpdates: Boolean = false,
+    hideStageVersions: Boolean = true, showLibYears: Boolean = false,
+    changeToLatest: Boolean = false, allowDependencyDowngrades: Boolean = false,
+    timeoutSec: Option[Int] = None,
+    filter: Option[Regex] = None,
+    diag: OptsDiag = OptsDiag.empty())
 
-case class Opts(simpleChars: Boolean = false, diag: OptsDiag = OptsDiag.empty(), showHelp: Boolean = false,
-                showUpdateCmd: Boolean = false, versionSet: Option[String] = None, shopGA: Option[String] = None,
-                createFeature: Boolean = false, useGerrit: Boolean = true, doUpdate: Boolean = true,
-                depUpOpts: OptsDepUp = OptsDepUp(), apiDiff: OptsApidiff = OptsApidiff(),
-                useJlineInput: Boolean = false, skipProperties: Seq[String] = Nil,
-                colors: Boolean = true, useDefaults: Boolean = false, versionIncrement: Option[Increment] = None,
-                lintOpts: LintOpts = LintOpts(), checkOverlapping: Boolean = true,
-                checkProjectDeps: Boolean = true,
-                showSelfGa: Boolean = false, showStartupDone: Boolean = true, suggestDockerTag: Boolean = false,
-                suggestRemoteBranch:Boolean = false,
-                isInteractive: Boolean = true, showOpts: Boolean = false, repoSupplier: Opts => RepoZ = Opts.newRepoZ
-               ) {
+case class Opts(
+    simpleChars: Boolean = false,
+    diag: OptsDiag = OptsDiag.empty(),
+    showHelp: Boolean = false,
+    showUpdateCmd: Boolean = false,
+    versionSet: Option[String] = None,
+    shopGA: Option[String] = None,
+    createFeature: Boolean = false,
+    useGerrit: Boolean = true,
+    doUpdate: Boolean = true,
+    depUpOpts: OptsDepUp = OptsDepUp(),
+    apiDiff: OptsApidiff = OptsApidiff(),
+    useJlineInput: Boolean = false,
+    skipProperties: Seq[String] = Nil,
+    colors: Boolean = true,
+    useDefaults: Boolean = false,
+    versionIncrement: Option[Increment] = None,
+    lintOpts: LintOpts = LintOpts(),
+    checkOverlapping: Boolean = true,
+    checkProjectDeps: Boolean = true,
+    showSelfGa: Boolean = false,
+    showStartupDone: Boolean = true,
+    suggestDockerTag: Boolean = false,
+    suggestRemoteBranch: Boolean = false,
+    isInteractive: Boolean = true,
+    showOpts: Boolean = false,
+    repoSupplier: Opts => RepoZ = Opts.newRepoZ
+) {
   def newRepo: RepoZ = {
     repoSupplier.apply(this)
   }

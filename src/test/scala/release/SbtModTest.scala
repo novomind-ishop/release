@@ -34,7 +34,7 @@ class SbtModTest extends AssertionsForJUnit {
     val extra = Seq(
       catsCore.copy(artifactId = "cats-core_2.13"),
       catsEffectM3.copy(artifactId = "cats-effect_2.13"),
-      scalaLib3,
+      scalaLib3
     ).map(_.toDep(SelfRef.undef))
     Assert.assertEquals((gavs ++ extra).sortBy(_.toString), result.flatten.sortBy(_.toString))
   }
@@ -54,7 +54,7 @@ class SbtModTest extends AssertionsForJUnit {
     })
     val extra = Seq(
       catsCore.copy(artifactId = "cats-core_3"),
-      catsEffectM3.copy(artifactId = "cats-effect_3"),
+      catsEffectM3.copy(artifactId = "cats-effect_3")
     ).map(_.toDep(SelfRef.undef))
     Assert.assertEquals((gavs ++ extra).sortBy(_.toString), result.flatten.sortBy(_.toString))
   }
@@ -65,7 +65,8 @@ class SbtModTest extends AssertionsForJUnit {
     val gavs: Seq[Dep] = Seq(guava)
       .map(_.toDep(SelfRef.undef))
     val repo = mock(classOf[Repo])
-    Mockito.when(repo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).thenReturn(None)
+    Mockito.when(repo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).thenReturn(
+      None)
 
     val result = gavs.map(gav => {
       ProjectMod.relocateGavs(gavs, repo)(gav)
@@ -93,17 +94,22 @@ class SbtModTest extends AssertionsForJUnit {
         |
         |libraryDependencies += "org.typelevel" % "cats-effect_2.13.0-M5" % "1.4.0"
         |
-        |""".stripMargin.trim, ProjectMod.SelfRef.undef)
+        |""".stripMargin.trim,
+      ProjectMod.SelfRef.undef
+    )
 
-    Assert.assertEquals(Seq(
-      d("org.scala-lang", "scala-library", "2.13.0"),
-      d("redis.clients", "jedis", "3"),
-      d("redis.clients", "jedis", "3.3.0"),
-      d("org.scalatestplus", "junit-4-12_2.13", "3.1.2.0"),
-      d("org.scalatestplus", "junit-4-12_2.13", "3.1.2.1"),
-      d("org.typelevel", "cats-effect_2.13.0-M5", "1.4.0"),
+    Assert.assertEquals(
+      Seq(
+        d("org.scala-lang", "scala-library", "2.13.0"),
+        d("redis.clients", "jedis", "3"),
+        d("redis.clients", "jedis", "3.3.0"),
+        d("org.scalatestplus", "junit-4-12_2.13", "3.1.2.0"),
+        d("org.scalatestplus", "junit-4-12_2.13", "3.1.2.1"),
+        d("org.typelevel", "cats-effect_2.13.0-M5", "1.4.0")
 
-    ), value.deps)
+      ),
+      value.deps
+    )
     Assert.assertEquals(Some("1.0-SNAPSHOT"), value.selfVersion)
   }
 
@@ -117,13 +123,15 @@ class SbtModTest extends AssertionsForJUnit {
         |
         |libraryDependencies += "org.scalatestplus" %% "junit-4-12" % "3.1.2.1" % Test
         |
-        |""".stripMargin.trim, ProjectMod.SelfRef.undef)
+        |""".stripMargin.trim,
+      ProjectMod.SelfRef.undef
+    )
 
     Assert.assertEquals(Seq(
-      d("org.scala-lang", "scala3-library_3", "3.0.1"),
-      d("org.scalatestplus", "junit-4-12_3", "3.1.2.1"),
+        d("org.scala-lang", "scala3-library_3", "3.0.1"),
+        d("org.scalatestplus", "junit-4-12_3", "3.1.2.1")
 
-    ), value.deps)
+      ), value.deps)
   }
 
   @Test
@@ -136,13 +144,15 @@ class SbtModTest extends AssertionsForJUnit {
         |
         |libraryDependencies += "org.scalatestplus" %% "junit-4-12" % "3.1.2.1" % Test
         |
-        |""".stripMargin.trim, ProjectMod.SelfRef.undef)
+        |""".stripMargin.trim,
+      ProjectMod.SelfRef.undef
+    )
 
     Assert.assertEquals(Seq(
-      d("org.scala-lang", "scala3-library_3", "3.7.1"),
-      d("org.scalatestplus", "junit-4-12_3", "3.1.2.1"),
+        d("org.scala-lang", "scala3-library_3", "3.7.1"),
+        d("org.scalatestplus", "junit-4-12_3", "3.1.2.1")
 
-    ), value.deps)
+      ), value.deps)
   }
 
   @Test
@@ -172,15 +182,20 @@ class SbtModTest extends AssertionsForJUnit {
         |    libraryDependencies += "net.java.dev.jna" % "jna-platform" % "5.13.0",
         |   libraryDependencies += "net.java.dev.jna" % "jna" % "5.13.0", // some comment
         |
-        |""".stripMargin.trim, ProjectMod.SelfRef.undef)
+        |""".stripMargin.trim,
+      ProjectMod.SelfRef.undef
+    )
 
-    Assert.assertEquals(Seq(
-      d("org.scala-lang", "scala3-library_3", "3.0.1"),
-      d("org.scalatestplus", "junit-4-12_3", "a.b.c"),
-      d("net.java.dev.jna", "jna-platform", "5.13.0"),
-      d("net.java.dev.jna", "jna", "5.13.0"),
+    Assert.assertEquals(
+      Seq(
+        d("org.scala-lang", "scala3-library_3", "3.0.1"),
+        d("org.scalatestplus", "junit-4-12_3", "a.b.c"),
+        d("net.java.dev.jna", "jna-platform", "5.13.0"),
+        d("net.java.dev.jna", "jna", "5.13.0")
 
-    ), value.deps)
+      ),
+      value.deps
+    )
   }
 
   @Test
@@ -208,15 +223,20 @@ class SbtModTest extends AssertionsForJUnit {
         |// export COURSIER_TTL=0s # https://get-coursier.io/docs/ttl
         |
         |
-        |""".stripMargin.trim, ProjectMod.SelfRef.undef)
+        |""".stripMargin.trim,
+      ProjectMod.SelfRef.undef
+    )
 
-    Assert.assertEquals(Seq(
-      d("org.scala-lang", "scala3-library_3", "3.8.1"),
-      d("org.yaml", "snakeyaml", "2.5"),
-      d("org.scalatest", "scalatest_3", "3.2.19"),
-      d("ch.qos.logback", "logback-classic", "1.5.27"),
+    Assert.assertEquals(
+      Seq(
+        d("org.scala-lang", "scala3-library_3", "3.8.1"),
+        d("org.yaml", "snakeyaml", "2.5"),
+        d("org.scalatest", "scalatest_3", "3.2.19"),
+        d("ch.qos.logback", "logback-classic", "1.5.27")
 
-    ), value.deps)
+      ),
+      value.deps
+    )
   }
 
   @Test
@@ -228,8 +248,8 @@ class SbtModTest extends AssertionsForJUnit {
         |""".stripMargin.trim, ProjectMod.SelfRef.undef)
 
     Assert.assertEquals(Seq(
-      d("org.scala-sbt", "sbt", "1.5.5"),
-    ), value.deps)
+        d("org.scala-sbt", "sbt", "1.5.5")
+      ), value.deps)
   }
 
   @Test
@@ -237,8 +257,9 @@ class SbtModTest extends AssertionsForJUnit {
     val a = new File("build.properties")
     val b = new File("plugins.sbt")
     val c = new File("build.sbt")
-    val fm = Map(a ->
-      """
+    val fm = Map(
+      a ->
+        """
         |sbt.version=1.5.5
         |
         |""".stripMargin.trim,
@@ -252,26 +273,31 @@ class SbtModTest extends AssertionsForJUnit {
       c ->
         """
           |scalaVersion := "3.8.3"
-          |""".stripMargin.trim,
+          |""".stripMargin.trim
     )
     val value = SbtMod.modelOfConents(Seq(a, b), c, fd => fm.getOrElse(fd, ""), Opts())
 
-
-    Assert.assertEquals(Seq(
-      d("org.scala-lang", "scala3-library_3", "3.8.3"),
-      d("org.scala-sbt", "sbt", "1.5.5"),
-      d("com.eed3si9n", "sbt-assembly_2.12_1.0", "1.0.0").copy(pomRef = SelfRef.scalaBuildMeta),
-      d("org.scoverage", "sbt-scoverage_2.12_1.0", "1.6.1").copy(pomRef = SelfRef.scalaBuildMeta),
-    ), value.deps)
+    Assert.assertEquals(
+      Seq(
+        d("org.scala-lang", "scala3-library_3", "3.8.3"),
+        d("org.scala-sbt", "sbt", "1.5.5"),
+        d("com.eed3si9n", "sbt-assembly_2.12_1.0", "1.0.0").copy(pomRef = SelfRef.scalaBuildMeta),
+        d("org.scoverage", "sbt-scoverage_2.12_1.0", "1.6.1").copy(pomRef = SelfRef.scalaBuildMeta)
+      ),
+      value.deps
+    )
     val repo = mock(classOf[Repo])
     when(repo.getRelocationOf(anyString(), anyString(), anyString())).thenReturn(None)
     val result = value.deps.map(aa => ProjectMod.relocateGavs(value.deps, repo)(aa))
-    Assert.assertEquals(Seq(
-      Seq(d("org.scala-lang", "scala3-library_3", "3.8.3")),
-      Seq(d("org.scala-sbt", "sbt", "1.5.5")),
-      Seq(d("com.eed3si9n", "sbt-assembly_2.12_1.0", "1.0.0").copy(pomRef = SelfRef.scalaBuildMeta)),
-      Seq(d("org.scoverage", "sbt-scoverage_2.12_1.0", "1.6.1").copy(pomRef = SelfRef.scalaBuildMeta)),
-    ), result)
+    Assert.assertEquals(
+      Seq(
+        Seq(d("org.scala-lang", "scala3-library_3", "3.8.3")),
+        Seq(d("org.scala-sbt", "sbt", "1.5.5")),
+        Seq(d("com.eed3si9n", "sbt-assembly_2.12_1.0", "1.0.0").copy(pomRef = SelfRef.scalaBuildMeta)),
+        Seq(d("org.scoverage", "sbt-scoverage_2.12_1.0", "1.6.1").copy(pomRef = SelfRef.scalaBuildMeta))
+      ),
+      result
+    )
   }
 
 }

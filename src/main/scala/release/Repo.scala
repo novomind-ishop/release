@@ -15,7 +15,9 @@ import org.eclipse.aether.graph.Dependency
 import org.eclipse.aether.metadata.DefaultMetadata
 import org.eclipse.aether.metadata.Metadata.Nature
 import org.eclipse.aether.repository.{LocalRepository, RemoteRepository}
-import org.eclipse.aether.resolution.{ArtifactRequest, DependencyRequest, MetadataRequest, MetadataResult, VersionRangeRequest, VersionRangeResolutionException}
+import org.eclipse.aether.resolution.{
+  ArtifactRequest, DependencyRequest, MetadataRequest, MetadataResult, VersionRangeRequest, VersionRangeResolutionException
+}
 import org.eclipse.aether.supplier.RepositorySystemSupplier
 import org.eclipse.aether.transfer.*
 import org.eclipse.aether.util.repository.AuthenticationBuilder
@@ -38,7 +40,7 @@ import scala.jdk.CollectionConverters.*
 import scala.util.{Failure, Success, Try}
 
 case class RepoMetrics(dateCollection: Duration, dateCollectionCount: Int,
-                       versionCollection: Duration, versionCollectionCount: Int)
+    versionCollection: Duration, versionCollectionCount: Int)
 
 object RepoMetrics {
   def empty(): RepoMetrics = {
@@ -118,17 +120,18 @@ case class RepoProxy(_repos: Seq[RepoZ]) extends RepoZ {
       Util.ipFromUrl(url).isDefined
     })
     val tt = (if (t.isEmpty) {
-      _repos
-    } else {
-      t
-    }).distinctBy(_.workNexusUrl())
+                _repos
+              } else {
+                t
+              }).distinctBy(_.workNexusUrl())
     tt
   }
 
   override def getMetrics: RepoMetrics = {
     repos.foldLeft(RepoMetrics.empty())((a, b) => {
       val add = b.getMetrics
-      a.copy(dateCollection = Util.roundDuration(a.dateCollection.plus(add.dateCollection)),
+      a.copy(
+        dateCollection = Util.roundDuration(a.dateCollection.plus(add.dateCollection)),
         dateCollectionCount = a.dateCollectionCount + add.dateCollectionCount,
         versionCollection = Util.roundDuration(a.versionCollection.plus(add.versionCollection)),
         versionCollectionCount = a.versionCollectionCount + add.versionCollectionCount
@@ -176,7 +179,7 @@ case class RepoProxy(_repos: Seq[RepoZ]) extends RepoZ {
 
 }
 
-case class Repo private(_mirrorNexus: RemoteRepository, _workNexus: RemoteRepository) extends RepoZ with LazyLogging {
+case class Repo private (_mirrorNexus: RemoteRepository, _workNexus: RemoteRepository) extends RepoZ with LazyLogging {
   private val mirrorNexus: RemoteRepository = _mirrorNexus
 
   private val workNexus: RemoteRepository = _workNexus
@@ -230,8 +233,9 @@ case class Repo private(_mirrorNexus: RemoteRepository, _workNexus: RemoteReposi
         if (showTrace) {
           any.printStackTrace()
         }
-        return Repo.ReachableResult(online = false, any.getClass.getCanonicalName +
-          ": " + any.getMessage + " requestConfig: " + config.toString)
+        return Repo.ReachableResult(online = false,
+          any.getClass.getCanonicalName +
+            ": " + any.getMessage + " requestConfig: " + config.toString)
       }
     } finally {
       if (response != null) {
@@ -335,12 +339,10 @@ object Repo extends LazyLogging {
     new DateTimeFormatterBuilder()
       .parseCaseInsensitive
       .parseLenient
-
       .optionalStart
       .appendText(DAY_OF_WEEK) // TODO dow
       .appendLiteral(" ")
       .optionalEnd
-
       .appendText(ChronoField.MONTH_OF_YEAR, TextStyle.SHORT) // TODO moy
       .appendLiteral(' ')
       .appendValue(DAY_OF_MONTH, 1, 2, SignStyle.NOT_NEGATIVE)
@@ -369,19 +371,16 @@ object Repo extends LazyLogging {
     .appendValue(HOUR_OF_DAY, 2)
     .appendLiteral(':')
     .appendValue(MINUTE_OF_HOUR, 2)
-
     .optionalStart
     .appendLiteral(":")
     .appendText(SECOND_OF_MINUTE)
     .optionalEnd
-
     .appendLiteral(' ')
     .appendZoneText(TextStyle.FULL)
-
     .toFormatter
 
   def convertNewerAndPrefVersions(groupID: String, artifactId: String, version: String,
-                                  function: String => Seq[String]): Seq[String] = {
+      function: String => Seq[String]): Seq[String] = {
     val innerV = release.Version.parseSloppy(version)
     val request = Seq(groupID, artifactId, "[" + (innerV.major - 1) + ",)").mkString(":")
     val result = function.apply(request).map(release.Version.parseSloppy).sorted
@@ -427,9 +426,9 @@ object Repo extends LazyLogging {
     if (username.isDefined && password.isDefined) {
       builder
         .setAuthentication(new AuthenticationBuilder()
-          .addUsername(username.get)
-          .addPassword(password.get)
-          .build())
+            .addUsername(username.get)
+            .addPassword(password.get)
+            .build())
         .build
     } else {
       builder.build
@@ -464,7 +463,6 @@ object Repo extends LazyLogging {
         throw value.head
       }
 
-
       val o = rangeResult.getVersions.asScala.toList
       cache.put((repository.getUrl, request), o)
       o
@@ -486,10 +484,8 @@ object Repo extends LazyLogging {
       .appendValue(HOUR_OF_DAY, 2)
       .appendLiteral(':')
       .appendValue(MINUTE_OF_HOUR, 2)
-
       .appendLiteral(' ')
       .appendZoneText(TextStyle.FULL)
-
       .toFormatter
 
     if (line.matches(".*[0-9]{2}-[A-Za-z]+-[1-9][0-9]{3}.*")) {
@@ -539,8 +535,8 @@ object Repo extends LazyLogging {
     }
   }
 
-  private[release] def depDate(repository: RemoteRepository, cache: Cache[(String, String, String, String), Option[ZonedDateTime]])
-                              (groupId: String, artifactId: String, version: String, retry: Boolean = true): Option[ZonedDateTime] = {
+  private[release] def depDate(repository: RemoteRepository, cache: Cache[(String, String, String, String), Option[ZonedDateTime]])(
+      groupId: String, artifactId: String, version: String, retry: Boolean = true): Option[ZonedDateTime] = {
     val result = cache.getIfPresent((repository.getUrl, groupId, artifactId, version))
     val r = if (result != null) {
       result
@@ -565,7 +561,8 @@ object Repo extends LazyLogging {
           }
         } else {
           val file = e.getMetadata.getFile
-          FileUtils.findAllInFile[Option[ZonedDateTime]](file.toPath, line => {
+          FileUtils.findAllInFile[Option[ZonedDateTime]](file.toPath,
+            line => {
               val r = extractDate(line)
               (r.isDefined, r)
             }).flatMap(_._1)
@@ -651,30 +648,33 @@ object Repo extends LazyLogging {
 
     private def delete(path: Path): Unit = {
       try
-        Files.walkFileTree(path, new FileVisitor[Path]() {
-          @throws[IOException]
-          def postVisitDirectory(dir: Path, exc: IOException): FileVisitResult = {
-            Files.delete(dir)
-            FileVisitResult.CONTINUE
-          }
-
-          @throws[IOException]
-          def preVisitDirectory(dir: Path, attrs: BasicFileAttributes) = FileVisitResult.CONTINUE
-
-          @throws[IOException]
-          def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
-            Files.delete(file)
-            FileVisitResult.CONTINUE
-          }
-
-          @throws[IOException]
-          def visitFileFailed(file: Path, exc: IOException): FileVisitResult = {
-            if (!exc.toString.contains("local-repo")) {
-              System.out.println(classOf[ArtifactRepos].getCanonicalName + " -> " + exc.toString)
+        Files.walkFileTree(
+          path,
+          new FileVisitor[Path]() {
+            @throws[IOException]
+            def postVisitDirectory(dir: Path, exc: IOException): FileVisitResult = {
+              Files.delete(dir)
+              FileVisitResult.CONTINUE
             }
-            FileVisitResult.CONTINUE
+
+            @throws[IOException]
+            def preVisitDirectory(dir: Path, attrs: BasicFileAttributes) = FileVisitResult.CONTINUE
+
+            @throws[IOException]
+            def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
+              Files.delete(file)
+              FileVisitResult.CONTINUE
+            }
+
+            @throws[IOException]
+            def visitFileFailed(file: Path, exc: IOException): FileVisitResult = {
+              if (!exc.toString.contains("local-repo")) {
+                System.out.println(classOf[ArtifactRepos].getCanonicalName + " -> " + exc.toString)
+              }
+              FileVisitResult.CONTINUE
+            }
           }
-        })
+        )
 
       catch {
         case e: IOException => {
@@ -724,4 +724,3 @@ object Repo extends LazyLogging {
   }
 
 }
-

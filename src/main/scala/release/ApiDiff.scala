@@ -118,8 +118,8 @@ object ApiDiff {
       }
 
       val oo: Seq[(
-        (Seq[ProjectMod.Dep], Seq[ProjectMod.Gav3], Map[String, String]),
-          (Seq[ProjectMod.Dep], Seq[ProjectMod.Gav3], Map[String, String]))] = gasResolved.flatMap(abr => {
+            (Seq[ProjectMod.Dep], Seq[ProjectMod.Gav3], Map[String, String]),
+            (Seq[ProjectMod.Dep], Seq[ProjectMod.Gav3], Map[String, String]))] = gasResolved.flatMap(abr => {
         try {
           val ar = abr._1
           val br = abr._2
@@ -162,7 +162,6 @@ object ApiDiff {
       println("diff:")
       val xDiff = connectLeftRight(t)
 
-
       if (inOpt.apiDiff.unifiedDiffLike) {
         println(Starter.formatLeftRightUnifiedLike(xDiff, inOpt.colors))
       } else {
@@ -178,9 +177,10 @@ object ApiDiff {
       options.setOutputOnlyBinaryIncompatibleModifications(inOpt.apiDiff.incompatibleModifications)
 
       val exclStartsWith = Set()
-      val eStF = exclStartsWith.map(fv => new ClassFilter {
-        override def matches(ctClass: CtClass): Boolean = ctClass.getPackageName.startsWith(fv)
-      })
+      val eStF = exclStartsWith.map(fv =>
+        new ClassFilter {
+          override def matches(ctClass: CtClass): Boolean = ctClass.getPackageName.startsWith(fv)
+        })
       val comparatorOptions: JarArchiveComparatorOptions = JarArchiveComparatorOptions.of(options)
       comparatorOptions.getFilters.getExcludes.addAll(eStF.asJava)
       val jApiClasses = gasResolved

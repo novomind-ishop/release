@@ -4,7 +4,7 @@ import org.junit.{Assert, Assume, Ignore, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.Sgit.{GitRemote, GitTagWithDate, MissingGitDirException}
 import release.SgitTest.hasCommitMsg
-import release.Starter.{PreconditionsException}
+import release.Starter.PreconditionsException
 
 import java.io.File
 import java.nio.file.{Files, StandardCopyOption}
@@ -46,14 +46,18 @@ class SgitTest extends AssertionsForJUnit {
   @Test
   def testMissingGitDir(): Unit = {
 
-    TestHelper.assertExceptionWithCheck(message => Assert.assertEquals("no .git dir in sgit-test was found. " +
-      "Please change dir to the project folder.",
-      message.replaceFirst("[^ ]+sgit-test-[^ ]+", "sgit-test"))
-      , classOf[MissingGitDirException], () => {
+    TestHelper.assertExceptionWithCheck(
+      message =>
+        Assert.assertEquals("no .git dir in sgit-test was found. " +
+          "Please change dir to the project folder.",
+          message.replaceFirst("[^ ]+sgit-test-[^ ]+", "sgit-test")),
+      classOf[MissingGitDirException],
+      () => {
         val temp = Files.createTempDirectory("sgit-test-").toFile.getAbsoluteFile
         temp.deleteOnExit()
         Sgit(file = temp, doVerify = hasCommitMsg, out = System.out, err = System.err, gitBin = None, opts = Opts())
-      })
+      }
+    )
 
   }
 
@@ -197,11 +201,14 @@ class SgitTest extends AssertionsForJUnit {
     testee.err("fatal: 'failfail' does not appear to be a git repository fatal: Could not read from remote repository.")
     testee.err("Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu")
 
-
     // THEN
-    Assert.assertEquals(Seq(
-      "fatal: 'failfail' does not appear to be a git repository fatal: Could not read from remote repository.",
-      "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu"), err)
+    Assert.assertEquals(
+      Seq(
+        "fatal: 'failfail' does not appear to be a git repository fatal: Could not read from remote repository.",
+        "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu"
+      ),
+      err
+    )
     Assert.assertEquals(Nil, out)
   }
 
@@ -354,7 +361,10 @@ class SgitTest extends AssertionsForJUnit {
           .replaceAll("[\r\n]+", " "),
         """git-err: 'error: failed to push some refs to
           |'ssh://anyone@any-gerrig:29418/ishop/user/anyone/sonar-demo''""".stripMargin
-          .replaceAll("[\r\n]+", " ")), err)
+          .replaceAll("[\r\n]+", " ")
+      ),
+      err
+    )
   }
 
   @Test
@@ -391,11 +401,14 @@ class SgitTest extends AssertionsForJUnit {
 
   @Test
   def testGitNative(): Unit = {
-    TestHelper.assertException("Nonzero exit value: 1; git --no-pager iutghiprjhpeth; " +
-      "git: 'iutghiprjhpeth' is not a git command. See 'git --help'.",
-      classOf[RuntimeException], () => {
+    TestHelper.assertException(
+      "Nonzero exit value: 1; git --no-pager iutghiprjhpeth; " +
+        "git: 'iutghiprjhpeth' is not a git command. See 'git --help'.",
+      classOf[RuntimeException],
+      () => {
         SgitTest.workSgit().gitNative(Seq("iutghiprjhpeth")).get
-      })
+      }
+    )
 
   }
 
@@ -408,13 +421,16 @@ class SgitTest extends AssertionsForJUnit {
 
     val noGit = Files.createTempDirectory("release-no-git-").toFile.getAbsoluteFile
 
-    TestHelper.assertExceptionWithCheck(msg => {
-      Assert.assertEquals(s"no .git dir in ${noGit.getAbsolutePath} or in parents was found. " +
-        "Please change dir to the project folder.", msg)
-    },
-      classOf[MissingGitDirException], () => {
+    TestHelper.assertExceptionWithCheck(
+      msg => {
+        Assert.assertEquals(s"no .git dir in ${noGit.getAbsolutePath} or in parents was found. " +
+          "Please change dir to the project folder.", msg)
+      },
+      classOf[MissingGitDirException],
+      () => {
         Sgit.findGit(noGit)
-      })
+      }
+    )
   }
 
   @Test
@@ -459,15 +475,18 @@ class SgitTest extends AssertionsForJUnit {
     gitA.add(SgitTest.testFile(testRepoA, Util.hashMd5Random()))
     gitA.commitAll(s"c${counter.getAndIncrement()}", Some(ZonedDateTime.parse("2007-04-07T22:13:13Z")))
     Assert.assertEquals(Seq("feature/a", "feature/r/a", "master"), gitA.listBranchNamesAll())
-    Assert.assertEquals(Seq(
-      ("refs/heads/feature/a", Some(ZonedDateTime.parse("2007-04-07T22:13:13Z"))),
-      ("refs/heads/master", Some(ZonedDateTime.parse("2005-04-07T22:13:13Z"))),
-      ("refs/remotes/origin/HEAD", Some(ZonedDateTime.parse("2005-04-07T22:13:13Z"))),
-      ("refs/remotes/origin/feature/r/a", Some(ZonedDateTime.parse("2005-04-07T22:13:13Z"))),
-      ("refs/remotes/origin/master", Some(ZonedDateTime.parse("2005-04-07T22:13:13Z"))),
-      ("refs/tags/v1.2.3", Some(ZonedDateTime.parse("2006-04-07T22:13:13Z"))),
-      ("refs/tags/v1.2.4", None), // TODO anotated tags later
-    ), gitA.listRefs().map(r => (r.refName, r.dateOpt)))
+    Assert.assertEquals(
+      Seq(
+        ("refs/heads/feature/a", Some(ZonedDateTime.parse("2007-04-07T22:13:13Z"))),
+        ("refs/heads/master", Some(ZonedDateTime.parse("2005-04-07T22:13:13Z"))),
+        ("refs/remotes/origin/HEAD", Some(ZonedDateTime.parse("2005-04-07T22:13:13Z"))),
+        ("refs/remotes/origin/feature/r/a", Some(ZonedDateTime.parse("2005-04-07T22:13:13Z"))),
+        ("refs/remotes/origin/master", Some(ZonedDateTime.parse("2005-04-07T22:13:13Z"))),
+        ("refs/tags/v1.2.3", Some(ZonedDateTime.parse("2006-04-07T22:13:13Z"))),
+        ("refs/tags/v1.2.4", None) // TODO anotated tags later
+      ),
+      gitA.listRefs().map(r => (r.refName, r.dateOpt))
+    )
   }
 
   @Test
@@ -483,12 +502,15 @@ class SgitTest extends AssertionsForJUnit {
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
 
-    TestHelper.assertException("Nonzero exit value: 1; git --no-pager push -q -u origin master:refs/for/master; " +
-      "git-err: 'error: src refspec master does not match any' " +
-      "git-err: 'error: failed to push some refs to 'origin''",
-      classOf[RuntimeException], () => {
+    TestHelper.assertException(
+      "Nonzero exit value: 1; git --no-pager push -q -u origin master:refs/for/master; " +
+        "git-err: 'error: src refspec master does not match any' " +
+        "git-err: 'error: failed to push some refs to 'origin''",
+      classOf[RuntimeException],
+      () => {
         gitA.pushFor("master", "master")
-      })
+      }
+    )
 
     gitA.fetchAll()
     Assert.assertEquals(Nil, gitA.listRemotes())
@@ -496,54 +518,69 @@ class SgitTest extends AssertionsForJUnit {
 
     Term.Os.getCurrent match {
       case Term.Os.Darwin => {
-        TestHelper.assertException("Nonzero exit value: 1; " +
-          "git --no-pager fetch --all --tags; fatal: 'failfail' does not appear to be a git repository " +
-          "fatal: Could not read from remote repository. Please make sure you have the correct access rights " +
-          "and the repository exists. error: could not fetch ubglu",
-          classOf[RuntimeException], () => {
+        TestHelper.assertException(
+          "Nonzero exit value: 1; " +
+            "git --no-pager fetch --all --tags; fatal: 'failfail' does not appear to be a git repository " +
+            "fatal: Could not read from remote repository. Please make sure you have the correct access rights " +
+            "and the repository exists. error: could not fetch ubglu",
+          classOf[RuntimeException],
+          () => {
             gitA.fetchAll()
-          })
+          }
+        )
       }
       case Term.Os.Linux => {
         println(s"git version ${gitA.version()}")
         gitA.version() match {
           case gv: String if gv.startsWith("git version 2.30") => {
-            TestHelper.assertException("Nonzero exit value: 1; " +
-              "git --no-pager fetch --all --tags; fatal: 'failfail' does not appear to be a git repository " +
-              "fatal: Could not read from remote repository. Please make sure you have the correct access rights " +
-              "and the repository exists. error: Could not fetch ubglu",
-              classOf[RuntimeException], () => {
+            TestHelper.assertException(
+              "Nonzero exit value: 1; " +
+                "git --no-pager fetch --all --tags; fatal: 'failfail' does not appear to be a git repository " +
+                "fatal: Could not read from remote repository. Please make sure you have the correct access rights " +
+                "and the repository exists. error: Could not fetch ubglu",
+              classOf[RuntimeException],
+              () => {
                 gitA.fetchAll()
-              })
+              }
+            )
           }
           case any => {
-            TestHelper.assertException("Nonzero exit value: 128; " +
-              "git --no-pager fetch --all --tags; fatal: 'failfail' does not appear to be a git repository " +
-              "fatal: Could not read from remote repository. Please make sure you have the correct access rights " +
-              "and the repository exists.",
-              classOf[RuntimeException], () => {
+            TestHelper.assertException(
+              "Nonzero exit value: 128; " +
+                "git --no-pager fetch --all --tags; fatal: 'failfail' does not appear to be a git repository " +
+                "fatal: Could not read from remote repository. Please make sure you have the correct access rights " +
+                "and the repository exists.",
+              classOf[RuntimeException],
+              () => {
                 gitA.fetchAll()
-              })
+              }
+            )
           }
         }
       }
       case Term.Os.Windows => {
-        TestHelper.assertException("Nonzero exit value: 128; " +
-          "git --no-pager fetch --all --tags; fatal: 'failfail' does not appear to be a git repository " +
-          "fatal: Could not read from remote repository. Please make sure you have the correct access rights " +
-          "and the repository exists.",
-          classOf[RuntimeException], () => {
+        TestHelper.assertException(
+          "Nonzero exit value: 128; " +
+            "git --no-pager fetch --all --tags; fatal: 'failfail' does not appear to be a git repository " +
+            "fatal: Could not read from remote repository. Please make sure you have the correct access rights " +
+            "and the repository exists.",
+          classOf[RuntimeException],
+          () => {
             gitA.fetchAll()
-          })
+          }
+        )
       }
       case other => Assert.fail("unknown os: " + other)
     }
-    TestHelper.assertException("Nonzero exit value: 1; git --no-pager push -q -u origin master:refs/heads/master; " +
-      "git-err: 'error: src refspec master does not match any' " +
-      "git-err: 'error: failed to push some refs to 'origin''",
-      classOf[RuntimeException], () => {
+    TestHelper.assertException(
+      "Nonzero exit value: 1; git --no-pager push -q -u origin master:refs/heads/master; " +
+        "git-err: 'error: src refspec master does not match any' " +
+        "git-err: 'error: failed to push some refs to 'origin''",
+      classOf[RuntimeException],
+      () => {
         gitA.pushHeads("master", "master")
-      })
+      }
+    )
 
     Assert.assertEquals(Seq(
       GitRemote.of("ubglu", "failfail", "(fetch)"),
@@ -554,23 +591,30 @@ class SgitTest extends AssertionsForJUnit {
     gitA.addRemote("ubglu", "ssh://user@git.example.org/ubglu")
 
     def failFetchAll(expectedMsg: String*): Unit = {
-      TestHelper.assertExceptionWithCheck(message => {
-        val selected = expectedMsg.find(_ == message)
-        if (selected.isDefined) {
-          Assert.assertEquals(selected.get, message)
-        } else {
-          Assert.assertEquals(expectedMsg.head, message)
-        }
+      TestHelper.assertExceptionWithCheck(
+        message => {
+          val selected = expectedMsg.find(_ == message)
+          if (selected.isDefined) {
+            Assert.assertEquals(selected.get, message)
+          } else {
+            Assert.assertEquals(expectedMsg.head, message)
+          }
 
-      },
-        classOf[RuntimeException], () => {
+        },
+        classOf[RuntimeException],
+        () => {
           gitA.fetchAll()
-        })
+        }
+      )
     }
 
-    Assert.assertEquals("after 1 millisecond to ssh://git.example.org/ubglu", gitA.remoteHeadDefinition(timeout = Duration(1, TimeUnit.MILLISECONDS), debugFn = () => {
-      Thread.sleep(10_000)
-    }).failed.get.getMessage)
+    Assert.assertEquals(
+      "after 1 millisecond to ssh://git.example.org/ubglu",
+      gitA.remoteHeadDefinition(timeout = Duration(1, TimeUnit.MILLISECONDS),
+        debugFn = () => {
+          Thread.sleep(10_000)
+        }).failed.get.getMessage
+    )
 
     Term.Os.getCurrent match {
       // TODO a git version change in 2.21
@@ -584,10 +628,11 @@ class SgitTest extends AssertionsForJUnit {
       case Term.Os.Linux => {
         gitA.version() match {
           // TODO change default later
-          case gv: String if gv.startsWith("git version 2.29") ||
-            gv.startsWith("git version 2.30") ||
-            gv.startsWith("git version 2.31") ||
-            gv.startsWith("git version 2.32") => {
+          case gv: String
+            if gv.startsWith("git version 2.29") ||
+              gv.startsWith("git version 2.30") ||
+              gv.startsWith("git version 2.31") ||
+              gv.startsWith("git version 2.32") => {
             val var1 = "Nonzero exit value: 1; git --no-pager fetch --all --tags; " +
               "ssh: Could not resolve hostname git.example.org: Name or service not known fatal: " +
               "Could not read from remote repository. " +
@@ -674,10 +719,13 @@ class SgitTest extends AssertionsForJUnit {
     gitB.fetchAll()
     Assert.assertEquals(Seq("origin/master"), gitB.listBranchRemoteRaw().map(_.branchName))
     Assert.assertEquals(Seq("origin/master"), gitB.listBranchNamesRemote())
-    Assert.assertEquals(Seq(
-      "0000000000000000000000000000000000000000 HEAD",
-      "0000000000000000000000000000000000000000 refs/heads/master",
-    ), gitB.lsRemote().map(e => s"${e.commitId.replaceAll("[a-f0-9]", "0")} ${e.refName}"))
+    Assert.assertEquals(
+      Seq(
+        "0000000000000000000000000000000000000000 HEAD",
+        "0000000000000000000000000000000000000000 refs/heads/master"
+      ),
+      gitB.lsRemote().map(e => s"${e.commitId.replaceAll("[a-f0-9]", "0")} ${e.refName}")
+    )
 
     Assert.assertEquals(Seq("refs/remotes/origin/master"), gitB.listBranchRemoteRefRemotes().map(_.branchName))
     Assert.assertEquals(Seq("master"), gitB.listBranchNamesRemoteShort())
@@ -697,12 +745,15 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(Seq("This reverts commit ..."),
       gitB.commitMessageBody("HEAD").map(_.replaceFirst("[0-9a-f]{40}.$", "...")))
     gitB.revertHead()
-    TestHelper.assertExceptionWithCheck(message =>
-      Assert.assertEquals("The commits 000, 000 has no ChangeId lines. Please amend them manually.",
-        message.replaceAll("[0-9a-f]{40}", "000"))
-      , classOf[PreconditionsException], () => {
+    TestHelper.assertExceptionWithCheck(
+      message =>
+        Assert.assertEquals("The commits 000, 000 has no ChangeId lines. Please amend them manually.",
+          message.replaceAll("[0-9a-f]{40}", "000")),
+      classOf[PreconditionsException],
+      () => {
         gitB.pushFor("master", "master")
-      })
+      }
+    )
     gitB.resetHard(beforeReverts)
     gitB.pushFor("master", "master")
     Assert.assertEquals(Nil, gitA.listAllTags())
@@ -720,8 +771,11 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(None, gitB.currentTagsWithoutAnnotated)
     Assert.assertEquals(None, gitB.currentTags)
     gitB.deleteTag("0.0.10")
-    TestHelper.assertException("Nonzero exit value: 1; git --no-pager checkout -q v0.0.10; error: pathspec 'v0.0.10' did not match any file(s) known to git",
-      classOf[RuntimeException], () => gitB.checkout("v0.0.10"))
+    TestHelper.assertException(
+      "Nonzero exit value: 1; git --no-pager checkout -q v0.0.10; error: pathspec 'v0.0.10' did not match any file(s) known to git",
+      classOf[RuntimeException],
+      () => gitB.checkout("v0.0.10")
+    )
     gitB.doTag("0.0.10", msg = "anno")
     gitB.doTag("0.0.10_a")
     gitB.checkout("v0.0.10")
@@ -734,57 +788,80 @@ class SgitTest extends AssertionsForJUnit {
     gitB.deleteTag("0.0.10_a")
     Term.Os.getCurrent match {
       case Term.Os.Darwin => {
-        TestHelper.assertExceptionWithCheck(message =>
-          Assert.assertEquals("Nonzero exit value: 1; git --no-pager fetch --all --tags;" +
-            " ! [rejected]        v0.0.10    -> v0.0.10  (would clobber existing tag)" +
-            " error: could not fetch origin",
-            message.replaceFirst(" From [^ ]+", ""))
-          , classOf[RuntimeException], () => {
+        TestHelper.assertExceptionWithCheck(
+          message =>
+            Assert.assertEquals(
+              "Nonzero exit value: 1; git --no-pager fetch --all --tags;" +
+                " ! [rejected]        v0.0.10    -> v0.0.10  (would clobber existing tag)" +
+                " error: could not fetch origin",
+              message.replaceFirst(" From [^ ]+", "")
+            ),
+          classOf[RuntimeException],
+          () => {
             gitB.fetchAll()
-          })
+          }
+        )
       }
       case Term.Os.Linux => {
         gitB.version() match {
           case gv: String if gv.startsWith("git version 2.30") => {
-            TestHelper.assertExceptionWithCheck(message =>
-              Assert.assertEquals("Nonzero exit value: 1; git --no-pager fetch --all --tags;" +
-                " ! [rejected]        v0.0.10    -> v0.0.10  (would clobber existing tag)" +
-                " error: Could not fetch origin",
-                message.replaceFirst(" From [^ ]+", ""))
-              , classOf[RuntimeException], () => {
+            TestHelper.assertExceptionWithCheck(
+              message =>
+                Assert.assertEquals(
+                  "Nonzero exit value: 1; git --no-pager fetch --all --tags;" +
+                    " ! [rejected]        v0.0.10    -> v0.0.10  (would clobber existing tag)" +
+                    " error: Could not fetch origin",
+                  message.replaceFirst(" From [^ ]+", "")
+                ),
+              classOf[RuntimeException],
+              () => {
                 gitB.fetchAll()
-              })
+              }
+            )
           }
           case any => {
-            TestHelper.assertExceptionWithCheck(message =>
-              Assert.assertEquals("Nonzero exit value: 1; git --no-pager fetch --all --tags;" +
-                " ! [rejected]        v0.0.10    -> v0.0.10  (would clobber existing tag)",
-                message.replaceFirst(" From [^ ]+", ""))
-              , classOf[RuntimeException], () => {
+            TestHelper.assertExceptionWithCheck(
+              message =>
+                Assert.assertEquals(
+                  "Nonzero exit value: 1; git --no-pager fetch --all --tags;" +
+                    " ! [rejected]        v0.0.10    -> v0.0.10  (would clobber existing tag)",
+                  message.replaceFirst(" From [^ ]+", "")
+                ),
+              classOf[RuntimeException],
+              () => {
                 gitB.fetchAll()
-              })
+              }
+            )
 
           }
         }
 
       }
-      case Term.Os.Windows => {
-        TestHelper.assertExceptionWithCheck(message =>
-          Assert.assertEquals("Nonzero exit value: 1; git --no-pager fetch --all --tags;" +
-            " ! [rejected]        v0.0.10    -> v0.0.10  (would clobber existing tag)" +
-            "",
-            message.replaceFirst(" From [^ ]+", ""))
-          , classOf[RuntimeException], () => {
+case Term.Os.Windows => {
+        TestHelper.assertExceptionWithCheck(
+          message =>
+            Assert.assertEquals(
+              "Nonzero exit value: 1; git --no-pager fetch --all --tags;" +
+                " ! [rejected]        v0.0.10    -> v0.0.10  (would clobber existing tag)" +
+                "",
+              message.replaceFirst(" From [^ ]+", "")
+            ),
+          classOf[RuntimeException],
+          () => {
             gitB.fetchAll()
-          })
+          }
+        )
       }
       case other => Assert.fail("unknown os: " + other)
     }
 
     gitA.deleteTag("0.0.10")
     gitA.createBranch("lulul")
-    TestHelper.assertException("Nonzero exit value: 128; git --no-pager branch lulul; fatal: a branch named 'lulul' already exists",
-      classOf[RuntimeException], () => gitA.createBranch("lulul"))
+    TestHelper.assertException(
+      "Nonzero exit value: 128; git --no-pager branch lulul; fatal: a branch named 'lulul' already exists",
+      classOf[RuntimeException],
+      () => gitA.createBranch("lulul")
+    )
 
     gitB.fetchAll()
     gitA.deleteBranch("lulul")
@@ -824,20 +901,27 @@ class SgitTest extends AssertionsForJUnit {
     Assert.assertEquals(Seq("?? pom.xml", "?? sub/"), gitB.localChanges())
     gitB.add(pomFile)
     Assert.assertEquals(Seq("A pom.xml", "?? sub/"), gitB.localChanges())
-    testFailIllegal("only (pom.xml) changes are allowed => A pom.xml, ?? sub/ => sub/ <= pom.xml, sub/", () => {
-      gitB.localPomChanges()
-    })
+    testFailIllegal("only (pom.xml) changes are allowed => A pom.xml, ?? sub/ => sub/ <= pom.xml, sub/",
+      () => {
+        gitB.localPomChanges()
+      })
     val anyFile = SgitTest.testFile(testRepoB, "any.xml")
 
     Assert.assertEquals(Seq("A pom.xml", "?? any.xml", "?? sub/"), gitB.localChanges())
 
-    testFailIllegal("only (pom.xml) changes are allowed => A pom.xml, ?? any.xml, ?? sub/ => any.xml, sub/ <= any.xml, pom.xml, sub/", () => {
-      gitB.doCommitPomXmls("fail")
-    })
+    testFailIllegal(
+      "only (pom.xml) changes are allowed => A pom.xml, ?? any.xml, ?? sub/ => any.xml, sub/ <= any.xml, pom.xml, sub/",
+      () => {
+        gitB.doCommitPomXmls("fail")
+      }
+    )
 
-    testFailIllegal("only (any.xml, pom.xml) changes are allowed => A pom.xml, ?? any.xml, ?? sub/ => sub/ <= any.xml, pom.xml, sub/", () => {
-      gitB.doCommitWithFilter("fail", Seq("pom.xml", "any.xml"))
-    })
+    testFailIllegal(
+      "only (any.xml, pom.xml) changes are allowed => A pom.xml, ?? any.xml, ?? sub/ => sub/ <= any.xml, pom.xml, sub/",
+      () => {
+        gitB.doCommitWithFilter("fail", Seq("pom.xml", "any.xml"))
+      }
+    )
 
     gitB.add(anyFile)
     val otherFile = SgitTest.testFile(testRepoB, "schönes Ding")
@@ -853,38 +937,62 @@ class SgitTest extends AssertionsForJUnit {
     FileUtils.write(pomFile, Seq("a"))
     FileUtils.write(subPomFile, Seq("a", "b"))
     Assert.assertTrue(gitB.hasLocalChanges)
-    Assert.assertEquals(Seq(
-      "diff --git a/pom.xml b/pom.xml", "--- a/pom.xml", "+++ b/pom.xml",
-      "@@ -0,0 +1 @@",
-      "+a",
-      "diff --git a/sub/pom.xml b/sub/pom.xml", "--- a/sub/pom.xml", "+++ b/sub/pom.xml",
-      "@@ -0,0 +1,2 @@",
-      "+a",
-      "+b"
-    ), gitB.diffSafe())
+    Assert.assertEquals(
+      Seq(
+        "diff --git a/pom.xml b/pom.xml",
+        "--- a/pom.xml",
+        "+++ b/pom.xml",
+        "@@ -0,0 +1 @@",
+        "+a",
+        "diff --git a/sub/pom.xml b/sub/pom.xml",
+        "--- a/sub/pom.xml",
+        "+++ b/sub/pom.xml",
+        "@@ -0,0 +1,2 @@",
+        "+a",
+        "+b"
+      ),
+      gitB.diffSafe()
+    )
 
     Assert.assertEquals(Seq("M pom.xml", "M sub/pom.xml"), gitB.localChanges())
     Assert.assertEquals(Seq("pom.xml", "sub/pom.xml"), gitB.localPomChanges())
     gitB.doCommitPomXmls("update pom.xml\n\nSigned-off-by: Signer <signer@example.org>")
     Assert.assertEquals(Nil, gitB.localChanges())
 
-    Assert.assertEquals(Seq("refs/heads/master", "refs/remotes/origin/HEAD",
-      "refs/remotes/origin/master", "refs/tags/v0.0.10", "refs/tags/v0.0.8", "refs/tags/v0.0.9"), gitB.listRefNames())
+    Assert.assertEquals(
+      Seq("refs/heads/master", "refs/remotes/origin/HEAD",
+        "refs/remotes/origin/master", "refs/tags/v0.0.10", "refs/tags/v0.0.8", "refs/tags/v0.0.9"),
+      gitB.listRefNames()
+    )
     gitB.doTag("1.0.0")
-    Assert.assertEquals(Seq("refs/heads/master", "refs/remotes/origin/HEAD",
-      "refs/remotes/origin/master", "refs/tags/v0.0.10", "refs/tags/v0.0.8", "refs/tags/v0.0.9", "refs/tags/v1.0.0"),
-      gitB.listRefNames())
+    Assert.assertEquals(
+      Seq(
+        "refs/heads/master",
+        "refs/remotes/origin/HEAD",
+        "refs/remotes/origin/master",
+        "refs/tags/v0.0.10",
+        "refs/tags/v0.0.8",
+        "refs/tags/v0.0.9",
+        "refs/tags/v1.0.0"
+      ),
+      gitB.listRefNames()
+    )
     Assert.assertEquals(Seq("v0.0.10", "v0.0.8", "v0.0.9", "v1.0.0"), gitB.listAllTags())
     gitB.deleteRef("refs/tags/v1.0.0")
     Assert.assertEquals(Seq("v0.0.10", "v0.0.8", "v0.0.9"), gitB.listAllTags())
-    Assert.assertEquals(Seq("refs/heads/master", "refs/remotes/origin/HEAD",
-      "refs/remotes/origin/master", "refs/tags/v0.0.10", "refs/tags/v0.0.8", "refs/tags/v0.0.9"), gitB.listRefNames())
+    Assert.assertEquals(
+      Seq("refs/heads/master", "refs/remotes/origin/HEAD",
+        "refs/remotes/origin/master", "refs/tags/v0.0.10", "refs/tags/v0.0.8", "refs/tags/v0.0.9"),
+      gitB.listRefNames()
+    )
     gitB.doTag("1.0.0")
     gitB.doTag("1.0.1")
     Assert.assertEquals(
       """* 0000000 (HEAD -> master, tag: v1.0.1, tag: v1.0.0) update pom.xml
         |* 0000000 add pom.xml, any.xml, schönes Ding-
-        |* 0000000 (tag: v0.0.8) delete v10""".stripMargin, gitB.logGraph().replaceAll("\\* [0-9a-f]{7} ", "* 0000000 "))
+        |* 0000000 (tag: v0.0.8) delete v10""".stripMargin,
+      gitB.logGraph().replaceAll("\\* [0-9a-f]{7} ", "* 0000000 ")
+    )
     Assert.assertEquals(Seq("any.xml", "pom.xml", "schönes Ding", "sub/pom.xml", "test"), gitB.lsFiles())
     Assert.assertEquals(Seq("master"), gitB.listBranchNamesLocal())
     gitB.checkout("v1.0.1")
@@ -908,9 +1016,10 @@ class SgitTest extends AssertionsForJUnit {
     gitB.createBranch("feature/test")
     Assert.assertEquals(Seq("feature/test", "master"), gitB.listBranchNamesLocal())
     gitB.deleteBranch("feature/test")
-    testFailIllegal("branch 'test' not found.", () => {
-      gitB.deleteBranch("test")
-    })
+    testFailIllegal("branch 'test' not found.",
+      () => {
+        gitB.deleteBranch("test")
+      })
     Assert.assertEquals(Seq("master"), gitB.listBranchNamesLocal())
     FileUtils.write(anyFile, Seq("a"))
     try {
@@ -925,9 +1034,10 @@ class SgitTest extends AssertionsForJUnit {
     gitB.add(anyFile)
     Assert.assertTrue(gitB.hasLocalChanges)
     gitB.commitAll("add " + Seq(anyFile).map(_.getName).mkString(", "))
-    testFailIllegal("tag v1.0.0 already exists", () => {
-      gitB.doTag("1.0.0")
-    })
+    testFailIllegal("tag v1.0.0 already exists",
+      () => {
+        gitB.doTag("1.0.0")
+      })
     Assert.assertFalse(gitB.hasLocalChanges)
     Assert.assertEquals(Seq("refs/heads/master"), gitB.listBranchesLocal().map(_.branchName))
 
@@ -939,24 +1049,30 @@ class SgitTest extends AssertionsForJUnit {
     if (triedUnit.isFailure && triedUnit.failed.get.getMessage.contains("publickey")) {
       Term.Os.getCurrent match {
         case Term.Os.Darwin => {
-          TestHelper.assertException("Nonzero exit value: 128; git --no-pager push -q -u origin master:refs/heads/master; " +
-            "git-err: 'none@any-gerrit: Permission denied (publickey).' " +
-            "git-err: 'fatal: Could not read from remote repository.' " +
-            "git-err: 'Please make sure you have the correct access rights' " +
-            "git-err: 'and the repository exists.'",
-            classOf[RuntimeException], () => {
+          TestHelper.assertException(
+            "Nonzero exit value: 128; git --no-pager push -q -u origin master:refs/heads/master; " +
+              "git-err: 'none@any-gerrit: Permission denied (publickey).' " +
+              "git-err: 'fatal: Could not read from remote repository.' " +
+              "git-err: 'Please make sure you have the correct access rights' " +
+              "git-err: 'and the repository exists.'",
+            classOf[RuntimeException],
+            () => {
               gitB.pushHeads("master", "master")
-            })
+            }
+          )
         }
         case _ => {
-          TestHelper.assertException("Nonzero exit value: 128; git --no-pager push -q -u origin master:refs/heads/master; " +
-            "git-err: 'Permission denied (publickey).' " +
-            "git-err: 'fatal: Could not read from remote repository.' " +
-            "git-err: 'Please make sure you have the correct access rights' " +
-            "git-err: 'and the repository exists.'",
-            classOf[RuntimeException], () => {
+          TestHelper.assertException(
+            "Nonzero exit value: 128; git --no-pager push -q -u origin master:refs/heads/master; " +
+              "git-err: 'Permission denied (publickey).' " +
+              "git-err: 'fatal: Could not read from remote repository.' " +
+              "git-err: 'Please make sure you have the correct access rights' " +
+              "git-err: 'and the repository exists.'",
+            classOf[RuntimeException],
+            () => {
               gitB.pushHeads("master", "master")
-            })
+            }
+          )
         }
       }
 
@@ -968,18 +1084,23 @@ class SgitTest extends AssertionsForJUnit {
 
   @Test
   def testParseTagLog(): Unit = {
-    val o = Seq("2019-09-25T15:47:39+02:00 (HEAD -> master, tag: v0.0.8)",
+    val o = Seq(
+      "2019-09-25T15:47:39+02:00 (HEAD -> master, tag: v0.0.8)",
       "2019-09-25T15:47:30+02:00 (tag: v0.0.9, tag: v0.0.10)",
       "2019-09-25T15:47:31+02:00 (tag: v0.0,7, tag: v0.0.6)",
-      "2019-09-99T15:99:31+02:00 (tag: v3)")
+      "2019-09-99T15:99:31+02:00 (tag: v3)"
+    )
     val result = Sgit.parseTagLog(o)
-    Assert.assertEquals(Seq(
-      GitTagWithDate("v0.0.8", SgitParsers.parseIsoDate("2019-09-25T15:47:39+02:00")),
-      GitTagWithDate("v0.0.9", SgitParsers.parseIsoDate("2019-09-25T15:47:30+02:00")),
-      GitTagWithDate("v0.0.10", SgitParsers.parseIsoDate("2019-09-25T15:47:30+02:00")),
-      GitTagWithDate("v0.0,7", SgitParsers.parseIsoDate("2019-09-25T15:47:31+02:00")),
-      GitTagWithDate("v0.0.6", SgitParsers.parseIsoDate("2019-09-25T15:47:31+02:00")),
-    ), result)
+    Assert.assertEquals(
+      Seq(
+        GitTagWithDate("v0.0.8", SgitParsers.parseIsoDate("2019-09-25T15:47:39+02:00")),
+        GitTagWithDate("v0.0.9", SgitParsers.parseIsoDate("2019-09-25T15:47:30+02:00")),
+        GitTagWithDate("v0.0.10", SgitParsers.parseIsoDate("2019-09-25T15:47:30+02:00")),
+        GitTagWithDate("v0.0,7", SgitParsers.parseIsoDate("2019-09-25T15:47:31+02:00")),
+        GitTagWithDate("v0.0.6", SgitParsers.parseIsoDate("2019-09-25T15:47:31+02:00"))
+      ),
+      result
+    )
   }
 
   @Test
@@ -1003,8 +1124,11 @@ class SgitTest extends AssertionsForJUnit {
       Sgit.splitLineOnBranchlistErr(sys.err)("bla\r\nbl"))
 
     Assert.assertEquals(None, some1.value)
-    Assert.assertEquals("W: Unknown branch definition (check commit messages for second line empty, first line char limit): \"bla\nbl\". " +
-      "See: git branch --list --verbose --no-abbrev", some1.err)
+    Assert.assertEquals(
+      "W: Unknown branch definition (check commit messages for second line empty, first line char limit): \"bla\nbl\". " +
+        "See: git branch --list --verbose --no-abbrev",
+      some1.err
+    )
   }
 
   @Test
@@ -1074,4 +1198,3 @@ object SgitTest {
     }
   }
 }
-

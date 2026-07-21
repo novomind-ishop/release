@@ -38,7 +38,7 @@ object PomChecker {
 
   def getOwnArtifactNames(relevants: Seq[(Dep, File)], rootFile: File): (Seq[ProjectMod.Gav2], Option[String]) = {
     extension [X](xs: Iterable[X]) {
-      def cross[Y](ys: Iterable[Y]): Iterable[(X, Y)] = for {x <- xs; y <- ys} yield (x, y)
+      def cross[Y](ys: Iterable[Y]): Iterable[(X, Y)] = for { x <- xs; y <- ys } yield (x, y)
     }
     val simplified = relevants.map(e => (e._1.pomRef.gav3.toGav2(), e._2))
     val value1 = (simplified ++ commonStriped(simplified)).cross(simplified).toSeq
@@ -55,8 +55,8 @@ object PomChecker {
   }
 
   def prResult(simplified: Seq[(ProjectMod.Gav2, File)],
-               value: Seq[((ProjectMod.Gav2, File), (ProjectMod.Gav2, File), Int)],
-               rootFile: File): (Seq[ProjectMod.Gav2], Option[String]) = {
+      value: Seq[((ProjectMod.Gav2, File), (ProjectMod.Gav2, File), Int)],
+      rootFile: File): (Seq[ProjectMod.Gav2], Option[String]) = {
 
     def rel(a: File, b: File): File = {
       b.toPath.relativize(a.toPath).toFile
@@ -124,7 +124,8 @@ object PomChecker {
   }
 
   def checkExternalWithProjectScope(listRawDeps: Seq[Dep], selfDepsMod: Seq[Dep], listProperties: Map[String, String]): Unit = {
-    def k(iz: Seq[Dep]) = PomMod.replacedVersionProperties(listProperties.filter(t => t._1.startsWith("project")), skipPropertyReplacement = true)(iz)
+    def k(iz: Seq[Dep]) =
+      PomMod.replacedVersionProperties(listProperties.filter(t => t._1.startsWith("project")), skipPropertyReplacement = true)(iz)
 
     val externals = listRawDeps.filterNot(d => {
       selfDepsMod.map(_.gav()).contains(k(Seq(d)).head.gav()) || selfDepsMod.map(_.gav()).contains(d.gav())
@@ -132,7 +133,8 @@ object PomChecker {
     val projectReplaced = k(externals)
     val relevant = externals.diff(projectReplaced).map(_.gav()).distinct
     if (relevant.nonEmpty) {
-      throw new ValidationException(s"Project variables are not allowed in external dependencies: ${relevant.map(_.formatted).mkString(", ")}")
+      throw new ValidationException(
+        s"Project variables are not allowed in external dependencies: ${relevant.map(_.formatted).mkString(", ")}")
     }
   }
 
@@ -177,7 +179,8 @@ object PomChecker {
   }
 
   def virtualParentRef(listDependecies: Seq[Dep]): Map[SelfRef, Seq[Dep]] = {
-    val parentRefs: Map[SelfRef, Seq[Dep]] = Map(SelfRef.virtualParent -> listDependecies.filter(_.pomPath.contains("parent")).distinctBy(_.gav()))
+    val parentRefs: Map[SelfRef, Seq[Dep]] =
+      Map(SelfRef.virtualParent -> listDependecies.filter(_.pomPath.contains("parent")).distinctBy(_.gav()))
     parentRefs
   }
 
@@ -226,7 +229,8 @@ object PomChecker {
 
     val allP: Seq[DepProps] = childPomFiles.flatMap(in => {
       in.selfDep.map(s => {
-        DepProps(s, in.parentDep.getOrElse(s), PomMod.createPropertyMap(in.document).view.filterKeys(key => !opts.skipProperties.contains(key)).toMap)
+        DepProps(s, in.parentDep.getOrElse(s),
+          PomMod.createPropertyMap(in.document).view.filterKeys(key => !opts.skipProperties.contains(key)).toMap)
       })
     })
 
@@ -234,13 +238,13 @@ object PomChecker {
 
     val depProps = Util.groupedFiltered(allP)
     val depPropsMod = depProps.toList.map(in => {
-        val inner = in._2.filter(o => {
-          val a = ga(o.parentDep.gav())
-          val b = ga(in._1.dep.gav())
-          a == b
-        })
-        (in._1, inner)
-      }).filter(_._2 != Nil)
+      val inner = in._2.filter(o => {
+        val a = ga(o.parentDep.gav())
+        val b = ga(in._1.dep.gav())
+        a == b
+      })
+      (in._1, inner)
+    }).filter(_._2 != Nil)
       .map(in => {
         val allPropsFromDocs: Seq[(String, String)] = in._2.flatMap(_.properties) ++ in._1.properties
         val withRootProps: Seq[(String, String)] = Util.symmetricDiff(allPropsFromDocs, allPropsFromDocs.distinct)
@@ -255,8 +259,9 @@ object PomChecker {
 
     if (depPropsMod != Nil) {
       throw new ValidationException("unnecessary/multiple property definition (move property to parent pom or remove from sub poms):\n" +
-        depPropsMod.map(in => "  " + in._1.map(t => "(" + t._1 + " -> " + t._2 + ")").mkString(", ") +
-          "\n      -> " + in._2.map(ga).mkString("\n      -> ")).mkString("\n"))
+        depPropsMod.map(in =>
+          "  " + in._1.map(t => "(" + t._1 + " -> " + t._2 + ")").mkString(", ") +
+            "\n      -> " + in._2.map(ga).mkString("\n      -> ")).mkString("\n"))
     }
 
   }

@@ -138,15 +138,16 @@ class VersionTest extends AssertionsForJUnit {
       Version.parseSloppy("10-alpha"),
       Version.parseSloppy("10"),
       Version.parse("10.2.3"),
-      Version.parse("21.2.3"),
+      Version.parse("21.2.3")
     )
     val t = in.sliding(2, 1).map(ts => {
       if (ts.size != 2) {
         throw new IllegalStateException("d")
       } else {
-        ((ts.head, ts.last), Seq(Version.ordering.lt(ts.head, ts.last),
-          Version.ordering.equiv(ts.head, ts.head),
-          Version.ordering.equiv(ts.last, ts.last)))
+        ((ts.head, ts.last),
+          Seq(Version.ordering.lt(ts.head, ts.last),
+            Version.ordering.equiv(ts.head, ts.head),
+            Version.ordering.equiv(ts.last, ts.last)))
       }
 
     }).toList

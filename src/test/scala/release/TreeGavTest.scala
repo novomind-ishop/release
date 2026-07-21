@@ -52,7 +52,7 @@ class TreeGavTest extends AssertionsForJUnit {
       Gav3(groupId = "ag", artifactId = "a2", version = Some("1.2.7")),
       Gav3(groupId = "g", artifactId = "a2", version = Some("1.2.1")),
       Gav3(groupId = "g", artifactId = "a2", version = Some("1.2.10")),
-      Gav3(groupId = "g", artifactId = "a2", version = Some("1.2.2")),
+      Gav3(groupId = "g", artifactId = "a2", version = Some("1.2.2"))
 
     ))
     val expected =

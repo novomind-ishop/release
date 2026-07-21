@@ -23,7 +23,7 @@ case class SbtMod(file: File, repoZ: RepoZ, opts: Opts) extends ProjectMod {
     def read(f: File) = Files.readAllLines(f.toPath, StandardCharsets.UTF_8)
       .asScala.mkString("\n")
 
-    SbtMod.modelOfConents(sbtFiles(file), file, read,  opts)
+    SbtMod.modelOfConents(sbtFiles(file), file, read, opts)
   }
   override val listDependencies: Seq[ProjectMod.Dep] = value.deps
   override val listDependenciesPlugin: Seq[ProjectMod.Dep] = Nil
@@ -56,7 +56,8 @@ case class SbtMod(file: File, repoZ: RepoZ, opts: Opts) extends ProjectMod {
 
   val selfDepsMod: Seq[ProjectMod.Dep] = Nil // TODO
 
-  def suggestReleaseVersion(branchNames: Seq[String], tagNames: Seq[String], increment: Option[Increment] = None): Seq[String] = throw new UnsupportedOperationException()
+  def suggestReleaseVersion(branchNames: Seq[String], tagNames: Seq[String], increment: Option[Increment] = None): Seq[String] =
+    throw new UnsupportedOperationException()
 
   def suggestNextRelease(releaseVersion: String): String = throw new UnsupportedOperationException()
 
@@ -86,15 +87,15 @@ object SbtMod {
   case class ValDef(key: String, value: String)
 
   case class Dep(groupId: Either[String, Val], artifactId: Either[String, Val], version: Either[String, Val], typeN: String,
-                 scope: String, packaging: String, classifier: String) {
-  }
+      scope: String, packaging: String, classifier: String) {}
 
   case class SbtModel(deps: Seq[ProjectMod.Dep], selfVersion: Option[String])
 
-  def modelOfConents(allFiles: Seq[File], mainFile: File, reader:File => String, opts: Opts): SbtModel = {
+  def modelOfConents(allFiles: Seq[File], mainFile: File, reader: File => String, opts: Opts): SbtModel = {
     val otherDeps: Seq[ProjectMod.Dep] = allFiles
       .foldLeft(SbtModel(deps = Nil, selfVersion = None))((model, fileContent) => {
-        val newModel = SbtMod.SloppyParser.doParse(opts = opts, otherModel = Some(model))(reader(fileContent), ProjectMod.SelfRef.scalaBuildMeta)
+        val newModel =
+          SbtMod.SloppyParser.doParse(opts = opts, otherModel = Some(model))(reader(fileContent), ProjectMod.SelfRef.scalaBuildMeta)
         model.copy(deps = model.deps ++ newModel.deps, selfVersion = model.selfVersion.orElse(newModel.selfVersion))
       }).deps
     val mainModel = SbtMod.SloppyParser.doParse(opts = opts)(reader.apply(mainFile), ProjectMod.SelfRef.undef)
@@ -113,13 +114,15 @@ object SbtMod {
   object SloppyParser extends RegexParsers with LazyLogging {
     override val skipWhitespace = false
 
-    def doParse(opts: Opts, strict: Boolean = false, otherModel: Option[SbtModel] = None)(in: String, givenDepRef:ProjectMod.SelfRef): SbtModel = {
+    def doParse(opts: Opts, strict: Boolean = false, otherModel: Option[SbtModel] = None)(in: String, givenDepRef: ProjectMod.SelfRef)
+        : SbtModel = {
 
       def nl = "\n" ^^ (term => "NL")
 
       def comment = "[ ]*//[^\n]+".r ^^ (term => term)
 
-      def predfined = "(^[ ]*(//|publish|scalacOptions|name|logLevel|assembly|lazy val|.settings|\\)|\"|Test).*)".r <~ nl ^^ (term => Predefined(term))
+      def predfined = "(^[ ]*(//|publish|scalacOptions|name|logLevel|assembly|lazy val|.settings|\\)|\"|Test).*)".r <~ nl ^^
+        (term => Predefined(term))
 
       def valP = "(^val[ ]+)".r ~> word ~ " = " ~ word <~ opt(comment) ~ nl ^^ (term => ValDef(term._1._1, term._2))
 
@@ -127,9 +130,10 @@ object SbtMod {
 
       def sep = "[%]{1,2}".r ^^ (term => term)
 
-      def word = "[^\n ]+".r ^^ (term => {
-        term
-      })
+      def word = "[^\n ]+".r ^^
+        (term => {
+          term
+        })
 
       trait DepLineElement {
         val value: String
@@ -139,19 +143,21 @@ object SbtMod {
       case class LiteralWord(value: String) extends DepLineElement
       case class PredefWord(value: String) extends DepLineElement
 
-      def word3: Parser[(ValWord, None.type)] = "[ ]+".r ~> word <~ opt("[ ]+".r ~ sep) ^^ (term => {
-        (ValWord(term), None)
-      })
+      def word3: Parser[(ValWord, None.type)] = "[ ]+".r ~> word <~ opt("[ ]+".r ~ sep) ^^
+        (term => {
+          (ValWord(term), None)
+        })
 
-      def quotedWord: Parser[(LiteralWord, Option[Unit])] = "[ ]*\"".r ~> "[^\"]+".r ~ "\"" ~ opt("[ ]+".r ~ sep) ^^ (term => {
-        val a = term._2.map(_._2)
-        val b = term._1._1
-        if (a.contains("%%")) {
-          (LiteralWord(b), Some(()))
-        } else {
-          (LiteralWord(b), None)
-        }
-      })
+      def quotedWord: Parser[(LiteralWord, Option[Unit])] = "[ ]*\"".r ~> "[^\"]+".r ~ "\"" ~ opt("[ ]+".r ~ sep) ^^
+        (term => {
+          val a = term._2.map(_._2)
+          val b = term._1._1
+          if (a.contains("%%")) {
+            (LiteralWord(b), Some(()))
+          } else {
+            (LiteralWord(b), None)
+          }
+        })
 
       def test: Parser[(PredefWord, None.type)] = "[ ]+".r ~> "Test".r ^^ (term => (PredefWord(term), None))
 
@@ -159,34 +165,39 @@ object SbtMod {
       var selfVersionL: Option[String] = None
       var sbtVersionL: Option[String] = None
 
-      def selfVersionA = "version := " ~> quotedWord ^^ (term => {
-        selfVersionL = Some(term._1.value) // XXX side effect
-        SelfVersion(selfVersionL)
-      })
+      def selfVersionA = "version := " ~> quotedWord ^^
+        (term => {
+          selfVersionL = Some(term._1.value) // XXX side effect
+          SelfVersion(selfVersionL)
+        })
 
-      def selfVersionB = "ThisBuild / version := " ~> quotedWord ^^ (term => {
-        selfVersionL = Some(term._1.value) // XXX side effect
-        SelfVersion(selfVersionL)
-      })
+      def selfVersionB = "ThisBuild / version := " ~> quotedWord ^^
+        (term => {
+          selfVersionL = Some(term._1.value) // XXX side effect
+          SelfVersion(selfVersionL)
+        })
 
       def selfVersion = selfVersionA | selfVersionB
 
-      def scalaVersionA: Parser[ScalaVersion] = "scalaVersion := " ~> quotedWord ^^ (term => {
-        sVersion = Some(term._1.value) // XXX side effect
-        ScalaVersion(sVersion)
-      })
+      def scalaVersionA: Parser[ScalaVersion] = "scalaVersion := " ~> quotedWord ^^
+        (term => {
+          sVersion = Some(term._1.value) // XXX side effect
+          ScalaVersion(sVersion)
+        })
 
-      def scalaVersionB: Parser[ScalaVersion] = "ThisBuild / scalaVersion := " ~> quotedWord ^^ (term => {
-        sVersion = Some(term._1.value) // XXX side effect
-        ScalaVersion(sVersion)
-      })
+      def scalaVersionB: Parser[ScalaVersion] = "ThisBuild / scalaVersion := " ~> quotedWord ^^
+        (term => {
+          sVersion = Some(term._1.value) // XXX side effect
+          ScalaVersion(sVersion)
+        })
 
       def scalaVersion: Parser[ScalaVersion] = scalaVersionA | scalaVersionB
 
-      def sbtVersion = "sbt.version=" ~> word ^^ (term => {
-        sbtVersionL = Some(term.stripLineEnd) // XXX side effect
-        SbtVersion(sbtVersionL)
-      })
+      def sbtVersion = "sbt.version=" ~> word ^^
+        (term => {
+          sbtVersionL = Some(term.stripLineEnd) // XXX side effect
+          SbtVersion(sbtVersionL)
+        })
 
       def toE(in: DepLineElement, addV: Option[String] = None): Either[String, Val] = {
         in match {
@@ -196,66 +207,70 @@ object SbtMod {
         }
       }
 
-      def pluginDep = "addSbtPlugin(" ~> rep(quotedWord) <~ "[ ]*\\)".r ~ opt("[ ]+//.*".r) ~ nl ^^ (term => {
-        // addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.6.1")
-        val sbtVersion = Util.only(otherModel.get.deps.filter(d => d.groupId == "org.scala-sbt" && d.artifactId == "sbt"),
+      def pluginDep = "addSbtPlugin(" ~> rep(quotedWord) <~ "[ ]*\\)".r ~ opt("[ ]+//.*".r) ~ nl ^^
+        (term => {
+          // addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.6.1")
+          val sbtVersion = Util.only(otherModel.get.deps.filter(d => d.groupId == "org.scala-sbt" && d.artifactId == "sbt"),
             "only one sbt version expected")
-          .version.get
-        val suffix = sbtVersion match {
-          case e: String if e.startsWith("1.") => "_2.12_1.0"
-          case e: String => throw new IllegalStateException(s"unknown sbt version: ${e}")
-        }
+            .version.get
+          val suffix = sbtVersion match {
+            case e: String if e.startsWith("1.") => "_2.12_1.0"
+            case e: String => throw new IllegalStateException(s"unknown sbt version: ${e}")
+          }
 
-        val termL = term
-        if (termL.size >= 3) {
-          val stringOrVal = toE(termL(1)._1).swap.map(v => v + suffix).swap
-          SbtMod.Dep(
-            groupId = toE(termL(0)._1),
-            artifactId = stringOrVal,
-            version = toE(termL(2)._1),
-            "a", "b", "c", "d")
-        } else {
-          SbtMod.Dep(
-            groupId = toE(LiteralWord("TODO")),
-            artifactId = toE(LiteralWord("TODO")),
-            version = toE(LiteralWord("TODO")),
-            "a", "b", "c", "d")
-        }
-      })
-
-      def dep = "[ ]*libraryDependencies \\+= ".r ~> rep(test | quotedWord | word3) <~ opt("[ ,]+//.*".r | "[ ,]+.*".r) ~ nl ^^ (term => {
-
-        if (term.size >= 3) {
-          try {
-            val addVersion = term.find(_._2.isDefined)
-              .map(_ => {
-                val suf = sVersion match {
-                  case lv if lv.get.startsWith("3") => lv.get.replaceFirst("\\.[0-9]+\\.[0-9]+$", "")
-                  case lv => lv.get.replaceFirst("\\.[0-9]+$", "")
-                }
-                "_" + suf
-              })
-
-
+          val termL = term
+          if (termL.size >= 3) {
+            val stringOrVal = toE(termL(1)._1).swap.map(v => v + suffix).swap
             SbtMod.Dep(
-              groupId = toE(term(0)._1),
-              artifactId = toE(term(1)._1, addVersion),
-              version = toE(term(2)._1),
-              "", "", "", ""
-            )
-          } catch
-            case e: Exception => {
-              throw new IllegalStateException(term.toString())
-            }
-        } else {
-          SbtMod.Dep(
-            groupId = toE(LiteralWord("TODO")),
-            artifactId = toE(LiteralWord("TODO")),
-            version = toE(LiteralWord("TODO")),
-            "a", "b", "c", "d")
-        }
+              groupId = toE(termL(0)._1),
+              artifactId = stringOrVal,
+              version = toE(termL(2)._1),
+              "a", "b", "c", "d")
+          } else {
+            SbtMod.Dep(
+              groupId = toE(LiteralWord("TODO")),
+              artifactId = toE(LiteralWord("TODO")),
+              version = toE(LiteralWord("TODO")),
+              "a", "b", "c", "d")
+          }
+        })
 
-      })
+      def dep = "[ ]*libraryDependencies \\+= ".r ~> rep(test | quotedWord | word3) <~ opt("[ ,]+//.*".r | "[ ,]+.*".r) ~ nl ^^
+        (term => {
+
+          if (term.size >= 3) {
+            try {
+              val addVersion = term.find(_._2.isDefined)
+                .map(_ => {
+                  val suf = sVersion match {
+                    case lv if lv.get.startsWith("3") => lv.get.replaceFirst("\\.[0-9]+\\.[0-9]+$", "")
+                    case lv => lv.get.replaceFirst("\\.[0-9]+$", "")
+                  }
+                  "_" + suf
+                })
+
+              SbtMod.Dep(
+                groupId = toE(term(0)._1),
+                artifactId = toE(term(1)._1, addVersion),
+                version = toE(term(2)._1),
+                "",
+                "",
+                "",
+                ""
+              )
+            } catch
+              case e: Exception => {
+                throw new IllegalStateException(term.toString())
+              }
+          } else {
+            SbtMod.Dep(
+              groupId = toE(LiteralWord("TODO")),
+              artifactId = toE(LiteralWord("TODO")),
+              version = toE(LiteralWord("TODO")),
+              "a", "b", "c", "d")
+          }
+
+        })
 
       val p = rep(pluginDep | sbtVersion | scalaVersion | selfVersion | dep | valP | predfined | ignore)
 
@@ -264,25 +279,26 @@ object SbtMod {
         case Success(vp, v) => {
           val scala = sVersion match {
             case None => Nil
-            case lv if lv.get.startsWith("3") => Seq(ProjectMod.Dep(SelfRef.undef,
-              groupId = "org.scala-lang",
-              artifactId = "scala3-library_3",
-              version = Some(lv.get),
-              "", "", "", "", Nil))
+            case lv if lv.get.startsWith("3") =>
+              Seq(ProjectMod.Dep(SelfRef.undef,
+                  groupId = "org.scala-lang",
+                  artifactId = "scala3-library_3",
+                  version = Some(lv.get),
+                  "", "", "", "", Nil))
             case lv => Seq(ProjectMod.Dep(SelfRef.undef,
-              groupId = "org.scala-lang",
-              artifactId = "scala-library",
-              version = Some(lv.get),
-              "", "", "", "", Nil))
+                  groupId = "org.scala-lang",
+                  artifactId = "scala-library",
+                  version = Some(lv.get),
+                  "", "", "", "", Nil))
           }
 
           val sbt = sbtVersionL match {
             case None => Nil
             case lv => Seq(ProjectMod.Dep(SelfRef.undef,
-              groupId = "org.scala-sbt",
-              artifactId = "sbt",
-              version = Some(lv.get),
-              "", "", "", "", Nil))
+                  groupId = "org.scala-sbt",
+                  artifactId = "sbt",
+                  version = Some(lv.get),
+                  "", "", "", "", Nil))
           }
           val allVals: Map[String, String] = vp.collect({ case o: ValDef => o })
             .map(kv => (kv.key -> kv.value))
@@ -323,11 +339,12 @@ object SbtMod {
               o
             })
             .collect({ case e: SbtMod.Dep => e })
-            .map(d => ProjectMod.Dep(givenDepRef,
-              groupId = eval(allVals)(d.groupId),
-              artifactId = eval(allVals)(d.artifactId),
-              version = Some(eval(allVals)(d.version)),
-              "", "", "", "", Nil))
+            .map(d =>
+              ProjectMod.Dep(givenDepRef,
+                groupId = eval(allVals)(d.groupId),
+                artifactId = eval(allVals)(d.artifactId),
+                version = Some(eval(allVals)(d.version)),
+                "", "", "", "", Nil))
           SbtModel(deps = sbt ++ scala ++ result, selfVersion = selfVersionL)
         }
         case f: Failure => {

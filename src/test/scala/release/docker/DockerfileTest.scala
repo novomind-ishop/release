@@ -40,7 +40,13 @@ class DockerfileTest extends AssertionsForJUnit {
         """FROM  eclipse-temurin:11-jre-ubi9-minimal
           |FROM  docker.io/eclipse-temurin:11-jre-ubi9-minimal
           |FROM  example.org/eclipse-temurin:11-jre-ubi9-minimal
-          |""".stripMargin.linesIterator.toSeq, allowedFromHosts = "", sys.out, opts, warn, error)
+          |""".stripMargin.linesIterator.toSeq,
+        allowedFromHosts = "",
+        sys.out,
+        opts,
+        warn,
+        error
+      )
       Assert.assertFalse(warn.isTriggered())
       Assert.assertFalse(error.isTriggered())
       Assert.assertEquals(Nil, codes)
@@ -62,7 +68,13 @@ class DockerfileTest extends AssertionsForJUnit {
         """FROM  eclipse-temurin:11-jre-ubi9-minimal
           |FROM  docker.io/eclipse-temurin:11-jre-ubi9-minimal
           |FROM  example.org/eclipse-temurin:11-jre-ubi9-minimal
-          |""".stripMargin.linesIterator.toSeq, allowedFromHosts = ".*", sys.out, opts, warn, error)
+          |""".stripMargin.linesIterator.toSeq,
+        allowedFromHosts = ".*",
+        sys.out,
+        opts,
+        warn,
+        error
+      )
       Assert.assertFalse(warn.isTriggered())
       Assert.assertFalse(error.isTriggered())
       Assert.assertEquals(Nil, codes)
@@ -84,7 +96,13 @@ class DockerfileTest extends AssertionsForJUnit {
         """FROM  eclipse-temurin:11-jre-ubi9-minimal
           |FROM  docker.io/eclipse-temurin:11-jre-ubi9-minimal
           |FROM  example.org/eclipse-temurin:11-jre-ubi9-minimal
-          |""".stripMargin.linesIterator.toSeq, allowedFromHosts = "docker.io", sys.out, opts, warn, error)
+          |""".stripMargin.linesIterator.toSeq,
+        allowedFromHosts = "docker.io",
+        sys.out,
+        opts,
+        warn,
+        error
+      )
       Assert.assertTrue(warn.isTriggered())
       Assert.assertFalse(error.isTriggered())
       Assert.assertEquals(Nil, codes)
@@ -111,12 +129,16 @@ class DockerfileTest extends AssertionsForJUnit {
           |FROM example.org/eclipse-temurin:11-jre-ubi9-minimal
           |FROM   example.com/eclipse-temurin:11-jre-ubi9-minimal
           |FROM  example.net/eclipse-temurin:11-jre-ubi9-minimal
-          |""".stripMargin.linesIterator.toSeq, allowedFromHosts = "example.org, example.com", sys.out, opts, warn, error)
+          |""".stripMargin.linesIterator.toSeq,
+        allowedFromHosts = "example.org, example.com",
+        sys.out,
+        opts,
+        warn,
+        error
+      )
       Assert.assertTrue(warn.isTriggered())
       Assert.assertFalse(error.isTriggered())
       Assert.assertEquals(skipCodes, codes)
     })
   }
 }
-
-

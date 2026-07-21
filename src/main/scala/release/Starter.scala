@@ -53,26 +53,27 @@ object Starter extends LazyLogging {
     if (sgit.isNotDetached) {
       val commintsBehindOrAhead = sgit.commitIds("@{upstream}", branch)
       if (commintsBehindOrAhead != Nil) {
-        () => {
-          val upstreamCommit = sgit.commitId("@{upstream}")
-          val upstreamName = sgit.findUpstreamBranch().get
-          if (commintsBehindOrAhead.head == upstreamCommit) {
-            val text = "Your branch is " + commintsBehindOrAhead.size +
-              s" ${"commit".pluralize(commintsBehindOrAhead.size)} behind defined upstream $upstreamName. Rebase local branch?"
-            val update = Term.readFromOneOfYesNo(sys, text, opts)
-            if (update == "y") {
-              sgit.rebase()
+        () =>
+          {
+            val upstreamCommit = sgit.commitId("@{upstream}")
+            val upstreamName = sgit.findUpstreamBranch().get
+            if (commintsBehindOrAhead.head == upstreamCommit) {
+              val text = "Your branch is " + commintsBehindOrAhead.size +
+                s" ${"commit".pluralize(commintsBehindOrAhead.size)} behind defined upstream $upstreamName. Rebase local branch?"
+              val update = Term.readFromOneOfYesNo(sys, text, opts)
+              if (update == "y") {
+                sgit.rebase()
+              }
+            } else {
+              val text = "Your branch is " + commintsBehindOrAhead.size +
+                s" ${"commit".pluralize(commintsBehindOrAhead.size)} ahead of defined upstream $upstreamName. Abort?"
+              val abort = Term.readFromOneOfYesNo(sys, text, opts)
+              if (abort == "y") {
+                System.exit(1)
+              }
             }
-          } else {
-            val text = "Your branch is " + commintsBehindOrAhead.size +
-              s" ${"commit".pluralize(commintsBehindOrAhead.size)} ahead of defined upstream $upstreamName. Abort?"
-            val abort = Term.readFromOneOfYesNo(sys, text, opts)
-            if (abort == "y") {
-              System.exit(1)
-            }
-          }
 
-        }
+          }
       } else {
         () => {}
       }
@@ -82,8 +83,8 @@ object Starter extends LazyLogging {
   }
 
   def fetchGitAndAskForBranch(sys: Term.Sys, noVerify: Boolean,
-                              gitBinEnv: Option[String], workDirFile: File, opts: Opts,
-                              skipFetch: Boolean, skipAskForBranchFetch: Boolean): (Sgit, String) = {
+      gitBinEnv: Option[String], workDirFile: File, opts: Opts,
+      skipFetch: Boolean, skipAskForBranchFetch: Boolean): (Sgit, String) = {
     val global = ExecutionContext.global
 
     def unfechtedGit(file: File): Sgit = {
@@ -137,36 +138,40 @@ object Starter extends LazyLogging {
       }
     }
 
-    val gitFetchF = futureOf(global, {
-      if (skipFetch) {
-        Tracer.msgAround("unfetch git", logger, () => unfechtedGit(workDirFile))
-      } else {
-        val result = Tracer.msgAround("fetch git", logger, () => fetchedGit(workDirFile))
-        result
+    val gitFetchF = futureOf(
+      global, {
+        if (skipFetch) {
+          Tracer.msgAround("unfetch git", logger, () => unfechtedGit(workDirFile))
+        } else {
+          val result = Tracer.msgAround("fetch git", logger, () => fetchedGit(workDirFile))
+          result
+        }
       }
-    })
+    )
 
     val startBranchF = futureOf(global, askReleaseBranch())
 
-    val gitFetchStatusF = futureOf(global, {
-      if (!skipFetch) {
-        val printFetching = new AtomicBoolean(true)
-        while (!gitFetchF.wrapped.isCompleted) {
-          Thread.sleep(100)
-          if (printFetching.get() && !gitFetchF.wrapped.isCompleted && startBranchF.wrapped.isCompleted) {
-            sys.out.print("I: Fetching from remote ")
-            printFetching.set(false)
+    val gitFetchStatusF = futureOf(
+      global, {
+        if (!skipFetch) {
+          val printFetching = new AtomicBoolean(true)
+          while (!gitFetchF.wrapped.isCompleted) {
+            Thread.sleep(100)
+            if (printFetching.get() && !gitFetchF.wrapped.isCompleted && startBranchF.wrapped.isCompleted) {
+              sys.out.print("I: Fetching from remote ")
+              printFetching.set(false)
+            }
+            if (!gitFetchF.wrapped.isCompleted && startBranchF.wrapped.isCompleted) {
+              sys.out.print(".")
+            }
           }
-          if (!gitFetchF.wrapped.isCompleted && startBranchF.wrapped.isCompleted) {
-            sys.out.print(".")
+          if (gitFetchF.wrapped.isCompleted && startBranchF.wrapped.isCompleted && !printFetching.get()) {
+            sys.out.println(". done (a)")
           }
         }
-        if (gitFetchF.wrapped.isCompleted && startBranchF.wrapped.isCompleted && !printFetching.get()) {
-          sys.out.println(". done (a)")
-        }
-      }
 
-    })
+      }
+    )
 
     def toResult(): FutureEither[FutureError, (Sgit, String)] = {
       val result: FutureEither[FutureError, (Sgit, String)] = for {
@@ -214,8 +219,9 @@ object Starter extends LazyLogging {
     }
 
     in
-      .map(line => emptyTo(line._1.map(_.formatted), "NEW").mkString(", ") + " => " +
-        emptyTo(line._2.map(_.formatted), "REMOVED").mkString(", "))
+      .map(line =>
+        emptyTo(line._1.map(_.formatted), "NEW").mkString(", ") + " => " +
+          emptyTo(line._2.map(_.formatted), "REMOVED").mkString(", "))
       .mkString("\n")
 
   }
@@ -250,18 +256,18 @@ object Starter extends LazyLogging {
 
   def handleException(err: PrintStream, t: Throwable): Int = {
     t match {
-      case x@(_: Sgit.MissingCommitHookException | _: Sgit.MissingGitDirException | _: Sgit.TerminatedByCtrlCException |
-              _: PomChecker.ValidationException | _: PreconditionsException | _: Sgit.BranchAlreadyExistsException) => {
+      case x @ (_: Sgit.MissingCommitHookException | _: Sgit.MissingGitDirException | _: Sgit.TerminatedByCtrlCException |
+          _: PomChecker.ValidationException | _: PreconditionsException | _: Sgit.BranchAlreadyExistsException) => {
         err.println()
         err.println("E: " + x.getMessage)
         1
       }
-      case x@(_: TimeoutException) => {
+      case x @ (_: TimeoutException) => {
         err.println()
         err.println("E: User timeout: " + x.getMessage)
         1
       }
-      case x@(_: InvalidPomXmlException) => {
+      case x @ (_: InvalidPomXmlException) => {
         err.println()
         err.println("E: " + x.getMessage)
         err.println("E: " + x.parent.getMessage)
@@ -311,7 +317,6 @@ object Starter extends LazyLogging {
       case Term.Os.Windows => argSeq(5).replace('/', '\\')
       case _ => argSeq(5)
     }
-
 
     // TODO --batch ## alles mit default wählen
 
@@ -477,8 +482,9 @@ object Starter extends LazyLogging {
         // git config --add remote.origin.fetch refs/notes/*:refs/notes/*
         // git fetch
         if (activeGit.listRefNames().contains("refs/notes/review")) {
-          val result = Term.readFromOneOfYesNo(sys, "Ref: " + "refs/notes/review" + " found." +
-            " This ref leads to an unreadable local history. Do you want to remove them?", opts)
+          val result = Term.readFromOneOfYesNo(sys,
+            "Ref: " + "refs/notes/review" + " found." +
+              " This ref leads to an unreadable local history. Do you want to remove them?", opts)
           if (result == "y") {
             val configRefs = activeGit.configGetLocalAllSeq("remote.origin.fetch")
             configRefs.filter(_.startsWith("refs/notes/"))

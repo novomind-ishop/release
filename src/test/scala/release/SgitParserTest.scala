@@ -25,7 +25,8 @@ class SgitParserTest extends AssertionsForJUnit {
         branchNames = Seq("HEAD -> develop-1x", "origin/develop-1x", "main-1x"),
         tagNames = Seq("v1.3.0"),
         sha1 = "c042a9e533bf80ae1f8c887189a502a2fd23c2d2",
-        date = ZonedDateTime.parse("2024-02-13T08:19:20+01:00")),
+        date = ZonedDateTime.parse("2024-02-13T08:19:20+01:00")
+      ),
       SlogLine(
         branchNames = Nil,
         tagNames = Nil,
@@ -40,7 +41,8 @@ class SgitParserTest extends AssertionsForJUnit {
         branchNames = Seq("origin/master", "origin/HEAD"),
         tagNames = Nil,
         sha1 = "486e8e4672c24ea8b5d6e1b922112e783800a6ca",
-        date = ZonedDateTime.parse("2024-06-17T15:05:31+02:00")),
+        date = ZonedDateTime.parse("2024-06-17T15:05:31+02:00")
+      )
     )
     val in =
       """
@@ -59,7 +61,7 @@ class SgitParserTest extends AssertionsForJUnit {
         branchNames = Nil,
         tagNames = Nil,
         sha1 = "a9fb1a52a869761c5fc61c78fc49fa8b3c8f40c9",
-        date = ZonedDateTime.parse("2024-02-13T08:19:20+01:00")),
+        date = ZonedDateTime.parse("2024-02-13T08:19:20+01:00"))
     )
     val in =
       """

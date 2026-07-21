@@ -132,7 +132,8 @@ class LintMavenTest extends AssertionsForJUnit {
     gitA.configSetLocal("user.email", "you@hostname-without-tld")
     gitA.configSetLocal("user.name", "Your Name")
     val pom = new File(remote, "pom.xml")
-    FileUtils.write(pom,
+    FileUtils.write(
+      pom,
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -148,7 +149,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |    </dependency>
         |  </dependencies>
         |</project>
-        |""".stripMargin.linesIterator.toSeq)
+        |""".stripMargin.linesIterator.toSeq
+    )
     gitA.add(pom)
 
     {
@@ -156,9 +158,9 @@ class LintMavenTest extends AssertionsForJUnit {
       FileUtils.write(tree,
         """some
           |""".stripMargin.linesIterator.toSeq)
-      gitA.add(tree)  
+      gitA.add(tree)
     }
-    
+
     val sub1 = new File(remote, "subfolder")
     sub1.mkdir()
 
@@ -169,7 +171,7 @@ class LintMavenTest extends AssertionsForJUnit {
           |""".stripMargin.linesIterator.toSeq)
       gitA.add(tree)
     }
-    
+
     gitA.commitAll("bla")
     @unused
     val gitB = Sgit.doCloneRemote(remote.toURI.toString.replaceFirst("file:/", "file:///"), fileB)
@@ -254,10 +256,12 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/", "https://repo.example.org/"))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.allRepoZ()).thenReturn(Seq(mockRepo))
-      Mockito.when(mockRepo.isReachable(ArgumentMatchers.eq(false), ArgumentMatchers.any())).thenReturn(Repo.ReachableResult(online = true, "200"))
+      Mockito.when(mockRepo.isReachable(ArgumentMatchers.eq(false), ArgumentMatchers.any())).thenReturn(Repo.ReachableResult(online = true,
+          "200"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
-      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(),
+          ArgumentMatchers.anyString()))
         .thenReturn(Nil)
 
       sys.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, fileB))
@@ -338,7 +342,7 @@ class LintMavenTest extends AssertionsForJUnit {
       val value = Map(
         "CI_CONFIG_PATH" -> "a",
         "CI_COMMIT_REF_NAME" -> "vU",
-        "CI_COMMIT_TAG" -> "vU",
+        "CI_COMMIT_TAG" -> "vU"
       )
       sys.exit(Lint.run(sys.out, sys.err, opts, value, fileB))
     })
@@ -354,7 +358,8 @@ class LintMavenTest extends AssertionsForJUnit {
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
     val pom = new File(remote, "pom.xml")
-    FileUtils.write(pom,
+    FileUtils.write(
+      pom,
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -370,7 +375,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |    </dependency>
         |  </dependencies>
         |</project>
-        |""".stripMargin.linesIterator.toSeq)
+        |""".stripMargin.linesIterator.toSeq
+    )
     gitA.add(pom)
     gitA.commitAll("bla")
     @unused
@@ -453,13 +459,20 @@ class LintMavenTest extends AssertionsForJUnit {
         thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.eq("1.2.9"))).
         thenReturn(None)
-      Mockito.when(mockRepo.isReachable(ArgumentMatchers.eq(false), ArgumentMatchers.any())).thenReturn(Repo.ReachableResult(online = true, "200"))
+      Mockito.when(mockRepo.isReachable(ArgumentMatchers.eq(false), ArgumentMatchers.any())).thenReturn(Repo.ReachableResult(online = true,
+          "200"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       val mockUpdates = Seq(
-        "0.9", "1.0.0", "1.0.1", "1.0.2", "1.2.8", "1.2.9",
+        "0.9",
+        "1.0.0",
+        "1.0.1",
+        "1.0.2",
+        "1.2.8",
+        "1.2.9"
       )
-      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(),
+          ArgumentMatchers.anyString()))
         .thenReturn(mockUpdates)
       sys.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, fileB))
     })
@@ -475,7 +488,8 @@ class LintMavenTest extends AssertionsForJUnit {
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
     val pom = new File(remote, "pom.xml")
-    FileUtils.write(pom,
+    FileUtils.write(
+      pom,
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -543,7 +557,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |    </plugins>
         |  </build>
         |</project>
-        |""".stripMargin.linesIterator.toSeq)
+        |""".stripMargin.linesIterator.toSeq
+    )
     gitA.add(pom)
     gitA.commitAll("bla")
     @unused
@@ -637,7 +652,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |[INFO]     used memory: ∞m
         |[WARNING] exit 42 - because lint found warnings, see above 😬""".stripMargin
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
-      val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL10015-aa71e948", "RL1017-ab101a0e", "RL1018-ceefe9c6")))
+      val opts = Opts(colors = false,
+        lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL10015-aa71e948", "RL1017-ab101a0e", "RL1018-ceefe9c6")))
       val mockRepo = Mockito.mock(classOf[Repo])
       val mockRepo2 = Mockito.mock(classOf[Repo])
       Mockito.when(mockRepo.getMetrics).thenReturn(RepoMetrics.empty())
@@ -648,8 +664,10 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo, mockRepo2))
       Mockito.when(mockRepo2.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo, mockRepo2))
       Mockito.when(mockRepo.allRepoZ()).thenReturn(Seq(mockRepo, mockRepo2))
-      Mockito.when(mockRepo.isReachable(ArgumentMatchers.eq(false), ArgumentMatchers.any())).thenReturn(Repo.ReachableResult(online = true, "200"))
-      Mockito.when(mockRepo2.isReachable(ArgumentMatchers.eq(false), ArgumentMatchers.any())).thenReturn(Repo.ReachableResult(online = true, "200"))
+      Mockito.when(mockRepo.isReachable(ArgumentMatchers.eq(false), ArgumentMatchers.any())).thenReturn(Repo.ReachableResult(online = true,
+          "200"))
+      Mockito.when(mockRepo2.isReachable(ArgumentMatchers.eq(false), ArgumentMatchers.any())).thenReturn(Repo.ReachableResult(online = true,
+          "200"))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
         thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo2.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
@@ -658,38 +676,66 @@ class LintMavenTest extends AssertionsForJUnit {
         .thenReturn(None)
       Mockito.when(mockRepo2.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
-      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(),
+          ArgumentMatchers.anyString()))
         .thenReturn(Nil)
-      Mockito.when(mockRepo2.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+      Mockito.when(mockRepo2.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(),
+          ArgumentMatchers.anyString()))
         .thenReturn(Nil)
-      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-vars"), ArgumentMatchers.anyString()))
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-vars"),
+          ArgumentMatchers.anyString()))
         .thenReturn(Seq(
-          "0.0.99", "1.0.0-M1"
-        ))
-      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-vals"), ArgumentMatchers.anyString()))
+            "0.0.99",
+            "1.0.0-M1"
+          ))
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-vals"),
+          ArgumentMatchers.anyString()))
         .thenReturn(Seq(
-          "1.0.0-SNAPSHOT", "0.1", "1.0.1", "1.0.2", "1.2.8", "1.2.9"
-        ))
-      Mockito.when(mockRepo2.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-vals"), ArgumentMatchers.anyString()))
+            "1.0.0-SNAPSHOT",
+            "0.1",
+            "1.0.1",
+            "1.0.2",
+            "1.2.8",
+            "1.2.9"
+          ))
+      Mockito.when(mockRepo2.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-vals"),
+          ArgumentMatchers.anyString()))
         .thenReturn(Seq(
-          "0.1", "1.0.1", "1.0.2", "1.2.8", "1.2.9"
-        ))
-      Mockito.when(mockRepo2.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-context"), ArgumentMatchers.anyString()))
+            "0.1",
+            "1.0.1",
+            "1.0.2",
+            "1.2.8",
+            "1.2.9"
+          ))
+      Mockito.when(mockRepo2.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-context"),
+          ArgumentMatchers.anyString()))
         .thenReturn(Seq(
-          "0.99.99", "1.0.1", "1.0.2", "1.2.8", "1.2.9", "1.0.0-M1"
-        ))
-      Mockito.when(mockRepo2.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("example-maven-plugin"), ArgumentMatchers.anyString()))
+            "0.99.99",
+            "1.0.1",
+            "1.0.2",
+            "1.2.8",
+            "1.2.9",
+            "1.0.0-M1"
+          ))
+      Mockito.when(mockRepo2.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("example-maven-plugin"),
+          ArgumentMatchers.anyString()))
         .thenReturn(Seq(
-          "1.10.3", "99.99.99"
-        ))
-      Mockito.when(mockRepo2.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("example2-maven-plugin"), ArgumentMatchers.anyString()))
+            "1.10.3",
+            "99.99.99"
+          ))
+      Mockito.when(mockRepo2.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("example2-maven-plugin"),
+          ArgumentMatchers.anyString()))
         .thenReturn(Seq(
-          "1.10.3", "99.99.99"
-        ))
-      Mockito.when(mockRepo2.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("example"), ArgumentMatchers.anyString()))
+            "1.10.3",
+            "99.99.99"
+          ))
+      Mockito.when(mockRepo2.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("example"),
+          ArgumentMatchers.anyString()))
         .thenReturn(Seq(
-          "1.2.3", "99.99.99", "3.2.1"
-        ))
+            "1.2.3",
+            "99.99.99",
+            "3.2.1"
+          ))
       sys.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, fileB))
     })
   }
@@ -700,7 +746,8 @@ class LintMavenTest extends AssertionsForJUnit {
     val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
-    FileUtils.write(new File(file, "pom.xml"),
+    FileUtils.write(
+      new File(file, "pom.xml"),
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -721,7 +768,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |    </dependency>
         |  </dependencies>
         |</project>
-        |""".stripMargin.linesIterator.toSeq)
+        |""".stripMargin.linesIterator.toSeq
+    )
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
@@ -807,21 +855,28 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq(Repo.centralUrl))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.allRepoZ()).thenReturn(Seq(mockRepo))
-      Mockito.when(mockRepo.isReachable(ArgumentMatchers.eq(false), ArgumentMatchers.any())).thenReturn(Repo.ReachableResult(online = true, "200"))
+      Mockito.when(mockRepo.isReachable(ArgumentMatchers.eq(false), ArgumentMatchers.any())).thenReturn(Repo.ReachableResult(online = true,
+          "200"))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
         thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
-      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("other-context"), ArgumentMatchers.anyString()))
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("other-context"),
+          ArgumentMatchers.anyString()))
         .thenReturn(Seq(
-          "51.0.0", "51.2.5",
-          "50.4.0", "50.2.3",
-          "0.0.1"
-        ))
-      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("core-some-context"), ArgumentMatchers.anyString()))
+            "51.0.0",
+            "51.2.5",
+            "50.4.0",
+            "50.2.3",
+            "0.0.1"
+          ))
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("core-some-context"),
+          ArgumentMatchers.anyString()))
         .thenReturn(Seq(
-          "51.0.0", "51.2.5", "51.2.3",
-        ))
+            "51.0.0",
+            "51.2.5",
+            "51.2.3"
+          ))
       sys.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file))
     })
 
@@ -833,7 +888,8 @@ class LintMavenTest extends AssertionsForJUnit {
     val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
-    FileUtils.write(new File(file, "pom.xml"),
+    FileUtils.write(
+      new File(file, "pom.xml"),
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -854,7 +910,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |    </dependency>
         |  </dependencies>
         |</project>
-        |""".stripMargin.linesIterator.toSeq)
+        |""".stripMargin.linesIterator.toSeq
+    )
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
@@ -937,15 +994,20 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.allRepoZ()).thenReturn(Seq(mockRepo))
-      Mockito.when(mockRepo.isReachable(ArgumentMatchers.eq(false), ArgumentMatchers.any())).thenReturn(Repo.ReachableResult(online = true, "200"))
+      Mockito.when(mockRepo.isReachable(ArgumentMatchers.eq(false), ArgumentMatchers.any())).thenReturn(Repo.ReachableResult(online = true,
+          "200"))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
         thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       val mockUpdates = Seq(
-        "49.4.0", "50.4.0", "50.2.3", "50x-SNAPSHOT"
+        "49.4.0",
+        "50.4.0",
+        "50.2.3",
+        "50x-SNAPSHOT"
       )
-      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(),
+          ArgumentMatchers.anyString()))
         .thenReturn(mockUpdates)
       sys.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file))
     })
@@ -958,7 +1020,8 @@ class LintMavenTest extends AssertionsForJUnit {
     val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
-    FileUtils.write(new File(file, "pom.xml"),
+    FileUtils.write(
+      new File(file, "pom.xml"),
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -974,7 +1037,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |    </dependency>
         |  </dependencies>
         |</project>
-        |""".stripMargin.linesIterator.toSeq)
+        |""".stripMargin.linesIterator.toSeq
+    )
     @unused
     val notes = new File(file, "notes.md")
     val expected =
@@ -1054,7 +1118,8 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq(Repo.centralUrl))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.allRepoZ()).thenReturn(Seq(mockRepo))
-      Mockito.when(mockRepo.isReachable(ArgumentMatchers.eq(false), ArgumentMatchers.any())).thenReturn(Repo.ReachableResult(online = true, "200"))
+      Mockito.when(mockRepo.isReachable(ArgumentMatchers.eq(false), ArgumentMatchers.any())).thenReturn(Repo.ReachableResult(online = true,
+          "200"))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
         thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
@@ -1062,10 +1127,17 @@ class LintMavenTest extends AssertionsForJUnit {
       val mockUpdates = Seq(
         "0.1",
         "1",
-        "1.0.1", "1.0.2", "1.2.8", "1.2.9",
-        "2.0", "2.1.1", "2.5.5", "2.5.6",
+        "1.0.1",
+        "1.0.2",
+        "1.2.8",
+        "1.2.9",
+        "2.0",
+        "2.1.1",
+        "2.5.5",
+        "2.5.6"
       )
-      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(),
+          ArgumentMatchers.anyString()))
         .thenReturn(mockUpdates)
       sys.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file))
     })
@@ -1078,7 +1150,8 @@ class LintMavenTest extends AssertionsForJUnit {
     val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
-    FileUtils.write(new File(file, "pom.xml"),
+    FileUtils.write(
+      new File(file, "pom.xml"),
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -1087,7 +1160,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |  <artifactId>any</artifactId>
         |  <version>0.11-snapshot</version>
         |</project>
-        |""".stripMargin.linesIterator.toSeq)
+        |""".stripMargin.linesIterator.toSeq
+    )
 
     val expected =
       """
@@ -1135,12 +1209,14 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq(Repo.centralUrl))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.allRepoZ()).thenReturn(Seq(mockRepo))
-      Mockito.when(mockRepo.isReachable(ArgumentMatchers.eq(false), ArgumentMatchers.any())).thenReturn(Repo.ReachableResult(online = true, "200"))
+      Mockito.when(mockRepo.isReachable(ArgumentMatchers.eq(false), ArgumentMatchers.any())).thenReturn(Repo.ReachableResult(online = true,
+          "200"))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
         thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
-      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(),
+          ArgumentMatchers.anyString()))
         .thenReturn(Seq("0.0.1", "1.0.1-SNAPSHOT", "1.0.0"))
       sys.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file))
     })
@@ -1153,7 +1229,8 @@ class LintMavenTest extends AssertionsForJUnit {
     val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
-    FileUtils.write(new File(file, "pom.xml"),
+    FileUtils.write(
+      new File(file, "pom.xml"),
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -1198,7 +1275,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |    </dependency>
         |  </dependencies>
         |</project>
-        |""".stripMargin.linesIterator.toSeq)
+        |""".stripMargin.linesIterator.toSeq
+    )
 
     val expected =
       """
@@ -1289,12 +1367,14 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq(Repo.centralUrl))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.allRepoZ()).thenReturn(Seq(mockRepo))
-      Mockito.when(mockRepo.isReachable(ArgumentMatchers.eq(false), ArgumentMatchers.any())).thenReturn(Repo.ReachableResult(online = true, "200"))
+      Mockito.when(mockRepo.isReachable(ArgumentMatchers.eq(false), ArgumentMatchers.any())).thenReturn(Repo.ReachableResult(online = true,
+          "200"))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
         thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
-      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(),
+          ArgumentMatchers.anyString()))
         .thenReturn(Seq("0.0.1", "1.0.1-SNAPSHOT", "1.0.0"))
       sys.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file))
     })
@@ -1378,8 +1458,15 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mod.listGavsForCheck()).thenReturn(Nil)
       Mockito.when(mod.selfDepsMod).thenReturn(Nil)
 
-      Mockito.when(mod.tryCollectDependencyUpdates(ArgumentMatchers.any(), ArgumentMatchers.anyBoolean(),
-        ArgumentMatchers.any(), ArgumentMatchers.anyString(), ArgumentMatchers.any())).thenReturn(Failure(new java.util.concurrent.TimeoutException("a")))
+      Mockito.when(mod.tryCollectDependencyUpdates(
+          ArgumentMatchers.any(),
+          ArgumentMatchers.anyBoolean(),
+          ArgumentMatchers.any(),
+          ArgumentMatchers.anyString(),
+          ArgumentMatchers.any(),
+          ArgumentMatchers.any(),
+          ArgumentMatchers.any()
+        )).thenReturn(Failure(new java.util.concurrent.TimeoutException("a")))
 
       sys.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), Map.empty, file, mockMod = Some(Success(mod))))
     })
@@ -1391,7 +1478,8 @@ class LintMavenTest extends AssertionsForJUnit {
     val gitA = Sgit.init(root, SgitTest.hasCommitMsg)
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
-    FileUtils.write(new File(root, "pom.xml"),
+    FileUtils.write(
+      new File(root, "pom.xml"),
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -1427,7 +1515,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |    </dependency>
         |  </dependencies>
         |</project>
-        |""".stripMargin.linesIterator.toSeq)
+        |""".stripMargin.linesIterator.toSeq
+    )
     val notes = new File(root, "notes.md")
     val seq =
       """
@@ -1447,7 +1536,7 @@ class LintMavenTest extends AssertionsForJUnit {
     gitA.add(notes)
     gitA.add(dockerile)
     gitA.add(FileUtils.write(new File(folder1, "Demo.java"), // TODO valid folder
-      """package some;
+        """package some;
         |""".stripMargin.linesIterator.toSeq))
     val unwantedPackages = new File(root, ".unwanted-packages")
     FileUtils.write(unwantedPackages,
@@ -1577,12 +1666,14 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq(Repo.centralUrl))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.allRepoZ()).thenReturn(Seq(mockRepo))
-      Mockito.when(mockRepo.isReachable(ArgumentMatchers.eq(false), ArgumentMatchers.any())).thenReturn(Repo.ReachableResult(online = true, "200"))
+      Mockito.when(mockRepo.isReachable(ArgumentMatchers.eq(false), ArgumentMatchers.any())).thenReturn(Repo.ReachableResult(online = true,
+          "200"))
       val now = ZonedDateTime.parse("2018-05-31T00:10:52+00:00")
       val now2 = ZonedDateTime.parse("2023-05-31T00:10:52+00:00")
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(Some(now))
-      Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-context"), ArgumentMatchers.eq("1.0.1-SNAPSHOT")))
+      Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-context"),
+          ArgumentMatchers.eq("1.0.1-SNAPSHOT")))
         .thenReturn(Some(now))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-context"), ArgumentMatchers.eq("1.2.9")))
         .thenReturn(Some(now.plusDays(1)))
@@ -1600,37 +1691,56 @@ class LintMavenTest extends AssertionsForJUnit {
         .thenReturn(Some(now2.plusDays(1049)))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
-      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(),
+          ArgumentMatchers.anyString()))
         .thenReturn(Nil)
 
-      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-single"), ArgumentMatchers.anyString()))
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-single"),
+          ArgumentMatchers.anyString()))
         .thenReturn(Seq(
-          "1.0.1",
-          "1.0.2",
-        ))
+            "1.0.1",
+            "1.0.2"
+          ))
 
-      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.eq("org.springframework"), ArgumentMatchers.eq("spring-other2"), ArgumentMatchers.anyString()))
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.eq("org.springframework"), ArgumentMatchers.eq("spring-other2"),
+          ArgumentMatchers.anyString()))
         .thenReturn(Seq(
-          "1.0.0-SNAPSHOT",
-        ))
-      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-other"), ArgumentMatchers.anyString()))
+            "1.0.0-SNAPSHOT"
+          ))
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-other"),
+          ArgumentMatchers.anyString()))
         .thenReturn(Seq(
-          "1.0.0-SNAPSHOT",
-          "0.0.2", "1.0.1", "1.0.2", "1.2.8", "1.2.9",
-          "2.0", "2.1.1", "2.5.5", "2.5.6",
-        ))
+            "1.0.0-SNAPSHOT",
+            "0.0.2",
+            "1.0.1",
+            "1.0.2",
+            "1.2.8",
+            "1.2.9",
+            "2.0",
+            "2.1.1",
+            "2.5.5",
+            "2.5.6"
+          ))
 
-      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-context"), ArgumentMatchers.anyString()))
+      Mockito.when(mockRepo.newerAndPrevVersionsOf(ArgumentMatchers.anyString(), ArgumentMatchers.eq("spring-context"),
+          ArgumentMatchers.anyString()))
         .thenReturn(Seq(
-          "1.0.1-SNAPSHOT",
-          "0.0.2", "1.0.1", "1.0.2", "1.2.8", "1.2.9",
-          "2.0", "2.1.1", "2.5.5", "2.5.6",
-        ))
+            "1.0.1-SNAPSHOT",
+            "0.0.2",
+            "1.0.1",
+            "1.0.2",
+            "1.2.8",
+            "1.2.9",
+            "2.0",
+            "2.1.1",
+            "2.5.5",
+            "2.5.6"
+          ))
 
       val value = Map(
         "CI_CONFIG_PATH" -> ".gitlab-ci.yml",
         "CI_COMMIT_REF_NAME" -> "v0.11.0",
-        "CI_COMMIT_TAG" -> "v0.11.0",
+        "CI_COMMIT_TAG" -> "v0.11.0"
       )
       sys.exit(Lint.run(sys.out, sys.err, opts.copy(repoSupplier = _ => mockRepo), value, root))
     })
@@ -1643,7 +1753,8 @@ class LintMavenTest extends AssertionsForJUnit {
     val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
-    FileUtils.write(new File(file, "pom.xml"),
+    FileUtils.write(
+      new File(file, "pom.xml"),
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -1656,12 +1767,14 @@ class LintMavenTest extends AssertionsForJUnit {
         |    <module>bert</module>
         |  </modules>
         |</project>
-        |""".stripMargin.linesIterator.toSeq)
+        |""".stripMargin.linesIterator.toSeq
+    )
 
     val bertFolder = new File(file, "bert")
     bertFolder.mkdir()
     val bertPom = new File(bertFolder, "pom.xml")
-    FileUtils.write(bertPom,
+    FileUtils.write(
+      bertPom,
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -1675,7 +1788,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |  <artifactId>uert</artifactId>
         |  <version>0.11-SNAPSHOT</version>
         |</project>
-        |""".stripMargin.linesIterator.toSeq)
+        |""".stripMargin.linesIterator.toSeq
+    )
     gitA.add(bertPom)
 
     val unwantedPackages = new File(file, ".unwanted-packages")
@@ -1685,11 +1799,11 @@ class LintMavenTest extends AssertionsForJUnit {
         |""".stripMargin.linesIterator.toSeq)
     gitA.add(unwantedPackages)
     gitA.add(FileUtils.write(new File(bertFolder, "Demo.java"), // TODO valid folder
-      """package a.b;
+        """package a.b;
         |""".stripMargin.linesIterator.toSeq))
 
     gitA.add(FileUtils.write(new File(bertFolder, "Demo.scala"), // TODO valid folder
-      """package c.b
+        """package c.b
         |""".stripMargin.linesIterator.toSeq))
     gitA.commitAll("some")
     val expected =
@@ -1776,7 +1890,8 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.allRepoZ()).thenReturn(Seq(mockRepo))
-      Mockito.when(mockRepo.isReachable(ArgumentMatchers.eq(false), ArgumentMatchers.any())).thenReturn(Repo.ReachableResult(online = true, "202"))
+      Mockito.when(mockRepo.isReachable(ArgumentMatchers.eq(false), ArgumentMatchers.any())).thenReturn(Repo.ReachableResult(online = true,
+          "202"))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
         thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
@@ -1812,19 +1927,23 @@ class LintMavenTest extends AssertionsForJUnit {
         |""".stripMargin.linesIterator.toSeq
     FileUtils.write(new File(file, "pom.xml"), content)
     val notes = new File(file, "notes.md")
-    FileUtils.write(notes,
+    FileUtils.write(
+      notes,
       """
         |This is the documentation for 0.11-SNAPSHOT
         |This is the documentation for 0.11-SNAPSHOT
-        |""".stripMargin.linesIterator.toSeq)
+        |""".stripMargin.linesIterator.toSeq
+    )
     val dotMvnFolder = new File(file, ".mvn")
     dotMvnFolder.mkdir()
     val extension = new File(dotMvnFolder, "extensions.xml")
-    FileUtils.write(extension,
+    FileUtils.write(
+      extension,
       """<version>0.11-SNAPSHOT</version>
         |""".stripMargin
     )
-    FileUtils.write(new File(file, "README.md"),
+    FileUtils.write(
+      new File(file, "README.md"),
       """hello
         |""".stripMargin
     )
@@ -1880,7 +1999,8 @@ class LintMavenTest extends AssertionsForJUnit {
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals, expectedExitCode = 42)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1012-d143f8dc", "RL1003-b4b0c08b")))
       val mockRepo = Mockito.mock(classOf[Repo])
-      Mockito.when(mockRepo.isReachable(ArgumentMatchers.eq(false), ArgumentMatchers.any())).thenReturn(Repo.ReachableResult(online = true, "202"))
+      Mockito.when(mockRepo.isReachable(ArgumentMatchers.eq(false), ArgumentMatchers.any())).thenReturn(Repo.ReachableResult(online = true,
+          "202"))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
         .thenReturn(None)
       sys.exit(Lint.run(sys.out, sys.err, opts, Map.empty, file))
@@ -1896,7 +2016,6 @@ class LintMavenTest extends AssertionsForJUnit {
       Lint.run(sys.out, sys.err, Opts().copy(colors = false), Map.empty, file)
     })
   }
-
 
   @Test
   def testFindAllPackagenames(): Unit = {
@@ -1918,7 +2037,8 @@ class LintMavenTest extends AssertionsForJUnit {
         |package a;
         |""".stripMargin.linesIterator.toSeq)
 
-    FileUtils.write(new File(file, "Some.java"),
+    FileUtils.write(
+      new File(file, "Some.java"),
       """
         |package a.b;
         |package c.b;
@@ -1927,16 +2047,17 @@ class LintMavenTest extends AssertionsForJUnit {
         |import static java.util.Set;
         |importReport.call();
         |packageList.call();
-        |""".stripMargin.linesIterator.toSeq)
+        |""".stripMargin.linesIterator.toSeq
+    )
 
     val result = Lint.findAllPackagenames(file, check = true)
     println(result.d)
     Assert.assertEquals(Seq(
-      ("package a.b;", Paths.get("Some.java")),
-      ("package a;", Paths.get("Test.java")),
-      ("package b", Paths.get("Test.scala")),
+        ("package a.b;", Paths.get("Some.java")),
+        ("package a;", Paths.get("Test.java")),
+        ("package b", Paths.get("Test.scala"))
 
-    ), result.packagesWithSrcPath)
+      ), result.packagesWithSrcPath)
     Assert.assertEquals(Seq("a.b;", "a;"), result.unwantedPackages)
     Assert.assertEquals(Seq("package a.b;", "package a;", "package b"), result.packages)
     Assert.assertEquals(Seq("import java.io.File;", "import static java.util.Set;"), result.imports)
@@ -1951,7 +2072,6 @@ class LintMavenTest extends AssertionsForJUnit {
     val wf = FileUtils.write(new File(file, ".unwanted-packages"),
       """a
         |""".stripMargin.linesIterator.toSeq)
-
 
     val resultA = Lint.findPackagesAndImports(fileA, wf)
     println("packages")
@@ -1981,8 +2101,10 @@ class LintMavenTest extends AssertionsForJUnit {
     Assert.assertTrue(Lint.isValidMergeRequest(Lint.toBranchTag("work", null, null, null, currentTagsIn = Nil)))
     Assert.assertTrue(Lint.isValidMergeRequest(Lint.toBranchTag("work", "", null, "", currentTagsIn = Nil)))
 
-    Assert.assertFalse(Lint.isValidTag(Lint.toBranchTag("work", null, gitA.currentBranchOpt, null, currentTagsIn = gitA.currentTags.getOrElse(Nil))))
-    Assert.assertFalse(Lint.isValidTag(Lint.toBranchTag("work", "", gitA.currentBranchOpt, "", currentTagsIn = gitA.currentTags.getOrElse(Nil))))
+    Assert.assertFalse(Lint.isValidTag(Lint.toBranchTag("work", null, gitA.currentBranchOpt, null,
+          currentTagsIn = gitA.currentTags.getOrElse(Nil))))
+    Assert.assertFalse(Lint.isValidTag(Lint.toBranchTag("work", "", gitA.currentBranchOpt, "",
+          currentTagsIn = gitA.currentTags.getOrElse(Nil))))
   }
 
   @Test
@@ -1990,9 +2112,9 @@ class LintMavenTest extends AssertionsForJUnit {
     val file = temp.newFolder("release-lint-mvn-valid-branch")
     val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
     Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", null, gitA.currentBranchOpt, "work",
-      currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))))
+          currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))))
     Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", "", gitA.currentBranchOpt, "work",
-      currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))))
+          currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))))
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
     val work = new File(file, "pom.xml")
@@ -2005,31 +2127,32 @@ class LintMavenTest extends AssertionsForJUnit {
     gitA.checkout("work")
     gitA.checkout("HEAD~0")
     Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", null, gitA.currentBranchOpt, "work",
-      currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))))
+          currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))))
     Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", "", gitA.currentBranchOpt, "work",
-      currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))))
+          currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))))
 
     Assert.assertFalse(Lint.isValidTag(Lint.toBranchTag("work", null, gitA.currentBranchOpt, "work",
-      currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))))
+          currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))))
     Assert.assertFalse(Lint.isValidTag(Lint.toBranchTag("work", "", gitA.currentBranchOpt, "work",
-      currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))))
+          currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))))
 
     gitA.doTag("work-20315-gcb5491b407")
     Assert.assertEquals(Some(Seq("vwork-20315-gcb5491b407")), gitA.currentTags)
 
     Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", "", gitA.currentBranchOpt, "work",
-      currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))))
+          currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))))
     gitA.deleteTag("work-20315-gcb5491b407")
     gitA.doTag("20.0.0.some-6439-g800ef8fee7")
     Assert.assertEquals(Some(Seq("v20.0.0.some-6439-g800ef8fee7")), gitA.currentTags)
     Assert.assertTrue(Lint.isValidBranch(Lint.toBranchTag("work", "", gitA.currentBranchOpt, "work",
-      currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))))
+          currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))))
 
     gitA.deleteTag("20.0.0.some-6439-g800ef8fee7")
 
     gitA.doTag("1.2.3")
     Assert.assertEquals(Some(Seq("v1.2.3")), gitA.currentTags)
-    val maybeMerge = Lint.toBranchTag("work", "", gitA.currentBranchOpt, "work", currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))
+    val maybeMerge =
+      Lint.toBranchTag("work", "", gitA.currentBranchOpt, "work", currentTagsIn = gitA.currentTagsWithoutAnnotated.getOrElse(Nil))
     Assert.assertFalse(Lint.isValidBranch(maybeMerge))
     Assert.assertFalse(Lint.isValidTag(maybeMerge))
     gitA.deleteTag("1.2.3")
@@ -2055,12 +2178,15 @@ class LintMavenTest extends AssertionsForJUnit {
     gitA.commitAll("test")
     gitA.doTag("1.0.0")
     gitA.checkout("v1.0.0")
-    Assert.assertTrue(Lint.isValidTag(Lint.toBranchTag("v1.0.0", "v1.0.0", gitA.currentBranchOpt, null, currentTagsIn = gitA.currentTags.getOrElse(Nil))))
-    val tagDef = Lint.toBranchTag("v1.0.0", "v1.0.0", currentBranchOpt = Some("HEAD"), "HEAD", currentTagsIn = gitA.currentTags.getOrElse(Nil))
+    Assert.assertTrue(Lint.isValidTag(Lint.toBranchTag("v1.0.0", "v1.0.0", gitA.currentBranchOpt, null,
+          currentTagsIn = gitA.currentTags.getOrElse(Nil))))
+    val tagDef =
+      Lint.toBranchTag("v1.0.0", "v1.0.0", currentBranchOpt = Some("HEAD"), "HEAD", currentTagsIn = gitA.currentTags.getOrElse(Nil))
     Assert.assertEquals(Some(BranchTagMerge(tagName = Some("v1.0.0"), branchName = Some("HEAD"), info = "")), tagDef)
     Assert.assertTrue(Lint.isValidTag(tagDef))
 
-    Assert.assertFalse(Lint.isValidBranch(Lint.toBranchTag("v1.0.0", "v1.0.0", gitA.currentBranchOpt, null, currentTagsIn = gitA.currentTags.getOrElse(Nil))))
+    Assert.assertFalse(Lint.isValidBranch(Lint.toBranchTag("v1.0.0", "v1.0.0", gitA.currentBranchOpt, null,
+          currentTagsIn = gitA.currentTags.getOrElse(Nil))))
   }
 
   @Test
@@ -2069,7 +2195,8 @@ class LintMavenTest extends AssertionsForJUnit {
     val gitA = Sgit.init(file, SgitTest.hasCommitMsg)
     gitA.configSetLocal("user.email", "you@example.com")
     gitA.configSetLocal("user.name", "Your Name")
-    FileUtils.write(new File(file, "pom.xml"),
+    FileUtils.write(
+      new File(file, "pom.xml"),
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -2078,17 +2205,19 @@ class LintMavenTest extends AssertionsForJUnit {
         |  <artifactId>any</artifactId>
         |  <version>0.11-SNAPSHOT</version>
         |</project>
-        |""".stripMargin.linesIterator.toSeq)
+        |""".stripMargin.linesIterator.toSeq
+    )
     val dotMvnFolder = new File(file, ".mvn")
     dotMvnFolder.mkdir()
-    FileUtils.write(new File(dotMvnFolder, "extensions.xml"),
+    FileUtils.write(
+      new File(dotMvnFolder, "extensions.xml"),
       """<version>0.11-SNAPSHOT</version>
         |""".stripMargin
     )
     @unused
     val branchName = "feature/bre"
     // gitA.createBranch(branchName)
-    //gitA.checkout(branchName)
+    // gitA.checkout(branchName)
     val expected =
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
@@ -2170,7 +2299,8 @@ class LintMavenTest extends AssertionsForJUnit {
       Mockito.when(mockRepo.allRepoUrls()).thenReturn(Seq("https://repo.example.org/"))
       Mockito.when(mockRepo.createAll(ArgumentMatchers.any())).thenReturn(Seq(mockRepo))
       Mockito.when(mockRepo.allRepoZ()).thenReturn(Seq(mockRepo))
-      Mockito.when(mockRepo.isReachable(ArgumentMatchers.eq(false), ArgumentMatchers.any())).thenReturn(Repo.ReachableResult(online = true, "202"))
+      Mockito.when(mockRepo.isReachable(ArgumentMatchers.eq(false), ArgumentMatchers.any())).thenReturn(Repo.ReachableResult(online = true,
+          "202"))
       Mockito.when(mockRepo.depDate(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).
         thenReturn(Some(ZonedDateTime.now()))
       Mockito.when(mockRepo.getRelocationOf(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
@@ -2208,8 +2338,17 @@ class LintMavenTest extends AssertionsForJUnit {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
 
       val boolean = new OneTimeSwitch()
-      LintMaven.lintProjectVersion(sys.out, opts, "main-SNAPSHOT", warnExit = boolean, new OneTimeSwitch(),
-        Some(BranchTagMerge(tagName = None, branchName = Some("main"))), Nil, isShop = false, headBranchName = None)
+      LintMaven.lintProjectVersion(
+        sys.out,
+        opts,
+        "main-SNAPSHOT",
+        warnExit = boolean,
+        new OneTimeSwitch(),
+        Some(BranchTagMerge(tagName = None, branchName = Some("main"))),
+        Nil,
+        isShop = false,
+        headBranchName = None
+      )
       Assert.assertFalse(boolean.isTriggered())
     })
   }
@@ -2224,8 +2363,17 @@ class LintMavenTest extends AssertionsForJUnit {
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val boolean = new OneTimeSwitch()
-      LintMaven.lintProjectVersion(sys.out, opts, "1.2.3-SNAPSHOT", warnExit = boolean, new OneTimeSwitch(),
-        Some(BranchTagMerge(tagName = None, branchName = Some("main"))), allGitTags = Seq("v1.2.3"), isShop = false, headBranchName = None)
+      LintMaven.lintProjectVersion(
+        sys.out,
+        opts,
+        "1.2.3-SNAPSHOT",
+        warnExit = boolean,
+        new OneTimeSwitch(),
+        Some(BranchTagMerge(tagName = None, branchName = Some("main"))),
+        allGitTags = Seq("v1.2.3"),
+        isShop = false,
+        headBranchName = None
+      )
       Assert.assertTrue(boolean.isTriggered())
     })
   }
@@ -2240,8 +2388,17 @@ class LintMavenTest extends AssertionsForJUnit {
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false, skips = Seq("RL1020", "ö")))
       val boolean = new OneTimeSwitch()
-      val skips = LintMaven.lintProjectVersion(sys.out, opts, "1.2.3-SNAPSHOT", warnExit = boolean, new OneTimeSwitch(),
-        Some(BranchTagMerge(tagName = None, branchName = Some("main"))), allGitTags = Seq("v1.2.3"), isShop = false, headBranchName = None)
+      val skips = LintMaven.lintProjectVersion(
+        sys.out,
+        opts,
+        "1.2.3-SNAPSHOT",
+        warnExit = boolean,
+        new OneTimeSwitch(),
+        Some(BranchTagMerge(tagName = None, branchName = Some("main"))),
+        allGitTags = Seq("v1.2.3"),
+        isShop = false,
+        headBranchName = None
+      )
 
       Assert.assertFalse(boolean.isTriggered())
       Assert.assertEquals(Seq("RL1020"), skips)
@@ -2260,9 +2417,17 @@ class LintMavenTest extends AssertionsForJUnit {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
       val warn = new OneTimeSwitch()
 
-      LintMaven.lintProjectVersion(sys.out, opts, "5.0.0", warnExit = warn, new OneTimeSwitch(),
+      LintMaven.lintProjectVersion(
+        sys.out,
+        opts,
+        "5.0.0",
+        warnExit = warn,
+        new OneTimeSwitch(),
         Some(BranchTagMerge(tagName = Some("v5.0.0"), branchName = None)),
-        allGitTags = Seq("v1.2.3", "bert-preview", "v99.0.0", "99.0.0", "vja2026.99.ooo"), isShop = false, headBranchName = None)
+        allGitTags = Seq("v1.2.3", "bert-preview", "v99.0.0", "99.0.0", "vja2026.99.ooo"),
+        isShop = false,
+        headBranchName = None
+      )
       Assert.assertFalse(warn.isTriggered())
     })
   }
@@ -2312,8 +2477,17 @@ class LintMavenTest extends AssertionsForJUnit {
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
 
-      LintMaven.lintProjectVersion(sys.out, opts, "ro-SNAPSHOT", new OneTimeSwitch(), new OneTimeSwitch(),
-        Some(BranchTagMerge(tagName = None, branchName = Some("release/ro"))), Nil, isShop = false, headBranchName = None)
+      LintMaven.lintProjectVersion(
+        sys.out,
+        opts,
+        "ro-SNAPSHOT",
+        new OneTimeSwitch(),
+        new OneTimeSwitch(),
+        Some(BranchTagMerge(tagName = None, branchName = Some("release/ro"))),
+        Nil,
+        isShop = false,
+        headBranchName = None
+      )
     })
   }
 
@@ -2327,8 +2501,17 @@ class LintMavenTest extends AssertionsForJUnit {
     TermTest.testSys(Nil, expected, "", outFn = replaceVarLiterals)(sys => {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
 
-      LintMaven.lintProjectVersion(sys.out, opts, "RC-2024.34.01-bugfix-SNAPSHOT", new OneTimeSwitch(), new OneTimeSwitch(),
-        Some(BranchTagMerge(tagName = None, branchName = Some("release/RC-2024.34.01-bugfix"))), Nil, isShop = false, headBranchName = None)
+      LintMaven.lintProjectVersion(
+        sys.out,
+        opts,
+        "RC-2024.34.01-bugfix-SNAPSHOT",
+        new OneTimeSwitch(),
+        new OneTimeSwitch(),
+        Some(BranchTagMerge(tagName = None, branchName = Some("release/RC-2024.34.01-bugfix"))),
+        Nil,
+        isShop = false,
+        headBranchName = None
+      )
     })
   }
 
@@ -2386,27 +2569,29 @@ class LintMavenTest extends AssertionsForJUnit {
       val opts = Opts(colors = false, lintOpts = Opts().lintOpts.copy(showTimer = false))
 
       val boolean = new OneTimeSwitch()
-      LintMaven.lintProjectVersion(sys.out, opts, null, warnExit = boolean, new OneTimeSwitch(), None, Nil, isShop = false, headBranchName = None)
+      LintMaven.lintProjectVersion(
+        sys.out, opts, null, warnExit = boolean, new OneTimeSwitch(), None, Nil, isShop = false, headBranchName = None)
       Assert.assertTrue(boolean.isTriggered())
     })
   }
 
   @Test
   def testSelectYearLikesProblems(): Unit = {
-    Assert.assertEquals(Seq(
-      "Invalid calendar week 991 for year 2026 <== »any2026-991w« \uD83D\uDE2C",
-      "Invalid calendar week 88 for year 2027 <== »any2027-88-tag« \uD83D\uDE2C",
-      "Invalid calendar week 91 for year 2025 <== »v2025-91-234« \uD83D\uDE2C",
-    ),
+    Assert.assertEquals(
+      Seq(
+        "Invalid calendar week 991 for year 2026 <== »any2026-991w« \uD83D\uDE2C",
+        "Invalid calendar week 88 for year 2027 <== »any2027-88-tag« \uD83D\uDE2C",
+        "Invalid calendar week 91 for year 2025 <== »v2025-91-234« \uD83D\uDE2C"
+      ),
       LintMaven.selectYearLikesProblems(Seq(
-        "a",
-        "any2026-991w",
-        "any2027-88-tag",
-        "v2025-01-12",
-        "v2025-91-234",
-        "vBeta2024-91-234"
-      ), YearMonth.of(2026, 1)))
+          "a",
+          "any2026-991w",
+          "any2027-88-tag",
+          "v2025-01-12",
+          "v2025-91-234",
+          "vBeta2024-91-234"
+        ), YearMonth.of(2026, 1))
+    )
   }
-
 
 }

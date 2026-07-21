@@ -14,7 +14,7 @@ import scala.jdk.CollectionConverters._
 
 object FileUtils {
   object Ext {
-    extension (in:Path) {
+    extension (in: Path) {
       def toStringLinux: String = {
         in.toString.replace('\\', '/')
       }
@@ -66,29 +66,34 @@ object FileUtils {
   def walk(rootFile: File): ListBuffer[Path] = {
     val na = ListBuffer.empty[Path]
     val skipDirNames = Set(".git", "target")
-    Files.walkFileTree(rootFile.toPath, ImmutableSet.of(FileVisitOption.FOLLOW_LINKS), Int.MaxValue, new FileVisitor[Path] {
-      override def preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult = {
-        if (skipDirNames.contains(dir.getFileName.toString)) {
-          FileVisitResult.SKIP_SUBTREE
-        } else {
+    Files.walkFileTree(
+      rootFile.toPath,
+      ImmutableSet.of(FileVisitOption.FOLLOW_LINKS),
+      Int.MaxValue,
+      new FileVisitor[Path] {
+        override def preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult = {
+          if (skipDirNames.contains(dir.getFileName.toString)) {
+            FileVisitResult.SKIP_SUBTREE
+          } else {
+            FileVisitResult.CONTINUE
+          }
+        }
+
+        override def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
+          na += file
+          FileVisitResult.CONTINUE
+
+        }
+
+        override def visitFileFailed(file: Path, exc: IOException): FileVisitResult = {
+          FileVisitResult.CONTINUE
+        }
+
+        override def postVisitDirectory(dir: Path, exc: IOException): FileVisitResult = {
           FileVisitResult.CONTINUE
         }
       }
-
-      override def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
-        na += file
-        FileVisitResult.CONTINUE
-
-      }
-
-      override def visitFileFailed(file: Path, exc: IOException): FileVisitResult = {
-        FileVisitResult.CONTINUE
-      }
-
-      override def postVisitDirectory(dir: Path, exc: IOException): FileVisitResult = {
-        FileVisitResult.CONTINUE
-      }
-    })
+    )
     na
   }
 
@@ -132,14 +137,13 @@ object FileUtils {
     try {
       fn.apply(())
     } catch {
-      case e@(_: FileSystemException | _: IOException) => Term.Os.getCurrent match {
-        case Term.Os.Windows => throw new IllegalStateException("Windows tends to lock file handles." +
-          " Try to find handle or DLL that locks the file. e.g. with Sysinternals Process Explorer", e)
-        case _ => throw e;
-      }
+      case e @ (_: FileSystemException | _: IOException) => Term.Os.getCurrent match {
+          case Term.Os.Windows => throw new IllegalStateException("Windows tends to lock file handles." +
+                " Try to find handle or DLL that locks the file. e.g. with Sysinternals Process Explorer", e)
+          case _ => throw e;
+        }
       case o: Exception => throw o
     }
   }
-
 
 }

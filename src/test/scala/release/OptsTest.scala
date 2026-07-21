@@ -4,11 +4,14 @@ import com.typesafe.scalalogging.LazyLogging
 import org.junit.{Assert, Test}
 import org.scalatestplus.junit.AssertionsForJUnit
 
+import java.time.Period
+
 class OptsTest extends AssertionsForJUnit with LazyLogging {
   def assertArgs(expected: Opts, current: Opts): Unit = {
     Assert.assertEquals(Util.show(expected), Util.show(current))
     Assert.assertEquals(expected, current)
   }
+
   @Test
   def testEnvRead_empty(): Unit = {
     val result = Opts.envRead(Nil, Opts())
@@ -90,16 +93,33 @@ class OptsTest extends AssertionsForJUnit with LazyLogging {
   }
 
   @Test
+  def testEnvRead_libyears(): Unit = {
+    val inOpts = Opts()
+    Assert.assertEquals(Opts(lintOpts = LintOpts(libYearsWarnPeriod = None)), inOpts)
+    Assert.assertEquals(Opts(lintOpts = LintOpts(libYearsErrorPeriod = None)), inOpts)
+
+    {
+      val result = Opts.envRead(Seq(("RELEASE_LINT_LIB_YEARS_WARN_PERIOD", "P1Y2M3D")), inOpts)
+      Assert.assertEquals(Opts(lintOpts = LintOpts(libYearsWarnPeriod = Some(Period.of(1, 2, 3)))), result)
+    }
+
+    {
+      val result = Opts.envRead(Seq(("RELEASE_LINT_LIB_YEARS_ERROR_PERIOD", "P3Y1M2D")), inOpts)
+      Assert.assertEquals(Opts(lintOpts = LintOpts(libYearsErrorPeriod = Some(Period.of(3, 1, 2)))), result)
+    }
+
+  }
+
+  @Test
   def testEnvRead_release_lint(): Unit = {
     val tuples = Seq(
       ("RELEASE_ANY0", "a"),
       ("RELEASE_LINT_SKIP", "a"),
-      ("RELEASE_ANY1", "a"),
+      ("RELEASE_ANY1", "a")
     )
     val result = Opts.envRead(tuples, Opts())
     Assert.assertEquals(Opts(lintOpts = LintOpts(skips = Seq("a"))), result)
   }
-
 
   @Test
   def testArgRead_none(): Unit = {
@@ -109,8 +129,10 @@ class OptsTest extends AssertionsForJUnit with LazyLogging {
   @Test
   def testArgRead_invalids(): Unit = {
     Assert.assertEquals(Opts().focusInvalids().replace(Seq("--bert")), Opts.argsAndEnvRead(Seq("--bert"), Opts(), Map.empty))
-    Assert.assertEquals(Opts(showHelp = true, diag = OptsDiag(invalids = Seq("some"))), Opts.argsAndEnvRead(Seq("--help", "some"), Opts(), Map.empty))
-    Assert.assertEquals(Opts(showHelp = true, diag = OptsDiag(invalids = Seq("some"))), Opts.argsAndEnvRead(Seq("some", "--help"), Opts(), Map.empty))
+    Assert.assertEquals(
+      Opts(showHelp = true, diag = OptsDiag(invalids = Seq("some"))), Opts.argsAndEnvRead(Seq("--help", "some"), Opts(), Map.empty))
+    Assert.assertEquals(
+      Opts(showHelp = true, diag = OptsDiag(invalids = Seq("some"))), Opts.argsAndEnvRead(Seq("some", "--help"), Opts(), Map.empty))
   }
 
   @Test
@@ -126,7 +148,8 @@ class OptsTest extends AssertionsForJUnit with LazyLogging {
 
   @Test
   def testArgRead_updateCmd(): Unit = {
-    Assert.assertEquals(Opts(showUpdateCmd = true, showStartupDone = false), Opts.argsAndEnvRead(Seq("--show-update-cmd"), Opts(), Map.empty))
+    Assert.assertEquals(
+      Opts(showUpdateCmd = true, showStartupDone = false), Opts.argsAndEnvRead(Seq("--show-update-cmd"), Opts(), Map.empty))
   }
 
   @Test
@@ -136,18 +159,23 @@ class OptsTest extends AssertionsForJUnit with LazyLogging {
 
   @Test
   def testArgRead_noGerrit_skip_property(): Unit = {
-    Assert.assertEquals(Opts(useGerrit = false, skipProperties = Seq("a", "b")),
-      Opts.argsAndEnvRead(Seq("--no-gerrit", "--skip-property", "a", "--skip-property", "b"), Opts(), Map.empty))
+    Assert.assertEquals(
+      Opts(useGerrit = false, skipProperties = Seq("a", "b")),
+      Opts.argsAndEnvRead(Seq("--no-gerrit", "--skip-property", "a", "--skip-property", "b"), Opts(), Map.empty)
+    )
   }
 
   @Test
   def testArgRead_skip_env(): Unit = {
-    Assert.assertEquals(Opts(lintOpts = LintOpts(skips = Seq("a"))),
-      Opts.argsAndEnvRead(Seq(), Opts(), envs = Map(
-        "RELEASE_ANY0" -> "a",
-        "RELEASE_LINT_SKIP" -> "a",
-        "RELEASE_ANY1" -> "a",
-      )))
+    Assert.assertEquals(
+      Opts(lintOpts = LintOpts(skips = Seq("a"))),
+      Opts.argsAndEnvRead(Seq(), Opts(),
+        envs = Map(
+          "RELEASE_ANY0" -> "a",
+          "RELEASE_LINT_SKIP" -> "a",
+          "RELEASE_ANY1" -> "a"
+        ))
+    )
   }
 
   @Test
@@ -163,7 +191,7 @@ class OptsTest extends AssertionsForJUnit with LazyLogging {
     Assert.assertEquals(Opts(skipProperties = Seq("a", "b")),
       Opts.argsAndEnvRead(Seq("--skip-property", "a", "--skip-property", "b"), Opts(),
         Map(
-          "RELEASE_NO_GERRIT" -> "false",
+          "RELEASE_NO_GERRIT" -> "false"
         )))
   }
 
@@ -211,14 +239,20 @@ class OptsTest extends AssertionsForJUnit with LazyLogging {
       Opts.argsAndEnvRead(Seq("lint", "--help"), Opts(), Map.empty))
     assertArgs(Opts(lintOpts = LintOpts(doLint = true, showHelp = true), showStartupDone = false),
       Opts.argsAndEnvRead(Seq("lint", "-h"), Opts(), Map.empty))
-    assertArgs(Opts(lintOpts = LintOpts(doLint = true, skips = Seq("c", "D", "RL1012-5a4ee54d", "a")), showStartupDone = false),
-      Opts.argsAndEnvRead(Seq("lint", "--skip-RL1012-5a4ee54d", "--skip-a"), Opts(), envs = Map(
-        "RELEASE_LINT_SKIP" -> "c,D,, ,c,,,",
-      )))
-    assertArgs(Opts(lintOpts = LintOpts(doLint = true, warningsToErrors = true, warningsToErrorsTag = true), showStartupDone = false),
-      Opts.argsAndEnvRead(Seq("lint", "--strict"), Opts(), envs = Map(
-        "RELEASE_LINT_SKIP" -> null,
-      )))
+    assertArgs(
+      Opts(lintOpts = LintOpts(doLint = true, skips = Seq("c", "D", "RL1012-5a4ee54d", "a")), showStartupDone = false),
+      Opts.argsAndEnvRead(Seq("lint", "--skip-RL1012-5a4ee54d", "--skip-a"), Opts(),
+        envs = Map(
+          "RELEASE_LINT_SKIP" -> "c,D,, ,c,,,"
+        ))
+    )
+    assertArgs(
+      Opts(lintOpts = LintOpts(doLint = true, warningsToErrors = true, warningsToErrorsTag = true), showStartupDone = false),
+      Opts.argsAndEnvRead(Seq("lint", "--strict"), Opts(),
+        envs = Map(
+          "RELEASE_LINT_SKIP" -> null
+        ))
+    )
   }
 
   @Test

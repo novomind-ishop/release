@@ -177,10 +177,12 @@ object Version {
   private[release] val semverPatternLetterEnd = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)-([0-9a-zA-Z]+)$".r
   private[release] val stableShop = "^([0-9]+x)-stable.*$".r
   private[release] val shopPattern = "^(RC-)([1-9][0-9]{3})\\.([0-9][0-9])?(?:\\.([1-9]+[0-9]*))?(?:_([1-9]+[0-9]*))?(?:-SNAPSHOT)?$".r
-  private[release] val shopLikePattern = "^([rcRC]{2}.)([0-9][0-9]{3}).([0-9][0-9])?(?:.([0-9]+[0-9]*))?(?:.([0-9]+[0-9]*))?(?:.[SsNnAaPpHhOoTt]+)?$".r
+  private[release] val shopLikePattern =
+    "^([rcRC]{2}.)([0-9][0-9]{3}).([0-9][0-9])?(?:.([0-9]+[0-9]*))?(?:.([0-9]+[0-9]*))?(?:.[SsNnAaPpHhOoTt]+)?$".r
   private[release] val betaTagPattern = "^(BETA-)(.+)$".r
   val shopBranchPattern = ("^release/" + shopPattern.regex.substring(1)).r
-  private[release] val shopPatternSloppy = "^([Rr][Cc][-\\._])([0-9]{4})[_\\.-]([0-9][0-9]?)?(?:[_\\.-]([0-9]+[0-9]*))?(?:[-_\\.]([0-9]+[0-9]*))?$".r
+  private[release] val shopPatternSloppy =
+    "^([Rr][Cc][-\\._])([0-9]{4})[_\\.-]([0-9][0-9]?)?(?:[_\\.-]([0-9]+[0-9]*))?(?:[-_\\.]([0-9]+[0-9]*))?$".r
   private[release] val number = "^([0-9]+)(.*)".r
   private[release] val number2 = "^([0-9]+)\\.([0-9]+)(.*)".r
   private[release] val number3 = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)(.*)".r
@@ -230,7 +232,6 @@ object Version {
     case semverPatternLowdash(ma, mi, b, low) => Version.fromStringOpt("", ma, mi, b, low, m)
     case _ => None
   }
-
 
   def parseShopLike(versionText: String): Option[Version] = {
     val awfr = try {

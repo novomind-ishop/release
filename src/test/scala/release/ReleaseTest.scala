@@ -101,49 +101,58 @@ class ReleaseTest extends AssertionsForJUnit {
   @Test
   def testFormatVersionLinesHighlight(): Unit = {
 
-    val check = Release.formatVersionLinesGav(Seq(
-      ProjectMod.Gav("com.novomind.ishop.core", "ishop-core-projects", Some("29.6.4-SNAPSHOT")),
-      ProjectMod.Gav("com.novomind.ishop.core", "ishop-api", Some("1.0.2.1")),
-      ProjectMod.Gav("na", "na", Some("1.0.2.1")),
-      ProjectMod.Gav("any", "an", Some("2.2")),
-      ProjectMod.Gav("any", "any", Some("2"))
-    ), color = true)
+    val check = Release.formatVersionLinesGav(
+      Seq(
+        ProjectMod.Gav("com.novomind.ishop.core", "ishop-core-projects", Some("29.6.4-SNAPSHOT")),
+        ProjectMod.Gav("com.novomind.ishop.core", "ishop-api", Some("1.0.2.1")),
+        ProjectMod.Gav("na", "na", Some("1.0.2.1")),
+        ProjectMod.Gav("any", "an", Some("2.2")),
+        ProjectMod.Gav("any", "any", Some("2"))
+      ),
+      color = true
+    )
 
-    Assert.assertEquals(Seq(
-      "* com.novomind.ishop.core:ishop-api:            \u001B[31m1.0.2.1\u001B[0m",
-      "* na:na:                                        \u001B[31m1.0.2.1\u001B[0m",
-      "* any:any:                                      2",
-      "* any:an:                                       2.2",
-      "* com.novomind.ishop.core:ishop-core-projects:  \u001B[31m29.6.4-SNAPSHOT\u001B[0m"
-    ).mkString("\n"), check.mkString("\n"))
+    Assert.assertEquals(
+      Seq(
+        "* com.novomind.ishop.core:ishop-api:            \u001B[31m1.0.2.1\u001B[0m",
+        "* na:na:                                        \u001B[31m1.0.2.1\u001B[0m",
+        "* any:any:                                      2",
+        "* any:an:                                       2.2",
+        "* com.novomind.ishop.core:ishop-core-projects:  \u001B[31m29.6.4-SNAPSHOT\u001B[0m"
+      ).mkString("\n"),
+      check.mkString("\n")
+    )
   }
 
   @Test
   def testFormatVersionLinesGav(): Unit = {
 
     val check = Release.formatVersionLinesGav(Seq(
-      ProjectMod.Gav("com.novomind.ishop.core", "ishop-core-projects", Some("29.6.4-SNAPSHOT")),
-      ProjectMod.Gav("com.novomind.ishop.core", "ishop-api", Some("1.0.2.1")),
-      ProjectMod.Gav("na", "na", Some("1.0.2.1")),
-      ProjectMod.Gav("any", "ax", Some("2.2.2")),
-      ProjectMod.Gav("any", "an", Some("2.2")),
-      ProjectMod.Gav("any", "any", Some("2")),
-      ProjectMod.Gav("", "any", Some("2")),
-      ProjectMod.Gav("", "other", Some("7.21")),
-      ProjectMod.Gav("", "", Some("2"))
-    ))
+        ProjectMod.Gav("com.novomind.ishop.core", "ishop-core-projects", Some("29.6.4-SNAPSHOT")),
+        ProjectMod.Gav("com.novomind.ishop.core", "ishop-api", Some("1.0.2.1")),
+        ProjectMod.Gav("na", "na", Some("1.0.2.1")),
+        ProjectMod.Gav("any", "ax", Some("2.2.2")),
+        ProjectMod.Gav("any", "an", Some("2.2")),
+        ProjectMod.Gav("any", "any", Some("2")),
+        ProjectMod.Gav("", "any", Some("2")),
+        ProjectMod.Gav("", "other", Some("7.21")),
+        ProjectMod.Gav("", "", Some("2"))
+      ))
 
-    Assert.assertEquals(Seq(
-      "* com.novomind.ishop.core:ishop-api:            1.0.2.1",
-      "* na:na:                                        1.0.2.1",
-      "* any:any:                                      2",
-      "* :any:                                         2",
-      "* ::                                            2",
-      "* any:an:                                       2.2",
-      "* any:ax:                                       2.2.2",
-      "* :other:                                       7.21",
-      "* com.novomind.ishop.core:ishop-core-projects:  29.6.4-SNAPSHOT"
-    ).mkString("\n"), check.mkString("\n"))
+    Assert.assertEquals(
+      Seq(
+        "* com.novomind.ishop.core:ishop-api:            1.0.2.1",
+        "* na:na:                                        1.0.2.1",
+        "* any:any:                                      2",
+        "* :any:                                         2",
+        "* ::                                            2",
+        "* any:an:                                       2.2",
+        "* any:ax:                                       2.2.2",
+        "* :other:                                       7.21",
+        "* com.novomind.ishop.core:ishop-core-projects:  29.6.4-SNAPSHOT"
+      ).mkString("\n"),
+      check.mkString("\n")
+    )
   }
 
   def repSha(a: String): String = {
@@ -164,7 +173,8 @@ class ReleaseTest extends AssertionsForJUnit {
     gitRemote.configSetLocal("user.name", "Your Name")
 
     val f1 = SgitTest.testFile(gitRemote.file, "pom.xml")
-    FileUtils.write(f1,
+    FileUtils.write(
+      f1,
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -176,7 +186,8 @@ class ReleaseTest extends AssertionsForJUnit {
         |
         |</project>
         |
-        |""".stripMargin.linesIterator.toSeq)
+        |""".stripMargin.linesIterator.toSeq
+    )
     gitRemote.add(f1)
     gitRemote.commitAll("test")
 
@@ -210,9 +221,7 @@ class ReleaseTest extends AssertionsForJUnit {
     TermTest.testSys(Seq("", "", "y", ""), expected, "", outFn = repSha)(sys => {
       val opts = Opts(useJlineInput = false)
       Release.work(localWorkFolder, sys,
-        rebaseFn = () => {
-
-        }, branch = "master", gitLocal, term, 72, () => "abc",
+        rebaseFn = () => {}, branch = "master", gitLocal, term, 72, () => "abc",
         ReleaseConfig.default(true), opts.newRepo, opts)
     })
     Assert.assertEquals(Seq("Releasetool-sha1: abc"), gitRemote.log().linesIterator.filter(_.startsWith("Releasetool-sha1")).toSeq)
@@ -229,7 +238,8 @@ class ReleaseTest extends AssertionsForJUnit {
     gitRemote.configSetLocal("user.name", "Your Name")
 
     val f1 = SgitTest.testFile(gitRemote.file, "pom.xml")
-    FileUtils.write(f1,
+    FileUtils.write(
+      f1,
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -241,7 +251,8 @@ class ReleaseTest extends AssertionsForJUnit {
         |
         |</project>
         |
-        |""".stripMargin.linesIterator.toSeq)
+        |""".stripMargin.linesIterator.toSeq
+    )
     gitRemote.add(f1)
     gitRemote.commitAll("test")
     gitRemote.doTag("1.0.0")
@@ -278,9 +289,7 @@ class ReleaseTest extends AssertionsForJUnit {
     TermTest.testSys(Seq("", "", "y", ""), expected, "", outFn = repSha)(sys => {
       val opts = Opts(useJlineInput = false)
       Release.work(localWorkFolder, sys,
-        rebaseFn = () => {
-
-        }, branch = "master", gitLocal, term, 72, () => "abc",
+        rebaseFn = () => {}, branch = "master", gitLocal, term, 72, () => "abc",
         ReleaseConfig.default(true), opts.newRepo, opts)
     })
 
@@ -296,7 +305,8 @@ class ReleaseTest extends AssertionsForJUnit {
     gitRemote.configSetLocal("user.name", "Your Name")
 
     val f1 = SgitTest.testFile(gitRemote.file, "pom.xml")
-    FileUtils.write(f1,
+    FileUtils.write(
+      f1,
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -308,7 +318,8 @@ class ReleaseTest extends AssertionsForJUnit {
         |
         |</project>
         |
-        |""".stripMargin.linesIterator.toSeq)
+        |""".stripMargin.linesIterator.toSeq
+    )
     gitRemote.add(f1)
     gitRemote.commitAll("test")
     gitRemote.doTag("1.0.0")
@@ -340,9 +351,7 @@ class ReleaseTest extends AssertionsForJUnit {
     TermTest.testSys(Seq("", "y", ""), expected, "", outFn = repSha)(sys => {
       val opts = Opts(useJlineInput = false, versionIncrement = Increment.patch)
       Release.work(localWorkFolder, sys,
-        rebaseFn = () => {
-
-        }, branch = "master", gitLocal, term, 72, () => "abc",
+        rebaseFn = () => {}, branch = "master", gitLocal, term, 72, () => "abc",
         ReleaseConfig.default(true), opts.newRepo, opts)
     })
 
@@ -358,7 +367,8 @@ class ReleaseTest extends AssertionsForJUnit {
     gitRemote.configSetLocal("user.name", "Your Name")
 
     val f1 = SgitTest.testFile(gitRemote.file, "pom.xml")
-    FileUtils.write(f1,
+    FileUtils.write(
+      f1,
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -370,7 +380,8 @@ class ReleaseTest extends AssertionsForJUnit {
         |
         |</project>
         |
-        |""".stripMargin.linesIterator.toSeq)
+        |""".stripMargin.linesIterator.toSeq
+    )
     gitRemote.add(f1)
     gitRemote.commitAll("test")
     gitRemote.doTag("1.0.0")
@@ -402,9 +413,7 @@ class ReleaseTest extends AssertionsForJUnit {
     TermTest.testSys(Seq("", "y", ""), expected, "", outFn = repSha)(sys => {
       val opts = Opts(useJlineInput = false, versionIncrement = Increment.minor)
       Release.work(localWorkFolder, sys,
-        rebaseFn = () => {
-
-        }, branch = "master", gitLocal, term, 72, () => "abc",
+        rebaseFn = () => {}, branch = "master", gitLocal, term, 72, () => "abc",
         ReleaseConfig.default(true), opts.newRepo, opts)
     })
 
@@ -420,7 +429,8 @@ class ReleaseTest extends AssertionsForJUnit {
     gitRemote.configSetLocal("user.name", "Your Name")
 
     val f1 = SgitTest.testFile(gitRemote.file, "pom.xml")
-    FileUtils.write(f1,
+    FileUtils.write(
+      f1,
       """<?xml version="1.0" encoding="UTF-8"?>
         |<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -432,7 +442,8 @@ class ReleaseTest extends AssertionsForJUnit {
         |
         |</project>
         |
-        |""".stripMargin.linesIterator.toSeq)
+        |""".stripMargin.linesIterator.toSeq
+    )
     gitRemote.add(f1)
     gitRemote.commitAll("test")
     gitRemote.doTag("1.0.0")
@@ -464,9 +475,7 @@ class ReleaseTest extends AssertionsForJUnit {
     TermTest.testSys(Seq("", "y", ""), expected, "", outFn = repSha)(sys => {
       val opts = Opts(useJlineInput = false, versionIncrement = Increment.major)
       Release.work(localWorkFolder, sys,
-        rebaseFn = () => {
-
-        }, branch = "master", gitLocal, term, 72, () => "abc",
+        rebaseFn = () => {}, branch = "master", gitLocal, term, 72, () => "abc",
         ReleaseConfig.default(true), opts.newRepo, opts)
     })
   }
@@ -551,7 +560,7 @@ class ReleaseTest extends AssertionsForJUnit {
         override def listSnapshotDependenciesDistinct: Seq[ProjectMod.Dep] = {
           Seq(
             ProjectModTest.depOfShort("org.example", "example", "1.0.0-SNAPSHOT"),
-            ProjectModTest.depOfShort("org.example", "example2", "1.0.0-SNAPSHOT"),
+            ProjectModTest.depOfShort("org.example", "example2", "1.0.0-SNAPSHOT")
           )
         }
 
@@ -560,13 +569,13 @@ class ReleaseTest extends AssertionsForJUnit {
             ProjectModTest.depOfShort("org.example", "example3", "3.0.0"),
             ProjectModTest.depOfShort("org.example", "example", "1.0.0-SNAPSHOT"),
             ProjectModTest.depOfShort("org.example", "self", "1.0.0-SNAPSHOT"),
-            ProjectModTest.depOfShort("org.example", "plugin", "1.0.0-SNAPSHOT"),
+            ProjectModTest.depOfShort("org.example", "plugin", "1.0.0-SNAPSHOT")
           )
         }
 
         override def getSelfDepsMod: Seq[ProjectMod.Dep] = {
           Seq(
-            ProjectModTest.depOfShort("org.example", "self", "1.0.0-SNAPSHOT"),
+            ProjectModTest.depOfShort("org.example", "self", "1.0.0-SNAPSHOT")
           )
         }
       }

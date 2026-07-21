@@ -8,7 +8,7 @@ import java.io.PrintStream
 
 object LintGit {
   def lintBranchActivity(branchNames: Seq[String], contributorMailboxes: Seq[String],
-                         out: PrintStream, opts: Opts): Unit = {
+      out: PrintStream, opts: Opts): Unit = {
     val branchMsg = if (branchNames == Nil) {
       ""
     } else {

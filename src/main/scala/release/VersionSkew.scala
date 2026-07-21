@@ -9,11 +9,11 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 object VersionSkew {
   case class SkewResult(hasDifferentMajors: Boolean, sortedMajors: Seq[String], releaseMajorVersion: String,
-                        coreMajorVersions: Seq[(String, Gav)], usedLintSkips: Seq[UniqCode])
+      coreMajorVersions: Seq[(String, Gav)], usedLintSkips: Seq[UniqCode])
 
   def skewResultOf(mod: ProjectMod, releaseVersion: Option[String],
-                   warnExit: Option[OneTimeSwitch] = None, errorExit: Option[OneTimeSwitch] = None,
-                   out: Option[PrintStream], opts: Opts, skewStyle: Option[String]): SkewResult = {
+      warnExit: Option[OneTimeSwitch] = None, errorExit: Option[OneTimeSwitch] = None,
+      out: Option[PrintStream], opts: Opts, skewStyle: Option[String]): SkewResult = {
     val isNoShop = mod.isNoShop
     val relevantDeps: Seq[Dep] = if (skewStyle.isDefined) {
       mod.listDependencies
@@ -29,7 +29,7 @@ object VersionSkew {
   }
 
   private[release] def innerSkewResult(releaseVersion: Option[String], warnExit: Option[OneTimeSwitch], out: Option[PrintStream],
-                                       opts: Opts, isNoShop: Boolean, relevantDeps: Seq[Dep]) = {
+      opts: Opts, isNoShop: Boolean, relevantDeps: Seq[Dep]) = {
     var usedSkips = Seq.empty[UniqCode]
     var warnX = false
 
@@ -43,7 +43,6 @@ object VersionSkew {
       val mrcGrouped: Map[String, Seq[Gav]] = versions.groupBy(_._1)
         .map(e => (e._1, e._2.map(_._2).distinct))
 
-
       val isHardWarning: Boolean = {
         val relevantKeys = for {
           (key, gvals) <- mrcGrouped.toSeq.sortBy(_._1.toIntOption)
@@ -55,7 +54,9 @@ object VersionSkew {
         relevantKeys.distinct.size > 1
       }
       if (mainSkip) {
-        out.get.println(info(s"       Found multiple core major version: »${mrc.sortedMajors.mkString(", ")}«, use only one ${fiWarnMuted} $code", opts, limit = lineMax))
+        out.get.println(
+          info(s"       Found multiple core major version: »${mrc.sortedMajors.mkString(", ")}«, use only one ${fiWarnMuted} $code", opts,
+            limit = lineMax))
         usedSkips = usedSkips :+ code
       } else {
         val value = s"    Found multiple core major version: »${mrc.sortedMajors.mkString(", ")}«, use only one ${fiWarn} $code"
@@ -130,30 +131,34 @@ object VersionSkew {
         }
       }
       val relevantFilteredDeps = (if (releaseMajorVersion.matches("[0-9]+")) {
-        if (releaseMajorVersion.toInt > 36) {
-          relevantDeps
-            .filterNot(in => in.groupId == "com.novomind.ishop.shops" &&
-              in.artifactId == "ishop-shop-parent" &&
-              in.version.get.startsWith("36")) // TODO improve to .toInt > 36 later
-            .filterNot(in => in.groupId == "com.novomind.ishop" &&
-              in.artifactId == "ishop-meta-parent" &&
-              in.version.get.startsWith("36")) // TODO improve to .toInt > 36 later
-        } else if (releaseMajorVersion.toInt >= 32) {
-          relevantDeps
-        } else {
-          relevantDeps
-            .filterNot(in => in.groupId == "com.novomind.ishop.exi" && in.artifactId == "ishop-ext-authentication")
-        }
-      } else {
-        relevantDeps
-      }).filterNot(_.version.isEmpty)
+                                    if (releaseMajorVersion.toInt > 36) {
+                                      relevantDeps
+                                        .filterNot(in =>
+                                          in.groupId == "com.novomind.ishop.shops" &&
+                                            in.artifactId == "ishop-shop-parent" &&
+                                            in.version.get.startsWith("36")) // TODO improve to .toInt > 36 later
+                                        .filterNot(in =>
+                                          in.groupId == "com.novomind.ishop" &&
+                                            in.artifactId == "ishop-meta-parent" &&
+                                            in.version.get.startsWith("36")) // TODO improve to .toInt > 36 later
+                                    } else if (releaseMajorVersion.toInt >= 32) {
+                                      relevantDeps
+                                    } else {
+                                      relevantDeps
+                                        .filterNot(in =>
+                                          in.groupId == "com.novomind.ishop.exi" && in.artifactId == "ishop-ext-authentication")
+                                    }
+                                  } else {
+                                    relevantDeps
+                                  }).filterNot(_.version.isEmpty)
       val coreVersions: Seq[(String, Dep)] = relevantFilteredDeps
         .map(in => (in.version.get, in))
         .distinct
         .filter(_._1.nonEmpty)
         .sortBy(_._1)
 
-      val (sortedMajors: Seq[String], hasDiff: Boolean, coreMajorVersions: Seq[(String, Dep)]) = Release.findDiff(releaseMajorVersion, coreVersions)
+      val (sortedMajors: Seq[String], hasDiff: Boolean, coreMajorVersions: Seq[(String, Dep)]) =
+        Release.findDiff(releaseMajorVersion, coreVersions)
       SkewResult(hasDiff, sortedMajors, releaseMajorVersion, coreMajorVersions.map(e => (e._1, e._2.gav())), usedSkips)
     } else {
       SkewResult(hasDifferentMajors = false, Nil, "", Nil, usedSkips)

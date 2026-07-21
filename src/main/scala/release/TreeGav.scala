@@ -13,9 +13,10 @@ object TreeGav {
       k.map(e => (e._1, e._2.toSeq.distinct)).toSeq.sortBy(e => (e._2.size, e._1.formatted))
     }
       .filter(_._2.size > 1)
-      .foreach(e => out.println(
-        warnSoft(s" ${e._1.formatted} {${e._2.map(_.version.getOrElse("NA")).sortBy(Version.parseSloppy).mkString(", ")}}",
-          opts, limit = lineMax)))
+      .foreach(e =>
+        out.println(
+          warnSoft(s" ${e._1.formatted} {${e._2.map(_.version.getOrElse("NA")).sortBy(Version.parseSloppy).mkString(", ")}}",
+            opts, limit = lineMax)))
   }
 
 }

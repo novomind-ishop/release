@@ -24,8 +24,8 @@ import scala.collection.parallel.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
 case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
-                  skipPropertyReplacement: Boolean = false, withSubPoms: Boolean,
-                  failureCollector: Option[Exception => Unit]) extends ProjectMod with LazyLogging {
+    skipPropertyReplacement: Boolean = false, withSubPoms: Boolean,
+    failureCollector: Option[Exception => Unit]) extends ProjectMod with LazyLogging {
   logger.trace("init pomMod")
   override lazy val repo: RepoZ = repoZ
   private var depMap: Map[Dep, Node] = Map.empty
@@ -93,24 +93,25 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
   val selfVersion: String = {
     val v = listSelf.map(_.version.get).distinct
     PomMod.checkSnapshots(v)
-    Util.only(v, {
-      val selection: String = listSelf.groupBy(_.version.get) match {
-        case grouped: Map[String, Seq[Dep]] if grouped.keySet.size == 2 => {
+    Util.only(
+      v, {
+        val selection: String = listSelf.groupBy(_.version.get) match {
+          case grouped: Map[String, Seq[Dep]] if grouped.keySet.size == 2 => {
 
-          val sizeMap: Map[String, Int] = grouped.map(entry => (entry._1, entry._2.size))
-          val key = sizeMap.toList.minBy(_._2)._1
-          grouped(key).toList.mkString(", ")
+            val sizeMap: Map[String, Int] = grouped.map(entry => (entry._1, entry._2.size))
+            val key = sizeMap.toList.minBy(_._2)._1
+            grouped(key).toList.mkString(", ")
+          }
+          case grouped => grouped.toString()
         }
-        case grouped => grouped.toString()
+        "More then one Version found in your pom.xmls: " + selection
       }
-      "More then one Version found in your pom.xmls: " + selection
-    })
+    )
   }
 
   val listProperties: Map[String, String] = {
     PomMod.listProperties(opts, raws, failureCollector, allPomsDocs, listSelf)
   }
-
 
   override lazy val selfVersionReplaced: String = {
     replaceWithLimit(listProperties, selfVersion)
@@ -230,18 +231,24 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
   }
 
   private[release] def changeDepTreesGA(groupId: String, artifactId: String, version: String,
-                                        groupIdFn: String => String, artifactIdFn: String => String): Unit = {
+      groupIdFn: String => String, artifactIdFn: String => String): Unit = {
     depTreeFileContents = depTreeFileContents.toList.map(entry => {
       (entry._1, entry._2.copy(replacedDepTreesGA(entry._2.content, groupId, artifactId, version, groupIdFn, artifactIdFn)))
     }).foldLeft(Map.empty[File, DepTree])(_ + _)
   }
 
   private def replacedDepTreesGA(in: String, groupId: String, artifactId: String, version: String,
-                                 groupIdFn: String => String, artifactIdFn: String => String) = {
+      groupIdFn: String => String, artifactIdFn: String => String) = {
     in.linesIterator
-      .map(_.replaceFirst(groupId + ":" + artifactId + ":war:" + version, groupIdFn.apply(groupId).replace("." + artifactIdFn.apply(artifactId), "") + ":" + artifactIdFn.apply(artifactId) + ":war:" + version))
-      .map(_.replaceFirst(groupId + ":" + artifactId + ":([^:]*):([^:]*):" + version, groupIdFn.apply(groupId) + ":" + artifactIdFn.apply(artifactId) + ":$1:$2:" + version))
-      .map(_.replaceFirst(groupId + ":" + artifactId + ":([^:]*):" + version, groupIdFn.apply(groupId) + ":" + artifactIdFn.apply(artifactId) + ":$1:" + version))
+      .map(_.replaceFirst(
+          groupId + ":" + artifactId + ":war:" + version,
+          groupIdFn.apply(groupId).replace("." + artifactIdFn.apply(artifactId), "") + ":" + artifactIdFn.apply(artifactId) + ":war:" +
+            version
+        ))
+      .map(_.replaceFirst(groupId + ":" + artifactId + ":([^:]*):([^:]*):" + version,
+          groupIdFn.apply(groupId) + ":" + artifactIdFn.apply(artifactId) + ":$1:$2:" + version))
+      .map(_.replaceFirst(groupId + ":" + artifactId + ":([^:]*):" + version,
+          groupIdFn.apply(groupId) + ":" + artifactIdFn.apply(artifactId) + ":$1:" + version))
       .mkString("\n") + "\n"
   }
 
@@ -352,9 +359,11 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
   def depTreeFilename(): Option[String] = {
     val depPluginConfigs: Seq[(String, String)] = mavenDependencyPluginConfigsByGoal("tree")
     if (depPluginConfigs != Nil) {
-      val treeOutputFileName: String = Util.only(depPluginConfigs.filter(_._1 == "outputFile"),
+      val treeOutputFileName: String = Util.only(
+        depPluginConfigs.filter(_._1 == "outputFile"),
         "more than one or none tree file definition in your pom.xmls - invalid pom parent layout" +
-          " - please add <outputFile>dep.tree</outputFile>")._2
+          " - please add <outputFile>dep.tree</outputFile>"
+      )._2
       Some(treeOutputFileName)
     } else {
       None
@@ -451,7 +460,8 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
     }
   }
 
-  def suggestReleaseVersion(branchNames: Seq[String] = Nil, tagNames: Seq[String] = Nil, increment: Option[Increment] = None): Seq[String] = {
+  def suggestReleaseVersion(branchNames: Seq[String] = Nil, tagNames: Seq[String] = Nil, increment: Option[Increment] = None)
+      : Seq[String] = {
     checkCurrentVersion(currentVersion)
 
     PomMod.suggestReleaseBy(LocalDate.now(), currentVersion.get, isShop, branchNames, tagNames, nextVersionFileContent(), increment)
@@ -463,15 +473,16 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
   }
 
   private def nextVersionFileContent(): () => String = {
-    () => {
-      try {
-        val conf = ConfigFactory.parseFile(new File(rootPom.getParentFile, "nextVersion.conf"))
-        val ll = conf.getString("nextVersion")
-        ll
-      } catch {
-        case _: Exception => ""
+    () =>
+      {
+        try {
+          val conf = ConfigFactory.parseFile(new File(rootPom.getParentFile, "nextVersion.conf"))
+          val ll = conf.getString("nextVersion")
+          ll
+        } catch {
+          case _: Exception => ""
+        }
       }
-    }
   }
 
   private def toRawPom(pomFile: File): RawPomFile = {
@@ -502,7 +513,7 @@ case class RawPomFile(pomFile: File, document: Document, file: File) {
 object PomMod {
 
   def listProperties(opts: Opts, raws: Seq[RawPomFile], failureCollector: Option[Exception => Unit],
-                     allPomsDocs: Seq[Document], listSelf: Seq[Dep]): Map[String, String] = {
+      allPomsDocs: Seq[Document], listSelf: Seq[Dep]): Map[String, String] = {
     if (failureCollector.isDefined) {
       try {
         PomChecker.checkRootFirstChildPropertiesVar(opts, raws)
@@ -596,16 +607,19 @@ object PomMod {
     PomMod.replaceProperty(listProperties, skipPropertyReplacement)(string)
   }
 
-  private[release] def replacedVersionProperties(listProperties: Map[String, String], skipPropertyReplacement: Boolean)(deps: Seq[Dep]): Seq[Dep] = {
+  private[release] def replacedVersionProperties(listProperties: Map[String, String], skipPropertyReplacement: Boolean)(
+      deps: Seq[Dep]): Seq[Dep] = {
     def r(k: String) = replacedPropertyOf(listProperties, skipPropertyReplacement)(k)
 
-    deps.map(dep => dep.copy(
-      pomRef = dep.pomRef.copy(id = r(dep.pomRef.id),
-        gav3 = dep.pomRef.gav3.copy(version = dep.pomRef.gav3.version.map(r))),
-      version = dep.version.map(r),
-      packaging = r(dep.packaging),
-      typeN = r(dep.typeN),
-      scope = r(dep.scope))
+    deps.map(dep =>
+      dep.copy(
+        pomRef = dep.pomRef.copy(id = r(dep.pomRef.id),
+          gav3 = dep.pomRef.gav3.copy(version = dep.pomRef.gav3.version.map(r))),
+        version = dep.version.map(r),
+        packaging = r(dep.packaging),
+        typeN = r(dep.typeN),
+        scope = r(dep.scope)
+      )
     ).map(in => {
       if (in.toString.contains("$") && !skipPropertyReplacement) {
         throw new IllegalStateException("missing var in " + in)
@@ -649,7 +663,7 @@ object PomMod {
   }
 
   def withRepoTry(file: File, opts: Opts, repo: RepoZ, skipPropertyReplacement: Boolean = false,
-                  withSubPoms: Boolean = true, failureCollector: Option[Exception => Unit]): Try[PomMod] = {
+      withSubPoms: Boolean = true, failureCollector: Option[Exception => Unit]): Try[PomMod] = {
     try {
       Success(withRepo(file, opts, repo, skipPropertyReplacement, withSubPoms, failureCollector))
     } catch {
@@ -658,7 +672,7 @@ object PomMod {
   }
 
   def withRepo(file: File, opts: Opts, repo: RepoZ, skipPropertyReplacement: Boolean = false,
-               withSubPoms: Boolean = true, failureCollector: Option[Exception => Unit]): PomMod = {
+      withSubPoms: Boolean = true, failureCollector: Option[Exception => Unit]): PomMod = {
     PomMod(file, repo, opts, skipPropertyReplacement, withSubPoms, failureCollector)
   }
 
@@ -686,7 +700,8 @@ object PomMod {
   private val xPathToDependeciesScopeCompile = "//dependencies/dependency/scope[text() = 'compile']"
   private val xPathToDependeciesTypeJar = "//dependencies/dependency/type[text() = 'jar']"
 
-  private[release] def replacedDepTreesVersion(entry: (File, PomMod.DepTree), groupId: String, artifactId: String, version: String, newVersion: String) = {
+  private[release] def replacedDepTreesVersion(entry: (File, PomMod.DepTree), groupId: String, artifactId: String, version: String,
+      newVersion: String) = {
     entry._2.content.linesIterator
       .map(_.replaceFirst(groupId + ":" + artifactId + ":([^:]*):([^:]*):" + version, groupId + ":" + artifactId + ":$1:$2:" + newVersion))
       .map(_.replaceFirst(groupId + ":" + artifactId + ":([^:]*):" + version, groupId + ":" + artifactId + ":$1:" + newVersion))
@@ -724,7 +739,8 @@ object PomMod {
 
   private def depFrom(id: Gav3, dfn: Map[Dep, Node] => Unit)(depSeq: Seq[(String, String, Node)]): Dep = {
     val deps = Xpath.toMapOf(depSeq)
-    val dep = Dep(pomRef = SelfRef.ofGav3(id),
+    val dep = Dep(
+      pomRef = SelfRef.ofGav3(id),
       groupId = deps.getOrElse("groupId", ""),
       artifactId = deps.getOrElse("artifactId", ""),
       version = deps.get("version"),
@@ -732,7 +748,7 @@ object PomMod {
       scope = deps.getOrElse("scope", ""),
       packaging = deps.getOrElse("packaging", ""),
       classifier = deps.getOrElse("classifier", ""),
-      pomPath = pathOf(depSeq.map(_._3)),
+      pomPath = pathOf(depSeq.map(_._3))
     )
     val ma = depSeq.map(_._3).distinct
 
@@ -787,10 +803,11 @@ object PomMod {
     val version = Xpath.onlyString(document, PomMod.xPathToProjectVersion)
     if (artifactIdNode.isDefined) {
       Some(depFrom(Gav3.opt(groupId.orElse(parentGroupid), artifactIdNode.map(_._1), version.orElse(parentVersion)), dfn)(Map(
-        "groupId" -> groupId.orElse(parentGroupid).getOrElse(""),
-        "artifactId" -> artifactIdNode.map(_._1).getOrElse(""),
-        "packaging" -> packaging.getOrElse(""),
-        "version" -> version.orElse(parentVersion).getOrElse("")).toSeq.map(t => (t._1, t._2, artifactIdNode.get._2))))
+            "groupId" -> groupId.orElse(parentGroupid).getOrElse(""),
+            "artifactId" -> artifactIdNode.map(_._1).getOrElse(""),
+            "packaging" -> packaging.getOrElse(""),
+            "version" -> version.orElse(parentVersion).getOrElse("")
+          ).toSeq.map(t => (t._1, t._2, artifactIdNode.get._2))))
     } else {
       None
     }
@@ -807,13 +824,14 @@ object PomMod {
       } else {
         Map.empty
       }
-      val seq = (Map(
-        "groupId" -> groupid.getOrElse(""),
-        "artifactId" -> artifactIdNode.map(_._1).getOrElse(""),
-        "packaging" -> packaging.getOrElse(""),
-      ) ++ vT).toSeq
+      val seq =
+        (Map(
+          "groupId" -> groupid.getOrElse(""),
+          "artifactId" -> artifactIdNode.map(_._1).getOrElse(""),
+          "packaging" -> packaging.getOrElse("")
+        ) ++ vT).toSeq
       val pDep = depFrom(Gav3(dep.groupId, dep.artifactId, dep.version), dfn)(seq
-        .map(t => (t._1, t._2, artifactIdNode.map(_._2).get)))
+          .map(t => (t._1, t._2, artifactIdNode.map(_._2).get)))
       Some(pDep)
     } else {
       None
@@ -856,8 +874,11 @@ object PomMod {
         }
 
       } else {
-        Util.only(allReplacemdents, "No property replacement found in pom.xmls for: \"" + input + "\" " +
-          "- define properties where they are required and not in parent pom.xml")
+        Util.only(
+          allReplacemdents,
+          "No property replacement found in pom.xmls for: \"" + input + "\" " +
+            "- define properties where they are required and not in parent pom.xml"
+        )
       }
     }
 
@@ -877,8 +898,8 @@ object PomMod {
   }
 
   def suggestReleaseBy(localDate: LocalDate, currentVersion: String, hasShopPom: Boolean,
-                       branchNames: Seq[String], tagNames: Seq[String] = Nil,
-                       nextVersion: () => String = () => "", increment: Option[Increment] = None): Seq[String] = {
+      branchNames: Seq[String], tagNames: Seq[String] = Nil,
+      nextVersion: () => String = () => "", increment: Option[Increment] = None): Seq[String] = {
     if (hasShopPom) {
       val releaseBranchNames = branchNames.filter(_.startsWith("release/")).map(_.replaceFirst("^release/", ""))
       val knownVersions: Seq[Version] = releaseBranchNames.map {
@@ -1124,7 +1145,8 @@ object PomMod {
     })
   }
 
-  def formatDependency(in: String, selectedGroupId: String, selectedArtifcatId: String, selectedVersion: String, newVersion: String): String = {
+  def formatDependency(in: String, selectedGroupId: String, selectedArtifcatId: String, selectedVersion: String, newVersion: String)
+      : String = {
     val doc = Xpath.newDocument(in)
     val filtered = filterBy(doc, selectedGroupId, selectedArtifcatId, Some(selectedVersion))
     filtered.headOption.foreach(node => {
@@ -1158,7 +1180,8 @@ object PomMod {
     applyToKey(raw, selfs, "version", None, _ => newValue)
   }
 
-  private def applyToGroupAndArtifactId(raw: RawPomFile, selfs: Seq[Dep], groupidFn: String => String, artifactIdFn: String => String): Unit = {
+  private def applyToGroupAndArtifactId(raw: RawPomFile, selfs: Seq[Dep], groupidFn: String => String, artifactIdFn: String => String)
+      : Unit = {
 
     val ga = selfs.map(x => (x.groupId, x.artifactId))
 

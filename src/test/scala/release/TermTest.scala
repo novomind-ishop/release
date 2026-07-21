@@ -42,20 +42,22 @@ class TermTest extends AssertionsForJUnit {
 
   @Test
   def testThrows(): Unit = {
-    TestHelper.assertComparisonFailure("expected:<[a]> but was:<[b]>", () => {
-      TermTest.testSys(Nil, "", "", expectedExitCode = 0)(_ => {
-        Assert.assertEquals("a", "b")
+    TestHelper.assertComparisonFailure("expected:<[a]> but was:<[b]>",
+      () => {
+        TermTest.testSys(Nil, "", "", expectedExitCode = 0)(_ => {
+          Assert.assertEquals("a", "b")
+        })
       })
-    })
   }
 
   @Test
   def testThrowsAll(): Unit = {
-    TestHelper.assertException("hello", classOf[Exception], () => {
-      TermTest.testSys(Nil, "", "", expectedExitCode = 0)(_ => {
-        throw new Exception("hello")
+    TestHelper.assertException("hello", classOf[Exception],
+      () => {
+        TermTest.testSys(Nil, "", "", expectedExitCode = 0)(_ => {
+          throw new Exception("hello")
+        })
       })
-    })
 
   }
 
@@ -203,8 +205,7 @@ object TermTest extends LazyLogging {
   case class OutErr[T](out: String, err: String, value: T)
 
   def testSys(input: Seq[String], expectedOut: String, expectedErr: String, expectedExitCode: Int = Int.MinValue,
-              outFn: String => String = a => a, outAllFn: Seq[String] => Seq[String] = a => a)
-             (fn: Term.Sys => Unit): Unit = {
+      outFn: String => String = a => a, outAllFn: Seq[String] => Seq[String] = a => a)(fn: Term.Sys => Unit): Unit = {
     this.synchronized {
 
       val out = new ByteArrayOutputStream()
@@ -227,19 +228,21 @@ object TermTest extends LazyLogging {
       }
       try {
 
-       fn.apply(sys)
+        fn.apply(sys)
 
       } catch {
         case e: SecurityException => // nothing
         case e: AssertionError => throw e
         case e: Throwable => throw e
       }
-      Assert.assertEquals(expectedErr, outAllFn.apply(err.toString.linesIterator.toList
-        .map(outFn))
-        .mkString("\n"))
-      Assert.assertEquals(expectedOut, outAllFn(out.toString.linesIterator.toList
-        .map(outFn))
-        .mkString("\n"))
+      Assert.assertEquals(expectedErr,
+        outAllFn.apply(err.toString.linesIterator.toList
+            .map(outFn))
+          .mkString("\n"))
+      Assert.assertEquals(expectedOut,
+        outAllFn(out.toString.linesIterator.toList
+            .map(outFn))
+          .mkString("\n"))
 
       if (expectedExitCode != Int.MinValue) {
         Assert.assertEquals(expectedExitCode, sys.getExitCode(expectedExitCode))
