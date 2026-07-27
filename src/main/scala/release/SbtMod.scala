@@ -215,6 +215,7 @@ object SbtMod {
             .version.get
           val suffix = sbtVersion match {
             case e: String if e.startsWith("1.") => "_2.12_1.0"
+            case e: String if e.startsWith("2.") => "_sbt2_3"
             case e: String => throw new IllegalStateException(s"unknown sbt version: ${e}")
           }
 

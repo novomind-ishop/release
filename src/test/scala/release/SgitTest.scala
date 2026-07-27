@@ -49,7 +49,7 @@ class SgitTest extends AssertionsForJUnit {
     TestHelper.assertExceptionWithCheck(
       message =>
         Assert.assertEquals("no .git dir in sgit-test was found. " +
-          "Please change dir to the project folder.",
+            "Please change dir to the project folder.",
           message.replaceFirst("[^ ]+sgit-test-[^ ]+", "sgit-test")),
       classOf[MissingGitDirException],
       () => {
@@ -226,7 +226,7 @@ class SgitTest extends AssertionsForJUnit {
 
     // THEN
     Assert.assertEquals(Seq(
-      "error: Could not resolve hostname git.example.org: Name or service not known fatal: Could not read from remote repository."), err)
+        "error: Could not resolve hostname git.example.org: Name or service not known fatal: Could not read from remote repository."), err)
     Assert.assertEquals(Nil, out)
   }
 
@@ -244,8 +244,8 @@ class SgitTest extends AssertionsForJUnit {
     testee.err("bla bla")
     // THEN
     Assert.assertEquals(Seq(
-      " ! [rejected]        v0.0.10    -> v0.0.10  (would clobber existing tag).",
-      "error: Could not fetch origin"), err)
+        " ! [rejected]        v0.0.10    -> v0.0.10  (would clobber existing tag).",
+        "error: Could not fetch origin"), err)
     Assert.assertEquals(Nil, out)
   }
 
@@ -263,7 +263,7 @@ class SgitTest extends AssertionsForJUnit {
 
     // THEN
     Assert.assertEquals(Seq(
-      "ssh: Could not resolve hostname git.example.org: Name or service not known fatal: Could not read from remote repository."), err)
+        "ssh: Could not resolve hostname git.example.org: Name or service not known fatal: Could not read from remote repository."), err)
     Assert.assertEquals(Nil, out)
   }
 
@@ -318,7 +318,7 @@ class SgitTest extends AssertionsForJUnit {
 
     // THEN
     Assert.assertEquals(List("See https://any-gerrit:8443/72458 snap weg",
-      "See https://any-gerrit:8443/72459 [ishop-release] prepare for next iteration - 29.0.6"), err)
+        "See https://any-gerrit:8443/72459 [ishop-release] prepare for next iteration - 29.0.6"), err)
   }
 
   @Test
@@ -383,7 +383,7 @@ class SgitTest extends AssertionsForJUnit {
 
     // THEN
     Assert.assertEquals(Seq(
-      "error: Could not resolve hostname git.example.org: Name or service not known fatal: Could not read from remote repository."), err)
+        "error: Could not resolve hostname git.example.org: Name or service not known fatal: Could not read from remote repository."), err)
     Assert.assertEquals(Nil, out)
   }
 
@@ -424,7 +424,7 @@ class SgitTest extends AssertionsForJUnit {
     TestHelper.assertExceptionWithCheck(
       msg => {
         Assert.assertEquals(s"no .git dir in ${noGit.getAbsolutePath} or in parents was found. " +
-          "Please change dir to the project folder.", msg)
+            "Please change dir to the project folder.", msg)
       },
       classOf[MissingGitDirException],
       () => {
@@ -583,8 +583,8 @@ class SgitTest extends AssertionsForJUnit {
     )
 
     Assert.assertEquals(Seq(
-      GitRemote.of("ubglu", "failfail", "(fetch)"),
-      GitRemote.of("ubglu", "failfail", "(push)")),
+        GitRemote.of("ubglu", "failfail", "(fetch)"),
+        GitRemote.of("ubglu", "failfail", "(push)")),
       gitA.listRemotes())
     Assert.assertEquals(Nil, gitA.lsRemote())
     gitA.removeRemote("ubglu")
@@ -629,10 +629,10 @@ class SgitTest extends AssertionsForJUnit {
         gitA.version() match {
           // TODO change default later
           case gv: String
-            if gv.startsWith("git version 2.29") ||
-              gv.startsWith("git version 2.30") ||
-              gv.startsWith("git version 2.31") ||
-              gv.startsWith("git version 2.32") => {
+              if gv.startsWith("git version 2.29") ||
+                gv.startsWith("git version 2.30") ||
+                gv.startsWith("git version 2.31") ||
+                gv.startsWith("git version 2.32") => {
             val var1 = "Nonzero exit value: 1; git --no-pager fetch --all --tags; " +
               "ssh: Could not resolve hostname git.example.org: Name or service not known fatal: " +
               "Could not read from remote repository. " +
@@ -837,7 +837,7 @@ class SgitTest extends AssertionsForJUnit {
         }
 
       }
-case Term.Os.Windows => {
+      case Term.Os.Windows => {
         TestHelper.assertExceptionWithCheck(
           message =>
             Assert.assertEquals(

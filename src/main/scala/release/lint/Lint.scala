@@ -1001,7 +1001,8 @@ object Lint {
             val lookupUpAndDowngrades: Map[Gav3, Seq[String]] = if (resultTry.isSuccess) {
               resultTry.get._1.map(t => (t._1.gav.simpleGav(), t._2.map(_._1))).toMap
             } else {
-              if (resultTry.failed.get.isInstanceOf[TimeoutException]) {
+              val value = resultTry.failed.get
+              if (value.isInstanceOf[TimeoutException]) {
                 retryExit.trigger()
               }
 

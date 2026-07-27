@@ -5,7 +5,7 @@ import org.scalatestplus.junit.AssertionsForJUnit
 import release.Util.{Mailbox, UrlUserInfo}
 
 import java.net.URI
-import java.time.{Duration, Period}
+import java.time.{Duration, LocalDate, Period}
 import java.util
 import scala.util.Random
 
@@ -374,5 +374,27 @@ class UtilTest extends AssertionsForJUnit {
     val str = Util.toGlitchy(value)
     Assert.assertNotEquals(value, str)
     Assert.assertTrue(Util.isGlitchy(str))
+  }
+
+  @Test
+  def testIs(): Unit = {
+    {
+      val tuple = Util.subGtMax(Period.ofDays(10), Period.ofDays(11), LocalDate.of(2026, 5, 5))
+      Assert.assertFalse(tuple._1)
+      Assert.assertEquals(Duration.ofDays(-1), tuple._2)
+    }
+
+    {
+      val tuple = Util.subGtMax(Period.ofDays(10), Period.ofDays(9), LocalDate.of(2026, 5, 5))
+      Assert.assertTrue(tuple._1)
+      Assert.assertEquals(Duration.ofDays(1), tuple._2)
+    }
+
+    {
+      val tuple = Util.subGtMax(Period.ofDays(30), Period.ofMonths(1), LocalDate.of(2026, 5, 31))
+      Assert.assertFalse(tuple._1)
+      Assert.assertEquals(Duration.ofDays(-1), tuple._2)
+    }
+
   }
 }

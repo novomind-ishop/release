@@ -6,6 +6,7 @@ import org.apache.http.client.utils.URIBuilder
 import release.PomMod.{DepTree, abbreviate, unmanaged}
 import release.ProjectMod.{Dep, Gav3, PluginDep, UpdateCon}
 import release.Starter.PreconditionsException
+import release.lint.Lint
 
 import java.io.File
 import java.net.URI
@@ -14,6 +15,7 @@ import java.time.{Duration, LocalDate, Period, ZonedDateTime}
 import java.util.concurrent.TimeUnit
 import scala.collection.immutable.{ListMap, Seq}
 import scala.collection.parallel.CollectionConverters.*
+import scala.concurrent.TimeoutException
 import scala.util.{Failure, Success, Try}
 
 object ProjectMod extends LazyLogging {
@@ -607,8 +609,8 @@ object ProjectMod extends LazyLogging {
       repoDelegator.repos.foreach(repo => {
         val reachableResult = repo.isReachable(false, RepoZ.confFromEnv(repo.workNexusUrl(), envs))
         if (!reachableResult.online) {
-          throw new PreconditionsException(
-            repo.workNexusUrl() + " - repo feels offline - " + reachableResult.msg + RepoZ.createEnvRul(repo.workNexusUrl()))
+          throw new TimeoutException(
+            repo.workNexusUrl() + " - repo seems offline - " + reachableResult.msg + RepoZ.createEnvRul(repo.workNexusUrl()))
         }
       })
 
@@ -771,13 +773,32 @@ object ProjectMod extends LazyLogging {
       }
       val period = Util.toPeriod(sum)
       updatePrinter.println(s"Σ libyears: ${period.getYears}Y ${period.getMonths}M (${sum.toDays} days) [${now.toString}]")
-      if (opts.lintOpts.libYearsWarnPeriod.isDefined && period.minus(opts.lintOpts.libYearsWarnPeriod.get).isNegative) {
-        updatePrinter.println(s"Σ libyears: will trigger a warning") // TODO
-        warnExit.trigger()
+      def fmtDs(d: Duration): String = {
+        val dabs = d.abs()
+        val p = Util.toPeriod(dabs)
+        s"${dabs.toDays} days aka ~ ${p.getYears}Y ${p.getMonths}M"
       }
-      if (opts.lintOpts.libYearsErrorPeriod.isDefined && period.minus(opts.lintOpts.libYearsErrorPeriod.get).isNegative) {
-        updatePrinter.println(s"Σ libyears: will trigger an error") // TODO
-        errorExit.trigger()
+      if (opts.lintOpts.libYearsWarnPeriod.isDefined) {
+        val tuple = Util.subGtMax(period, opts.lintOpts.libYearsWarnPeriod.get)
+        if (tuple._1) {
+          warnExit.trigger()
+          updatePrinter.println(
+            s"Σ libyears: triggered a warning ${Lint.fiWarn} - ${fmtDs(tuple._2)} - RELEASE_LINT_LIB_YEARS_WARN_PERIOD = ${opts.lintOpts.libYearsWarnPeriod.get}")
+        } else {
+          updatePrinter.println(
+            s"Σ libyears: will trigger a warning - ${fmtDs(tuple._2)} - RELEASE_LINT_LIB_YEARS_WARN_PERIOD = ${opts.lintOpts.libYearsWarnPeriod.get}")
+        }
+      }
+      if (opts.lintOpts.libYearsErrorPeriod.isDefined) {
+        val tuple = Util.subGtMax(period, opts.lintOpts.libYearsErrorPeriod.get)
+        if (tuple._1) {
+          errorExit.trigger()
+          updatePrinter.println(
+            s"Σ libyears: triggered an error ${Lint.fiError} - ${fmtDs(tuple._2)} - RELEASE_LINT_LIB_YEARS_ERROR_PERIOD = ${opts.lintOpts.libYearsErrorPeriod.get}")
+        } else {
+          updatePrinter.println(
+            s"Σ libyears: will trigger an error - ${fmtDs(tuple._2)} - RELEASE_LINT_LIB_YEARS_ERROR_PERIOD = ${opts.lintOpts.libYearsErrorPeriod.get}")
+        }
       }
     }
     allWithUpdate

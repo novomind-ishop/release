@@ -2,7 +2,7 @@ name := "release"
 
 version := "1.0-SNAPSHOT"
 
-scalaVersion := "3.8.3"
+scalaVersion := "3.8.4"
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "--release:21",
   "-feature", "-language:implicitConversions", "-Werror",
@@ -66,7 +66,7 @@ assembly / logLevel := Level.Warn
 
 assembly / mainClass := Some("release.Starter")
 
-assembly / assemblyJarName := "../release.jar"
+assembly / assemblyJarName := "../../../../release.jar"
 
 publish / skip := true
 

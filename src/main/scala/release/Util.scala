@@ -10,7 +10,8 @@ import java.net.{URI, URLEncoder}
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.security.MessageDigest
-import java.time.{Duration, Period, ZonedDateTime}
+import java.time.temporal.ChronoUnit
+import java.time.{Duration, LocalDate, Period, ZonedDateTime}
 import java.util
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
@@ -19,7 +20,7 @@ import scala.collection.immutable.Iterable
 import scala.collection.mutable
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{Await, Future}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.math.BigDecimal.RoundingMode
 import scala.util.Random
 
@@ -552,4 +553,12 @@ object Util {
       }
     }
   }
+
+  def subGtMax(max: Period, sub: Period, start: LocalDate = LocalDate.now()): (Boolean, Duration) = {
+    val end = start.minus(sub)
+    val en2d = start.minus(max)
+    val days = ChronoUnit.DAYS.between(end, en2d)
+    (end.isAfter(en2d), Duration.ofDays(days * -1))
+  }
+
 }
