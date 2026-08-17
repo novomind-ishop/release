@@ -12,7 +12,7 @@ logLevel := Level.Warn
 
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.11"
 
-libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5"
+libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.9.6"
 
 libraryDependencies += "javax.xml.bind" % "jaxb-api" % "2.3.1"
 
@@ -40,13 +40,13 @@ libraryDependencies += "org.jline" % "jline-reader" % "3.24.1"
 
 libraryDependencies += "com.github.siom79.japicmp" % "japicmp" % "0.26.1"
 
-libraryDependencies += "com.typesafe" % "config" % "1.4.3"
+libraryDependencies += "com.typesafe" % "config" % "1.4.9"
 
-libraryDependencies += "com.google.googlejavaformat" % "google-java-format" % "1.22.0"
+libraryDependencies += "com.google.googlejavaformat" % "google-java-format" % "1.36.1"
 
-libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.15" % "test"
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.20" % "test"
 
-libraryDependencies += "org.scalatestplus" %% "junit-4-13" % "3.2.15.0" % Test
+libraryDependencies += "org.scalatestplus" %% "junit-4-13" % "3.2.20.0" % Test
 
 libraryDependencies += "org.mockito" % "mockito-core" % "5.23.0" % Test
 

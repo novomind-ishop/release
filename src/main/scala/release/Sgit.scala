@@ -306,7 +306,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   }
 
   def fetchAll(): Unit = {
-    gitNative(Seq("fetch", "--all", "--tags"), errMapper = Sgit.fetchFilter()).get
+    gitNative(Seq("fetch", "--all", "--tags", "--prune"), errMapper = Sgit.fetchFilter()).get
   }
 
   def tryFetchAll(): Try[Unit] = {

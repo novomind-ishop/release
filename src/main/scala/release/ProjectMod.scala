@@ -773,31 +773,35 @@ object ProjectMod extends LazyLogging {
       }
       val period = Util.toPeriod(sum)
       updatePrinter.println(s"Σ libyears: ${period.getYears}Y ${period.getMonths}M (${sum.toDays} days) [${now.toString}]")
+
       def fmtDs(d: Duration): String = {
         val dabs = d.abs()
         val p = Util.toPeriod(dabs)
         s"${dabs.toDays} days aka ~ ${p.getYears}Y ${p.getMonths}M"
       }
+
       if (opts.lintOpts.libYearsWarnPeriod.isDefined) {
-        val tuple = Util.subGtMax(period, opts.lintOpts.libYearsWarnPeriod.get)
+        val wPeriod = opts.lintOpts.libYearsWarnPeriod.get
+        val tuple = Util.subGtMax(period, wPeriod)
         if (tuple._1) {
           warnExit.trigger()
           updatePrinter.println(
-            s"Σ libyears: triggered a warning ${Lint.fiWarn} - ${fmtDs(tuple._2)} - RELEASE_LINT_LIB_YEARS_WARN_PERIOD = ${opts.lintOpts.libYearsWarnPeriod.get}")
+            s"Σ libyears: Warning threshold exceeded by ${fmtDs(tuple._2)} - RELEASE_LINT_LIB_YEARS_WARN_PERIOD = $wPeriod ${Lint.fiWarn}")
         } else {
           updatePrinter.println(
-            s"Σ libyears: will trigger a warning - ${fmtDs(tuple._2)} - RELEASE_LINT_LIB_YEARS_WARN_PERIOD = ${opts.lintOpts.libYearsWarnPeriod.get}")
+            s"Σ libyears: Warning threshold will be reached in ${fmtDs(tuple._2)} - RELEASE_LINT_LIB_YEARS_WARN_PERIOD = $wPeriod")
         }
       }
       if (opts.lintOpts.libYearsErrorPeriod.isDefined) {
-        val tuple = Util.subGtMax(period, opts.lintOpts.libYearsErrorPeriod.get)
+        val ePeriod = opts.lintOpts.libYearsErrorPeriod.get
+        val tuple = Util.subGtMax(period, ePeriod)
         if (tuple._1) {
           errorExit.trigger()
           updatePrinter.println(
-            s"Σ libyears: triggered an error ${Lint.fiError} - ${fmtDs(tuple._2)} - RELEASE_LINT_LIB_YEARS_ERROR_PERIOD = ${opts.lintOpts.libYearsErrorPeriod.get}")
+            s"Σ libyears: Error threshold exceeded by ${fmtDs(tuple._2)} - RELEASE_LINT_LIB_YEARS_ERROR_PERIOD = $ePeriod ${Lint.fiError}")
         } else {
           updatePrinter.println(
-            s"Σ libyears: will trigger an error - ${fmtDs(tuple._2)} - RELEASE_LINT_LIB_YEARS_ERROR_PERIOD = ${opts.lintOpts.libYearsErrorPeriod.get}")
+            s"Σ libyears: Error threshold will be reached in ${fmtDs(tuple._2)} - RELEASE_LINT_LIB_YEARS_ERROR_PERIOD = $ePeriod")
         }
       }
     }

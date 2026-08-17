@@ -520,7 +520,7 @@ class SgitTest extends AssertionsForJUnit {
       case Term.Os.Darwin => {
         TestHelper.assertException(
           "Nonzero exit value: 1; " +
-            "git --no-pager fetch --all --tags; fatal: 'failfail' does not appear to be a git repository " +
+            "git --no-pager fetch --all --tags --prune; fatal: 'failfail' does not appear to be a git repository " +
             "fatal: Could not read from remote repository. Please make sure you have the correct access rights " +
             "and the repository exists. error: could not fetch ubglu",
           classOf[RuntimeException],
@@ -535,7 +535,7 @@ class SgitTest extends AssertionsForJUnit {
           case gv: String if gv.startsWith("git version 2.30") => {
             TestHelper.assertException(
               "Nonzero exit value: 1; " +
-                "git --no-pager fetch --all --tags; fatal: 'failfail' does not appear to be a git repository " +
+                "git --no-pager fetch --all --tags --prune; fatal: 'failfail' does not appear to be a git repository " +
                 "fatal: Could not read from remote repository. Please make sure you have the correct access rights " +
                 "and the repository exists. error: Could not fetch ubglu",
               classOf[RuntimeException],
@@ -547,7 +547,7 @@ class SgitTest extends AssertionsForJUnit {
           case any => {
             TestHelper.assertException(
               "Nonzero exit value: 128; " +
-                "git --no-pager fetch --all --tags; fatal: 'failfail' does not appear to be a git repository " +
+                "git --no-pager fetch --all --tags --prune; fatal: 'failfail' does not appear to be a git repository " +
                 "fatal: Could not read from remote repository. Please make sure you have the correct access rights " +
                 "and the repository exists.",
               classOf[RuntimeException],
@@ -561,7 +561,7 @@ class SgitTest extends AssertionsForJUnit {
       case Term.Os.Windows => {
         TestHelper.assertException(
           "Nonzero exit value: 128; " +
-            "git --no-pager fetch --all --tags; fatal: 'failfail' does not appear to be a git repository " +
+            "git --no-pager fetch --all --tags --prune; fatal: 'failfail' does not appear to be a git repository " +
             "fatal: Could not read from remote repository. Please make sure you have the correct access rights " +
             "and the repository exists.",
           classOf[RuntimeException],
@@ -620,7 +620,7 @@ class SgitTest extends AssertionsForJUnit {
       // TODO a git version change in 2.21
       //   failed: expected:<...r does not match any[.]' git-err: 'error: f...> but was:<...r does not match any[]' git-err: 'error: f...>
       case Term.Os.Windows => {
-        failFetchAll("Nonzero exit value: 128; git --no-pager fetch --all --tags; " +
+        failFetchAll("Nonzero exit value: 128; git --no-pager fetch --all --tags --prune; " +
           "ssh: Could not resolve hostname git.example.org: Name or service not known fatal: " +
           "Could not read from remote repository. " +
           "Please make sure you have the correct access rights and the repository exists.")
@@ -633,28 +633,28 @@ class SgitTest extends AssertionsForJUnit {
                 gv.startsWith("git version 2.30") ||
                 gv.startsWith("git version 2.31") ||
                 gv.startsWith("git version 2.32") => {
-            val var1 = "Nonzero exit value: 1; git --no-pager fetch --all --tags; " +
+            val var1 = "Nonzero exit value: 1; git --no-pager fetch --all --tags --prune; " +
               "ssh: Could not resolve hostname git.example.org: Name or service not known fatal: " +
               "Could not read from remote repository. " +
               "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu"
-            val var2 = "Nonzero exit value: 1; git --no-pager fetch --all --tags; " +
+            val var2 = "Nonzero exit value: 1; git --no-pager fetch --all --tags --prune; " +
               "ssh: Could not resolve hostname git.example.org: Temporary failure in name resolution fatal: " +
               "Could not read from remote repository. " +
               "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu"
             failFetchAll(var1, var2)
           }
           case gv: String if gv.startsWith("git version 2.31") => {
-            failFetchAll("Nonzero exit value: 1; git --no-pager fetch --all --tags; " +
+            failFetchAll("Nonzero exit value: 1; git --no-pager fetch --all --tags --prune; " +
               "ssh: Could not resolve hostname git.example.org: Name or service not known fatal: " +
               "Could not read from remote repository. " +
               "Please make sure you have the correct access rights and the repository exists. error: Could not fetch ubglu")
           }
           case _ => {
-            val a = "Nonzero exit value: 128; git --no-pager fetch --all --tags; " +
+            val a = "Nonzero exit value: 128; git --no-pager fetch --all --tags --prune; " +
               "ssh: Could not resolve hostname git.example.org: No address associated with hostname fatal: " +
               "Could not read from remote repository. " +
               "Please make sure you have the correct access rights and the repository exists."
-            val b = "Nonzero exit value: 128; git --no-pager fetch --all --tags; " +
+            val b = "Nonzero exit value: 128; git --no-pager fetch --all --tags --prune; " +
               "ssh: Could not resolve hostname git.example.org: Name or service not known fatal: " +
               "Could not read from remote repository. " +
               "Please make sure you have the correct access rights and the repository exists."
@@ -664,7 +664,7 @@ class SgitTest extends AssertionsForJUnit {
 
       }
       case Term.Os.Darwin => {
-        failFetchAll("Nonzero exit value: 1; git --no-pager fetch --all --tags; " +
+        failFetchAll("Nonzero exit value: 1; git --no-pager fetch --all --tags --prune; " +
           "ssh: Could not resolve hostname git.example.org: nodename nor servname provided, or not known fatal: " +
           "Could not read from remote repository. " +
           "Please make sure you have the correct access rights and the repository exists. error: could not fetch ubglu")
@@ -791,7 +791,7 @@ class SgitTest extends AssertionsForJUnit {
         TestHelper.assertExceptionWithCheck(
           message =>
             Assert.assertEquals(
-              "Nonzero exit value: 1; git --no-pager fetch --all --tags;" +
+              "Nonzero exit value: 1; git --no-pager fetch --all --tags --prune;" +
                 " ! [rejected]        v0.0.10    -> v0.0.10  (would clobber existing tag)" +
                 " error: could not fetch origin",
               message.replaceFirst(" From [^ ]+", "")
@@ -808,7 +808,7 @@ class SgitTest extends AssertionsForJUnit {
             TestHelper.assertExceptionWithCheck(
               message =>
                 Assert.assertEquals(
-                  "Nonzero exit value: 1; git --no-pager fetch --all --tags;" +
+                  "Nonzero exit value: 1; git --no-pager fetch --all --tags --prune;" +
                     " ! [rejected]        v0.0.10    -> v0.0.10  (would clobber existing tag)" +
                     " error: Could not fetch origin",
                   message.replaceFirst(" From [^ ]+", "")
@@ -823,7 +823,7 @@ class SgitTest extends AssertionsForJUnit {
             TestHelper.assertExceptionWithCheck(
               message =>
                 Assert.assertEquals(
-                  "Nonzero exit value: 1; git --no-pager fetch --all --tags;" +
+                  "Nonzero exit value: 1; git --no-pager fetch --all --tags --prune;" +
                     " ! [rejected]        v0.0.10    -> v0.0.10  (would clobber existing tag)",
                   message.replaceFirst(" From [^ ]+", "")
                 ),
@@ -841,7 +841,7 @@ class SgitTest extends AssertionsForJUnit {
         TestHelper.assertExceptionWithCheck(
           message =>
             Assert.assertEquals(
-              "Nonzero exit value: 1; git --no-pager fetch --all --tags;" +
+              "Nonzero exit value: 1; git --no-pager fetch --all --tags --prune;" +
                 " ! [rejected]        v0.0.10    -> v0.0.10  (would clobber existing tag)" +
                 "",
               message.replaceFirst(" From [^ ]+", "")

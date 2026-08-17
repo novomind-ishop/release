@@ -53,10 +53,10 @@ else
 fi
 release_bin=$(dirname $0)/release.bin
 trace_setup "start vm"
-if java -version > /dev/null 2>&1 ; then
-  java_bin=java
+if [[ -n "${JAVA_HOME:-}" && -x "$JAVA_HOME/bin/java" ]]; then
+  java_bin="$JAVA_HOME/bin/java"
 else
-  java_bin=$JAVA_HOME/bin/java
+  java_bin="java"
 fi
 if ! ${java_bin} -version > /dev/null 2>&1 ; then
   echo "E: no java found"

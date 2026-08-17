@@ -2,4 +2,6 @@ include:
   - project: 'product-development/dc_rd_ishop_so/ishop-core-gitlab-ci-templates'
     ref: "main"
     file: 'sbt-docker-21.yml'
-
+variables:
+  RELEASE_LINT_LIB_YEARS_WARN_PERIOD: "P20Y"
+  RELEASE_LINT_LIB_YEARS_ERROR_PERIOD: "P100Y"
