@@ -121,8 +121,10 @@ object SbtMod {
 
       def comment = "[ ]*//[^\n]+".r ^^ (term => term)
 
-      def predfined = "(^[ ]*(//|publish|scalacOptions|name|logLevel|assembly|lazy val|.settings|\\)|\"|Test).*)".r <~ nl ^^
-        (term => Predefined(term))
+      def predfined =
+        "(^[ ]*(//|publish|scalacOptions|name|logLevel|assembly|lazy val|.settings|\\)|\"|Test|import |ExclusionRule\\(|case ).*)".r <~
+          nl ^^
+          (term => Predefined(term))
 
       def valP = "(^val[ ]+)".r ~> word ~ " = " ~ word <~ opt(comment) ~ nl ^^ (term => ValDef(term._1._1, term._2))
 
@@ -193,7 +195,7 @@ object SbtMod {
 
       def scalaVersion: Parser[ScalaVersion] = scalaVersionA | scalaVersionB
 
-      def sbtVersion = "sbt.version=" ~> word ^^
+      def sbtVersion = """sbt.version[ ]*=[ ]*""".r ~> word ^^
         (term => {
           sbtVersionL = Some(term.stripLineEnd) // XXX side effect
           SbtVersion(sbtVersionL)
@@ -236,7 +238,8 @@ object SbtMod {
           }
         })
 
-      def dep = "[ ]*libraryDependencies \\+= ".r ~> rep(test | quotedWord | word3) <~ opt("[ ,]+//.*".r | "[ ,]+.*".r) ~ nl ^^
+      def dep = """[ ]*libraryDependencies \+= [/(]*""".r ~> rep(test | quotedWord | word3) <~ opt(
+        """\s*\)\..*""".r | """\s*,.*""".r | """\s*//.*""".r) ~ nl ^^
         (term => {
 
           if (term.size >= 3) {

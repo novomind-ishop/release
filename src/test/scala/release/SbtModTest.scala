@@ -94,6 +94,8 @@ class SbtModTest extends AssertionsForJUnit {
         |
         |libraryDependencies += "org.typelevel" % "cats-effect_2.13.0-M5" % "1.4.0"
         |
+        |libraryDependencies += ("org.typo" % "cats-effect_2.1" % "1.4.0-SNAPSHOT").changing().excludeA
+        |
         |""".stripMargin.trim,
       ProjectMod.SelfRef.undef
     )
@@ -105,7 +107,8 @@ class SbtModTest extends AssertionsForJUnit {
         d("redis.clients", "jedis", "3.3.0"),
         d("org.scalatestplus", "junit-4-12_2.13", "3.1.2.0"),
         d("org.scalatestplus", "junit-4-12_2.13", "3.1.2.1"),
-        d("org.typelevel", "cats-effect_2.13.0-M5", "1.4.0")
+        d("org.typelevel", "cats-effect_2.13.0-M5", "1.4.0"),
+        d("org.typo", "cats-effect_2.1", "1.4.0-SNAPSHOT")
 
       ),
       value.deps
@@ -202,6 +205,7 @@ class SbtModTest extends AssertionsForJUnit {
   def testDoParse_var(): Unit = {
     val value = SbtMod.SloppyParser.doParse(Opts(), strict = true)(
       """
+        |import scala.sys.process.*
         |ThisBuild / version := "0.1.0-SNAPSHOT"
         |
         |ThisBuild / scalaVersion := "3.8.1"
@@ -221,7 +225,7 @@ class SbtModTest extends AssertionsForJUnit {
         |
         |// sbt 'dependencyTree::toFile dep.tree -f'
         |// export COURSIER_TTL=0s # https://get-coursier.io/docs/ttl
-        |
+        |  ExclusionRule(organization = "io.kubernetes", name = "client-java"),
         |
         |""".stripMargin.trim,
       ProjectMod.SelfRef.undef
@@ -249,6 +253,19 @@ class SbtModTest extends AssertionsForJUnit {
 
     Assert.assertEquals(Seq(
         d("org.scala-sbt", "sbt", "1.5.5")
+      ), value.deps)
+  }
+
+  @Test
+  def testDoParseBuildProperties_spaces(): Unit = {
+    val value = SbtMod.SloppyParser.doParse(Opts(), strict = true)(
+      """
+        |sbt.version = 2.0.6
+        |
+        |""".stripMargin.trim, ProjectMod.SelfRef.undef)
+
+    Assert.assertEquals(Seq(
+        d("org.scala-sbt", "sbt", "2.0.6")
       ), value.deps)
   }
 
