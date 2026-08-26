@@ -259,9 +259,11 @@ case class Repo private (_mirrorNexus: RemoteRepository, _workNexus: RemoteRepos
     } else {
       in.major
     }
-    val versions = getVersionsOf(Seq(groupID, artifactId, "[" + start + "," + version + "]").mkString(":"))
+    val versions =
+      getVersionsOf(Seq(groupID, artifactId, "[" + start + "," + in.nextVersionResetZero((1, 0, 0)).format() + ")").mkString(":"))
     versions
       .filterNot(_.toString.endsWith(release.Version.snapshot))
+      .sorted
       .lastOption.map(v => Gav3(groupID, artifactId, Option(v.toString)))
   }
 

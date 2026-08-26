@@ -1631,7 +1631,7 @@ class LintMavenTest extends AssertionsForJUnit {
         |║ ╠═══ (1) 1.0.1, .., 1.2.8, 1.2.9 (libyears: 0Y 0M [7 days])
         |║ ╚═══ (2) 2.0, .., 2.5.5, 2.5.6 (libyears: 0Y 0M [14 days])
         |╠═╦═ org.springframework:spring-single:1.0.1
-        |║ ╚═══ 1.0.2 (libyears: 2Y 10M [1049 days])
+        |║ ╚═══ 1.0.2 (libyears: 2Y 10M [1049 days]) <<< old
         |║
         |Non existing dependencies for:
         |»org.springframework:spring-other2:1.0.0-SNAPSHOT « -> Nil

@@ -31,6 +31,13 @@ object FileUtils {
     f
   }
 
+  def readOpt(f: File): Option[String] = {
+    if (f.canRead) {
+      Some(read(f)).filterNot(_.isBlank)
+    } else {
+      None
+    }
+  }
   def read(f: File): String = {
     readLines(f).mkString("\n") + "\n"
   }

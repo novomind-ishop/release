@@ -52,6 +52,8 @@ libraryDependencies += "org.mockito" % "mockito-core" % "5.23.0" % Test
 
 libraryDependencies += "com.novocode" % "junit-interface" % "0.11" % "test"
 
+libraryDependencies += "org.yaml" % "snakeyaml" % "2.6"
+
 assembly / assemblyMergeStrategy := {
   case PathList("META-INF", _@_*) => MergeStrategy.discard
   case PathList("module-info.class") => MergeStrategy.discard

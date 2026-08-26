@@ -95,19 +95,32 @@ case class Version(pre: String, major: Int, minor: Int, patch: Int, low: String,
     "." + patch
   }
 
-  @tailrec
   final def nextVersionResetZero(t3: (Int, Int, Int), limit: Int = 1): Version = {
+    require(t3._1 >= 0)
+    require(t3._2 >= 0)
+    require(t3._3 >= 0)
+    nextVersionResetZeroInner(t3, limit)
+  }
+
+  @tailrec
+  private def nextVersionResetZeroInner(t3: (Int, Int, Int), limit: Int): Version = {
     if (limit > 0 && t3._1 != 0 && t3._2 == 0 && t3._3 == 0) {
-      nextVersionResetZero(t3.copy(_2 = minor * -1, _3 = patch * -1), limit - 1)
+      nextVersionResetZeroInner(t3.copy(_2 = minor * -1, _3 = patch * -1), limit - 1)
     } else if (limit > 0 && t3._2 != 0 && t3._3 == 0) {
-      nextVersionResetZero(t3.copy(_3 = patch * -1), limit - 1)
+      nextVersionResetZeroInner(t3.copy(_3 = patch * -1), limit - 1)
     } else {
-      nextVersion(t3)
+      nextVersionInner(t3)
     }
+  }
+  def nextVersionInner(t3: (Int, Int, Int)): Version = {
+    copy(major = major + t3._1, minor = minor + t3._2, patch = patch + t3._3)
   }
 
   def nextVersion(t3: (Int, Int, Int)): Version = {
-    copy(major = major + t3._1, minor = minor + t3._2, patch = patch + t3._3)
+    require(t3._1 >= 0)
+    require(t3._2 >= 0)
+    require(t3._3 >= 0)
+    nextVersionInner(t3)
   }
 
   @tailrec
@@ -136,7 +149,7 @@ case class Version(pre: String, major: Int, minor: Int, patch: Int, low: String,
       addWeek
     }
     val nextYear = if (addWeek > 52) {
-      major.toInt + 1
+      major + 1
     } else {
       major
     }

@@ -187,6 +187,24 @@ class OptsTest extends AssertionsForJUnit with LazyLogging {
   }
 
   @Test
+  def testArgRead_noGerrit_env_gitlab(): Unit = {
+    val gitlabCi =
+      """
+        |variables:
+        |  RELEASE_LINT_LIB_YEARS_WARN_PERIOD: "P20Y"
+        |  RELEASE_LINT_LIB_YEARS_ERROR_PERIOD: "P100Y"""".stripMargin
+    val read =
+      Opts.argsAndEnvRead(Seq("--skip-property", "a", "--skip-property", "b"), Opts(), Map("RELEASE_LINT_LIB_YEARS_WARN_PERIOD" -> "P21Y"),
+        gitlabCiYamlContents = gitlabCi)
+    val expected = Opts(skipProperties = Seq("a", "b"),
+      lintOpts = LintOpts(
+        libYearsErrorPeriod = Some(Period.parse("P100Y")),
+        libYearsWarnPeriod = Some(Period.parse("P21Y"))))
+    Assert.assertEquals(Util.show(expected), Util.show(read))
+    Assert.assertEquals(expected, read)
+  }
+
+  @Test
   def testArgRead_noGerrit_env_false(): Unit = {
     Assert.assertEquals(Opts(skipProperties = Seq("a", "b")),
       Opts.argsAndEnvRead(Seq("--skip-property", "a", "--skip-property", "b"), Opts(),

@@ -174,18 +174,18 @@ object Term {
     }
   }
 
+  val infoColorCode = 34
   val info = ColoredLiner(82 - 4,
-    (text, useColor, limit) =>
-      colorB(34, "INFO", useColor) + checkedLength(limit)(text))
+    (text, useColor, limit) => colorB(infoColorCode, "INFO", useColor) + checkedLength(limit)(text))
+  val warnSoftColorCode = 36
   val warnSoft = ColoredLiner(82 - 7,
-    (text, useColor, limit) =>
-      colorB(36, "WARNING", useColor, Some("warning")) + checkedLength(limit)(text))
+    (text, useColor, limit) => colorB(warnSoftColorCode, "WARNING", useColor, Some("warning")) + checkedLength(limit)(text))
+  val warnColorCode = 33
   val warn = ColoredLiner(82 - 7,
-    (text, useColor, limit) =>
-      colorB(33, "WARNING", useColor) + checkedLength(limit)(text))
+    (text, useColor, limit) => colorB(warnColorCode, "WARNING", useColor) + checkedLength(limit)(text))
+  val errorColorCode = 31
   val error = ColoredLiner(82 - 5,
-    (text, useColor, limit) =>
-      colorB(31, "ERROR", useColor) + checkedLength(limit)(text))
+    (text, useColor, limit) => colorB(errorColorCode, "ERROR", useColor) + checkedLength(limit)(text))
 
   def wrap(out: PrintStream, coloredLiner: ColoredLiner, text: String, opts: Opts): Unit = {
     wrapText(text, coloredLiner.defaultLimit)

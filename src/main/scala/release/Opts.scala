@@ -2,10 +2,13 @@ package release
 
 import com.google.common.base.Strings
 import org.eclipse.aether.repository.RemoteRepository
+import org.yaml.snakeyaml.Yaml
 import release.Util.Ext.*
 
 import java.time.Period
+import java.util
 import scala.annotation.tailrec
+import scala.jdk.CollectionConverters.*
 import scala.util.matching.Regex
 
 object Opts {
@@ -159,11 +162,26 @@ object Opts {
   }
 
   @tailrec
-  def argsAndEnvRead(params: Seq[String], inOpt: Opts, envs: Map[String, String]): Opts = {
+  def argsAndEnvRead(params: Seq[String], inOpt: Opts, envs: Map[String, String], gitlabCiYamlContents: String = ""): Opts = {
     if (envs.isEmpty) {
       argsRead(params, inOpt)
     } else {
-      argsAndEnvRead(params, envRead(envs.toSeq, inOpt), Map.empty)
+      argsAndEnvRead(params, envRead(yamlRead(gitlabCiYamlContents) ++ envs.toSeq, inOpt), Map.empty, "")
+    }
+  }
+
+  def yamlRead(content: String): Seq[(String, String)] = {
+    if (content.isEmpty) {
+      Nil
+    } else {
+      try {
+        val yaml = new Yaml()
+        val value: util.LinkedHashMap[String, util.LinkedHashMap[String, String]] = yaml.load(content)
+        val asdf: Option[util.LinkedHashMap[String, String]] = Option(value.get("variables"))
+        asdf.map(_.asScala.toSeq).getOrElse(Nil)
+      } catch {
+        case exception: Exception => Nil
+      }
     }
   }
 

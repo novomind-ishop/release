@@ -460,11 +460,11 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
     }
   }
 
-  def suggestReleaseVersion(branchNames: Seq[String] = Nil, tagNames: Seq[String] = Nil, increment: Option[Increment] = None)
+  def suggestReleaseVersions(branchNames: Seq[String] = Nil, tagNames: Seq[String] = Nil, increment: Option[Increment] = None)
       : Seq[String] = {
     checkCurrentVersion(currentVersion)
 
-    PomMod.suggestReleaseBy(LocalDate.now(), currentVersion.get, isShop, branchNames, tagNames, nextVersionFileContent(), increment)
+    PomMod.suggestReleasesBy(LocalDate.now(), currentVersion.get, isShop, branchNames, tagNames, nextVersionFileContent(), increment)
   }
 
   def suggestNextRelease(releaseVersion: String): String = {
@@ -897,7 +897,7 @@ object PomMod {
     localDate.get(weekFields.weekOfWeekBasedYear())
   }
 
-  def suggestReleaseBy(localDate: LocalDate, currentVersion: String, hasShopPom: Boolean,
+  def suggestReleasesBy(localDate: LocalDate, currentVersion: String, hasShopPom: Boolean,
       branchNames: Seq[String], tagNames: Seq[String] = Nil,
       nextVersion: () => String = () => "", increment: Option[Increment] = None): Seq[String] = {
     if (hasShopPom) {
@@ -1074,10 +1074,10 @@ object PomMod {
       "master"
     } else if (currentVersion == "main-SNAPSHOT" || currentVersion == "main") {
       "main"
-    } else if (currentVersion.matches("^[0-9]+x-SNAPSHOT$")) {
+    } else if (currentVersion.matches("^[0-9]+x(:?-SNAPSHOT)?$")) {
       Version.removeTrailingSnapshots(currentVersion)
-    } else if (currentVersion.matches("^[0-9]+x$")) {
-      currentVersion
+    } else if (currentVersion.matches("^[0-9]+x-RC[0-9]*(:?-SNAPSHOT)?$")) {
+      Version.removeTrailingSnapshots(currentVersion)
     } else {
       val withoutSnapshot = Version.removeTrailingSnapshots(releaseVersion)
       if (withoutSnapshot.count(_ == '.') > 2) {

@@ -61,7 +61,7 @@ object ProjectModTest {
 
     override lazy val depInFiles: Seq[(Dep, File)] = Nil
 
-    override def suggestReleaseVersion(branchNames: Seq[String], tagNames: Seq[String], increment: Option[Increment]): Seq[String] = Nil
+    override def suggestReleaseVersions(branchNames: Seq[String], tagNames: Seq[String], increment: Option[Increment]): Seq[String] = Nil
 
     override def suggestNextRelease(releaseVersion: String): String = "???"
 
@@ -464,10 +464,12 @@ class ProjectModTest extends AssertionsForJUnit {
     )
 
     val gav = Gav3(groupId = "org.example", artifactId = "some", version = "2.0.7")
+    val opts = Opts(depUpOpts = OptsDepUp(showLibYears = true), colors = false)
+    val j = ProjectMod.asdfsfdasd(opts, Seq((GavWithRef(SelfRef.undef, gav.toGav()), timestamps)))
     Assert.assertEquals(" (libyears: 0Y 0M [-2 days])",
-      ProjectMod.libyear(showYear = true, gav, major = Some("1"), timestamps, _ => {}))
+      ProjectMod.libyears(opts, gav, major = Some("1"), j))
     Assert.assertEquals(" (libyears: 0Y 0M [1 days])",
-      ProjectMod.libyear(showYear = true, gav, major = Some("2"), timestamps, _ => {}))
+      ProjectMod.libyears(opts, gav, major = Some("2"), j))
   }
 
   @Test
@@ -478,7 +480,9 @@ class ProjectModTest extends AssertionsForJUnit {
     )
 
     val gav = Gav3(groupId = "org.example", artifactId = "some", version = "1.0.7")
-    val result = ProjectMod.libyear(showYear = true, gav, major = Some("1"), timestamps, _ => {})
+    val opts = Opts(depUpOpts = OptsDepUp(showLibYears = true))
+    val j = ProjectMod.asdfsfdasd(opts, Seq((GavWithRef(SelfRef.undef, gav.toGav()), timestamps)))
+    val result = ProjectMod.libyears(opts, gav, major = Some("1"), j)
     Assert.assertEquals(" (libyears: 0Y 0M [1 days])", result)
   }
 
@@ -489,7 +493,9 @@ class ProjectModTest extends AssertionsForJUnit {
     )
 
     val gav = Gav3(groupId = "org.example", artifactId = "some", version = "1.0.7")
-    val result = ProjectMod.libyear(showYear = true, gav, major = Some("1"), timestamps, _ => {})
+    val opts = Opts(depUpOpts = OptsDepUp(showLibYears = true))
+    val j = ProjectMod.asdfsfdasd(opts, Seq((GavWithRef(SelfRef.undef, gav.toGav()), timestamps)))
+    val result = ProjectMod.libyears(opts, gav, major = Some("1"), j)
     Assert.assertEquals(" (libyears: ???)", result)
   }
 

@@ -252,7 +252,7 @@ object Release extends LazyLogging {
     }
 
     val knownTags: Seq[String] = sgit.listTagsWithDate().map(_.name)
-    val suggestedVersions: Seq[String] = newMod.suggestReleaseVersion(sgit.listBranchNamesAll(), knownTags, opts.versionIncrement)
+    val suggestedVersions: Seq[String] = newMod.suggestReleaseVersions(sgit.listBranchNamesAll(), knownTags, opts.versionIncrement)
 
     val releaseWithoutSnapshot = if (opts.versionIncrement.isDefined) {
       suggestedVersions.head
@@ -593,13 +593,13 @@ object Release extends LazyLogging {
         repoStateLine.start()
         val withoutSnapshot = in.version.get.replace("-SNAPSHOT", "")
         val released = repo.existsGav(in.groupId, in.artifactId, withoutSnapshot)
-        val suggeted = if (!released) {
+        val suggested = if (Version.parseSloppy(in.version.get).isSnapshot) {
           repo.latestGav(in.groupId, in.artifactId, in.version.get).map(_.toGav())
         } else {
           None
         }
         repoStateLine.end()
-        ReleaseInfo(in, released, suggeted)
+        ReleaseInfo(in, released, suggested)
       }).seq
     repoStateLine.finish()
 

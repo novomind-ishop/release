@@ -2,14 +2,13 @@ package release
 
 import com.google.common.base.Stopwatch
 import com.typesafe.scalalogging.LazyLogging
-import org.apache.http.client.utils.URIBuilder
 import release.PomMod.{DepTree, abbreviate, unmanaged}
 import release.ProjectMod.{Dep, Gav3, PluginDep, UpdateCon}
+import release.SbtMod.ValDef
 import release.Starter.PreconditionsException
 import release.lint.Lint
 
 import java.io.File
-import java.net.URI
 import java.nio.file.Path
 import java.time.{Duration, LocalDate, Period, ZonedDateTime}
 import java.util.concurrent.TimeUnit
@@ -84,10 +83,11 @@ object ProjectMod extends LazyLogging {
     (a, b) => b.last
   }
 
-  def libyear(showYear: Boolean, currentGav: Gav3, major: Option[String], versionTimestamps: Seq[(String, Try[ZonedDateTime])],
-      yearsFn: ((Gav3, Option[Int], Duration)) => Unit): String = {
+  def libyearCalc(opts: Opts, currentGav: Gav3, major: Option[String], versionTimestamps: Seq[(String, Try[ZonedDateTime])])
+      : Try[Either[Duration, String]] = {
+
     try {
-      if (showYear) {
+      if (opts.depUpOpts.showLibYears) {
         val workStamps = versionTimestamps.sortBy(k => Version.parseSloppy(k._1))
         if (workStamps.size > 1) {
           val currentVersionWithTimestamp = workStamps.find(s => s._1 == currentGav.version.get)
@@ -109,21 +109,55 @@ object ProjectMod extends LazyLogging {
             if (currentVersionWithTimestamp.isDefined && currentVersionWithTimestamp.get._2.isSuccess) {
               val dur = Duration.between(currentVersionWithTimestamp.get._2.get, lastSelection.get._2.get)
 
-              yearsFn.apply((currentGav, majorInt, dur))
-              val period: Period = Util.toPeriod(dur)
-              s" (libyears: ${period.getYears}Y ${period.getMonths}M [${dur.toDays} days])"
+              Success(Left(dur))
             } else {
-              " (libyears: ?????)"
+              Success(Right("?????"))
             }
 
           } else {
-            " (libyears: ????)"
+            Success(Right("????"))
           }
 
         } else {
-          " (libyears: ???)"
+          Success(Right("???"))
         }
 
+      } else {
+        Success(Right(""))
+      }
+    } catch {
+      case e: Exception => Failure(e)
+    }
+
+  }
+
+  def libyears(opts: Opts, currentGav: Gav3, major: Option[String],
+      libj: Map[(Gav3, Option[String]), Try[Either[Duration, String]]]): String = {
+    try {
+      if (opts.depUpOpts.showLibYears) {
+        val reverse = libj.values.collect {
+          case Success(Left(duration)) => duration
+        }.toSeq.distinct.sorted.reverse
+        val fe = reverse.take((reverse.size * 0.3).toInt)
+        val value = libj.getOrElse((currentGav, major), libj((currentGav, None))).get
+        if (value.isLeft) {
+          val dur = value.swap.getOrElse(null)
+          val period: Period = Util.toPeriod(dur)
+          val oldHint = if (fe.minOption.getOrElse(Duration.ofDays(100_000)).compareTo(dur) <= 0) {
+            Term.colorRaw(Term.warnColorCode, " <<< old", opts.colors) // TODO only warn color when warning
+          } else {
+            ""
+          }
+          s" (libyears: ${period.getYears}Y ${period.getMonths}M [${dur.toDays} days])${oldHint}"
+
+        } else {
+          val value1: String = value.getOrElse(null)
+          if (value1.isBlank) {
+            ""
+          } else {
+            s" (libyears: ${value1})"
+          }
+        }
       } else {
         ""
       }
@@ -600,6 +634,26 @@ object ProjectMod extends LazyLogging {
     }
   }
 
+  def asdfsfdasd(opts: Opts, tuples: Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])])
+      : Map[(Gav3, Option[String]), Try[Either[Duration, String]]] = {
+    tuples.flatMap((subElement: (GavWithRef, Seq[(String, Try[ZonedDateTime])])) => {
+      val o: Seq[String] = subElement._2.map(_._1)
+
+      val majorVersions: Seq[(String, Seq[String])] = ProjectMod.groupSortReleases(o)
+      val majorVersionWithoutSelf = majorVersions.map(e => {
+        (e._1, e._2.filterNot(_ == subElement._1.gav.version.get))
+      }).filterNot(_._2.isEmpty)
+      val asdf = if (majorVersionWithoutSelf != Nil) {
+        majorVersionWithoutSelf.map(el => Some(el._1))
+      } else {
+        Nil
+      }
+      val majors = Seq(None) ++ asdf
+      majors.map(major =>
+        ((subElement._1.gav.simpleGav(), major),
+          libyearCalc(opts, subElement._1.gav.simpleGav(), major, subElement._2)))
+    }).toMap
+  }
   def collectDependencyUpdates(updatePrinter: UpdateCon, opts: Opts,
       envs: Map[String, String],
       rootDeps: Seq[Dep], selfDepsMod: Seq[Dep], repoDelegator: RepoProxy,
@@ -676,7 +730,19 @@ object ProjectMod extends LazyLogging {
       }
 
       updatePrinter.println(ch("║ ", "| ") + "Project GAV: " + ref.id)
-      mods.sortBy(_._1.toString).foreach((subElement: (GavWithRef, Seq[(String, Try[ZonedDateTime])])) => {
+      val tuples: Seq[(GavWithRef, Seq[(String, Try[ZonedDateTime])])] = mods.sortBy(_._1.toString)
+      val libj: Map[(Gav3, Option[String]), Try[Either[Duration, String]]] = asdfsfdasd(opts, tuples)
+      val seq: Seq[((Gav3, Option[String]), Try[Either[Duration, String]])] = libj.toSeq
+      val asdf: Seq[(Gav3, Option[Int], Duration)] = seq.flatMap(k => {
+        if (k._2.isSuccess && k._2.get.isLeft) {
+          Some((k._1._1, k._1._2.flatMap(_.toIntOption), k._2.get.swap.getOrElse(null)))
+        } else {
+          None
+        }
+      })
+
+      years = years ++ asdf
+      tuples.foreach((subElement: (GavWithRef, Seq[(String, Try[ZonedDateTime])])) => {
 
         val o: Seq[String] = subElement._2.map(_._1)
 
@@ -693,21 +759,18 @@ object ProjectMod extends LazyLogging {
         }).filterNot(_._2.isEmpty)
         if (majorVersionWithoutSelf.size == 1) {
 
-          val year = libyear(opts.depUpOpts.showLibYears, subElement._1.gav.simpleGav(), None, subElement._2,
-            yearsFn = y => years = years :+ y)
+          val year = libyears(opts, subElement._1.gav.simpleGav(), None, libj)
           updatePrinter.println(ch("║ ╚═══ ", "| +--- ") +
             abbreviate(opts.depUpOpts.versionRangeLimit)(majorVersionWithoutSelf.head._2).mkString(", ") + year)
         } else {
           if (majorVersionWithoutSelf != Nil) {
             majorVersionWithoutSelf.tail.reverse.foreach(el => {
-              val year = libyear(opts.depUpOpts.showLibYears, subElement._1.gav.simpleGav(), Some(el._1), subElement._2,
-                yearsFn = y => years = years :+ y)
+              val year = libyears(opts, subElement._1.gav.simpleGav(), Some(el._1), libj)
               updatePrinter.println(ch("║ ╠═══ ", "| +--- ") + "(" + el._1 + ") " +
                 abbreviate(opts.depUpOpts.versionRangeLimit)(el._2).mkString(", ") + year)
             })
             val year =
-              libyear(opts.depUpOpts.showLibYears, subElement._1.gav.simpleGav(), Some(majorVersionWithoutSelf.head._1), subElement._2,
-                yearsFn = y => years = years :+ y)
+              libyears(opts, subElement._1.gav.simpleGav(), Some(majorVersionWithoutSelf.head._1), libj)
             updatePrinter.println(ch("║ ╚═══ ", "| +--- ") + "(" + majorVersionWithoutSelf.head._1 + ") " +
               abbreviate(opts.depUpOpts.versionRangeLimit)(majorVersionWithoutSelf.head._2).mkString(", ") + year)
           }
@@ -750,12 +813,18 @@ object ProjectMod extends LazyLogging {
       // https://ericbouwers.github.io/papers/icse15.pdf
       updatePrinter.println(ws)
       val workYears = years.distinct
-      val fi = workYears
+      val gavToTuples = workYears
         .groupBy(_._1)
+      val fi: Iterable[(Gav3, Option[Int], Duration)] = gavToTuples
         .flatMap(k => {
           val ident = k._2
           if (ident.size > 1) {
-            ident.filterNot(e => e._2.getOrElse(0) <= k._1.versionSloppy().map(_.major).getOrElse(0))
+            val a = ident.filterNot(e => {
+              val maybeInt = k._1.versionSloppy().map(_.major)
+              val rr = e._2.getOrElse(0) >= maybeInt.getOrElse(0)
+              rr
+            })
+            a
           } else {
             ident
           }
@@ -931,7 +1000,7 @@ trait ProjectMod extends LazyLogging {
 
   def getSelfDepsMod: Seq[Dep] = selfDepsMod
 
-  def suggestReleaseVersion(branchNames: Seq[String] = Nil, tagNames: Seq[String] = Nil, increment: Option[Increment] = None): Seq[String]
+  def suggestReleaseVersions(branchNames: Seq[String] = Nil, tagNames: Seq[String] = Nil, increment: Option[Increment] = None): Seq[String]
 
   def suggestNextRelease(releaseVersion: String): String
 
