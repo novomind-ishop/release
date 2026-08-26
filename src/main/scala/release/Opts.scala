@@ -53,7 +53,7 @@ object Opts {
       case ("RELEASE_LINT_SKIP", k) :: tail => envRead(
           tail, {
             val skips = Strings.nullToEmpty(k).split(",").toSeq.map(_.trim).distinct.filterNot(_.isEmpty)
-            inOpt.copy(lintOpts = inOpt.lintOpts.copy(skips = inOpt.lintOpts.skips ++ skips))
+            inOpt.copy(lintOpts = inOpt.lintOpts.copy(skips = (inOpt.lintOpts.skips ++ skips).distinct))
           }
         )
       case ("RELEASE_LINT_TIMEOUT_SEC", k) :: tail => envRead(tail, {

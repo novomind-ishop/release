@@ -191,13 +191,19 @@ class OptsTest extends AssertionsForJUnit with LazyLogging {
     val gitlabCi =
       """
         |variables:
+        |  RELEASE_LINT_SKIP: "RL1013-2801b627"
         |  RELEASE_LINT_LIB_YEARS_WARN_PERIOD: "P20Y"
         |  RELEASE_LINT_LIB_YEARS_ERROR_PERIOD: "P100Y"""".stripMargin
     val read =
-      Opts.argsAndEnvRead(Seq("--skip-property", "a", "--skip-property", "b"), Opts(), Map("RELEASE_LINT_LIB_YEARS_WARN_PERIOD" -> "P21Y"),
-        gitlabCiYamlContents = gitlabCi)
+      Opts.argsAndEnvRead(
+        Seq("--skip-property", "a", "--skip-property", "b"),
+        Opts(),
+        Map("RELEASE_LINT_LIB_YEARS_WARN_PERIOD" -> "P21Y", "RELEASE_LINT_SKIP" -> "RL1013-2801b627"),
+        gitlabCiYamlContents = gitlabCi
+      )
     val expected = Opts(skipProperties = Seq("a", "b"),
       lintOpts = LintOpts(
+        skips = Seq("RL1013-2801b627"),
         libYearsErrorPeriod = Some(Period.parse("P100Y")),
         libYearsWarnPeriod = Some(Period.parse("P21Y"))))
     Assert.assertEquals(Util.show(expected), Util.show(read))

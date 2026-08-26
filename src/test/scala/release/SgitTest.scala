@@ -21,6 +21,13 @@ class SgitTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testWriteGitLogHead(): Unit = {
+    val file = new File(".")
+    val self = Sgit(file = file, doVerify = hasCommitMsg, out = System.out, err = System.err, gitBin = None, opts = Opts()).commitIdHeadOpt()
+    FileUtils.write(new File(new File(file, "target"), "git.HEAD"), self.get)
+  }
+
+  @Test
   def testSplitLineOnWhitespace(): Unit = {
     Assert.assertEquals(Seq("a", "b"), Sgit.splitLineOnWhitespace("a b"))
   }
