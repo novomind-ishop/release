@@ -10,7 +10,7 @@ scalacOptions ++= Seq("-unchecked", "-deprecation", "--release:21",
 
 logLevel := Level.Warn
 
-libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.11"
+libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.6.3"
 
 libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.9.6"
 
@@ -52,15 +52,16 @@ libraryDependencies += "org.mockito" % "mockito-core" % "5.23.0" % Test
 
 libraryDependencies += "com.novocode" % "junit-interface" % "0.11" % "test"
 
-libraryDependencies += "org.yaml" % "snakeyaml" % "2.6"
+libraryDependencies += "org.yaml" % "snakeyaml" % "2.7"
 
 assembly / assemblyMergeStrategy := {
-  case PathList("META-INF", _@_*) => MergeStrategy.discard
+  case PathList("META-INF", "services", _*) => MergeStrategy.first
+  case PathList("META-INF", _*) => MergeStrategy.discard
   case PathList("module-info.class") => MergeStrategy.discard
   case PathList("NOTICE") => MergeStrategy.concat
   case PathList("LICENSE") => MergeStrategy.concat
-  case PathList("javax", "xml", _@_*) => MergeStrategy.first
-  case PathList("javax", "activation", _@_*) => MergeStrategy.first
+  case PathList("javax", "xml", _*) => MergeStrategy.first
+  case PathList("javax", "activation", _*) => MergeStrategy.first
   case x => MergeStrategy.singleOrError
 }
 

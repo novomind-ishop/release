@@ -187,6 +187,27 @@ class OptsTest extends AssertionsForJUnit with LazyLogging {
   }
 
   @Test
+  def testYamlRead(): Unit = {
+    val gitlabCi = {
+      """
+        |variables:
+        |  RELEASE_LINT_BOOLEAN: true
+        |  RELEASE_LINT_STRING: "string"
+        |  RELEASE_LINT_NUMBER: 20
+        |  RELEASE_LINT_NULL: null
+       """.stripMargin
+    }
+
+    val result = Opts.yamlRead(gitlabCi)
+    Assert.assertEquals(Seq(
+        ("RELEASE_LINT_BOOLEAN", "true"),
+        ("RELEASE_LINT_STRING", "string"),
+        ("RELEASE_LINT_NUMBER", "20"),
+        ("RELEASE_LINT_NULL", null)
+      ), result)
+  }
+
+  @Test
   def testArgRead_noGerrit_env_gitlab(): Unit = {
     val gitlabCi =
       """
@@ -201,11 +222,13 @@ class OptsTest extends AssertionsForJUnit with LazyLogging {
         Map("RELEASE_LINT_LIB_YEARS_WARN_PERIOD" -> "P21Y", "RELEASE_LINT_SKIP" -> "RL1013-2801b627"),
         gitlabCiYamlContents = gitlabCi
       )
-    val expected = Opts(skipProperties = Seq("a", "b"),
+    val expected = Opts(
+      skipProperties = Seq("a", "b"),
       lintOpts = LintOpts(
         skips = Seq("RL1013-2801b627"),
         libYearsErrorPeriod = Some(Period.parse("P100Y")),
-        libYearsWarnPeriod = Some(Period.parse("P21Y"))))
+        libYearsWarnPeriod = Some(Period.parse("P21Y")))
+    )
     Assert.assertEquals(Util.show(expected), Util.show(read))
     Assert.assertEquals(expected, read)
   }

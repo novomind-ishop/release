@@ -176,9 +176,17 @@ object Opts {
     } else {
       try {
         val yaml = new Yaml()
-        val value: util.LinkedHashMap[String, util.LinkedHashMap[String, String]] = yaml.load(content)
-        val asdf: Option[util.LinkedHashMap[String, String]] = Option(value.get("variables"))
-        asdf.map(_.asScala.toSeq).getOrElse(Nil)
+        val value: util.LinkedHashMap[String, util.LinkedHashMap[String, Any]] = yaml.load(content)
+        val maps: Option[util.LinkedHashMap[String, Any]] = Option(value.get("variables"))
+        val result = maps.map(_.asScala.toSeq).getOrElse(Nil)
+        result.map(t => {
+          if (t._2 == null) {
+            (t._1, null)
+          } else {
+            (t._1, t._2.toString)
+          }
+
+        })
       } catch {
         case exception: Exception => Nil
       }

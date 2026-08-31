@@ -31,8 +31,7 @@
   </logger>
 
   <logger name="org.eclipse.aether.internal.impl.WarnChecksumPolicy" level="ERROR" additivity="false" />
-  <root>
-    <level value="WARN" />
+  <root level="WARN">
     <appender-ref ref="CONSOLE" />
   </root>
 

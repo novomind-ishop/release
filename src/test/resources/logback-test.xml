@@ -7,8 +7,7 @@
     </encoder>
   </appender>
   <logger name="org.eclipse.aether.internal.impl.WarnChecksumPolicy" level="ERROR" additivity="false" />
-  <root>
-    <level value="warn" />
+  <root level="warn">
     <appender-ref ref="CONSOLE" />
   </root>
 

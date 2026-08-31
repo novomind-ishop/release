@@ -3,7 +3,6 @@ package release
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.joran.JoranConfigurator
 import ch.qos.logback.core.BasicStatusManager
-import ch.qos.logback.core.joran.GenericConfigurator
 import ch.qos.logback.core.status.Status
 import com.typesafe.scalalogging.LazyLogging
 import org.junit.rules.Timeout
@@ -380,7 +379,7 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
 
     def doTest(logbackFile: File): Unit = {
       val context: LoggerContext = new LoggerContext
-      val configurator: GenericConfigurator = new JoranConfigurator
+      val configurator = new JoranConfigurator
       configurator.setContext(context)
       configurator.doConfigure(logbackFile)
 
