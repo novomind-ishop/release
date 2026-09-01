@@ -302,7 +302,8 @@ object Starter extends LazyLogging {
 
     val otherArgs = argSeq.drop(7).filter(_ != null).map(_.trim).toList
 
-    val opts = Opts.argsAndEnvRead(otherArgs, Opts(), Envs.systemEnvs(), FileUtils.readOpt(new File(".gitlab-ci.yml")).getOrElse(""))
+    val opts =
+      Opts.argsAndEnvRead(otherArgs, Opts(), Envs.systemEnvs(), FileUtils.readOpt(new File(".gitlab-ci.yml")).getOrElse("")).valid()
     if (opts.showOpts) {
       out.println(Util.show(opts))
     }

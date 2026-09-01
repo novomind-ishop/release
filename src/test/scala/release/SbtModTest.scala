@@ -83,6 +83,8 @@ class SbtModTest extends AssertionsForJUnit {
         |
         |scalaVersion := "2.13.0"
         |
+        |val variableName = "1.2.3"
+        |
         |libraryDependencies += "redis.clients" % "jedis" % "3"
         |
         |libraryDependencies += "redis.clients" % "jedis" % "3.3.0" // 540 k
@@ -96,6 +98,8 @@ class SbtModTest extends AssertionsForJUnit {
         |
         |libraryDependencies += ("org.typo" % "cats-effect_2.1" % "1.4.0-SNAPSHOT").changing().excludeA
         |
+        |libraryDependencies += ("org.typo" % "cats-miao" % variableName).changing().excludeA
+        |
         |""".stripMargin.trim,
       ProjectMod.SelfRef.undef
     )
@@ -108,7 +112,8 @@ class SbtModTest extends AssertionsForJUnit {
         d("org.scalatestplus", "junit-4-12_2.13", "3.1.2.0"),
         d("org.scalatestplus", "junit-4-12_2.13", "3.1.2.1"),
         d("org.typelevel", "cats-effect_2.13.0-M5", "1.4.0"),
-        d("org.typo", "cats-effect_2.1", "1.4.0-SNAPSHOT")
+        d("org.typo", "cats-effect_2.1", "1.4.0-SNAPSHOT"),
+        d("org.typo", "cats-miao", "1.2.3")
 
       ),
       value.deps

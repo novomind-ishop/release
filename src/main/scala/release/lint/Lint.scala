@@ -1049,7 +1049,7 @@ object Lint {
             }
             out.println(info("--- version skew ---", opts))
             out.println(info(s"    is shop: ${mod.isShop}", opts))
-            usedLintSkips = usedLintSkips ++ VersionSkew.skewResultOf(mod, None, Some(warnExit), Some(errorExit), Some(out), workOpts,
+            usedLintSkips = usedLintSkips ++ VersionSkew.skewResultOf(mod, None, warnExit, errorExit, Some(out), workOpts,
               skewStyle = envs.get("RELEASE_SKEW_STYLE")).usedLintSkips
 
             out.println(info("--- suggest dependency updates / configurable @ maven ---", opts))

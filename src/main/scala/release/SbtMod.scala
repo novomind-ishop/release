@@ -145,7 +145,7 @@ object SbtMod {
       case class LiteralWord(value: String) extends DepLineElement
       case class PredefWord(value: String) extends DepLineElement
 
-      def word3: Parser[(ValWord, None.type)] = "[ ]+".r ~> word <~ opt("[ ]+".r ~ sep) ^^
+      def word3: Parser[(ValWord, None.type)] = "[ ]+".r ~> "[a-zA-Z_][a-zA-Z0-9_]*".r <~ opt("[ ]+".r ~ sep) ^^
         (term => {
           (ValWord(term), None)
         })
@@ -253,10 +253,11 @@ object SbtMod {
                   "_" + suf
                 })
 
+              val value = toE(term(2)._1)
               SbtMod.Dep(
                 groupId = toE(term(0)._1),
                 artifactId = toE(term(1)._1, addVersion),
-                version = toE(term(2)._1),
+                version = value,
                 "",
                 "",
                 "",

@@ -262,7 +262,12 @@ case class LintOpts(doLint: Boolean = false, showTimer: Boolean = true, showTime
     skips: Seq[String] = Nil, warningsToErrors: Boolean = false, warningsToErrorsTag: Boolean = false,
     libYearsWarnPeriod: Option[Period] = None,
     libYearsErrorPeriod: Option[Period] = None,
-    diag: OptsDiag = OptsDiag.empty())
+    diag: OptsDiag = OptsDiag.empty()) {
+  def valid(): LintOpts = {
+    // TODO validated warnings lower error
+    this
+  }
+}
 
 case class OptsDepUp(showDependencyUpdates: Boolean = false, showHelp: Boolean = false,
     hideLatest: Boolean = true, versionRangeLimit: Integer = 3,
@@ -303,5 +308,10 @@ case class Opts(
 ) {
   def newRepo: RepoZ = {
     repoSupplier.apply(this)
+  }
+
+  def valid(): Opts = {
+    this.lintOpts.valid()
+    this
   }
 }

@@ -74,7 +74,7 @@ class VersionSkewTest extends AssertionsForJUnit {
 
   @Test
   def testWithOut(): Unit = {
-    val wx = Some(new OneTimeSwitch())
+    val wx = new OneTimeSwitch()
     val term = TermTest.withOutErr[Unit]()(sys => {
       val deps = Seq(
         Gav3("g", "some-rele-a", Some("1.2.3")),
@@ -82,9 +82,10 @@ class VersionSkewTest extends AssertionsForJUnit {
         Gav3("g", "aa", Some("2.2.3")),
         Gav3("g", "aaa", None)
       ).map(_.toDep(SelfRef.undef))
-      val sk = VersionSkew.innerSkewResult(None, warnExit = wx, out = Some(sys.out),
-        Opts().copy(colors = false, lintOpts = Opts().lintOpts.copy(skips = Seq("RL1013-2a36fc66"))), isNoShop = false, deps).usedLintSkips
-      Assert.assertEquals(Seq("RL1013-2a36fc66"), sk)
+      val result = VersionSkew.innerSkewResult(None, warnExit = wx, out = Some(sys.out),
+        Opts().copy(colors = false, lintOpts = Opts().lintOpts.copy(skips = Seq("RL1013-2a36fc66"))), isNoShop = false, deps)
+      Assert.assertEquals(Seq("RL1013-2a36fc66"), result.usedLintSkips)
+      Assert.assertTrue(result.hasDifferentMajors)
     })
     Assert.assertEquals(
       """[WARNING]     Found multiple core major version: »1, 2«, use only one 😬 RL1013-5d42b383
@@ -95,21 +96,22 @@ class VersionSkewTest extends AssertionsForJUnit {
         |[WARNING]       g:aa:2.2.3 😬 RL1013-7e9bf46f""".stripMargin,
       term.out
     )
-    Assert.assertTrue(wx.get.isTriggered())
+    Assert.assertTrue(wx.isTriggered())
   }
 
   @Test
   def testSkipSingle(): Unit = {
-    val wx = Some(new OneTimeSwitch())
+    val wx = new OneTimeSwitch()
     val term = TermTest.withOutErr[Unit]()(sys => {
       val deps = Seq(
         Gav3("g", "some-rele-b", Some("1.2.4")),
         Gav3("g", "aa", Some("2.2.3")),
         Gav3("g", "aaa", None)
       ).map(_.toDep(SelfRef.undef))
-      val sk = VersionSkew.innerSkewResult(None, warnExit = wx, out = Some(sys.out),
-        Opts().copy(colors = false, lintOpts = Opts().lintOpts.copy(skips = Seq("RL1013-2a36fc66"))), isNoShop = false, deps).usedLintSkips
-      Assert.assertEquals(Seq("RL1013-2a36fc66"), sk)
+      val result = VersionSkew.innerSkewResult(None, warnExit = wx, out = Some(sys.out),
+        Opts().copy(colors = false, lintOpts = Opts().lintOpts.copy(skips = Seq("RL1013-2a36fc66"))), isNoShop = false, deps)
+      Assert.assertEquals(Seq("RL1013-2a36fc66"), result.usedLintSkips)
+      Assert.assertFalse(result.hasDifferentMajors)
     })
     Assert.assertEquals(
       """[warning]     Found multiple core major version: »1, 2«, use only one 😬 RL1013-bc16a1a4
@@ -119,12 +121,12 @@ class VersionSkewTest extends AssertionsForJUnit {
         |[warning]       g:aa:2.2.3 😬 RL1013-7e9bf46f""".stripMargin,
       term.out
     )
-    Assert.assertFalse(wx.get.isTriggered())
+    Assert.assertFalse(wx.isTriggered())
   }
 
   @Test
   def testWithOut_skipAll(): Unit = {
-    val wx = Some(new OneTimeSwitch())
+    val wx = new OneTimeSwitch()
     val term = TermTest.withOutErr[Unit]()(sys => {
       val deps = Seq(
         Gav3("g", "some-rele-a", Some("1.2.3")),
@@ -145,7 +147,7 @@ class VersionSkewTest extends AssertionsForJUnit {
         |[INFO]          g:aa:2.2.3 🤐 RL1013-7e9bf46f""".stripMargin,
       term.out
     )
-    Assert.assertFalse(wx.get.isTriggered())
+    Assert.assertFalse(wx.isTriggered())
   }
 
 }
