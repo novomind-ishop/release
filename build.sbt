@@ -34,6 +34,10 @@ libraryDependencies += "org.apache.maven" % "maven-resolver-provider" % "3.9.16"
 
 //libraryDependencies += "io.get-coursier" %% "coursier" % "2.1.7"
 
+resolvers += "Gradle releases" at "https://repo.gradle.org/gradle/libs-releases"
+
+libraryDependencies += "org.gradle" % "gradle-tooling-api" % "9.7.0"
+
 libraryDependencies += "org.jline" % "jline-terminal" % "4.3.1"
 
 libraryDependencies += "org.jline" % "jline-reader" % "4.3.1"

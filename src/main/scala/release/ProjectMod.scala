@@ -179,8 +179,13 @@ object ProjectMod extends LazyLogging {
         sys.out.print("I: Reading build.sbt ..")
       }
       SbtMod.withRepo(workDirFile, opts, repo)
+    } else if (GradleMod.buildGradle(workDirFile).isDefined) {
+      if (showRead) {
+        sys.out.print("I: Reading Gradle build files ..")
+      }
+      GradleMod.withRepo(workDirFile, opts, repo)
     } else {
-      throw new PreconditionsException(workDirFile.toString + " is no maven or sbt project")
+      throw new PreconditionsException(workDirFile.toString + " is no maven, sbt or gradle project")
     }
   }
 
@@ -906,6 +911,11 @@ trait ProjectMod extends LazyLogging {
 
   val listProperties: Map[String, String]
   val skipPropertyReplacement: Boolean
+
+  private[release] def snapshotProperties: Map[String, String] =
+    listProperties
+      .filter(_._2.contains("-SNAPSHOT"))
+      .filterNot(_._1 == "project.version")
 
   def tryCollectDependencyUpdates(opts: Opts, checkOn: Boolean = true, updatePrinter: UpdateCon, ws: String,
       warnExit: OneTimeSwitch, errorExit: OneTimeSwitch,

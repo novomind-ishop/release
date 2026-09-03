@@ -33,6 +33,13 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
   case class ExecReturn(out: String, err: String, exit: Int)
 
   @Test
+  def testVersionForVersionSet(): Unit = {
+    Assert.assertEquals("${revision}", Starter.versionForVersionSet("${revision}"))
+    Assert.assertEquals("1.2.3-SNAPSHOT", Starter.versionForVersionSet("1.2.3"))
+    Assert.assertEquals("1.2.3-SNAPSHOT", Starter.versionForVersionSet("1.2.3-SNAPSHOT"))
+  }
+
+  @Test
   def testTransformRemoteToBuildUrl_paypal(): Unit = {
     val result = Starter.transformRemoteToBuildUrl(
       Seq(GitRemote.of("origin", "ssh://someone@local-gerrit:29418/ishop/ext/ext-paypal.git", "remoteType")),
@@ -105,6 +112,7 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
       |showSelf                             => a list of groupId:artifactId of current project
       |suggest-remote-branch                => use with '--non-interactive'
       |suggest-docker-tag                   => use with '--non-interactive', reads environment variables
+      |suggest-version                      => use with '--non-interactive', reads environment variables
       |                                        CI_COMMIT_REF_NAME and CI_COMMIT_TAG
       |
       |Possible environment variables:

@@ -153,6 +153,12 @@ class OptsTest extends AssertionsForJUnit with LazyLogging {
   }
 
   @Test
+  def testArgRead_suggestVersion(): Unit = {
+    Assert.assertEquals(
+      Opts(suggestVersion = true, showStartupDone = false), Opts.argsAndEnvRead(Seq("suggest-version"), Opts(), Map.empty))
+  }
+
+  @Test
   def testArgRead_noGerrit(): Unit = {
     Assert.assertEquals(Opts(useGerrit = false), Opts.argsAndEnvRead(Seq("--no-gerrit"), Opts(), Map.empty))
   }

@@ -16,6 +16,7 @@ import java.nio.file.Files
 import java.time.LocalDate
 import java.time.temporal.WeekFields
 import java.util.Locale
+import java.util.regex.{Matcher, Pattern}
 import javax.xml.transform.dom.DOMSource
 import javax.xml.transform.stream.StreamResult
 import javax.xml.transform.{OutputKeys, TransformerFactory}
@@ -117,6 +118,14 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
     replaceWithLimit(listProperties, selfVersion)
   }
 
+  private[release] val projectVersionPropertyNames: Set[String] =
+    PomMod.propertyNamesIn(selfVersion).toSet
+
+  private[release] override def snapshotProperties: Map[String, String] =
+    listProperties
+      .filter(_._2.contains("-SNAPSHOT"))
+      .filterNot(entry => entry._1 == "project.version" || projectVersionPropertyNames.contains(entry._1))
+
   val listRawDeps: Seq[Dep] = allPomsDocs.flatMap(deps)
   val listDependencies: Seq[Dep] = {
     val oo = replacedVersionProperties(listProperties, skipPropertyReplacement)(listRawDeps) // never distinct
@@ -128,6 +137,11 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
     val oo = replacedVersionProperties(listProperties, skipPropertyReplacement)(listRawDepsPlugin) // never distinct
     oo
   }
+
+  private lazy val effectiveSelfDepsMod: Seq[Dep] =
+    replacedVersionProperties(listProperties, skipPropertyReplacement)(selfDepsMod)
+
+  override def getSelfDepsMod: Seq[Dep] = effectiveSelfDepsMod
 
   if (opts.checkOverlapping) {
     PomChecker.checkDepScopes(listDependencies, listDependenciesPlugin)
@@ -322,21 +336,35 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
   }
 
   def changeVersion(newVersion: String): Unit = {
-    val oldVersion: String = PomMod.selectFirstVersionFrom(raws).get
+    val oldVersionExpression: String = PomMod.selectFirstVersionFrom(raws).get
+    val oldVersion = selfVersionReplaced
+    val versionProperty = PomMod.singlePropertyName(oldVersionExpression)
+
+    versionProperty.foreach(propertyName => PomMod.applyPropertyValue(raws, propertyName, newVersion))
+
     raws.foreach(d => {
-      if (d.pomFile.getParentFile == file) {
-        PomMod.applyValueOfXpathTo(d, PomMod.xPathToProjectVersion, oldVersion, newVersion)
-        PomMod.applyVersionTo(d, listSelf, oldVersion, newVersion)
+      if (versionProperty.isDefined) {
+        // Keep ${revision} (and references to it) intact. Maven gets the new
+        // effective project version from the updated property.
+        if (d.pomFile.getParentFile != file && d.parentDep.isDefined && rootPomGav.contains(d.parentDep.get.gav())) {
+          PomMod.applyLiteralValueOfXpathTo(d, PomMod.xPathToProjectParentVersion, oldVersion, newVersion)
+        }
+        PomMod.applyLiteralValueOfXpathTo(d, PomMod.xPathToProjectVersion, oldVersion, newVersion)
+        PomMod.applyLiteralVersionTo(d, listSelf, oldVersion, newVersion)
+      } else if (d.pomFile.getParentFile == file) {
+        PomMod.applyValueOfXpathTo(d, PomMod.xPathToProjectVersion, oldVersionExpression, newVersion)
+        PomMod.applyVersionTo(d, listSelf, oldVersionExpression, newVersion)
       } else {
         if (d.parentDep.isDefined && rootPomGav.contains(d.parentDep.get.gav())) {
-          PomMod.applyValueOfXpathTo(d, PomMod.xPathToProjectParentVersion, oldVersion, newVersion)
+          PomMod.applyValueOfXpathTo(d, PomMod.xPathToProjectParentVersion, oldVersionExpression, newVersion)
         }
-        PomMod.applyValueOfXpathTo(d, PomMod.xPathToProjectVersion, oldVersion, newVersion)
-        PomMod.applyVersionTo(d, listSelf, oldVersion, newVersion)
+        PomMod.applyValueOfXpathTo(d, PomMod.xPathToProjectVersion, oldVersionExpression, newVersion)
+        PomMod.applyVersionTo(d, listSelf, oldVersionExpression, newVersion)
       }
     })
     selfDepsMod.foreach(entry => {
-      changeDepTreesVersion(entry.groupId, entry.artifactId, entry.version.get, newVersion)
+      changeDepTreesVersion(entry.groupId, entry.artifactId,
+        replacedPropertyOf(listProperties, skipPropertyReplacement)(entry.version.get), newVersion)
     })
 
   }
@@ -423,7 +451,7 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
     val deps = listDependencies
     val filteredDeps = deps.filterNot(dep => {
       val mod = dep.copy(pomRef = SelfRef.undef, pomPath = Nil)
-      selfDepsMod.contains(mod)
+      effectiveSelfDepsMod.contains(mod)
     })
 
     val replacedParams = replacedVersionProperties(listProperties, skipPropertyReplacement)(filteredDeps)
@@ -464,12 +492,12 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
       : Seq[String] = {
     checkCurrentVersion(currentVersion)
 
-    PomMod.suggestReleasesBy(LocalDate.now(), currentVersion.get, isShop, branchNames, tagNames, nextVersionFileContent(), increment)
+    PomMod.suggestReleasesBy(LocalDate.now(), selfVersionReplaced, isShop, branchNames, tagNames, nextVersionFileContent(), increment)
   }
 
   def suggestNextRelease(releaseVersion: String): String = {
     checkCurrentVersion(currentVersion)
-    PomMod.suggestNextReleaseBy(currentVersion.get, releaseVersion)
+    PomMod.suggestNextReleaseBy(selfVersionReplaced, releaseVersion)
   }
 
   private def nextVersionFileContent(): () => String = {
@@ -511,6 +539,27 @@ case class RawPomFile(pomFile: File, document: Document, file: File) {
 }
 
 object PomMod {
+
+  private val propertyPattern = "\\$\\{([^}]+)\\}".r
+
+  private[release] def propertyNamesIn(value: String): Seq[String] =
+    propertyPattern.findAllMatchIn(Strings.nullToEmpty(value)).map(_.group(1)).toSeq
+
+  private[release] def singlePropertyName(value: String): Option[String] = value match {
+    case propertyPattern(name) => Some(name)
+    case _ => None
+  }
+
+  private[release] def applyPropertyValue(raws: Seq[RawPomFile], propertyName: String, newValue: String): Unit = {
+    val propertyNodes = raws.flatMap(raw =>
+      Xpath.toSeq(raw.document, "//project/properties")
+        .flatMap(node => Xpath.toSeqNodes(node.getChildNodes))
+        .filter(_.getNodeName == propertyName))
+    if (propertyNodes.isEmpty) {
+      throw new IllegalStateException(s"project version property '$propertyName' is not defined in pom.xml")
+    }
+    propertyNodes.foreach(_.setTextContent(newValue))
+  }
 
   def listProperties(opts: Opts, raws: Seq[RawPomFile], failureCollector: Option[Exception => Unit],
       allPomsDocs: Seq[Document], listSelf: Seq[Dep]): Map[String, String] = {
@@ -702,9 +751,15 @@ object PomMod {
 
   private[release] def replacedDepTreesVersion(entry: (File, PomMod.DepTree), groupId: String, artifactId: String, version: String,
       newVersion: String) = {
+    val dependencyPattern = Pattern.quote(groupId) + ":" + Pattern.quote(artifactId)
+    val versionPattern = Pattern.quote(version)
+    val replacementPrefix = Matcher.quoteReplacement(groupId + ":" + artifactId + ":")
+    val replacementVersion = Matcher.quoteReplacement(newVersion)
     entry._2.content.linesIterator
-      .map(_.replaceFirst(groupId + ":" + artifactId + ":([^:]*):([^:]*):" + version, groupId + ":" + artifactId + ":$1:$2:" + newVersion))
-      .map(_.replaceFirst(groupId + ":" + artifactId + ":([^:]*):" + version, groupId + ":" + artifactId + ":$1:" + newVersion))
+      .map(_.replaceFirst(dependencyPattern + ":([^:]*):([^:]*):" + versionPattern,
+          replacementPrefix + "$1:$2:" + replacementVersion))
+      .map(_.replaceFirst(dependencyPattern + ":([^:]*):" + versionPattern,
+          replacementPrefix + "$1:" + replacementVersion))
       .map(_.replaceFirst("-SNAPSHOT-SNAPSHOT", "-SNAPSHOT"))
       .mkString("\n") + "\n"
   }
@@ -1176,6 +1231,10 @@ object PomMod {
     applyToKey(raw, selfs, "version", Some(oldValue), _ => newValue)
   }
 
+  private[release] def applyLiteralVersionTo(raw: RawPomFile, selfs: Seq[Dep], oldValue: String, newValue: String): Unit = {
+    applyToKey(raw, selfs, "version", Some(oldValue), _ => newValue, replaceVariables = false)
+  }
+
   private[release] def applyVersionTo(raw: RawPomFile, selfs: Seq[Dep], newValue: String): Unit = {
     applyToKey(raw, selfs, "version", None, _ => newValue)
   }
@@ -1210,7 +1269,8 @@ object PomMod {
 
   }
 
-  private def applyToKey(raw: RawPomFile, selfs: Seq[Dep], key: String, oldKey: Option[String], newValueFn: String => String): Unit = {
+  private def applyToKey(raw: RawPomFile, selfs: Seq[Dep], key: String, oldKey: Option[String], newValueFn: String => String,
+      replaceVariables: Boolean = true): Unit = {
 
     val ga = selfs.map(x => (x.groupId, x.artifactId))
 
@@ -1228,7 +1288,7 @@ object PomMod {
     if (result.nonEmpty) {
       result.foreach(in => {
         if (oldKey.isDefined) {
-          if (oldKey.get == in.getTextContent || isVariable(in.getTextContent)) {
+          if (oldKey.get == in.getTextContent || (replaceVariables && isVariable(in.getTextContent))) {
             in.setTextContent(newValueFn.apply(in.getTextContent))
           }
         } else {
@@ -1254,6 +1314,12 @@ object PomMod {
     if (node.isDefined && (node.get.getTextContent == oldValue || isVariable(node.get.getTextContent))) {
       node.get.setTextContent(newValue)
     }
+  }
+
+  private[release] def applyLiteralValueOfXpathTo(raw: RawPomFile, xpath: String, oldValue: String, newValue: String): Unit = {
+    Xpath.toSeq(raw.document, xpath).headOption
+      .filter(_.getTextContent == oldValue)
+      .foreach(_.setTextContent(newValue))
   }
 
   def applyValueOfXpathTo(raw: RawPomFile, xpath: String, newValue: String): Unit = {

@@ -354,6 +354,7 @@ object Starter extends LazyLogging {
       out.println("showSelf                             => a list of groupId:artifactId of current project")
       out.println("suggest-remote-branch                => use with '--non-interactive'")
       out.println("suggest-docker-tag                   => use with '--non-interactive', reads environment variables")
+      out.println("suggest-version                      => use with '--non-interactive', reads environment variables")
       out.println("                                        CI_COMMIT_REF_NAME and CI_COMMIT_TAG")
       out.println()
       out.println("Possible environment variables:")
@@ -432,7 +433,7 @@ object Starter extends LazyLogging {
 
     }
 
-    if (opts.suggestDockerTag) {
+    if (opts.suggestDockerTag || opts.suggestVersion) {
       val file: File = new File(".").getAbsoluteFile
       val pomModTry = PomMod.withRepoTry(file, opts, opts.newRepo, failureCollector = None)
       val selfV = pomModTry.map(pm => pm.selfVersion).toOption
@@ -534,8 +535,7 @@ object Starter extends LazyLogging {
         Release.checkLocalChanges(git, startBranch)
         val mod = PomMod.of(workDirFile, opts, failureCollector = None)
         val version = opts.versionSet.get
-        val versionWithoutSnapshot = Version.removeTrailingSnapshots(version)
-        mod.changeVersion(Version.applySnapshot(versionWithoutSnapshot))
+        mod.changeVersion(versionForVersionSet(version))
         mod.writeTo(workDirFile)
         if (git.localChanges() != Nil) {
           out.println("I: Version successfully changed. You have local changes")
@@ -672,6 +672,14 @@ object Starter extends LazyLogging {
       Util.hashMurmur3_32_fixed(Seq(Util.hashMd5Random()).mkString("\n"))
     } else {
       Util.hashMurmur3_32_fixed(value.mkString("\n"))
+    }
+  }
+
+  private[release] def versionForVersionSet(version: String): String = {
+    if (PomMod.isVariable(version)) {
+      version
+    } else {
+      Version.applySnapshot(Version.removeTrailingSnapshots(version))
     }
   }
 

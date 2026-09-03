@@ -716,6 +716,47 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def changeVersionStoredInRevisionProperty(): Unit = {
+    // GIVEN
+    val revision = "{revision}"
+    val srcPoms = pomTestFile(
+      temp,
+      document(
+        <project>
+          <modelVersion>4.0.0</modelVersion>
+          <groupId>org.example</groupId>
+          <artifactId>property-version</artifactId>
+          <version>${revision}</version>
+          <properties>
+            <revision>1.1.0-SNAPSHOT</revision>
+            <dependency.version>2.0.0-SNAPSHOT</dependency.version>
+          </properties>
+        </project>
+      )
+    ).create()
+    val mod = PomModTest.withRepoForTests(srcPoms, repo)
+
+    assert("${revision}" === mod.selfVersion)
+    assert("1.1.0-SNAPSHOT" === mod.selfVersionReplaced)
+    assert(Set("revision") === mod.projectVersionPropertyNames)
+    assert(Map("dependency.version" -> "2.0.0-SNAPSHOT") === mod.snapshotProperties)
+    assert(mod.getSelfDepsMod.forall(_.version.contains("1.1.0-SNAPSHOT")))
+    assert(Seq("1.1.0") === mod.suggestReleaseVersions())
+
+    // WHEN
+    mod.changeVersion("1.1.0")
+    mod.writeTo(srcPoms)
+
+    // THEN
+    val pom = FileUtils.read(new File(srcPoms, "pom.xml"))
+    assert(pom.contains("<version>${revision}</version>"))
+    assert(pom.contains("<revision>1.1.0</revision>"))
+    val changed = PomModTest.withRepoForTests(srcPoms, repo)
+    assert("${revision}" === changed.selfVersion)
+    assert("1.1.0" === changed.selfVersionReplaced)
+  }
+
+  @Test
   def replacePropertySloppy(): Unit = {
     Assert.assertEquals("ab",
       PomMod.replaceProperty(Map("a" -> "b", "x" -> "x"), sloppy = true)("a${a}"))
@@ -2003,6 +2044,19 @@ class PomModTest extends AssertionsForJUnit {
       "com.any", "any-some", "1.0.1",
       "1.0.0-SNAPSHOT")
     Assert.assertEquals("com.any:any-some:jar:1.0.0-SNAPSHOT\n", out2)
+  }
+
+  @Test
+  def testReplacedDepTreesVersionWithMavenProperty(): Unit = {
+    val out = PomMod.replacedDepTreesVersion(mockEntry("com.any:any-some:jar:1.0.0"),
+      "com.any", "any-some", "1.0.0",
+      "${revision}")
+    Assert.assertEquals("com.any:any-some:jar:${revision}\n", out)
+
+    val out2 = PomMod.replacedDepTreesVersion(mockEntry("com.any:any-some:jar:${revision}"),
+      "com.any", "any-some", "${revision}",
+      "1.0.1")
+    Assert.assertEquals("com.any:any-some:jar:1.0.1\n", out2)
   }
 
   @Test

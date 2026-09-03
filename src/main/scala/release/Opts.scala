@@ -147,6 +147,7 @@ object Opts {
       case "showSelf" :: tail => argsRead(tail, inOpt.copy(showSelfGa = true))
       case "apidiff" :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(showApiDiff = true)))
       case "suggest-docker-tag" :: tail => argsRead(tail, inOpt.copy(suggestDockerTag = true, showStartupDone = false))
+      case "suggest-version" :: tail => argsRead(tail, inOpt.copy(suggestVersion = true, showStartupDone = false))
       case "suggest-remote-branch" :: tail =>
         argsRead(tail, inOpt.copy(suggestRemoteBranch = true, showStartupDone = false, isInteractive = false))
       case "versionSet" :: value :: _ => argsRead(Nil, inOpt.copy(versionSet = Some(value)))
@@ -301,6 +302,7 @@ case class Opts(
     showSelfGa: Boolean = false,
     showStartupDone: Boolean = true,
     suggestDockerTag: Boolean = false,
+    suggestVersion: Boolean = false,
     suggestRemoteBranch: Boolean = false,
     isInteractive: Boolean = true,
     showOpts: Boolean = false,

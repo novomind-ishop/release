@@ -1,9 +1,9 @@
 package release
 
-import org.jline.reader._
+import org.jline.reader.*
 import org.jline.terminal.TerminalBuilder
 
-import java.io.{BufferedReader, IOError, InputStream, InputStreamReader, OutputStream, PrintStream}
+import java.io.*
 import java.time.format.DateTimeFormatter
 import java.time.{ZoneOffset, ZonedDateTime}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
@@ -57,6 +57,7 @@ object Term {
     }
 
     result match {
+      case null => null
       case value if value.contains("-UNDEF") => throw new IllegalArgumentException("\"-UNDEF\" is not allowed")
       case value if value.trim.isEmpty => throw new IllegalArgumentException("blank is not allowed")
       case other => other
@@ -311,7 +312,6 @@ object Term {
       } else {
         throw new IllegalStateException("set only once")
       }
-      throw new SecurityException("EXIT")
     }
     def getExitCode(expected: Int): Int = {
       if (!atomicExitSet.get()) {

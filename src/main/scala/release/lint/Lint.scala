@@ -772,6 +772,11 @@ object Lint {
         } else {
           None
         }
+        val gradle: Option[Try[ProjectMod]] = if (rootFolderFiles.flatMap(f => GradleMod.buildFiles(f)).nonEmpty) {
+          Some(Success(GradleMod.withRepo(file, opts, opts.newRepo)))
+        } else {
+          None
+        }
         val dockerFiles = dockerfiles(file)
         val hasDockerFiles = dockerFiles.nonEmpty
 
@@ -845,7 +850,7 @@ object Lint {
           }
 
         }
-        if (pompom.isDefined || sbt.isDefined || mockMod.isDefined) {
+        if (pompom.isDefined || sbt.isDefined || mockMod.isDefined || gradle.isDefined) {
           out.println(info("--- -SNAPSHOTS in files @ maven/sbt/gradle ---", opts))
 
           val snapshotsInFiles = PomChecker.getSnapshotsInFiles(sgit.lsFilesAbsolute().map(_.getAbsolutePath))
@@ -903,6 +908,8 @@ object Lint {
             pompom.get
           } else if (sbt.isDefined) {
             sbt.get
+          } else if (gradle.isDefined) {
+            gradle.get
           } else if (mockMod.isDefined) {
             mockMod.get
           } else {

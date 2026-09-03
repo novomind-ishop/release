@@ -145,7 +145,8 @@ object Release extends LazyLogging {
   @tailrec
   def readReleaseVersions(sys: Term.Sys, mod: ProjectMod, suggestedVersions: Seq[String], opts: Opts, knownTags: Seq[String]): String = {
     val result = PomMod.checkNoSlashesNotEmptyNoZeros(
-      Term.readChooseOneOfOrType(sys, s"Enter release version for »${mod.selfVersion}«", suggestedVersions, opts, e => e.last, m => m.last))
+      Term.readChooseOneOfOrType(
+        sys, s"Enter release version for »${mod.selfVersionReplaced}«", suggestedVersions, opts, e => e.last, m => m.last))
     if (PomMod.isUnknownVersionPattern(result)) {
       if (mod.isShop) {
         sys.out.println("I: We prefer:")
@@ -341,7 +342,7 @@ object Release extends LazyLogging {
     // TODO hier könnte man jetzt die snapshots aus "mod" in "newMod" suchen und sie auf den folgesnapshot setzen
 
     val nextSnapshot = nextReleaseWithoutSnapshot + "-SNAPSHOT"
-    val cVe = newMod.selfVersion != nextSnapshot
+    val cVe = newMod.selfVersionReplaced != nextSnapshot
     if (cVe) {
       newMod.changeVersion(nextSnapshot)
     }
@@ -395,7 +396,7 @@ object Release extends LazyLogging {
     sgit.checkout(releaseBrachName)
     sys.out.println(". done (e)")
 
-    if (releaseMod.selfVersion != release) {
+    if (releaseMod.selfVersionReplaced != release) {
       releaseMod.changeVersion(release)
       releaseMod.writeTo(workDirFile)
     }
@@ -604,9 +605,7 @@ object Release extends LazyLogging {
       }).seq
     repoStateLine.finish()
 
-    val snapshotProperties = mod.listProperties
-      .filter(_._2.contains("-SNAPSHOT"))
-      .filterNot(_._1 == "project.version")
+    val snapshotProperties = mod.snapshotProperties
 
     val selfGav = mod.getSelfDepsMod.map(_.gav().simpleGav())
     val selecteded = mod.listGavs()
