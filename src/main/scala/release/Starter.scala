@@ -441,7 +441,13 @@ object Starter extends LazyLogging {
       val refName = envs.getOrElse("CI_COMMIT_REF_NAME", null)
       val ciTag = envs.getOrElse("CI_COMMIT_TAG", null)
       val externalTag = envs.getOrElse("RELEASE_SUGGEST_TAG", null)
-      val result = SuggestDockerTag.suggest(refName, ciTag, selfV, externalTag)
+      val result: (String, ExitCode) = if (opts.suggestVersion) {
+        SuggestVersion.suggest(refName, ciTag, selfV, externalTag) // TODO local git?
+      } else if (opts.suggestDockerTag) {
+        SuggestDockerTag.suggest(refName, ciTag, selfV, externalTag)
+      } else {
+        throw new IllegalStateException("should not be possible")
+      }
       out.println(result._1)
       return result._2
     }

@@ -58,6 +58,8 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
     }
   }
 
+  def getEnvs(): Map[String, String] = Envs.systemEnvs()
+
   private def depU(d: Map[Dep, Node]): Unit = {
     depMap = depMap ++ d
   }
@@ -111,7 +113,7 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
   }
 
   val listProperties: Map[String, String] = {
-    PomMod.listProperties(opts, raws, failureCollector, allPomsDocs, listSelf)
+    PomMod.listProperties(opts, raws, failureCollector, allPomsDocs, listSelf, getEnvs())
   }
 
   override lazy val selfVersionReplaced: String = {
@@ -562,7 +564,7 @@ object PomMod {
   }
 
   def listProperties(opts: Opts, raws: Seq[RawPomFile], failureCollector: Option[Exception => Unit],
-      allPomsDocs: Seq[Document], listSelf: Seq[Dep]): Map[String, String] = {
+      allPomsDocs: Seq[Document], listSelf: Seq[Dep], envs: Map[String, String]): Map[String, String] = {
     if (failureCollector.isDefined) {
       try {
         PomChecker.checkRootFirstChildPropertiesVar(opts, raws)
@@ -574,7 +576,11 @@ object PomMod {
     }
 
     val allPropsFromDocs = allPomsDocs.flatMap(PomMod.createPropertyMap)
-    val result = allPropsFromDocs.foldLeft(Map.empty[String, String])(_ + _)
+    val pomProperties = allPropsFromDocs.foldLeft(Map.empty[String, String])(_ + _)
+    val result = envs.get("revision") match {
+      case Some(revision) => pomProperties.updated("revision", revision)
+      case None => pomProperties
+    }
     val selfVersion = Util.only(listSelf.map(_.version).distinct, "version")
 
     replacedProperties(result, selfVersion)

@@ -8,9 +8,9 @@ import java.text.Normalizer
 import scala.util.{Failure, Success, Try}
 
 object SuggestDockerTag {
-  val masterPattern = "[a-zA-Z0-9][a-zA-Z0-9_\\-\\.]{0,127}".r
+  private val masterPattern = "[a-zA-Z0-9][a-zA-Z0-9_\\-\\.]{0,127}".r
 
-  def normlize(input: String): String = Normalizer
+  private def normlize(input: String): String = Normalizer
     .normalize(input, Normalizer.Form.NFD)
     .replaceAll("[^\\p{ASCII}]", "")
     .replaceAll("[^a-zA-Z0-9_\\-\\.]+", "")

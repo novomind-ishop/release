@@ -1,15 +1,15 @@
 package release
 
 import org.junit.rules.TemporaryFolder
-import org.junit.{Assert, ComparisonFailure, Ignore, Rule, Test}
+import org.junit.*
 import org.scalatestplus.junit.AssertionsForJUnit
 import org.w3c.dom.*
+import release.FileUtils.Ext.*
 import release.PomChecker.ValidationException
 import release.PomMod.DepTree
 import release.PomModTest.*
 import release.ProjectMod.*
 import release.Starter.PreconditionsException
-import release.FileUtils.Ext.*
 
 import java.io.{BufferedWriter, File, FileWriter}
 import java.nio.file.Paths
@@ -734,7 +734,7 @@ class PomModTest extends AssertionsForJUnit {
         </project>
       )
     ).create()
-    val mod = PomModTest.withRepoForTests(srcPoms, repo)
+    val mod = PomModTest.withRepoForTests(srcPoms, repo, envs = Map("revision" -> "1.1.0-SNAPSHOT"))
 
     assert("${revision}" === mod.selfVersion)
     assert("1.1.0-SNAPSHOT" === mod.selfVersionReplaced)
@@ -1906,6 +1906,41 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  @nowarn("msg=possible missing interpolator")
+  def listPropertiesIncludesRevisionFromEnvironment(): Unit = {
+    // GIVEN
+    val k = "${revision}"
+    val srcPoms = pomTestFile(
+      temp,
+      document(
+        <project>
+          <modelVersion>4.0.0</modelVersion>
+          <groupId>org.example</groupId>
+          <artifactId>property-version</artifactId>
+          <version>{k}</version>
+          <properties>
+            <revision>1.0.0-SNAPSHOT</revision>
+          </properties>
+        </project>
+      )
+    ).create()
+    val mod = PomModTest.withRepoForTests(srcPoms, repo)
+
+    // WHEN
+    val props = PomMod.listProperties(
+      mod.opts,
+      mod.raws,
+      mod.failureCollector,
+      mod.allPomsDocs,
+      mod.listSelf,
+      envs = Map("revision" -> "2.0.0-SNAPSHOT"))
+
+    // THEN
+    Assert.assertEquals("2.0.0-SNAPSHOT", props("revision"))
+    Assert.assertEquals("2.0.0-SNAPSHOT", props("project.version"))
+  }
+
+  @Test
   def replaceInOnline(): Unit = {
     val input = """<root><child>x</child></root>"""
 
@@ -2217,8 +2252,11 @@ class PomModTest extends AssertionsForJUnit {
 object PomModTest {
 
   def withRepoForTests(file: File, repo: RepoZ, skipPropertyReplacement: Boolean = false,
-      withSubPoms: Boolean = true, failureCollector: Option[Exception => Unit] = None, opts: Opts = Opts()): PomMod = {
-    PomMod(file, repo, opts, skipPropertyReplacement, withSubPoms, failureCollector)
+      withSubPoms: Boolean = true, failureCollector: Option[Exception => Unit] = None, opts: Opts = Opts(),
+      envs: Map[String, String] = Map.empty): PomMod = {
+    new PomMod(file, repo, opts, skipPropertyReplacement, withSubPoms, failureCollector) {
+      override def getEnvs(): Map[String, String] = envs
+    }
   }
 
   def pomTestFile(temp: TemporaryFolder, root: Document, treeFileContent: String = ""): TestFileBuilder = {
