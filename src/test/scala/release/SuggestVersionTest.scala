@@ -77,6 +77,18 @@ class SuggestVersionTest extends AssertionsForJUnit {
   }
 
   @Test
+  def tagDoesNotEvaluateProjectVersionFallback(): Unit = {
+    var evaluated = false
+    def projectVersion: Option[String] = {
+      evaluated = true
+      Some("1.2.3-SNAPSHOT")
+    }
+
+    Assert.assertEquals(("3.4.5", 0), SuggestVersion.suggest("main", "v3.4.5", projectVersion))
+    Assert.assertFalse(evaluated)
+  }
+
+  @Test
   def milestoneTagIsRecognized(): Unit = {
     assertSuggestion("3.4.5-M2", 0)("main", "v3.4.5-M2", None)
   }

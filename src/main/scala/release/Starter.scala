@@ -448,8 +448,8 @@ object Starter extends LazyLogging {
 
     if (opts.suggestDockerTag || opts.suggestVersion) {
       val file: File = new File(".").getAbsoluteFile
-      val pomModTry = PomMod.withRepoTry(file, opts, opts.newRepo, failureCollector = None)
-      val selfV = pomModTry.map(pm => pm.selfVersion).toOption
+      lazy val selfV = PomMod.withRepoTry(file, opts, opts.newRepo, failureCollector = None)
+        .map(pm => pm.selfVersion).toOption
       val envs = Envs.systemEnvs()
       lazy val localGit = Try(Sgit(file = workDirFile, gitBin = gitBinEnv, doVerify = false, out = out, err = err, opts = opts)).toOption
       val (refName, ciTag) = suggestionRefs(

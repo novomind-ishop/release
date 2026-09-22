@@ -1,29 +1,26 @@
-FROM eclipse-temurin:21.0.5_11-jre-jammy
-COPY release /root/release
-COPY release.jar /root/release.jar
-ENV RELEASE_DOCKER=true
-RUN chmod +x /root/release
-RUN /root/release --help
-RUN apt-get update && apt-get install -y dh-autoreconf libcurl4-openssl-dev libexpat1-dev \
-      gettext libz-dev libssl-dev build-essential
-RUN curl -L https://github.com/git/git/archive/refs/tags/v2.54.0.tar.gz > latest-git.tgz
-RUN mkdir latest-git && tar -zxf latest-git.tgz -C latest-git --strip-components=1
-RUN cd latest-git && ls -ltr && make configure && ./configure --prefix=/usr && make all
-RUN cd latest-git && pwd && ls -l && pwd
-RUN cd latest-git && make install
-COPY target/git.HEAD /root/git.HEAD
-
 FROM eclipse-temurin:25.0.3_9-jre-jammy
+
+ARG GIT_VERSION="1:2.55.0-0ppa1~ubuntu22.04.2"
 
 # https://hub.docker.com/_/eclipse-temurin/tags
 LABEL maintainer="ishop-dev-infra@novomind.com" \
       novomind.deko.color="ec601a" \
       novomind.deko.linux.distribution="ubuntu/22.04 Jammy Jellyfish"
 
-RUN apt-get update && apt-get install -y tzdata bash curl
-COPY --from=0 /latest-git/git /usr/bin/git
-COPY --from=0 /usr/libexec/git-core /usr/libexec/git-core
-RUN git --version
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl gnupg \
+    && mkdir -p /etc/apt/keyrings \
+    && curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xF911AB184317630C59970973E363C90F8F1B6217" \
+      | gpg --batch --dearmor -o /etc/apt/keyrings/git-core-ppa.gpg \
+    && gpg --batch --show-keys --with-colons /etc/apt/keyrings/git-core-ppa.gpg \
+      | grep -q "fpr:::::::::F911AB184317630C59970973E363C90F8F1B6217:" \
+    && echo "deb [signed-by=/etc/apt/keyrings/git-core-ppa.gpg] https://ppa.launchpadcontent.net/git-core/ppa/ubuntu jammy main" \
+      > /etc/apt/sources.list.d/git-core-ppa.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends tzdata bash \
+      "git=${GIT_VERSION}" "git-man=${GIT_VERSION}" \
+    && rm -rf /var/lib/apt/lists/*
+RUN test "$(git --version)" = "git version 2.55.0"
 RUN curl --version
 RUN git config --global core.autocrlf input && git config --global --add safe.directory "*"
 COPY release /root/release
@@ -33,4 +30,3 @@ ENV RELEASE_DOCKER=true
 RUN chmod +x /root/release
 RUN /root/release --help
 RUN /root/release --check-git
-

@@ -5,7 +5,7 @@ import release.Starter.ExitCode
 object SuggestVersion {
   private val versionPattern = "[a-zA-Z0-9][a-zA-Z0-9._+\\-]*".r
 
-  def suggest(commitRef: String, tagName: String, projectVersion: Option[String], externalTag: String = ""): (String, ExitCode) = {
+  def suggest(commitRef: String, tagName: String, projectVersion: => Option[String], externalTag: String = ""): (String, ExitCode) = {
     Option(externalTag).filterNot(_.isBlank) match {
       case Some(version) => (normalizeExplicitVersion(version), 0)
       case None =>
