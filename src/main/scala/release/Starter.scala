@@ -21,11 +21,24 @@ import java.util.concurrent.atomic.AtomicBoolean
 import scala.annotation.tailrec
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.util.Try
 import scala.util.matching.Regex
 
 object Starter extends LazyLogging {
 
   case class FutureError(msg: String, e: Exception)
+
+  private[release] def suggestionRefs(
+      ciRefName: Option[String],
+      ciTag: Option[String],
+      localRefName: => Option[String],
+      localTags: => Seq[String]): (String, String) = {
+    if (ciRefName.isDefined || ciTag.isDefined) {
+      (ciRefName.orNull, ciTag.orNull)
+    } else {
+      (localRefName.filterNot(_ == "HEAD").orNull, localTags.headOption.orNull)
+    }
+  }
 
   implicit class FutureEither[E, A](val wrapped: Future[Either[E, A]])(implicit ec: ExecutionContext) {
     def map[B](f: A => B): FutureEither[E, B] = wrapped.map(_.map(f))
@@ -353,9 +366,9 @@ object Starter extends LazyLogging {
       out.println("                                        reads environment variables CI_COMMIT_REF_NAME and CI_COMMIT_TAG")
       out.println("showSelf                             => a list of groupId:artifactId of current project")
       out.println("suggest-remote-branch                => use with '--non-interactive'")
-      out.println("suggest-docker-tag                   => use with '--non-interactive', reads environment variables")
-      out.println("suggest-version                      => use with '--non-interactive', reads environment variables")
-      out.println("                                        CI_COMMIT_REF_NAME and CI_COMMIT_TAG")
+      out.println("suggest-docker-tag                   => use with '--non-interactive', reads CI variables or local Git")
+      out.println("suggest-version                      => use with '--non-interactive', reads CI variables or local Git")
+      out.println("                                        CI_COMMIT_REF_NAME and CI_COMMIT_TAG take precedence")
       out.println()
       out.println("Possible environment variables:")
       out.println("export RELEASE_GIT_BIN=$PATH_TO_GIT_EXECUTABLE")
@@ -438,11 +451,15 @@ object Starter extends LazyLogging {
       val pomModTry = PomMod.withRepoTry(file, opts, opts.newRepo, failureCollector = None)
       val selfV = pomModTry.map(pm => pm.selfVersion).toOption
       val envs = Envs.systemEnvs()
-      val refName = envs.getOrElse("CI_COMMIT_REF_NAME", null)
-      val ciTag = envs.getOrElse("CI_COMMIT_TAG", null)
+      lazy val localGit = Try(Sgit(file = workDirFile, gitBin = gitBinEnv, doVerify = false, out = out, err = err, opts = opts)).toOption
+      val (refName, ciTag) = suggestionRefs(
+        envs.get("CI_COMMIT_REF_NAME"),
+        envs.get("CI_COMMIT_TAG"),
+        localGit.flatMap(_.currentBranchOpt),
+        localGit.toSeq.flatMap(_.tagsAtHead))
       val externalTag = envs.getOrElse("RELEASE_SUGGEST_TAG", null)
       val result: (String, ExitCode) = if (opts.suggestVersion) {
-        SuggestVersion.suggest(refName, ciTag, selfV, externalTag) // TODO local git?
+        SuggestVersion.suggest(refName, ciTag, selfV, externalTag)
       } else if (opts.suggestDockerTag) {
         SuggestDockerTag.suggest(refName, ciTag, selfV, externalTag)
       } else {

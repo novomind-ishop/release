@@ -250,6 +250,14 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     }
   }
 
+  def tagsAtHead: Seq[String] = {
+    try {
+      gitNative(Seq("tag", "--points-at", "HEAD"), showErrorsOnStdErr = false).get
+    } catch {
+      case _: Throwable => Nil
+    }
+  }
+
   def currentTagsAnnotated: Option[Seq[String]] = {
     currentTags.map(c => c.diff(currentTagsWithoutAnnotated.getOrElse(Nil)))
   }
@@ -279,16 +287,8 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
   def currentTags: Option[Seq[String]] = {
     if (isDetached) {
-      try {
-        val value = gitNative(Seq("tag", "--points-at", "HEAD"), showErrorsOnStdErr = false).get
-        if (value.isEmpty) {
-          None
-        } else {
-          Some(value)
-        }
-      } catch {
-        case _: Throwable => None
-      }
+      val tags = tagsAtHead
+      Option.when(tags.nonEmpty)(tags)
     } else {
       None
     }

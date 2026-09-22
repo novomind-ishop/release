@@ -73,7 +73,7 @@ object Term {
         possibleValues.map(line => line.replace(' ', ' ')).mkString("/")), opts)
     line match {
       case null => {
-        sys.err.println("invalid readFromOneOf(..)")
+        sys.err.println(s"invalid readFromOneOf(..): NULL while reading '${text}'")
         sys.exit(1)
         null
       }
@@ -304,14 +304,15 @@ object Term {
     }
 
     def exit(code: Int): Unit = {
-      if (!atomicExitSet.get()) {
-        synchronized {
-          atomicExitSet.set(true)
+      synchronized {
+        if (!atomicExitSet.get()) {
           atomicExit.set(code)
+          atomicExitSet.set(true)
+        } else {
+          throw new IllegalStateException("set only once")
         }
-      } else {
-        throw new IllegalStateException("set only once")
       }
+      throw new SecurityException("EXIT")
     }
     def getExitCode(expected: Int): Int = {
       if (!atomicExitSet.get()) {

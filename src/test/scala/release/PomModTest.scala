@@ -1941,6 +1941,30 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def listPropertiesIgnoresUnusedRevisionFromEnvironment(): Unit = {
+    // GIVEN
+    val srcPoms = pomTestFile(
+      temp,
+      document(
+        <project>
+          <modelVersion>4.0.0</modelVersion>
+          <groupId>org.example</groupId>
+          <artifactId>literal-version</artifactId>
+          <version>1.0.0-SNAPSHOT</version>
+        </project>
+      )
+    ).create()
+
+    // WHEN
+    val mod = PomModTest.withRepoForTests(srcPoms, repo, envs = Map("revision" -> "2.0.0-SNAPSHOT"))
+
+    // THEN
+    Assert.assertFalse(mod.listProperties.contains("revision"))
+    Assert.assertTrue(mod.snapshotProperties.isEmpty)
+    Assert.assertEquals("1.0.0-SNAPSHOT", mod.selfVersionReplaced)
+  }
+
+  @Test
   def replaceInOnline(): Unit = {
     val input = """<root><child>x</child></root>"""
 

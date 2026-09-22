@@ -36,7 +36,7 @@ class SuggestVersionTest extends AssertionsForJUnit {
   @Test
   def projectVersionIsTheFallback(): Unit = {
     assertSuggestion("1.2.3-SNAPSHOT", 0)(
-      "feature/some-change",
+      null,
       null,
       Some("1.2.3-SNAPSHOT"))
   }
@@ -44,7 +44,7 @@ class SuggestVersionTest extends AssertionsForJUnit {
   @Test
   @scala.annotation.nowarn("msg=possible missing interpolator")
   def propertyBasedProjectVersionIsPreserved(): Unit = {
-    assertSuggestion("${revision}", 0)("main", null, Some(" ${revision} "))
+    assertSuggestion("${revision}", 0)(null, null, Some(" ${revision} "))
   }
 
   @Test
@@ -61,8 +61,8 @@ class SuggestVersionTest extends AssertionsForJUnit {
   }
 
   @Test
-  def invalidReleaseBranchFallsBackToProjectVersion(): Unit = {
-    assertSuggestion("1.2.3-SNAPSHOT", 0)(
+  def invalidReleaseBranchBecomesSnapshot(): Unit = {
+    assertSuggestion("release-v+-SNAPSHOT", 0)(
       "release/v+",
       null,
       Some("1.2.3-SNAPSHOT"))
@@ -111,8 +111,8 @@ class SuggestVersionTest extends AssertionsForJUnit {
   }
 
   @Test
-  def nonVersionTagFallsBackToProjectVersion(): Unit = {
-    assertSuggestion("1.2.3-SNAPSHOT", 0)(
+  def nonVersionTagFallsBackToBranch(): Unit = {
+    assertSuggestion("work-SNAPSHOT", 0)(
       "feature/work",
       "nightly",
       Some("1.2.3-SNAPSHOT"))
@@ -139,5 +139,58 @@ class SuggestVersionTest extends AssertionsForJUnit {
       classOf[IllegalArgumentException],
       () => SuggestVersion.suggest(null, null, None, ".1.2.3")
     )
+  }
+
+  @Test
+  def branchFamiliesProduceReadableSnapshots(): Unit = {
+    val examples = Seq(
+      "cherry-pick-3e5fd96f" -> "cherry-pick-3e5fd96f",
+      "docker-mirror" -> "docker-mirror",
+      "feature-45x/formatting" -> "45x-formatting",
+      "feature/45/ABC-123/something" -> "45x-ABC-123",
+      "feature/47x-release/CDF-321" -> "47x-CDF-321",
+      "feature/48.x/C-17249/fix" -> "48x-C-17249",
+      "feature/48x/demo/IFG-18099" -> "48x-IFG-18099",
+      "feature/BO-16921_any_25" -> "BO-16921",
+      "feature/IO-17403-to-qa" -> "IO-17403",
+      "feature/main/any-ABC-18065" -> "ABC-18065",
+      "feature/main/any/ABC-14208_2" -> "ABC-14208_2",
+      "feature/any/qa/49x/ABC-18100" -> "qa-49x-ABC-18100",
+      "feature/qa/48x/any/ABC-17629_2" -> "qa-48x-ABC-17629_2",
+      "feature/qa48/ABC-17422/doMagix" -> "qa-48x-ABC-17422",
+      "feature/qamain/ABC-17529/Apply" -> "qa-ABC-17529",
+      "feature/release48/ABC-17249/fix" -> "release-48x-ABC-17249",
+      "feature/support48/G-17059/DoIt" -> "support-48x-G-17059",
+      "feature/support/45/ZDF-17201/camelCase" -> "support-45x-ZDF-17201",
+      "feature/v47/WE-17773" -> "47x-WE-17773",
+      "feature/x48/NO-17967" -> "48x-NO-17967",
+      "frature/JA-17060" -> "JA-17060",
+      "feature/49x/any-3-upgrade" -> "49x-any-3-upgrade",
+      "feature/any-room" -> "any-room",
+      "main" -> "main",
+      "qa-backup/main" -> "qa-backup-main",
+      "qa-backup/45x" -> "qa-backup-45x",
+      "qa/main" -> "qa-main",
+      "qa/49x" -> "qa-49x",
+      "release/45x" -> "release-45x",
+      "support/48x" -> "support-48x",
+      "test100" -> "test100"
+    )
+    examples.foreach { case (branch, version) =>
+      Seq(None, Some("99.0.0-SNAPSHOT")).foreach { project =>
+        Assert.assertEquals(branch, (version + "-SNAPSHOT", 0), SuggestVersion.suggest(branch, null, project))
+        Assert.assertEquals(branch, (version + "-SNAPSHOT", 0), SuggestVersion.suggest("refs/heads/" + branch, null, project))
+      }
+    }
+  }
+
+  @Test
+  def snapshotNormalizationAndFallback(): Unit = {
+    assertSuggestion("some-change-SNAPSHOT", 0)("feature/some-change-SNAPSHOT", null)
+    assertSuggestion("some-change-SNAPSHOT", 0)("feature/some--change", null)
+    assertSuggestion("1.2.3-SNAPSHOT", 0)("///", null, Some("1.2.3-SNAPSHOT"))
+    assertSuggestion("2.0.0", 0)("refs/heads/release/v2.0.0", null)
+    assertSuggestion("3.0.0", 0)("feature/48x/ABC-17249", "v3.0.0")
+    assertSuggestion("4.0.0", 0)("feature/48x/ABC-17249", "v3.0.0", None, "v4.0.0")
   }
 }

@@ -31,11 +31,22 @@ class TermTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testExitStopsControlFlow(): Unit = {
+    var continued = false
+    TermTest.testSys(Nil, "", "", expectedExitCode = 42)(sys => {
+      sys.exit(42)
+      continued = true
+    })
+    Assert.assertFalse(continued)
+  }
+
+  @Test
   def testReadDirect(): Unit = {
-    TermTest.testSys(Seq("a", "b"), "", "")(sys => {
+    TermTest.testSys(Seq("a", "b", ""), "", "")(sys => {
       val bin: BufferedReader = new BufferedReader(new InputStreamReader(sys.inS))
       Assert.assertEquals("a", bin.readLine())
       Assert.assertEquals("b", bin.readLine())
+      Assert.assertEquals("", bin.readLine())
       Assert.assertEquals(null, bin.readLine())
     })
   }
@@ -211,7 +222,7 @@ object TermTest extends LazyLogging {
       val out = new ByteArrayOutputStream()
       val err = new ByteArrayOutputStream()
 
-      val preparedLines = input.mkString("\n")
+      val preparedLines = if (input.isEmpty) "" else input.mkString("", "\n", "\n")
       val in = new ByteArrayInputStream(preparedLines.getBytes)
       val sys = new Term.Sys(in, out, err) {
         override lazy val inReader = new BufferedReader(new InputStreamReader(inS)) {

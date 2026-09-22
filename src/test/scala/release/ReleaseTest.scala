@@ -194,6 +194,7 @@ class ReleaseTest extends AssertionsForJUnit {
     val gitLocal = Sgit.doClone(remoteWorkFolder, localWorkFolder, verify = false)
     gitLocal.configSetLocal("user.email", "you@example.com")
     gitLocal.configSetLocal("user.name", "Your Name")
+    gitLocal.setUpstream("origin/master")
     val term = Term.select("xterm", "b", simpleChars = true, isInteractice = false)
     val expected =
       """I: Reading pom.xmls ... done (g)
@@ -260,6 +261,7 @@ class ReleaseTest extends AssertionsForJUnit {
     val gitLocal = Sgit.doClone(remoteWorkFolder, localWorkFolder, verify = false)
     gitLocal.configSetLocal("user.email", "you@example.com")
     gitLocal.configSetLocal("user.name", "Your Name")
+    gitLocal.setUpstream("origin/master")
     val term = Term.select("xterm", "b", simpleChars = true, isInteractice = false)
     val expected =
       """I: Reading pom.xmls ... done (g)
@@ -327,6 +329,7 @@ class ReleaseTest extends AssertionsForJUnit {
     val gitLocal = Sgit.doClone(remoteWorkFolder, localWorkFolder, verify = false)
     gitLocal.configSetLocal("user.email", "you@example.com")
     gitLocal.configSetLocal("user.name", "Your Name")
+    gitLocal.setUpstream("origin/master")
     val term = Term.select("xterm", "b", simpleChars = true, isInteractice = false)
     val expected =
       """I: Reading pom.xmls ... done (g)
@@ -389,6 +392,7 @@ class ReleaseTest extends AssertionsForJUnit {
     val gitLocal = Sgit.doClone(remoteWorkFolder, localWorkFolder, verify = false)
     gitLocal.configSetLocal("user.email", "you@example.com")
     gitLocal.configSetLocal("user.name", "Your Name")
+    gitLocal.setUpstream("origin/master")
     val term = Term.select("xterm", "b", simpleChars = true, isInteractice = false)
     val expected =
       """I: Reading pom.xmls ... done (g)
@@ -451,6 +455,7 @@ class ReleaseTest extends AssertionsForJUnit {
     val gitLocal = Sgit.doClone(remoteWorkFolder, localWorkFolder, verify = false)
     gitLocal.configSetLocal("user.email", "you@example.com")
     gitLocal.configSetLocal("user.name", "Your Name")
+    gitLocal.setUpstream("origin/master")
     val term = Term.select("xterm", "b", simpleChars = true, isInteractice = false)
     val expected =
       """I: Reading pom.xmls ... done (g)

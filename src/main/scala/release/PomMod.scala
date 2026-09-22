@@ -577,11 +577,13 @@ object PomMod {
 
     val allPropsFromDocs = allPomsDocs.flatMap(PomMod.createPropertyMap)
     val pomProperties = allPropsFromDocs.foldLeft(Map.empty[String, String])(_ + _)
-    val result = envs.get("revision") match {
+    val selfVersion = Util.only(listSelf.map(_.version).distinct, "version")
+    val usesRevision = pomProperties.contains("revision") ||
+      selfVersion.exists(version => propertyNamesIn(version).contains("revision"))
+    val result = envs.get("revision").filter(_ => usesRevision) match {
       case Some(revision) => pomProperties.updated("revision", revision)
       case None => pomProperties
     }
-    val selfVersion = Util.only(listSelf.map(_.version).distinct, "version")
 
     replacedProperties(result, selfVersion)
   }

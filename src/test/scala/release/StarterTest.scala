@@ -111,9 +111,9 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
       |                                        reads environment variables CI_COMMIT_REF_NAME and CI_COMMIT_TAG
       |showSelf                             => a list of groupId:artifactId of current project
       |suggest-remote-branch                => use with '--non-interactive'
-      |suggest-docker-tag                   => use with '--non-interactive', reads environment variables
-      |suggest-version                      => use with '--non-interactive', reads environment variables
-      |                                        CI_COMMIT_REF_NAME and CI_COMMIT_TAG
+      |suggest-docker-tag                   => use with '--non-interactive', reads CI variables or local Git
+      |suggest-version                      => use with '--non-interactive', reads CI variables or local Git
+      |                                        CI_COMMIT_REF_NAME and CI_COMMIT_TAG take precedence
       |
       |Possible environment variables:
       |export RELEASE_GIT_BIN=$PATH_TO_GIT_EXECUTABLE
@@ -142,6 +142,21 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
   @Test
   def test_help_length(): Unit = {
     assertLongLines(helpMessage, 105)
+  }
+
+  @Test
+  def suggestionRefsUsesCiValuesWhenAvailable(): Unit = {
+    Assert.assertEquals(
+      ("ci-branch", "v1.2.3"),
+      Starter.suggestionRefs(Some("ci-branch"), Some("v1.2.3"), Some("local-branch"), Seq("v9.9.9")))
+  }
+
+  @Test
+  def suggestionRefsUsesLocalGitWhenCiValuesAreAbsent(): Unit = {
+    Assert.assertEquals(
+      ("local-branch", "v1.2.3"),
+      Starter.suggestionRefs(None, None, Some("local-branch"), Seq("v1.2.3")))
+    Assert.assertEquals((null, null), Starter.suggestionRefs(None, None, Some("HEAD"), Nil))
   }
 
   @Test

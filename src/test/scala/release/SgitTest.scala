@@ -766,8 +766,10 @@ class SgitTest extends AssertionsForJUnit {
     gitB.pushFor("master", "master")
     Assert.assertEquals(Nil, gitA.listAllTags())
     Assert.assertEquals(Nil, gitB.listAllTags())
+    Assert.assertEquals(Nil, gitB.tagsAtHead)
     Assert.assertEquals(None, gitB.currentTags)
     gitB.doTag("0.0.10")
+    Assert.assertEquals(Seq("v0.0.10"), gitB.tagsAtHead)
     val beforeBranch = gitB.currentBranch
     gitB.checkout("v0.0.10")
     Assert.assertEquals("HEAD", gitB.currentBranch)

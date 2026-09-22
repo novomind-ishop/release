@@ -12,8 +12,8 @@ object SuggestVersion {
         val suggested = nonBlank(tagName)
           .flatMap(normalizeVersionRef)
           .orElse(nonBlank(commitRef).flatMap(normalizeVersionRef))
-          .orElse(projectVersion.flatMap(nonBlank))
           .orElse(nonBlank(commitRef).flatMap(snapshotVersionFromBranch))
+          .orElse(projectVersion.flatMap(nonBlank))
 
         suggested.map((_, 0)).getOrElse(("main-SNAPSHOT", 0))
     }
@@ -36,11 +36,11 @@ object SuggestVersion {
     }
   }
 
-  /** A branch name is only used directly as a release version if it explicitly denotes one. Other branch names are considered later, after
-    * the project version, and converted to snapshot versions.
+  /** A branch name is only used directly as a release version if it explicitly denotes one. Other branch names are converted to snapshot
+    * versions.
     */
   private def normalizeVersionRef(value: String): Option[String] = {
-    val withoutGitPrefix = value.replaceFirst("^refs/tags/", "")
+    val withoutGitPrefix = value.replaceFirst("^refs/(tags|heads)/", "")
     val candidate =
       if (withoutGitPrefix.startsWith("release/")) {
         Some(withoutGitPrefix.stripPrefix("release/"))
@@ -55,14 +55,34 @@ object SuggestVersion {
     candidate
       .map(stripVersionPrefix)
       .filter(versionPattern.matches)
+      .filterNot(_.matches("[0-9]+(?:\\.x|x)"))
       .filter(Version.parseSloppy(_).isOrdinal)
   }
 
   private def snapshotVersionFromBranch(value: String): Option[String] = {
-    val branchName = value
-      .replaceFirst("^refs/heads/", "")
+    val ref = value.stripPrefix("refs/heads/")
+    val parts = ref.split("/").toSeq
+    val ticket = "(?<![a-zA-Z0-9])[A-Z]+-[0-9]+(?:_[0-9]+)?(?![0-9])".r
+      .findFirstIn(ref).map(_.toUpperCase(java.util.Locale.ROOT))
+    val linePattern = "(?i)^(?:(?:feature-|qa|release|support|v|x))?([0-9]+)(?:\\.x|x)?(?:-release)?$".r
+    val line = parts.collectFirst { case linePattern(number) => s"${number}x" }
+    val context = parts.collectFirst {
+      case "qa-backup" => "qa-backup"
+      case part if part == "qa" || part == "qamain" || part.matches("qa[0-9]+x?") => "qa"
+      case part if part == "release" || part.matches("release[0-9]+x?") => "release"
+      case part if part == "support" || part.matches("support[0-9]+x?") => "support"
+    }
+    val name = ticket match {
+      case Some(id) => (context.toSeq ++ line.toSeq :+ id).mkString("-")
+      case None => parts.map {
+          case linePattern(number) => s"${number}x"
+          case part => part
+        }.filterNot(part => part == "feature" || part == "frature").mkString("-")
+    }
+    val branchName = name
       .replaceAll("[^a-zA-Z0-9._+\\-]+", "-")
-      .replaceAll("^-+|-+$", "")
+      .replaceAll("-+", "-")
+      .replaceAll("^[^a-zA-Z0-9]+|-+$", "")
 
     Option(branchName)
       .filter(_.nonEmpty)
