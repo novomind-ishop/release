@@ -5,19 +5,43 @@ import release.Starter.ExitCode
 object SuggestVersion {
   private val versionPattern = "[a-zA-Z0-9][a-zA-Z0-9._+\\-]*".r
 
-  def suggest(commitRef: String, tagName: String, projectVersion: => Option[String], externalTag: String = ""): (String, ExitCode) = {
+  def suggest(commitRef: String, tagName: String, projectVersion: => Option[String], externalTag: String = "",
+      branchNames: Seq[String] = Nil, tagNames: Seq[String] = Nil): (String, ExitCode) = {
     Option(externalTag).filterNot(_.isBlank) match {
-      case Some(version) => (normalizeExplicitVersion(version), 0)
+      case Some(version) =>
+        val normalized = normalizeExplicitVersion(version)
+        ensureTagDoesNotExist(normalized, currentTag = null, tagNames)
+        (normalized, 0)
       case None =>
+        lazy val fallbackProjectVersion = projectVersion.flatMap(nonBlank)
         val suggested = nonBlank(tagName)
           .flatMap(normalizeVersionRef)
-          .orElse(nonBlank(commitRef).flatMap(normalizeVersionRef))
+          .map { version =>
+            ensureTagDoesNotExist(version, tagName, tagNames)
+            version
+          }
+          .orElse(nonBlank(commitRef).filter(isQaMain).flatMap(_ => fallbackProjectVersion))
           .orElse(nonBlank(commitRef).flatMap(snapshotVersionFromBranch))
-          .orElse(projectVersion.flatMap(nonBlank))
+          .orElse(fallbackProjectVersion)
 
         suggested.map((_, 0)).getOrElse(("main-SNAPSHOT", 0))
     }
   }
+
+  private def isQaMain(ref: String): Boolean =
+    ref.stripPrefix("refs/heads/") == "qa/main"
+
+  private def ensureTagDoesNotExist(version: String, currentTag: String, tagNames: Seq[String]): Unit = {
+    val existing = tagNames
+      .filterNot(tag => sameGitTagRef(tag, currentTag))
+      .find(tag => normalizeVersionRef(tag).contains(version))
+    existing.foreach { tag =>
+      throw new IllegalArgumentException(s"version $version already exists as Git tag $tag")
+    }
+  }
+
+  private def sameGitTagRef(left: String, right: String): Boolean =
+    Option(left).map(_.stripPrefix("refs/tags/")) == Option(right).map(_.stripPrefix("refs/tags/"))
 
   private def nonBlank(value: String): Option[String] =
     Option(value).map(_.trim).filter(_.nonEmpty)
@@ -72,12 +96,18 @@ object SuggestVersion {
       case part if part == "release" || part.matches("release[0-9]+x?") => "release"
       case part if part == "support" || part.matches("support[0-9]+x?") => "support"
     }
-    val name = ticket match {
-      case Some(id) => (context.toSeq ++ line.toSeq :+ id).mkString("-")
-      case None => parts.map {
-          case linePattern(number) => s"${number}x"
-          case part => part
-        }.filterNot(part => part == "feature" || part == "frature").mkString("-")
+    val releaseCandidate = parts match {
+      case Seq("release", linePattern(number)) => Some(s"${number}x-RC")
+      case _ => None
+    }
+    val name = releaseCandidate.getOrElse {
+      ticket match {
+        case Some(id) => (context.toSeq ++ line.toSeq :+ id).mkString("-")
+        case None => parts.map {
+            case linePattern(number) => s"${number}x"
+            case part => part
+          }.filterNot(part => part == "feature" || part == "frature").mkString("-")
+      }
     }
     val branchName = name
       .replaceAll("[^a-zA-Z0-9._+\\-]+", "-")

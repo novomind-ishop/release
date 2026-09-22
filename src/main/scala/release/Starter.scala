@@ -459,7 +459,14 @@ object Starter extends LazyLogging {
         localGit.toSeq.flatMap(_.tagsAtHead))
       val externalTag = envs.getOrElse("RELEASE_SUGGEST_TAG", null)
       val result: (String, ExitCode) = if (opts.suggestVersion) {
-        SuggestVersion.suggest(refName, ciTag, selfV, externalTag)
+        SuggestVersion.suggest(
+          refName,
+          ciTag,
+          selfV,
+          externalTag,
+          branchNames = localGit.toSeq.flatMap(_.listBranchNamesAll()),
+          tagNames = localGit.toSeq.flatMap(_.listTagsWithDate()).map(_.name)
+        )
       } else if (opts.suggestDockerTag) {
         SuggestDockerTag.suggest(refName, ciTag, selfV, externalTag)
       } else {

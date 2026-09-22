@@ -9,8 +9,10 @@ class SuggestVersionTest extends AssertionsForJUnit {
       commitRef: String,
       tagName: String,
       projectVersion: Option[String] = None,
-      externalTag: String = ""): Unit = {
-    val result = SuggestVersion.suggest(commitRef, tagName, projectVersion, externalTag)
+      externalTag: String = "",
+      branchNames: Seq[String] = Nil,
+      tagNames: Seq[String] = Nil): Unit = {
+    val result = SuggestVersion.suggest(commitRef, tagName, projectVersion, externalTag, branchNames, tagNames)
     Assert.assertEquals(expectedVersion, result._1)
     Assert.assertEquals(expectedExitCode, result._2)
   }
@@ -49,7 +51,7 @@ class SuggestVersionTest extends AssertionsForJUnit {
 
   @Test
   def releaseBranchOverridesProjectVersion(): Unit = {
-    assertSuggestion("2.0.0-RC1", 0)(
+    assertSuggestion("release-v2.0.0-RC1-SNAPSHOT", 0)(
       "release/v2.0.0-RC1",
       null,
       Some("1.2.3-SNAPSHOT"))
@@ -57,7 +59,7 @@ class SuggestVersionTest extends AssertionsForJUnit {
 
   @Test
   def shopReleaseBranchIsRecognized(): Unit = {
-    assertSuggestion("RC-2026.39", 0)("release/vRC-2026.39", null, None)
+    assertSuggestion("release-vRC-2026.39-SNAPSHOT", 0)("release/vRC-2026.39", null, None)
   }
 
   @Test
@@ -100,7 +102,42 @@ class SuggestVersionTest extends AssertionsForJUnit {
 
   @Test
   def versionLikeCommitRefIsRecognizedWithoutTagName(): Unit = {
-    assertSuggestion("3.4.5", 0)("v3.4.5", null, None)
+    assertSuggestion("v3.4.5-SNAPSHOT", 0)("v3.4.5", null, None)
+  }
+
+  @Test
+  def releaseBranchesNeverProduceTagVersions(): Unit = {
+    assertSuggestion("release-v2.0.0-SNAPSHOT", 0)(
+      commitRef = "release/v2.0.0",
+      tagName = null,
+      branchNames = Seq("release/v2.0.0"),
+      tagNames = Seq("v2.0.0"))
+  }
+
+  @Test
+  def qaMainPreservesProjectVersionWithExistingReleaseBranches(): Unit = {
+    assertSuggestion("50.0.0-SNAPSHOT", 0)(
+      commitRef = "qa/main",
+      tagName = null,
+      projectVersion = Some("50.0.0-SNAPSHOT"),
+      branchNames = Seq("release/45x", "release/46x", "qa/main"),
+      tagNames = Seq("v45.0.0", "v46.0.0")
+    )
+  }
+
+  @Test
+  def equivalentExistingTagIsAnErrorAndIsNeverIncremented(): Unit = {
+    TestHelper.assertException(
+      "version 2.0.0 already exists as Git tag 2.0.0",
+      classOf[IllegalArgumentException],
+      () =>
+        SuggestVersion.suggest(
+          commitRef = "v2.0.0",
+          tagName = "v2.0.0",
+          projectVersion = None,
+          branchNames = Nil,
+          tagNames = Seq("v2.0.0", "2.0.0"))
+    )
   }
 
   @Test
@@ -131,8 +168,8 @@ class SuggestVersionTest extends AssertionsForJUnit {
   }
 
   @Test
-  def invalidTagFallsBackToVersionFromCommitRef(): Unit = {
-    assertSuggestion("2.0.0", 0)("release/v2.0.0", "vnot-a-version", None)
+  def invalidTagFallsBackToSnapshotFromCommitRef(): Unit = {
+    assertSuggestion("release-v2.0.0-SNAPSHOT", 0)("release/v2.0.0", "vnot-a-version", None)
   }
 
   @Test
@@ -180,18 +217,18 @@ class SuggestVersionTest extends AssertionsForJUnit {
       "feature/49x/any-3-upgrade" -> "49x-any-3-upgrade",
       "feature/any-room" -> "any-room",
       "main" -> "main",
-      "qa-backup/main" -> "qa-backup-main",
-      "qa-backup/45x" -> "qa-backup-45x",
       "qa/main" -> "qa-main",
       "qa/49x" -> "qa-49x",
-      "release/45x" -> "release-45x",
+      "release/45x" -> "45x-RC",
       "support/48x" -> "support-48x",
       "test100" -> "test100"
     )
     examples.foreach { case (branch, version) =>
       Seq(None, Some("99.0.0-SNAPSHOT")).foreach { project =>
-        Assert.assertEquals(branch, (version + "-SNAPSHOT", 0), SuggestVersion.suggest(branch, null, project))
-        Assert.assertEquals(branch, (version + "-SNAPSHOT", 0), SuggestVersion.suggest("refs/heads/" + branch, null, project))
+        val branchSnapshot = if (version.endsWith("-SNAPSHOT")) version else version + "-SNAPSHOT"
+        val expected = if (branch == "qa/main") project.getOrElse(branchSnapshot) else branchSnapshot
+        Assert.assertEquals(branch, (expected, 0), SuggestVersion.suggest(branch, null, project))
+        Assert.assertEquals(branch, (expected, 0), SuggestVersion.suggest("refs/heads/" + branch, null, project))
       }
     }
   }
@@ -201,7 +238,7 @@ class SuggestVersionTest extends AssertionsForJUnit {
     assertSuggestion("some-change-SNAPSHOT", 0)("feature/some-change-SNAPSHOT", null)
     assertSuggestion("some-change-SNAPSHOT", 0)("feature/some--change", null)
     assertSuggestion("1.2.3-SNAPSHOT", 0)("///", null, Some("1.2.3-SNAPSHOT"))
-    assertSuggestion("2.0.0", 0)("refs/heads/release/v2.0.0", null)
+    assertSuggestion("release-v2.0.0-SNAPSHOT", 0)("refs/heads/release/v2.0.0", null)
     assertSuggestion("3.0.0", 0)("feature/48x/ABC-17249", "v3.0.0")
     assertSuggestion("4.0.0", 0)("feature/48x/ABC-17249", "v3.0.0", None, "v4.0.0")
   }
