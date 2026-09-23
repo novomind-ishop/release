@@ -263,6 +263,7 @@ case class Repo private (_mirrorNexus: RemoteRepository, _workNexus: RemoteRepos
       getVersionsOf(Seq(groupID, artifactId, "[" + start + "," + in.nextVersionResetZero((1, 0, 0)).format() + ")").mkString(":"))
     versions
       .filterNot(_.toString.endsWith(release.Version.snapshot))
+      .filter(v => Repo.isRelevantLatestVersion(in, v.toString))
       .sorted
       .lastOption.map(v => Gav3(groupID, artifactId, Option(v.toString)))
   }
@@ -311,6 +312,10 @@ case class Repo private (_mirrorNexus: RemoteRepository, _workNexus: RemoteRepos
 }
 
 object Repo extends LazyLogging {
+  private[release] def isRelevantLatestVersion(current: release.Version, candidate: String): Boolean = {
+    val parsedCandidate = release.Version.parseSloppy(candidate)
+    !current.isOrdinal || !parsedCandidate.isOrdinal || parsedCandidate.major <= current.major
+  }
 
   val dateCache: Cache[(String, String, String, String), Option[ZonedDateTime]] = CacheBuilder.newBuilder().maximumSize(10_000).build()
   val versionCache: Cache[(String, String), Seq[Version]] = CacheBuilder.newBuilder().maximumSize(10_000).build()

@@ -9,6 +9,14 @@ import scala.annotation.nowarn
 
 class RepoTest extends AssertionsForJUnit {
 
+  @Test
+  def latestVersionSuggestionDoesNotCrossIntoNextMajor(): Unit = {
+    val current = Version.parseSloppy("48x-SNAPSHOT")
+    Assert.assertTrue(Repo.isRelevantLatestVersion(current, "48.11.1"))
+    Assert.assertFalse(Repo.isRelevantLatestVersion(current, "49.0.0"))
+    Assert.assertTrue(Repo.isRelevantLatestVersion(Version.parseSloppy("1.0.0-SNAPSHOT"), "0.99"))
+  }
+
   // convert to IT
 
   @Test
