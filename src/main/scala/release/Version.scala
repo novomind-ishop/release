@@ -188,6 +188,7 @@ object Version {
   private[release] val semverGitTagForDockerTagPattern = "^v[0-9]+\\.[0-9]+\\.[0-9]+(?:-(?:RC|M)[1-9][0-9]*)?$".r
   private[release] val semverGitTagForDockerTagPatternLetterEnd = "^v[0-9]+\\.[0-9]+\\.[0-9]-([0-9a-zA-Z_]+)$".r
   private[release] val semverPatternLetterEnd = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)-([0-9a-zA-Z]+)$".r
+  private[release] val branchSnapshotPattern = "^[a-zA-Z0-9][a-zA-Z0-9._+\\-]*-SNAPSHOT$".r
   private[release] val stableShop = "^([0-9]+x)-stable.*$".r
   private[release] val shopPattern = "^(RC-)([1-9][0-9]{3})\\.([0-9][0-9])?(?:\\.([1-9]+[0-9]*))?(?:_([1-9]+[0-9]*))?(?:-SNAPSHOT)?$".r
   private[release] val shopLikePattern =
@@ -199,6 +200,23 @@ object Version {
   private[release] val number = "^([0-9]+)(.*)".r
   private[release] val number2 = "^([0-9]+)\\.([0-9]+)(.*)".r
   private[release] val number3 = "^([0-9]+)\\.([0-9]+)\\.([0-9]+)(.*)".r
+
+  private val releaseVersionPatterns = Seq(
+    semverPattern,
+    semverPatternNoBugfix,
+    semverPatternNoMinor,
+    semverPatternLowdash,
+    semverPatternLowdashString,
+    semverPatternRCEnd,
+    semverPatternLetterEnd,
+    shopPattern
+  )
+
+  def isValidReleaseVersion(value: String): Boolean =
+    Option(value).exists(version => releaseVersionPatterns.exists(_.matches(version)))
+
+  def isValidBranchSnapshot(value: String): Boolean =
+    Option(value).exists(branchSnapshotPattern.matches)
 
   private def ordering1 = Ordering.by[Version, (Int, Int, Int, Int)](e => (e.major, e.minor, e.patch, e.lowOrdinalPart))
 

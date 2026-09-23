@@ -734,7 +734,8 @@ class PomModTest extends AssertionsForJUnit {
         </project>
       )
     ).create()
-    val mod = PomModTest.withRepoForTests(srcPoms, repo, envs = Map("revision" -> "1.1.0-SNAPSHOT"))
+    val mod = PomModTest.withRepoForTests(srcPoms, repo, envs = Map("revision" -> "1.1.0-SNAPSHOT"),
+      revisionFallback = Some("47.0.0-SNAPSHOT"))
 
     assert("${revision}" === mod.selfVersion)
     assert("1.1.0-SNAPSHOT" === mod.selfVersionReplaced)
@@ -754,6 +755,53 @@ class PomModTest extends AssertionsForJUnit {
     val changed = PomModTest.withRepoForTests(srcPoms, repo)
     assert("${revision}" === changed.selfVersion)
     assert("1.1.0" === changed.selfVersionReplaced)
+  }
+
+  @Test
+  def missingRevisionPropertyUsesSuggestedVersion(): Unit = {
+    val revision = "{revision}"
+    val srcPoms = pomTestFile(
+      temp,
+      document(
+        <project>
+          <modelVersion>4.0.0</modelVersion>
+          <groupId>org.example</groupId>
+          <artifactId>property-version</artifactId>
+          <version>${revision}</version>
+          <packaging>pom</packaging>
+          <modules><module>child</module></modules>
+        </project>
+      )
+    ).sub(
+      "child",
+      document(
+        <project>
+          <modelVersion>4.0.0</modelVersion>
+          <parent>
+            <groupId>org.example</groupId>
+            <artifactId>property-version</artifactId>
+            <version>${revision}</version>
+          </parent>
+          <artifactId>child</artifactId>
+        </project>
+      )
+    ).create()
+    val mod = PomModTest.withRepoForTests(srcPoms, repo, revisionFallback = Some("47.0.0-SNAPSHOT"))
+
+    assert("${revision}" === mod.selfVersion)
+    assert("47.0.0-SNAPSHOT" === mod.selfVersionReplaced)
+    assert(Seq("47.0.0") === mod.suggestReleaseVersions())
+
+    mod.changeVersion("47.0.0")
+    mod.writeTo(srcPoms)
+
+    val pom = FileUtils.read(new File(srcPoms, "pom.xml"))
+    assert(pom.contains("<version>47.0.0</version>"))
+    assert(!pom.contains("${revision}"))
+    val childPom = FileUtils.read(new File(srcPoms, "child/pom.xml"))
+    assert(childPom.contains("<version>47.0.0</version>"))
+    assert(!childPom.contains("${revision}"))
+    assert("47.0.0" === PomModTest.withRepoForTests(srcPoms, repo).selfVersionReplaced)
   }
 
   @Test
@@ -2277,8 +2325,8 @@ object PomModTest {
 
   def withRepoForTests(file: File, repo: RepoZ, skipPropertyReplacement: Boolean = false,
       withSubPoms: Boolean = true, failureCollector: Option[Exception => Unit] = None, opts: Opts = Opts(),
-      envs: Map[String, String] = Map.empty): PomMod = {
-    new PomMod(file, repo, opts, skipPropertyReplacement, withSubPoms, failureCollector) {
+      envs: Map[String, String] = Map.empty, revisionFallback: Option[String] = None): PomMod = {
+    new PomMod(file, repo, opts, skipPropertyReplacement, withSubPoms, failureCollector, revisionFallback) {
       override def getEnvs(): Map[String, String] = envs
     }
   }

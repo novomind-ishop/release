@@ -4,6 +4,7 @@ import release.Starter.ExitCode
 
 object SuggestVersion {
   private val versionPattern = "[a-zA-Z0-9][a-zA-Z0-9._+\\-]*".r
+  private val releaseLinePattern = "release/([0-9]+)x".r
 
   def suggest(commitRef: String, tagName: String, projectVersion: => Option[String], externalTag: String = "",
       branchNames: Seq[String] = Nil, tagNames: Seq[String] = Nil): (String, ExitCode) = {
@@ -21,6 +22,7 @@ object SuggestVersion {
             version
           }
           .orElse(nonBlank(commitRef).filter(isQaMain).flatMap(_ => fallbackProjectVersion))
+          .orElse(nonBlank(commitRef).flatMap(ref => nextReleaseSnapshot(ref, branchNames)))
           .orElse(nonBlank(commitRef).flatMap(snapshotVersionFromBranch))
           .orElse(fallbackProjectVersion)
 
@@ -30,6 +32,22 @@ object SuggestVersion {
 
   private def isQaMain(ref: String): Boolean =
     ref.stripPrefix("refs/heads/") == "qa/main"
+
+  private def nextReleaseSnapshot(ref: String, branchNames: Seq[String]): Option[String] = {
+    val suffix = ref.stripPrefix("refs/heads/") match {
+      case "qa/main" => Some("-SNAPSHOT")
+      case "main" => Some("-RC-SNAPSHOT")
+      case _ => None
+    }
+    suffix.flatMap { ending =>
+      branchNames.iterator.flatMap { branch =>
+        branch.stripPrefix("refs/heads/") match {
+          case releaseLinePattern(number) => number.toIntOption.filter(_ < Int.MaxValue)
+          case _ => None
+        }
+      }.maxOption.map(major => s"${major + 1}.0.0$ending")
+    }
+  }
 
   private def ensureTagDoesNotExist(version: String, currentTag: String, tagNames: Seq[String]): Unit = {
     val existing = tagNames
@@ -48,7 +66,7 @@ object SuggestVersion {
 
   private def normalizeExplicitVersion(value: String): String = {
     val normalized = stripVersionPrefix(value)
-    if (versionPattern.matches(normalized)) {
+    if (versionPattern.matches(normalized) && Version.isValidReleaseVersion(normalized)) {
       normalized
     } else {
       val printable = value
@@ -56,7 +74,7 @@ object SuggestVersion {
         .replaceAll("\\n", "␊")
         .replaceAll("[\\p{Cntrl}\\p{Space}]", "\uFFFD")
       throw new IllegalArgumentException(
-        s"invalid version »$printable«; versions must match pattern »${versionPattern.regex}«")
+        s"invalid version »$printable«; versions must match a release version pattern in release.Version")
     }
   }
 
@@ -80,18 +98,17 @@ object SuggestVersion {
       .map(stripVersionPrefix)
       .filter(versionPattern.matches)
       .filterNot(_.matches("[0-9]+(?:\\.x|x)"))
-      .filter(Version.parseSloppy(_).isOrdinal)
+      .filter(Version.isValidReleaseVersion)
   }
 
   private def snapshotVersionFromBranch(value: String): Option[String] = {
     val ref = value.stripPrefix("refs/heads/")
     val parts = ref.split("/").toSeq
     val ticket = "(?<![a-zA-Z0-9])[A-Z]+-[0-9]+(?:_[0-9]+)?(?![0-9])".r
-      .findFirstIn(ref).map(_.toUpperCase(java.util.Locale.ROOT))
+      .findFirstIn(ref).map(_.toLowerCase(java.util.Locale.ROOT))
     val linePattern = "(?i)^(?:(?:feature-|qa|release|support|v|x))?([0-9]+)(?:\\.x|x)?(?:-release)?$".r
     val line = parts.collectFirst { case linePattern(number) => s"${number}x" }
     val context = parts.collectFirst {
-      case "qa-backup" => "qa-backup"
       case part if part == "qa" || part == "qamain" || part.matches("qa[0-9]+x?") => "qa"
       case part if part == "release" || part.matches("release[0-9]+x?") => "release"
       case part if part == "support" || part.matches("support[0-9]+x?") => "support"
@@ -106,7 +123,7 @@ object SuggestVersion {
         case None => parts.map {
             case linePattern(number) => s"${number}x"
             case part => part
-          }.filterNot(part => part == "feature" || part == "frature").mkString("-")
+          }.filterNot(_ == "feature").mkString("-")
       }
     }
     val branchName = name
@@ -118,6 +135,7 @@ object SuggestVersion {
       .filter(_.nonEmpty)
       .map(Version.removeTrailingSnapshots)
       .map(Version.applySnapshot)
+      .filter(Version.isValidBranchSnapshot)
   }
 
   private def stripVersionPrefix(value: String): String = {

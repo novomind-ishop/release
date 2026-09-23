@@ -26,7 +26,7 @@ import scala.util.{Failure, Success, Try}
 
 case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
     skipPropertyReplacement: Boolean = false, withSubPoms: Boolean,
-    failureCollector: Option[Exception => Unit]) extends ProjectMod with LazyLogging {
+    failureCollector: Option[Exception => Unit], revisionFallback: Option[String] = None) extends ProjectMod with LazyLogging {
   logger.trace("init pomMod")
   override lazy val repo: RepoZ = repoZ
   private var depMap: Map[Dep, Node] = Map.empty
@@ -113,7 +113,7 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
   }
 
   val listProperties: Map[String, String] = {
-    PomMod.listProperties(opts, raws, failureCollector, allPomsDocs, listSelf, getEnvs())
+    PomMod.listProperties(opts, raws, failureCollector, allPomsDocs, listSelf, getEnvs(), revisionFallback)
   }
 
   override lazy val selfVersionReplaced: String = {
@@ -341,11 +341,14 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
     val oldVersionExpression: String = PomMod.selectFirstVersionFrom(raws).get
     val oldVersion = selfVersionReplaced
     val versionProperty = PomMod.singlePropertyName(oldVersionExpression)
+    val inlineRevision = versionProperty.contains("revision") && !PomMod.propertyIsDefined(raws, "revision")
 
-    versionProperty.foreach(propertyName => PomMod.applyPropertyValue(raws, propertyName, newVersion))
+    if (!inlineRevision) {
+      versionProperty.foreach(propertyName => PomMod.applyPropertyValue(raws, propertyName, newVersion))
+    }
 
     raws.foreach(d => {
-      if (versionProperty.isDefined) {
+      if (versionProperty.isDefined && !inlineRevision) {
         // Keep ${revision} (and references to it) intact. Maven gets the new
         // effective project version from the updated property.
         if (d.pomFile.getParentFile != file && d.parentDep.isDefined && rootPomGav.contains(d.parentDep.get.gav())) {
@@ -553,18 +556,25 @@ object PomMod {
   }
 
   private[release] def applyPropertyValue(raws: Seq[RawPomFile], propertyName: String, newValue: String): Unit = {
-    val propertyNodes = raws.flatMap(raw =>
-      Xpath.toSeq(raw.document, "//project/properties")
-        .flatMap(node => Xpath.toSeqNodes(node.getChildNodes))
-        .filter(_.getNodeName == propertyName))
+    val propertyNodes = propertyNodesFor(raws, propertyName)
     if (propertyNodes.isEmpty) {
       throw new IllegalStateException(s"project version property '$propertyName' is not defined in pom.xml")
     }
     propertyNodes.foreach(_.setTextContent(newValue))
   }
 
+  private def propertyNodesFor(raws: Seq[RawPomFile], propertyName: String): Seq[Node] =
+    raws.flatMap(raw =>
+      Xpath.toSeq(raw.document, "//project/properties")
+        .flatMap(node => Xpath.toSeqNodes(node.getChildNodes))
+        .filter(_.getNodeName == propertyName))
+
+  private[release] def propertyIsDefined(raws: Seq[RawPomFile], propertyName: String): Boolean =
+    propertyNodesFor(raws, propertyName).nonEmpty
+
   def listProperties(opts: Opts, raws: Seq[RawPomFile], failureCollector: Option[Exception => Unit],
-      allPomsDocs: Seq[Document], listSelf: Seq[Dep], envs: Map[String, String]): Map[String, String] = {
+      allPomsDocs: Seq[Document], listSelf: Seq[Dep], envs: Map[String, String],
+      revisionFallback: Option[String] = None): Map[String, String] = {
     if (failureCollector.isDefined) {
       try {
         PomChecker.checkRootFirstChildPropertiesVar(opts, raws)
@@ -580,7 +590,8 @@ object PomMod {
     val selfVersion = Util.only(listSelf.map(_.version).distinct, "version")
     val usesRevision = pomProperties.contains("revision") ||
       selfVersion.exists(version => propertyNamesIn(version).contains("revision"))
-    val result = envs.get("revision").filter(_ => usesRevision) match {
+    val result = envs.get("revision").orElse(pomProperties.get("revision")).orElse(revisionFallback)
+      .filter(_ => usesRevision) match {
       case Some(revision) => pomProperties.updated("revision", revision)
       case None => pomProperties
     }
@@ -720,17 +731,19 @@ object PomMod {
   }
 
   def withRepoTry(file: File, opts: Opts, repo: RepoZ, skipPropertyReplacement: Boolean = false,
-      withSubPoms: Boolean = true, failureCollector: Option[Exception => Unit]): Try[PomMod] = {
+      withSubPoms: Boolean = true, failureCollector: Option[Exception => Unit],
+      revisionFallback: Option[String] = None): Try[PomMod] = {
     try {
-      Success(withRepo(file, opts, repo, skipPropertyReplacement, withSubPoms, failureCollector))
+      Success(withRepo(file, opts, repo, skipPropertyReplacement, withSubPoms, failureCollector, revisionFallback))
     } catch {
       case e: Exception => Failure(e)
     }
   }
 
   def withRepo(file: File, opts: Opts, repo: RepoZ, skipPropertyReplacement: Boolean = false,
-      withSubPoms: Boolean = true, failureCollector: Option[Exception => Unit]): PomMod = {
-    PomMod(file, repo, opts, skipPropertyReplacement, withSubPoms, failureCollector)
+      withSubPoms: Boolean = true, failureCollector: Option[Exception => Unit],
+      revisionFallback: Option[String] = None): PomMod = {
+    PomMod(file, repo, opts, skipPropertyReplacement, withSubPoms, failureCollector, revisionFallback)
   }
 
   object DepTree {

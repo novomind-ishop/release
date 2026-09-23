@@ -208,7 +208,9 @@ object Release extends LazyLogging {
     sgit.checkout(branch)
     Starter.chooseUpstreamIfUndef(sys, sgit, branch, opts)
 
-    val mod: ProjectMod = ProjectMod.read(workDirFile, sys, opts, repo)
+    val revisionFallback = Some(SuggestVersion.suggest(
+        branch, null, None, branchNames = sgit.listBranchNamesAll())._1)
+    val mod: ProjectMod = ProjectMod.read(workDirFile, sys, opts, repo, revisionFallback = revisionFallback)
 
     sys.out.println(". done (g)")
     if (opts.depUpOpts.showDependencyUpdates) {
@@ -219,7 +221,7 @@ object Release extends LazyLogging {
       System.exit(0)
     }
 
-    val wipMod = offerAutoFixForReleaseSnapshots(sys, mod, sgit.lsFiles(), shellWidth, repo, opts)
+    val wipMod = offerAutoFixForReleaseSnapshots(sys, mod, sgit.lsFiles(), shellWidth, repo, opts, revisionFallback)
 
     @tailrec
     def checkLocalChangesAfterSnapshots(mod: ProjectMod): ProjectMod = {
@@ -230,10 +232,11 @@ object Release extends LazyLogging {
           System.exit(0)
           mod
         } else {
-          checkLocalChangesAfterSnapshots(ProjectMod.read(mod.file, sys, opts, repo, showRead = false))
+          checkLocalChangesAfterSnapshots(ProjectMod.read(mod.file, sys, opts, repo, showRead = false,
+              revisionFallback = revisionFallback))
         }
       } else {
-        ProjectMod.read(mod.file, sys, opts, repo, showRead = false)
+        ProjectMod.read(mod.file, sys, opts, repo, showRead = false, revisionFallback = revisionFallback)
       }
 
     }
@@ -368,7 +371,7 @@ object Release extends LazyLogging {
       newMod.writeTo(workDirFile)
     }
     val headCommitId = sgit.commitIdHead()
-    val releaseMod = ProjectMod.read(workDirFile, sys, opts, repo, showRead = false)
+    val releaseMod = ProjectMod.read(workDirFile, sys, opts, repo, showRead = false, revisionFallback = revisionFallback)
     val msgs = opts.skipProperties match {
       case Nil => ""
       case found => "\nReleasetool-Prop-Skip: " + found.mkString(", ")
@@ -561,7 +564,7 @@ object Release extends LazyLogging {
 
   // TODO @tailrec
   def offerAutoFixForReleaseSnapshots(sys: Term.Sys, mod: ProjectMod, gitFiles: Seq[String], shellWidth: Int,
-      repo: RepoZ, opts: Opts): ProjectMod = {
+      repo: RepoZ, opts: Opts, revisionFallback: Option[String] = None): ProjectMod = {
     val plugins = mod.listPluginDependencies
     if (mod.isShop) {
       // TODO check if core needs this checks too
@@ -648,7 +651,9 @@ object Release extends LazyLogging {
       if (again == "n") {
         sys.exit(1)
       } else {
-        offerAutoFixForReleaseSnapshots(sys, ProjectMod.read(mod.file, sys, opts, repo, showRead = false), gitFiles, shellWidth, repo, opts)
+        offerAutoFixForReleaseSnapshots(sys,
+          ProjectMod.read(mod.file, sys, opts, repo, showRead = false, revisionFallback = revisionFallback),
+          gitFiles, shellWidth, repo, opts, revisionFallback)
       }
     }
     mod

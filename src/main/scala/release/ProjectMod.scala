@@ -168,12 +168,13 @@ object ProjectMod extends LazyLogging {
 
   case class GavWithRef(pomRef: SelfRef, gav: Gav)
 
-  def read(workDirFile: File, sys: Term.Sys, opts: Opts, repo: RepoZ, showRead: Boolean = true): ProjectMod = {
+  def read(workDirFile: File, sys: Term.Sys, opts: Opts, repo: RepoZ, showRead: Boolean = true,
+      revisionFallback: Option[String] = None): ProjectMod = {
     if (PomMod.rootPom(workDirFile).canRead) {
       if (showRead) {
         sys.out.print("I: Reading pom.xmls ..")
       }
-      PomMod.withRepo(workDirFile, opts, repo, failureCollector = None)
+      PomMod.withRepo(workDirFile, opts, repo, failureCollector = None, revisionFallback = revisionFallback)
     } else if (SbtMod.buildSbt(workDirFile).canRead) {
       if (showRead) {
         sys.out.print("I: Reading build.sbt ..")

@@ -6,6 +6,14 @@ import org.scalatestplus.junit.AssertionsForJUnit
 class VersionTest extends AssertionsForJUnit {
 
   @Test
+  def branchSnapshotsHaveTheirOwnPattern(): Unit = {
+    Assert.assertTrue(Version.isValidBranchSnapshot("qa-48x-abc-17629_2-SNAPSHOT"))
+    Assert.assertTrue(Version.isValidBranchSnapshot("main-SNAPSHOT"))
+    Assert.assertFalse(Version.isValidBranchSnapshot("qa-48x-abc-17629_2"))
+    Assert.assertFalse(Version.isValidBranchSnapshot("feature/ABC-123-SNAPSHOT"))
+  }
+
+  @Test
   def testIsMajor(): Unit = {
     Assert.assertTrue(Version.parse("21.0.0").isMajor())
     Assert.assertTrue(Version.parse("21.0.0-SNAPSHOT").isMajor())
