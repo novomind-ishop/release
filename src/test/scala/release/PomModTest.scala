@@ -805,6 +805,98 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def applySuggestedVersionChangesUpdatesPomAndDependencyTree(): Unit = {
+    val propertyRef = "${library.version}"
+    val srcPoms = pomTestFile(
+      temp,
+      document(
+        <project>
+        <modelVersion>4.0.0</modelVersion>
+        <groupId>org.example</groupId>
+        <artifactId>project</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <properties><library.version>2.0.0-SNAPSHOT</library.version></properties>
+        <dependencies>
+          <dependency>
+            <groupId>org.example</groupId><artifactId>library</artifactId>
+            <version>{propertyRef}</version>
+          </dependency>
+          <dependency>
+            <groupId>org.example</groupId><artifactId>utility</artifactId>
+            <version>3.0.0-SNAPSHOT</version>
+          </dependency>
+          <dependency>
+            <groupId>org.example</groupId><artifactId>unchanged</artifactId>
+            <version>4.0.0</version>
+          </dependency>
+        </dependencies>
+        <build><plugins><plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <version>3.0.0</version>
+          <executions><execution>
+            <goals><goal>tree</goal></goals>
+            <configuration><outputFile>dep.tree</outputFile></configuration>
+          </execution></executions>
+        </plugin></plugins></build>
+      </project>
+      ),
+      "org.example:library:jar:2.0.0-SNAPSHOT\norg.example:utility:jar:3.0.0-SNAPSHOT\n" +
+        "org.example:unchanged:jar:4.0.0\n"
+    ).create()
+    val mod = withRepoForTests(srcPoms, repo)
+    val suggestions = Seq(
+      Gav3("org.example", "library", "2.0.0-SNAPSHOT") -> "2.0.0",
+      Gav3("org.example", "utility", "3.0.0-SNAPSHOT") -> "3.0.0")
+
+    Assert.assertTrue(mod.hasSuggestedVersionChanges(suggestions))
+    mod.applySuggestedVersionChanges(suggestions)
+    mod.writeTo(srcPoms)
+
+    Assert.assertFalse(withRepoForTests(srcPoms, repo).hasSuggestedVersionChanges(suggestions))
+
+    val pom = FileUtils.read(new File(srcPoms, "pom.xml"))
+    Assert.assertTrue(pom.contains("<library.version>2.0.0</library.version>"))
+    Assert.assertTrue(pom.contains("<version>${library.version}</version>"))
+    Assert.assertTrue(pom.contains("<version>3.0.0</version>"))
+    Assert.assertTrue(pom.contains("<version>4.0.0</version>"))
+    Assert.assertEquals(
+      "org.example:library:jar:2.0.0\norg.example:utility:jar:3.0.0\norg.example:unchanged:jar:4.0.0\n",
+      FileUtils.read(new File(srcPoms, "dep.tree")))
+  }
+
+  @Test
+  def suggestedVersionChangesIgnoreUnmatchedVersions(): Unit = {
+    val srcPoms = pomTestFile(
+      temp,
+      document(
+        <project>
+        <modelVersion>4.0.0</modelVersion>
+        <groupId>org.example</groupId>
+        <artifactId>project</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <dependencies>
+          <dependency>
+            <groupId>org.example</groupId><artifactId>library</artifactId>
+            <version>2.0.0</version>
+          </dependency>
+        </dependencies>
+      </project>
+      )
+    ).create()
+    val mod = withRepoForTests(srcPoms, repo)
+    val suggestions = Seq(
+      Gav3("org.example", "library", "2.0.0-SNAPSHOT") -> "2.0.0",
+      Gav3("org.example", "missing", "1.0.0-SNAPSHOT") -> "1.0.0")
+    val original = FileUtils.read(new File(srcPoms, "pom.xml"))
+
+    Assert.assertFalse(mod.hasSuggestedVersionChanges(suggestions))
+    mod.applySuggestedVersionChanges(suggestions)
+    mod.writeTo(srcPoms)
+    Assert.assertEquals(original, FileUtils.read(new File(srcPoms, "pom.xml")))
+  }
+
+  @Test
   def replacePropertySloppy(): Unit = {
     Assert.assertEquals("ab",
       PomMod.replaceProperty(Map("a" -> "b", "x" -> "x"), sloppy = true)("a${a}"))

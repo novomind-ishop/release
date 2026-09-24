@@ -2,7 +2,7 @@ package release
 
 import com.typesafe.scalalogging.LazyLogging
 import release.lint.Lint.{fiCodeCoreDiff, fiFine, fiWarn, lineMax}
-import release.ProjectMod.{Dep, Gav, UpdatePrinter}
+import release.ProjectMod.{Dep, Gav, Gav3, UpdatePrinter}
 import release.Starter.PreconditionsException
 import release.Term.{info, warn}
 
@@ -621,7 +621,7 @@ object Release extends LazyLogging {
       selecteded.toList.map(in => "  : " + in).foreach(sys.out.println)
     }
 
-    if (snapState.nonEmpty || snapshotProperties.nonEmpty) {
+    if (selecteded.nonEmpty || snapState.nonEmpty || snapshotProperties.nonEmpty) {
       if (snapshotProperties.nonEmpty) {
         sys.out.println("")
         sys.out.println("Snapshot properties found for (please fix manually in pom.xml (remove -SNAPSHOT in most cases)):")
@@ -629,8 +629,6 @@ object Release extends LazyLogging {
       }
       if (snapState.nonEmpty) {
         sys.out.println("")
-        // TODO later autofix
-        // mod.changeDependecyVersion()
         sys.out.println("Snapshots found for (please fix manually in pom.xml (remove -SNAPSHOT in most cases)):")
       }
 
@@ -647,16 +645,49 @@ object Release extends LazyLogging {
         .foreach(sys.out.println)
       sys.out.println("")
 
-      val again = Term.readFromOneOfYesNo(sys, "Try again?", opts)
-      if (again == "n") {
-        sys.exit(1)
-      } else {
-        offerAutoFixForReleaseSnapshots(sys,
-          ProjectMod.read(mod.file, sys, opts, repo, showRead = false, revisionFallback = revisionFallback),
-          gitFiles, shellWidth, repo, opts, revisionFallback)
+      val suggestions = snapState.flatMap(in =>
+        for {
+          oldVersion <- in.gav.version
+          newVersion <- in.suggested.flatMap(_.version)
+        } yield (Gav3(in.gav.groupId, in.gav.artifactId, Some(oldVersion)), newVersion)).distinct
+      val applicablePom = mod match {
+        case pom: PomMod if suggestions.nonEmpty && pom.hasSuggestedVersionChanges(suggestions) => Some(pom)
+        case _ => None
       }
-    }
-    mod
+      val applySuggestions = applicablePom.exists(_ =>
+        Term.readFromOneOfYesNo(sys, "Apply suggested versions to pom.xmls?", opts) == "y")
+
+      if (applySuggestions) {
+        val pom = applicablePom.get
+        pom.applySuggestedVersionChanges(suggestions)
+        pom.writeTo(pom.file)
+        offerAutoFixForReleaseSnapshots(
+          sys,
+          ProjectMod.read(mod.file, sys, opts, repo, showRead = false, revisionFallback = revisionFallback),
+          gitFiles,
+          shellWidth,
+          repo,
+          opts,
+          revisionFallback
+        )
+      } else {
+        val again = Term.readFromOneOfYesNo(sys, "Try again?", opts)
+        if (again == "n") {
+          sys.exit(1)
+          mod
+        } else {
+          offerAutoFixForReleaseSnapshots(
+            sys,
+            ProjectMod.read(mod.file, sys, opts, repo, showRead = false, revisionFallback = revisionFallback),
+            gitFiles,
+            shellWidth,
+            repo,
+            opts,
+            revisionFallback
+          )
+        }
+      }
+    } else mod
   }
 
 }

@@ -337,6 +337,55 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
     println("HINT: create trees manually")
   }
 
+  private def suggestedVersionChanges(suggestions: Seq[(Gav3, String)]): (Map[String, String], Map[Node, String], Seq[(Gav3, String)]) = {
+    val matches = suggestions.distinct.flatMap { case (gav, newVersion) =>
+      gav.version.toSeq.filterNot(_ == newVersion).flatMap { oldVersion =>
+        raws.flatMap(raw =>
+          PomMod.filterBy(raw.document, gav.groupId, gav.artifactId, None)
+            .flatMap(dep => Xpath.toSeqNodes(dep.getChildNodes).find(_.getNodeName == "version"))
+            .map(node => (node, oldVersion, newVersion, gav)))
+      }
+    }
+
+    def uniqueTargets[A](changes: Seq[(A, String)]): Map[A, String] =
+      changes.groupMap(_._1)(_._2).map { case (target, versions) =>
+        require(versions.distinct.size == 1, s"conflicting suggested versions for $target: ${versions.distinct.mkString(", ")}")
+        target -> versions.head
+      }
+
+    val properties = matches.flatMap { case (node, oldVersion, newVersion, _) =>
+      PomMod.singlePropertyName(node.getTextContent)
+        .filter(name => PomMod.propertyIsDefined(raws, name) && listProperties.get(name).contains(oldVersion))
+        .map(_ -> newVersion)
+    }
+    val literals = matches.collect {
+      case (node, oldVersion, newVersion, _) if node.getTextContent == oldVersion => node -> newVersion
+    }
+    val treeChanges = matches.collect {
+      case (node, oldVersion, newVersion, gav)
+          if node.getTextContent == oldVersion ||
+            PomMod.singlePropertyName(node.getTextContent)
+              .exists(name => PomMod.propertyIsDefined(raws, name) && listProperties.get(name).contains(oldVersion)) =>
+        gav -> newVersion
+    }.distinct
+    (uniqueTargets(properties), uniqueTargets(literals), treeChanges)
+  }
+
+  def hasSuggestedVersionChanges(suggestions: Seq[(Gav3, String)]): Boolean = {
+    val (properties, literals, _) = suggestedVersionChanges(suggestions)
+    properties.nonEmpty || literals.nonEmpty
+  }
+
+  def applySuggestedVersionChanges(suggestions: Seq[(Gav3, String)]): Unit = {
+    val (properties, literals, treeChanges) = suggestedVersionChanges(suggestions)
+    properties.foreach { case (name, version) => PomMod.applyPropertyValue(raws, name, version) }
+    literals.foreach { case (node, version) => node.setTextContent(version) }
+    treeChanges.foreach { case (gav, version) =>
+      gav.version.filterNot(_ == version).foreach(oldVersion =>
+        changeDepTreesVersion(gav.groupId, gav.artifactId, oldVersion, version))
+    }
+  }
+
   def changeVersion(newVersion: String): Unit = {
     val oldVersionExpression: String = PomMod.selectFirstVersionFrom(raws).get
     val oldVersion = selfVersionReplaced

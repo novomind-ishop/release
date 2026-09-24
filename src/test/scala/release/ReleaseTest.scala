@@ -103,8 +103,8 @@ class ReleaseTest extends AssertionsForJUnit {
 
     val check = Release.formatVersionLinesGav(
       Seq(
-        ProjectMod.Gav("com.novomind.ishop.core", "ishop-core-projects", Some("29.6.4-SNAPSHOT")),
-        ProjectMod.Gav("com.novomind.ishop.core", "ishop-api", Some("1.0.2.1")),
+        ProjectMod.Gav("org.example.module.core", "other-core-projects", Some("29.6.4-SNAPSHOT")),
+        ProjectMod.Gav("org.example.module.core", "other-api", Some("1.0.2.1")),
         ProjectMod.Gav("na", "na", Some("1.0.2.1")),
         ProjectMod.Gav("any", "an", Some("2.2")),
         ProjectMod.Gav("any", "any", Some("2"))
@@ -114,11 +114,11 @@ class ReleaseTest extends AssertionsForJUnit {
 
     Assert.assertEquals(
       Seq(
-        "* com.novomind.ishop.core:ishop-api:            \u001B[31m1.0.2.1\u001B[0m",
+        "* org.example.module.core:other-api:            \u001B[31m1.0.2.1\u001B[0m",
         "* na:na:                                        \u001B[31m1.0.2.1\u001B[0m",
         "* any:any:                                      2",
         "* any:an:                                       2.2",
-        "* com.novomind.ishop.core:ishop-core-projects:  \u001B[31m29.6.4-SNAPSHOT\u001B[0m"
+        "* org.example.module.core:other-core-projects:  \u001B[31m29.6.4-SNAPSHOT\u001B[0m"
       ).mkString("\n"),
       check.mkString("\n")
     )
@@ -128,8 +128,8 @@ class ReleaseTest extends AssertionsForJUnit {
   def testFormatVersionLinesGav(): Unit = {
 
     val check = Release.formatVersionLinesGav(Seq(
-        ProjectMod.Gav("com.novomind.ishop.core", "ishop-core-projects", Some("29.6.4-SNAPSHOT")),
-        ProjectMod.Gav("com.novomind.ishop.core", "ishop-api", Some("1.0.2.1")),
+        ProjectMod.Gav("org.example.module.core", "other-core-projects", Some("29.6.4-SNAPSHOT")),
+        ProjectMod.Gav("org.example.module.core", "other-api", Some("1.0.2.1")),
         ProjectMod.Gav("na", "na", Some("1.0.2.1")),
         ProjectMod.Gav("any", "ax", Some("2.2.2")),
         ProjectMod.Gav("any", "an", Some("2.2")),
@@ -141,7 +141,7 @@ class ReleaseTest extends AssertionsForJUnit {
 
     Assert.assertEquals(
       Seq(
-        "* com.novomind.ishop.core:ishop-api:            1.0.2.1",
+        "* org.example.module.core:other-api:            1.0.2.1",
         "* na:na:                                        1.0.2.1",
         "* any:any:                                      2",
         "* :any:                                         2",
@@ -149,7 +149,7 @@ class ReleaseTest extends AssertionsForJUnit {
         "* any:an:                                       2.2",
         "* any:ax:                                       2.2.2",
         "* :other:                                       7.21",
-        "* com.novomind.ishop.core:ishop-core-projects:  29.6.4-SNAPSHOT"
+        "* org.example.module.core:other-core-projects:  29.6.4-SNAPSHOT"
       ).mkString("\n"),
       check.mkString("\n")
     )
@@ -180,7 +180,7 @@ class ReleaseTest extends AssertionsForJUnit {
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
         |  <modelVersion>4.0.0</modelVersion>
         |
-        |  <groupId>com.novomind.ishop.any</groupId>
+        |  <groupId>org.example.any</groupId>
         |  <artifactId>any</artifactId>
         |  <version>0.11-SNAPSHOT</version>
         |
@@ -246,7 +246,7 @@ class ReleaseTest extends AssertionsForJUnit {
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
         |  <modelVersion>4.0.0</modelVersion>
         |
-        |  <groupId>com.novomind.ishop.any</groupId>
+        |  <groupId>org.example.any</groupId>
         |  <artifactId>any</artifactId>
         |  <version>1x-SNAPSHOT</version>
         |
@@ -314,7 +314,7 @@ class ReleaseTest extends AssertionsForJUnit {
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
         |  <modelVersion>4.0.0</modelVersion>
         |
-        |  <groupId>com.novomind.ishop.any</groupId>
+        |  <groupId>org.example.any</groupId>
         |  <artifactId>any</artifactId>
         |  <version>1x-SNAPSHOT</version>
         |
@@ -377,7 +377,7 @@ class ReleaseTest extends AssertionsForJUnit {
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
         |  <modelVersion>4.0.0</modelVersion>
         |
-        |  <groupId>com.novomind.ishop.any</groupId>
+        |  <groupId>org.example.any</groupId>
         |  <artifactId>any</artifactId>
         |  <version>1x-SNAPSHOT</version>
         |
@@ -440,7 +440,7 @@ class ReleaseTest extends AssertionsForJUnit {
         |  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
         |  <modelVersion>4.0.0</modelVersion>
         |
-        |  <groupId>com.novomind.ishop.any</groupId>
+        |  <groupId>org.example.any</groupId>
         |  <artifactId>any</artifactId>
         |  <version>1x-SNAPSHOT</version>
         |
@@ -592,5 +592,87 @@ class ReleaseTest extends AssertionsForJUnit {
       Release.offerAutoFixForReleaseSnapshots(sys, mod = testMod, gitFiles = Nil, shellWidth = 72, mockRepo, opts)
     })
 
+  }
+
+  @Test
+  def otherSnapshotsBlockRelease(): Unit = {
+    val plugin = ProjectModTest.depOfShort(
+      "org.example.maven", "example-maven-plugin", "1.11.2-SNAPSHOT")
+    val mod = new ProjectModTest.MockMod() {
+      override private[release] def listDeps(): Seq[ProjectMod.Dep] = Seq(plugin)
+    }
+
+    TermTest.testSys(
+      Seq("n"),
+      "Other snapshot found for (please fix manually (remove -SNAPSHOT in most cases)):\n" +
+        "Try again? [y/n]: n",
+      "",
+      expectedExitCode = 1,
+      outAllFn = _.filter(line => line.startsWith("Other snapshot found") || line.startsWith("Try again?"))
+    )(sys => {
+      Release.offerAutoFixForReleaseSnapshots(sys, mod, Nil, 72, Mockito.mock(classOf[Repo]),
+        Opts(useJlineInput = false))
+    })
+  }
+
+  @Test
+  def suggestedSnapshotVersionsCanBeApplied(): Unit = {
+    val propertyRef = "${platform-dependencies.version}"
+    val project = PomModTest.pomTestFile(
+      temp,
+      PomModTest.document(
+        <project>
+        <modelVersion>4.0.0</modelVersion>
+        <groupId>org.example</groupId>
+        <artifactId>project</artifactId>
+        <version>48.0.0-SNAPSHOT</version>
+        <properties><platform-dependencies.version>48x-SNAPSHOT</platform-dependencies.version></properties>
+        <dependencies>
+          <dependency>
+            <groupId>org.example.libs</groupId>
+            <artifactId>common-utils</artifactId>
+            <version>48x-SNAPSHOT</version>
+          </dependency>
+          <dependency>
+            <groupId>org.example.platform</groupId>
+            <artifactId>platform-dependencies</artifactId>
+            <version>{propertyRef}</version>
+          </dependency>
+        </dependencies>
+      </project>
+      )
+    ).create()
+    val mockRepo = Mockito.mock(classOf[Repo])
+    Mockito.when(mockRepo.latestGav("org.example.libs", "common-utils", "48x-SNAPSHOT"))
+      .thenReturn(Some(Gav3("org.example.libs", "common-utils", Some("48.11.1"))))
+    Mockito.when(mockRepo.latestGav("org.example.platform", "platform-dependencies", "48x-SNAPSHOT"))
+      .thenReturn(Some(Gav3("org.example.platform", "platform-dependencies", Some("48.11.1"))))
+
+    TermTest.testSys(
+      Seq("n", "n"),
+      "Apply suggested versions to pom.xmls? [y/n]: n\nTry again? [y/n]: n",
+      "",
+      expectedExitCode = 1,
+      outAllFn = _.filter(line => line.startsWith("Apply suggested versions") || line.startsWith("Try again?"))
+    )(sys => {
+      val opts = Opts(useJlineInput = false)
+      val mod = PomModTest.withRepoForTests(project, mockRepo, opts = opts)
+      Release.offerAutoFixForReleaseSnapshots(sys, mod, Nil, 72, mockRepo, opts)
+    })
+    Assert.assertTrue(FileUtils.read(new File(project, "pom.xml")).contains("<version>48x-SNAPSHOT</version>"))
+
+    TermTest.testSys(Seq("y"), "Apply suggested versions to pom.xmls? [y/n]: y", "",
+      outAllFn = _.filter(_.startsWith("Apply suggested versions to pom.xmls?")))(sys => {
+      val opts = Opts(useJlineInput = false)
+      val mod = PomModTest.withRepoForTests(project, mockRepo, opts = opts)
+      val updated = Release.offerAutoFixForReleaseSnapshots(sys, mod, Nil, 72, mockRepo, opts)
+      Assert.assertTrue(updated.listSnapshotDependenciesDistinct.isEmpty)
+      Assert.assertTrue(updated.snapshotProperties.isEmpty)
+    })
+
+    val pom = FileUtils.read(new File(project, "pom.xml"))
+    Assert.assertTrue(pom.contains("<platform-dependencies.version>48.11.1</platform-dependencies.version>"))
+    Assert.assertTrue(pom.contains("<version>${platform-dependencies.version}</version>"))
+    Assert.assertTrue(pom.contains("<version>48.11.1</version>"))
   }
 }
