@@ -229,6 +229,76 @@ class ReleaseTest extends AssertionsForJUnit {
 
   }
 
+  @Test(timeout = 20_000)
+  def appliedSuggestedVersionsAreIncludedInReleaseTag(): Unit = {
+    val localWorkFolder = temp.newFolder()
+    val remoteWorkFolder = temp.newFolder()
+    val gitRemote = Sgit.init(remoteWorkFolder)
+    gitRemote.configSetLocal("user.email", "you@example.com")
+    gitRemote.configSetLocal("user.name", "Your Name")
+    val pom = new File(remoteWorkFolder, "pom.xml")
+    FileUtils.write(
+      pom,
+      """<project>
+        |  <modelVersion>4.0.0</modelVersion>
+        |  <groupId>org.example</groupId>
+        |  <artifactId>release-test</artifactId>
+        |  <version>${revision}</version>
+        |  <dependencies>
+        |    <dependency>
+        |      <groupId>org.example</groupId>
+        |      <artifactId>common-utils</artifactId>
+        |      <version>0.10-SNAPSHOT</version>
+        |    </dependency>
+        |  </dependencies>
+        |</project>""".stripMargin.linesIterator.toSeq
+    )
+    gitRemote.add(pom)
+    gitRemote.commitAll("initial pom")
+
+    val gitLocal = Sgit.doClone(remoteWorkFolder, localWorkFolder, verify = false)
+    gitLocal.configSetLocal("user.email", "you@example.com")
+    gitLocal.configSetLocal("user.name", "Your Name")
+    gitLocal.setUpstream("origin/master")
+    val repo = Mockito.mock(classOf[Repo])
+    Mockito.when(repo.latestGav("org.example", "common-utils", "0.10-SNAPSHOT"))
+      .thenReturn(Some(Gav3("org.example", "common-utils", Some("0.10"))))
+
+    TermTest.testSys(
+      Seq("y", "0.11", "", "y", ""),
+      "Apply suggested versions to pom.xmls? [y/n]: y\n" +
+        "Enter the next version without -SNAPSHOT [${revision}]: ",
+      "",
+      outAllFn = _.filter(line =>
+        line.startsWith("Apply suggested versions to pom.xmls?") ||
+          line.startsWith("Enter the next version without -SNAPSHOT") ||
+          line.startsWith("Found local changes - commit manual please."))
+    )(sys => {
+      val opts = Opts(useJlineInput = false, useGerrit = true)
+      Release.work(
+        localWorkFolder,
+        sys,
+        rebaseFn = () => {},
+        branch = "master",
+        gitLocal,
+        Term.select("xterm", "b", simpleChars = true, isInteractice = false),
+        72,
+        () => "abc",
+        ReleaseConfig.default(true),
+        repo,
+        opts
+      )
+    })
+
+    val nextPom = FileUtils.read(new File(localWorkFolder, "pom.xml"))
+    Assert.assertTrue(nextPom, nextPom.contains("<version>${revision}</version>"))
+    gitLocal.checkout("v0.11")
+    val taggedPom = FileUtils.read(new File(localWorkFolder, "pom.xml"))
+    Assert.assertTrue(taggedPom, taggedPom.contains("<version>0.11</version>"))
+    Assert.assertTrue(taggedPom, taggedPom.contains("<version>0.10</version>"))
+    Assert.assertFalse(taggedPom.contains("0.10-SNAPSHOT"))
+  }
+
   @Test(timeout = 200_000)
   def testWorkSelectNextChoose(): Unit = {
     val localWorkFolder = temp.newFolder()

@@ -552,7 +552,11 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
 
   def suggestNextRelease(releaseVersion: String): String = {
     checkCurrentVersion(currentVersion)
-    PomMod.suggestNextReleaseBy(selfVersionReplaced, releaseVersion)
+    if (selfVersion == "${revision}" && !PomMod.propertyIsDefined(raws, "revision")) {
+      selfVersion
+    } else {
+      PomMod.suggestNextReleaseBy(selfVersionReplaced, releaseVersion)
+    }
   }
 
   private def nextVersionFileContent(): () => String = {

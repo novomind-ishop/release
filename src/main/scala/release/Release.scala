@@ -221,11 +221,14 @@ object Release extends LazyLogging {
       System.exit(0)
     }
 
-    val wipMod = offerAutoFixForReleaseSnapshots(sys, mod, sgit.lsFiles(), shellWidth, repo, opts, revisionFallback)
+    var autoFixedChanges = Set.empty[String]
+    val wipMod = offerAutoFixForReleaseSnapshots(sys, mod, sgit.lsFiles(), shellWidth, repo, opts, revisionFallback,
+      onApplied = () => autoFixedChanges ++= sgit.localChanges())
 
     @tailrec
     def checkLocalChangesAfterSnapshots(mod: ProjectMod): ProjectMod = {
-      if (sgit.hasLocalChanges) {
+      val localChanges = sgit.localChanges()
+      if (localChanges.nonEmpty && !localChanges.toSet.subsetOf(autoFixedChanges)) {
         sys.out.println(localChangeMessage(sgit))
         val retryLocalChanges = Term.readFromOneOfYesNo(sys, "Found local changes - commit manual please. Retry?", opts)
         if (retryLocalChanges == "n") {
@@ -261,17 +264,17 @@ object Release extends LazyLogging {
     val releaseWithoutSnapshot = if (opts.versionIncrement.isDefined) {
       suggestedVersions.head
     } else {
-      readReleaseVersions(sys, mod, suggestedVersions, opts, knownTags)
+      readReleaseVersions(sys, newMod, suggestedVersions, opts, knownTags)
     }
 
     sys.out.println(s"Selected release is ${releaseWithoutSnapshot}")
-    val release = if (mod.isShop) {
+    val release = if (newMod.isShop) {
       Version.removeTrailingSnapshots(releaseWithoutSnapshot) + "-SNAPSHOT"
     } else {
       releaseWithoutSnapshot
     }
     val releaseWitoutSnapshot = Version.removeTrailingSnapshots(release)
-    if (mod.isNoShop && sgit.listAllTags().contains("v" + releaseWitoutSnapshot)) {
+    if (newMod.isNoShop && sgit.listAllTags().contains("v" + releaseWitoutSnapshot)) {
       // TODO fetch remote and try to read new version again
       throw new IllegalStateException("release " + releaseWitoutSnapshot + " already found; check your repository or change version.")
     }
@@ -281,7 +284,7 @@ object Release extends LazyLogging {
       val result =
         Version.removeTrailingSnapshots(PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(sys, "Enter the next version without -SNAPSHOT",
               newMod.suggestNextRelease(release), opts)))
-      if (PomMod.isUnknownVersionPattern(result)) {
+      if (PomMod.isUnknownVersionPattern(result) && !(PomMod.isVariable(result) && result == newMod.selfVersion)) {
         val retryVersionEnter =
           Term.readFromOneOfYesNo(sys, "Unknown next release version \"" + result + "\". Are you sure to continue?", opts)
         if (retryVersionEnter == "n") {
@@ -297,14 +300,14 @@ object Release extends LazyLogging {
     // TODO release a feature branch should not change the next version
     val nextReleaseWithoutSnapshot = readNextReleaseVersionsWithoutSnapshot
 
-    val cmr = VersionSkew.skewResultOf(mod = mod, releaseVersion = Option(release), opts = opts, out = None, skewStyle = None,
+    val cmr = VersionSkew.skewResultOf(mod = newMod, releaseVersion = Option(release), opts = opts, out = None, skewStyle = None,
       warnExit = new OneTimeSwitch(), errorExit = new OneTimeSwitch())
     if (cmr.hasDifferentMajors) {
       sys.out.println()
       if (opts.colors) {
         sys.out.print("\u001B[30;45m")
       }
-      if (mod.isNoShop) {
+      if (newMod.isNoShop) {
         sys.out.print(" W: You are trying to release major version " + cmr.releaseMajorVersion + " (" + release + ")")
       } else {
         sys.out.print(" W: You are trying to use core major version " + cmr.releaseMajorVersion)
@@ -344,8 +347,12 @@ object Release extends LazyLogging {
 
     // TODO hier könnte man jetzt die snapshots aus "mod" in "newMod" suchen und sie auf den folgesnapshot setzen
 
-    val nextSnapshot = nextReleaseWithoutSnapshot + "-SNAPSHOT"
-    val cVe = newMod.selfVersionReplaced != nextSnapshot
+    val nextSnapshot = Starter.versionForVersionSet(nextReleaseWithoutSnapshot)
+    val cVe = if (PomMod.isVariable(nextSnapshot)) {
+      newMod.selfVersion != nextSnapshot
+    } else {
+      newMod.selfVersionReplaced != nextSnapshot
+    }
     if (cVe) {
       newMod.changeVersion(nextSnapshot)
     }
@@ -564,7 +571,8 @@ object Release extends LazyLogging {
 
   // TODO @tailrec
   def offerAutoFixForReleaseSnapshots(sys: Term.Sys, mod: ProjectMod, gitFiles: Seq[String], shellWidth: Int,
-      repo: RepoZ, opts: Opts, revisionFallback: Option[String] = None): ProjectMod = {
+      repo: RepoZ, opts: Opts, revisionFallback: Option[String] = None,
+      onApplied: () => Unit = () => ()): ProjectMod = {
     val plugins = mod.listPluginDependencies
     if (mod.isShop) {
       // TODO check if core needs this checks too
@@ -661,6 +669,7 @@ object Release extends LazyLogging {
         val pom = applicablePom.get
         pom.applySuggestedVersionChanges(suggestions)
         pom.writeTo(pom.file)
+        onApplied()
         offerAutoFixForReleaseSnapshots(
           sys,
           ProjectMod.read(mod.file, sys, opts, repo, showRead = false, revisionFallback = revisionFallback),
@@ -668,7 +677,8 @@ object Release extends LazyLogging {
           shellWidth,
           repo,
           opts,
-          revisionFallback
+          revisionFallback,
+          onApplied
         )
       } else {
         val again = Term.readFromOneOfYesNo(sys, "Try again?", opts)
@@ -683,7 +693,8 @@ object Release extends LazyLogging {
             shellWidth,
             repo,
             opts,
-            revisionFallback
+            revisionFallback,
+            onApplied
           )
         }
       }

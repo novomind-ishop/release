@@ -791,6 +791,7 @@ class PomModTest extends AssertionsForJUnit {
     assert("${revision}" === mod.selfVersion)
     assert("47.0.0-SNAPSHOT" === mod.selfVersionReplaced)
     assert(Seq("47.0.0") === mod.suggestReleaseVersions())
+    assert("${revision}" === mod.suggestNextRelease("47.0.0"))
 
     mod.changeVersion("47.0.0")
     mod.writeTo(srcPoms)
