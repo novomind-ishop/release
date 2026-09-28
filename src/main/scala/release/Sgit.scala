@@ -9,8 +9,8 @@ import release.Starter.PreconditionsException
 import java.io.{File, PrintStream}
 import java.net.URI
 import java.time.ZonedDateTime
-import java.util.concurrent.atomic.AtomicReference
-import java.util.concurrent.{Callable, Executors, TimeUnit}
+import java.util.concurrent.atomic.{AtomicLong, AtomicReference}
+import java.util.concurrent.{Callable, Executors, TimeUnit, TimeoutException}
 import scala.annotation.tailrec
 import scala.concurrent.duration.Duration
 import scala.io.Source
@@ -211,8 +211,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
         throw new Sgit.MissingCommitHookException(
           """
             |E: please download a commit-message hook and retry
-            |Hint: if this not a gerrit repo use '--no-gerrit' or
-            |      export RELEASE_NO_GERRIT=true
+            |Hint: Gerrit integration requires this hook. For non-Gerrit projects omit '--gerrit'.
             |E: The hook should be at: %s
             |I: see %s/Documentation/user-changeid.html#creation
             |# scp -p -P %s $USERNAME@%s:hooks/commit-msg .git/hooks/
@@ -305,8 +304,10 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     lsFiles().map(entry => new File(gitRoot, entry).getAbsoluteFile)
   }
 
-  def fetchAll(): Unit = {
-    gitNative(Seq("fetch", "--all", "--tags", "--prune"), errMapper = Sgit.fetchFilter()).get
+  def fetchAll(timeout: Duration = Duration(3, TimeUnit.SECONDS), onActivity: () => Unit = () => ()): Unit = {
+    onActivity()
+    gitNative(Seq("fetch", "--all", "--tags", "--prune"), errMapper = Sgit.fetchFilter(),
+      timeout = Some(timeout), onActivity = onActivity).get
   }
 
   def tryFetchAll(): Try[Unit] = {
@@ -867,7 +868,8 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 
   private[release] def gitNative(args: Seq[String], showErrorsOnStdErr: Boolean = true, useWorkdir: Boolean = true,
       cmdFilter: String => Boolean = _ => false,
-      errMapper: String => Option[String] = errLine => Some(errLine)): Try[Seq[String]] = {
+      errMapper: String => Option[String] = errLine => Some(errLine),
+      timeout: Option[Duration] = None, onActivity: () => Unit = () => ()): Try[Seq[String]] = {
     if (checkExisting && !gitRoot.isDirectory) {
       throw new IllegalStateException("invalid git dir: " + gitRoot.getAbsolutePath)
     }
@@ -883,7 +885,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     val gitCmdCall: Seq[String] = cmd ++ workdir ++ Seq("--no-pager") ++ args
 
     val ff = Tracer.msgAround[Try[String]](gitCmdCall.mkString(" "), logger,
-      () => Sgit.native(gitCmdCall, errOnStdout = showErrorsOnStdErr, cmdFilter, err, errMapper))
+      () => Sgit.native(gitCmdCall, errOnStdout = showErrorsOnStdErr, cmdFilter, err, errMapper, timeout, onActivity))
     ff.map(_.linesIterator.toList.dropWhile(in => in.trim.isEmpty))
   }
 }
@@ -1152,13 +1154,15 @@ object Sgit {
     }
 
   private[release] def outLogger(errOut: String => Unit, outLog: String => Unit,
-      errorLineMapper: String => Option[String]): ProcessLogger = {
+      errorLineMapper: String => Option[String], onOutput: () => Unit = () => ()): ProcessLogger = {
     new ProcessLogger {
       override def out(s: => String): Unit = {
+        onOutput()
         outLog.apply(s)
       }
 
       override def err(s: => String): Unit = {
+        onOutput()
         if (s.nonEmpty) {
           val out = errorLineMapper.apply(s)
           if (out.isDefined) {
@@ -1210,7 +1214,8 @@ object Sgit {
 
   private[release] def native(cmd: Seq[String], errOnStdout: Boolean,
       cmdFilter: String => Boolean, err: PrintStream,
-      errLineMapper: String => Option[String]): Try[String] = {
+      errLineMapper: String => Option[String], timeout: Option[Duration] = None,
+      onActivity: () => Unit = () => ()): Try[String] = {
     import sys.process._
 
     var errors: String = ""
@@ -1228,7 +1233,40 @@ object Sgit {
     }
 
     try {
-      val result: String = cmd !! outLogger(logError, logOut, errLineMapper)
+      val lastOutputNanos = new AtomicLong(System.nanoTime())
+      val processLogger = outLogger(logError, logOut, errLineMapper,
+        () => {
+          lastOutputNanos.set(System.nanoTime())
+          onActivity()
+        })
+      val result: String = timeout match {
+        case None => cmd !! processLogger
+        case Some(limit) =>
+          val process = Process(cmd, None, "GIT_TERMINAL_PROMPT" -> "0", "GCM_INTERACTIVE" -> "never").run(processLogger)
+          val executor = Executors.newSingleThreadExecutor()
+          try {
+            val exit = executor.submit(new Callable[Int] {
+              override def call(): Int = process.exitValue()
+            })
+            var exitCode: Option[Int] = None
+            while (exitCode.isEmpty) {
+              try {
+                exitCode = Some(exit.get(100, TimeUnit.MILLISECONDS))
+              } catch {
+                case _: TimeoutException if System.nanoTime() - lastOutputNanos.get() >= limit.toNanos =>
+                  process.destroy()
+                  val lastError = Option(errors).filter(_.nonEmpty).map("; last error: " + _).getOrElse("")
+                  throw new TimeoutException(s"git fetch received no data for $limit; " +
+                    s"check the remote connection and authentication$lastError")
+                case _: TimeoutException =>
+              }
+            }
+            if (exitCode.get != 0) throw new RuntimeException(s"Nonzero exit value: ${exitCode.get}")
+            stdout
+          } finally {
+            executor.shutdownNow()
+          }
+      }
       Success(result.trim)
     } catch {
       case e: RuntimeException

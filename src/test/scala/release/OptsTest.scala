@@ -160,7 +160,17 @@ class OptsTest extends AssertionsForJUnit with LazyLogging {
 
   @Test
   def testArgRead_noGerrit(): Unit = {
-    Assert.assertEquals(Opts(useGerrit = false), Opts.argsAndEnvRead(Seq("--no-gerrit"), Opts(), Map.empty))
+    Assert.assertFalse(Opts().useGerrit)
+    Assert.assertEquals(Opts(), Opts.argsAndEnvRead(Seq("--no-gerrit"), Opts(), Map.empty))
+  }
+
+  @Test
+  def testArgRead_gerrit(): Unit = {
+    Assert.assertEquals(Opts(useGerrit = true), Opts.argsAndEnvRead(Seq("--gerrit"), Opts(), Map.empty))
+    Assert.assertEquals(Opts(useGerrit = true),
+      Opts.argsAndEnvRead(Seq("--gerrit"), Opts(), Map("RELEASE_NO_GERRIT" -> "false")))
+    Assert.assertEquals(Opts(useGerrit = true),
+      Opts.argsAndEnvRead(Seq("--gerrit"), Opts(), Map("RELEASE_NO_GERRIT" -> "true")))
   }
 
   @Test

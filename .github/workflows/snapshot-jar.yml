@@ -1,0 +1,41 @@
+name: Publish snapshot JAR
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: snapshot-jar
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: sbt
+      - uses: sbt/setup-sbt@v1
+      - name: Build JAR
+        run: |
+          rm -f release.jar
+          sbt --batch assembly
+          test -s release.jar
+      - name: Publish snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view snapshot >/dev/null 2>&1; then
+            gh release create snapshot --verify-tag --prerelease --latest=false \
+              --title 'Snapshot' --notes 'Current JAR from the master branch.'
+          fi
+          gh release upload snapshot release.jar --clobber
+          gh release edit snapshot --notes "Built from master commit ${GITHUB_SHA}."

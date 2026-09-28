@@ -8,7 +8,7 @@ import release.lint.Lint.BranchTagMerge
 import release.lint.{Lint, LintMaven}
 import release.*
 
-import java.io.File
+import java.io.{ByteArrayOutputStream, File, PrintStream}
 import java.nio.file.Paths
 import java.time.{YearMonth, ZonedDateTime}
 import java.util.concurrent.atomic.AtomicBoolean
@@ -39,6 +39,39 @@ class LintMavenTest extends AssertionsForJUnit {
   @Rule def temp = _temporarayFolder
 
   def replaceVarLiterals(in: String): String = LintMavenTest.replaceVarLiterals(in)
+
+  @Test
+  def lintResolvesRevisionFromSuggestedVersion(): Unit = {
+    val file = temp.newFolder("release-lint-revision")
+    val git = Sgit.init(file, SgitTest.hasCommitMsg)
+    git.configSetLocal("user.email", "you@example.com")
+    git.configSetLocal("user.name", "Your Name")
+    val pom = new File(file, "pom.xml")
+    FileUtils.write(
+      pom,
+      """<project>
+        |  <modelVersion>4.0.0</modelVersion>
+        |  <groupId>org.example</groupId>
+        |  <artifactId>revision-test</artifactId>
+        |  <version>${revision}</version>
+        |</project>""".stripMargin.linesIterator.toSeq
+    )
+    git.add(pom)
+    git.commitAll("add pom")
+
+    val output = new ByteArrayOutputStream()
+    val stream = new PrintStream(output)
+    Lint.run(stream, stream, Opts(colors = false), Map("CI_COMMIT_REF_NAME" -> "feature/ABC-123"), file)
+
+    Assert.assertTrue(output.toString("UTF-8"), output.toString("UTF-8").contains("abc-123-SNAPSHOT"))
+
+    val explicitOutput = new ByteArrayOutputStream()
+    val explicitStream = new PrintStream(explicitOutput)
+    Lint.run(explicitStream, explicitStream, Opts(colors = false),
+      Map("CI_COMMIT_REF_NAME" -> "feature/ABC-123", "revision" -> "2.0.0-SNAPSHOT"), file)
+
+    Assert.assertTrue(explicitOutput.toString("UTF-8"), explicitOutput.toString("UTF-8").contains("2.0.0-SNAPSHOT"))
+  }
 
   @Test
   def testRunEmpty(): Unit = {

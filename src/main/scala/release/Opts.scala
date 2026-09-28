@@ -48,7 +48,7 @@ object Opts {
     envs match {
       case Nil => inOpt
       case ("RELEASE_NO_GERRIT", k) :: tail => envRead(tail, {
-            inOpt.copy(useGerrit = k.toBooleanOption.forall(b => !b))
+            if (k.toBooleanOption.contains(true)) inOpt.copy(useGerrit = false) else inOpt
           })
       case ("RELEASE_LINT_SKIP", k) :: tail => envRead(
           tail, {
@@ -126,6 +126,7 @@ object Opts {
       case "-h" :: tail => argsRead(tail, inOpt.copy(showHelp = true))
       case "--replace" :: tail => argsRead(tail, inOpt) // handled by shell
       case "--show-update-cmd" :: tail => argsRead(tail, inOpt.copy(showUpdateCmd = true, showStartupDone = false))
+      case "--gerrit" :: tail => argsRead(tail, inOpt.copy(useGerrit = true))
       case "--no-gerrit" :: tail => argsRead(tail, inOpt.copy(useGerrit = false))
       case "--no-update" :: tail => argsRead(tail, inOpt.copy(doUpdate = false))
       case "--non-interactive" :: tail => argsRead(tail, inOpt.copy(isInteractive = false))
@@ -287,7 +288,7 @@ case class Opts(
     versionSet: Option[String] = None,
     shopGA: Option[String] = None,
     createFeature: Boolean = false,
-    useGerrit: Boolean = true,
+    useGerrit: Boolean = false,
     doUpdate: Boolean = true,
     depUpOpts: OptsDepUp = OptsDepUp(),
     apiDiff: OptsApidiff = OptsApidiff(),

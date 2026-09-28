@@ -11,7 +11,7 @@ import org.mockito.Mockito.*
 import org.scalatestplus.junit.AssertionsForJUnit
 import release.ProjectMod.Gav3
 import release.Sgit.{GitRemote, MissingGitDirException}
-import release.Starter.{FutureEither, FutureError}
+import release.Starter.{FutureEither, FutureError, PreconditionsException}
 
 import java.io.*
 import java.util.concurrent.{TimeUnit, TimeoutException}
@@ -91,7 +91,8 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
       |
       |Possible options:
       |--help, -h            => shows this and exits
-      |--no-gerrit           => use this toggle for non gerrit projects
+      |--gerrit              => enable Gerrit integration (off by default)
+      |--no-gerrit           => disable Gerrit integration
       |--non-interactive, -B => Batch mode, suppresses startup messages
       |--skip-property value => if you get false positives with property definitions
       |--defaults            => do not read ${HOME}/.ishop-release
@@ -117,7 +118,6 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
       |
       |Possible environment variables:
       |export RELEASE_GIT_BIN=$PATH_TO_GIT_EXECUTABLE
-      |export RELEASE_NO_GERRIT=true
       |
       |Your home dir is: test
       |InteractiveShell: false""".stripMargin
@@ -238,6 +238,40 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
     // THEN
     Assert.assertEquals("Enter branch name where to start from [master]:", result.out)
     Assert.assertEquals("", result.err)
+  }
+
+  @Test
+  def fetchFailureReportsRemoteError(): Unit = {
+    val workDir = testRepo(SgitTest.ensureAbsent("fetch-error-origin"), SgitTest.ensureAbsent("fetch-error-work"))
+    val git = Sgit(file = workDir, doVerify = false, out = System.out, err = System.err, gitBin = None, opts = Opts())
+    git.removeRemote("origin")
+    git.addRemote("origin", new File(workDir, "missing-remote").getAbsolutePath)
+
+    TestHelper.assertExceptionWithCheck(
+      message => {
+        Assert.assertTrue(message, message.startsWith("git fetch failed:"))
+        Assert.assertTrue(message, message.contains("fatal:"))
+      },
+      classOf[PreconditionsException],
+      () =>
+        TermTest.withOutErrIn[Unit](TermTest.willReadFrom(""))(sys =>
+          Starter.fetchGitAndAskForBranch(sys, noVerify = false, None, workDir, Opts(),
+            skipFetch = false, skipAskForBranchFetch = true))
+    )
+  }
+
+  @Test
+  def fetchStatusStopsAfterInactivity(): Unit = {
+    val output = new ByteArrayOutputStream()
+    val sys = new Term.Sys(new ByteArrayInputStream(Array.emptyByteArray), output, output)
+
+    TestHelper.assertException(
+      "git fetch received no data for 20 milliseconds; check the remote connection and authentication",
+      classOf[PreconditionsException],
+      () =>
+        Starter.waitForFetch(sys, () => None, () => true,
+          () => System.nanoTime() - TimeUnit.SECONDS.toNanos(1), Duration(20, TimeUnit.MILLISECONDS))
+    )
   }
 
   @Test

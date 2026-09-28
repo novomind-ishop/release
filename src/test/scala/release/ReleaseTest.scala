@@ -65,7 +65,7 @@ class ReleaseTest extends AssertionsForJUnit {
       override def findUpstreamBranch(): Option[String] = None
     }
     val result = Release.suggestPushCmd(changedVersion = true, sgit,
-      Opts(), "main", "new-main",
+      Opts(useGerrit = true), "main", "new-main",
       () => "peter")
     Assert.assertEquals("git push origin main:refs/for/new-main;", result)
   }
@@ -80,7 +80,7 @@ class ReleaseTest extends AssertionsForJUnit {
       override def findUpstreamBranch(): Option[String] = None
     }
     val result = Release.suggestPushCmd(changedVersion = true, sgit,
-      Opts().copy(useGerrit = false), "main", "new-main",
+      Opts(), "main", "new-main",
       () => "peter")
     Assert.assertEquals("git push origin main:peter-new+main-patch-b269253c;", result)
   }
@@ -220,7 +220,7 @@ class ReleaseTest extends AssertionsForJUnit {
         |done.""".stripMargin
 
     TermTest.testSys(Seq("", "", "y", ""), expected, "", outFn = repSha)(sys => {
-      val opts = Opts(useJlineInput = false)
+      val opts = Opts(useJlineInput = false, useGerrit = true)
       Release.work(localWorkFolder, sys,
         rebaseFn = () => {}, branch = "master", gitLocal, term, 72, () => "abc",
         ReleaseConfig.default(true), opts.newRepo, opts)
@@ -289,7 +289,7 @@ class ReleaseTest extends AssertionsForJUnit {
         |done.""".stripMargin
 
     TermTest.testSys(Seq("", "", "y", ""), expected, "", outFn = repSha)(sys => {
-      val opts = Opts(useJlineInput = false)
+      val opts = Opts(useJlineInput = false, useGerrit = true)
       Release.work(localWorkFolder, sys,
         rebaseFn = () => {}, branch = "master", gitLocal, term, 72, () => "abc",
         ReleaseConfig.default(true), opts.newRepo, opts)
@@ -352,7 +352,7 @@ class ReleaseTest extends AssertionsForJUnit {
         |done.""".stripMargin
 
     TermTest.testSys(Seq("", "y", ""), expected, "", outFn = repSha)(sys => {
-      val opts = Opts(useJlineInput = false, versionIncrement = Increment.patch)
+      val opts = Opts(useJlineInput = false, useGerrit = true, versionIncrement = Increment.patch)
       Release.work(localWorkFolder, sys,
         rebaseFn = () => {}, branch = "master", gitLocal, term, 72, () => "abc",
         ReleaseConfig.default(true), opts.newRepo, opts)
@@ -415,7 +415,7 @@ class ReleaseTest extends AssertionsForJUnit {
         |done.""".stripMargin
 
     TermTest.testSys(Seq("", "y", ""), expected, "", outFn = repSha)(sys => {
-      val opts = Opts(useJlineInput = false, versionIncrement = Increment.minor)
+      val opts = Opts(useJlineInput = false, useGerrit = true, versionIncrement = Increment.minor)
       Release.work(localWorkFolder, sys,
         rebaseFn = () => {}, branch = "master", gitLocal, term, 72, () => "abc",
         ReleaseConfig.default(true), opts.newRepo, opts)
@@ -478,7 +478,7 @@ class ReleaseTest extends AssertionsForJUnit {
         |done.""".stripMargin
 
     TermTest.testSys(Seq("", "y", ""), expected, "", outFn = repSha)(sys => {
-      val opts = Opts(useJlineInput = false, versionIncrement = Increment.major)
+      val opts = Opts(useJlineInput = false, useGerrit = true, versionIncrement = Increment.major)
       Release.work(localWorkFolder, sys,
         rebaseFn = () => {}, branch = "master", gitLocal, term, 72, () => "abc",
         ReleaseConfig.default(true), opts.newRepo, opts)

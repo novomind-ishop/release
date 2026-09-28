@@ -26,7 +26,8 @@ import scala.util.{Failure, Success, Try}
 
 case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
     skipPropertyReplacement: Boolean = false, withSubPoms: Boolean,
-    failureCollector: Option[Exception => Unit], revisionFallback: Option[String] = None) extends ProjectMod with LazyLogging {
+    failureCollector: Option[Exception => Unit], revisionFallback: Option[String] = None,
+    environment: Map[String, String] = Envs.systemEnvs()) extends ProjectMod with LazyLogging {
   logger.trace("init pomMod")
   override lazy val repo: RepoZ = repoZ
   private var depMap: Map[Dep, Node] = Map.empty
@@ -58,7 +59,7 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
     }
   }
 
-  def getEnvs(): Map[String, String] = Envs.systemEnvs()
+  def getEnvs(): Map[String, String] = environment
 
   private def depU(d: Map[Dep, Node]): Unit = {
     depMap = depMap ++ d
@@ -781,9 +782,9 @@ object PomMod {
 
   def withRepoTry(file: File, opts: Opts, repo: RepoZ, skipPropertyReplacement: Boolean = false,
       withSubPoms: Boolean = true, failureCollector: Option[Exception => Unit],
-      revisionFallback: Option[String] = None): Try[PomMod] = {
+      revisionFallback: Option[String] = None, environment: Map[String, String] = Envs.systemEnvs()): Try[PomMod] = {
     try {
-      Success(withRepo(file, opts, repo, skipPropertyReplacement, withSubPoms, failureCollector, revisionFallback))
+      Success(withRepo(file, opts, repo, skipPropertyReplacement, withSubPoms, failureCollector, revisionFallback, environment))
     } catch {
       case e: Exception => Failure(e)
     }
@@ -791,8 +792,8 @@ object PomMod {
 
   def withRepo(file: File, opts: Opts, repo: RepoZ, skipPropertyReplacement: Boolean = false,
       withSubPoms: Boolean = true, failureCollector: Option[Exception => Unit],
-      revisionFallback: Option[String] = None): PomMod = {
-    PomMod(file, repo, opts, skipPropertyReplacement, withSubPoms, failureCollector, revisionFallback)
+      revisionFallback: Option[String] = None, environment: Map[String, String] = Envs.systemEnvs()): PomMod = {
+    PomMod(file, repo, opts, skipPropertyReplacement, withSubPoms, failureCollector, revisionFallback, environment)
   }
 
   object DepTree {

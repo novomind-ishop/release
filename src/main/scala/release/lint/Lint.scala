@@ -760,10 +760,17 @@ object Lint {
         val rootFolderFiles = files.toSeq
         var pomFailures: Seq[Exception] = Nil
         val pompom: Option[Try[ProjectMod]] = if (rootFolderFiles.exists(_.getName == "pom.xml")) {
+          val (refName, tagName) = Starter.suggestionRefs(
+            envs.get("CI_COMMIT_REF_NAME"), envs.get("CI_COMMIT_TAG"),
+            sgit.currentBranchOpt, sgit.tagsAtHead)
+          val revisionFallback = Some(SuggestVersion.suggest(
+              refName, tagName, None, envs.getOrElse("RELEASE_SUGGEST_TAG", null),
+              branchNames = sgit.listBranchNamesAll(),
+              tagNames = sgit.listTagsWithDate().map(_.name))._1)
           Some(PomMod.withRepoTry(file, opts, opts.newRepo,
               failureCollector = Some(e => {
                 pomFailures = pomFailures :+ e
-              })))
+              }), revisionFallback = revisionFallback, environment = envs))
         } else {
           None
         }

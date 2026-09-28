@@ -9,11 +9,51 @@ import release.Starter.PreconditionsException
 import java.io.File
 import java.nio.file.{Files, StandardCopyOption}
 import java.time.ZonedDateTime
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.{TimeUnit, TimeoutException}
 import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.duration.Duration
 
 class SgitTest extends AssertionsForJUnit {
+
+  private def fetchDelayCommand(args: String*): Seq[String] = {
+    val javaName = if (System.getProperty("os.name").toLowerCase.contains("win")) "java.exe" else "java"
+    val javaBin = new File(new File(System.getProperty("java.home"), "bin"), javaName).getAbsolutePath
+    val runtimeClasses = Seq(FetchDelayProcess.getClass, scala.Predef.getClass, scala.collection.immutable.List.getClass)
+    val classPath = runtimeClasses.map { clazz =>
+      new File(clazz.getProtectionDomain.getCodeSource.getLocation.toURI).getAbsolutePath
+    }.distinct.mkString(File.pathSeparator)
+    Seq(javaBin, "-cp", classPath, "release.FetchDelayProcess") ++ args
+  }
+
+  @Test
+  def fetchProcessStopsAfterTimeout(): Unit = {
+    val result = Sgit.native(
+      fetchDelayCommand(),
+      errOnStdout = false,
+      _ => false,
+      System.err,
+      s => Some(s),
+      timeout = Some(Duration(500, TimeUnit.MILLISECONDS))
+    )
+
+    Assert.assertTrue(result.failed.get.isInstanceOf[TimeoutException])
+    Assert.assertTrue(result.failed.get.getMessage.contains("git fetch received no data for 500 milliseconds"))
+  }
+
+  @Test
+  def fetchProcessContinuesWhileReceivingData(): Unit = {
+    val result = Sgit.native(
+      fetchDelayCommand("progress"),
+      errOnStdout = false,
+      _ => false,
+      System.err,
+      s => Some(s),
+      timeout = Some(Duration(500, TimeUnit.MILLISECONDS))
+    )
+
+    Assert.assertTrue(result.toString, result.isSuccess)
+    Assert.assertTrue(result.get.contains("data"))
+  }
 
   @Test
   def testVersionOnly(): Unit = {

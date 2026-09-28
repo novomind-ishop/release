@@ -16,8 +16,8 @@ import release.lint.Lint
 import java.awt.Desktop
 import java.io.{File, PrintStream}
 import java.net.URI
-import java.util.concurrent.TimeoutException
-import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.{TimeUnit, TimeoutException}
+import java.util.concurrent.atomic.AtomicLong
 import scala.annotation.tailrec
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -57,6 +57,29 @@ object Starter extends LazyLogging {
         case e: Exception => Left(FutureError(e.getMessage, e))
       }
     }(using ec))(using ec)
+  }
+
+  private[release] def waitForFetch(sys: Term.Sys, fetchResult: () => Option[Boolean],
+      branchFinished: () => Boolean, lastActivityNanos: () => Long, timeout: Duration): Unit = {
+    var printed = false
+    var ticks = 0
+    while (fetchResult().isEmpty && System.nanoTime() - lastActivityNanos() < timeout.toNanos) {
+      Thread.sleep(250)
+      if (!printed && fetchResult().isEmpty && branchFinished()) {
+        sys.out.print(s"I: Fetching from remote (abort after $timeout without data) ")
+        printed = true
+      }
+      ticks += 1
+      if (fetchResult().isEmpty && branchFinished() && ticks % 4 == 0) sys.out.print(".")
+    }
+    if (fetchResult().isEmpty) {
+      if (printed) sys.out.println()
+      throw new PreconditionsException(s"git fetch received no data for $timeout; " +
+        "check the remote connection and authentication")
+    }
+    if (printed && branchFinished()) {
+      if (fetchResult().contains(true)) sys.out.println(". done (a)") else sys.out.println()
+    }
   }
 
   def suggestRebase(sys: Term.Sys, sgit: Sgit, branch: String, opts: Opts): () => Unit = {
@@ -99,6 +122,7 @@ object Starter extends LazyLogging {
       gitBinEnv: Option[String], workDirFile: File, opts: Opts,
       skipFetch: Boolean, skipAskForBranchFetch: Boolean): (Sgit, String) = {
     val global = ExecutionContext.global
+    val lastFetchActivityNanos = new AtomicLong(System.nanoTime())
 
     def unfechtedGit(file: File): Sgit = {
       Sgit(file = file, doVerify = noVerify, out = sys.out, err = sys.err, gitBin = gitBinEnv, opts = opts)
@@ -106,7 +130,11 @@ object Starter extends LazyLogging {
 
     def fetchedGit(file: File): Sgit = {
       val git = unfechtedGit(file)
-      git.fetchAll()
+      try {
+        git.fetchAll(onActivity = () => lastFetchActivityNanos.set(System.nanoTime()))
+      } catch {
+        case e: Exception => throw new PreconditionsException("git fetch failed: " + e.getMessage)
+      }
       git
     }
 
@@ -167,20 +195,13 @@ object Starter extends LazyLogging {
     val gitFetchStatusF = futureOf(
       global, {
         if (!skipFetch) {
-          val printFetching = new AtomicBoolean(true)
-          while (!gitFetchF.wrapped.isCompleted) {
-            Thread.sleep(100)
-            if (printFetching.get() && !gitFetchF.wrapped.isCompleted && startBranchF.wrapped.isCompleted) {
-              sys.out.print("I: Fetching from remote ")
-              printFetching.set(false)
-            }
-            if (!gitFetchF.wrapped.isCompleted && startBranchF.wrapped.isCompleted) {
-              sys.out.print(".")
-            }
-          }
-          if (gitFetchF.wrapped.isCompleted && startBranchF.wrapped.isCompleted && !printFetching.get()) {
-            sys.out.println(". done (a)")
-          }
+          waitForFetch(
+            sys,
+            () => gitFetchF.wrapped.value.map(_.toOption.exists(_.isRight)),
+            () => startBranchF.wrapped.isCompleted,
+            () => lastFetchActivityNanos.get(),
+            Duration(3, TimeUnit.SECONDS)
+          )
         }
 
       }
@@ -346,7 +367,8 @@ object Starter extends LazyLogging {
       out.println()
       out.println("Possible options:")
       out.println("--help, -h            => shows this and exits")
-      out.println("--no-gerrit           => use this toggle for non gerrit projects")
+      out.println("--gerrit              => enable Gerrit integration (off by default)")
+      out.println("--no-gerrit           => disable Gerrit integration")
       out.println("--non-interactive, -B => Batch mode, suppresses startup messages")
       out.println("--skip-property value => if you get false positives with property definitions")
       out.println("--defaults            => do not read ${HOME}/.ishop-release")
@@ -372,7 +394,6 @@ object Starter extends LazyLogging {
       out.println()
       out.println("Possible environment variables:")
       out.println("export RELEASE_GIT_BIN=$PATH_TO_GIT_EXECUTABLE")
-      out.println("export RELEASE_NO_GERRIT=true" + Envs.systemEnvs().get("RELEASE_NO_GERRIT").map(k => s" # ${k}").getOrElse(""))
       out.println()
       out.println("Your home dir is: " + config.getUserHome(home))
       out.println(s"InteractiveShell: ${interactiveShell}")
