@@ -1,6 +1,7 @@
 package release
 
 import com.typesafe.scalalogging.LazyLogging
+import release.Conf.Tracer
 import release.lint.Lint.{fiCodeCoreDiff, fiFine, fiWarn, lineMax}
 import release.ProjectMod.{Dep, Gav, Gav3, UpdatePrinter}
 import release.Starter.PreconditionsException
@@ -302,8 +303,16 @@ object Release extends LazyLogging {
     // TODO release a feature branch should not change the next version
     val nextReleaseWithoutSnapshot = readNextReleaseVersionsWithoutSnapshot
 
-    val cmr = VersionSkew.skewResultOf(mod = newMod, releaseVersion = Option(release), opts = opts, out = None, skewStyle = None,
-      warnExit = new OneTimeSwitch(), errorExit = new OneTimeSwitch())
+    def releaseStep[T](message: String)(fn: => T): T = {
+      Tracer.msgAroundWithProgress("release: " + message, logger, sys.out, () => fn,
+        animate = termOs.isInteractice && termOs.term != "dumb", simpleChars = termOs.simpleChars)
+    }
+
+    logger.trace(s"Release preparation: release=${release}, next=${nextReleaseWithoutSnapshot}, autoFixedFiles=${autoFixedChanges.size}")
+    val cmr = releaseStep("check dependency major versions") {
+      VersionSkew.skewResultOf(mod = newMod, releaseVersion = Option(release), opts = opts, out = None, skewStyle = None,
+        warnExit = new OneTimeSwitch(), errorExit = new OneTimeSwitch())
+    }
     if (cmr.hasDifferentMajors) {
       sys.out.println()
       if (opts.colors) {
@@ -351,14 +360,18 @@ object Release extends LazyLogging {
 
     val nextSnapshot = Starter.versionForVersionSet(nextReleaseWithoutSnapshot)
     val prepareNextIteration = !PomMod.isVariable(nextSnapshot)
-    val cVe = prepareNextIteration && nextIterationMod.selfVersionReplaced != nextSnapshot
+    val cVe = releaseStep("compare next project version") {
+      prepareNextIteration && nextIterationMod.selfVersionReplaced != nextSnapshot
+    }
     if (cVe) {
-      nextIterationMod.changeVersion(nextSnapshot)
+      releaseStep("update next iteration version in POMs and dependency trees") {
+        nextIterationMod.changeVersion(nextSnapshot)
+      }
     }
 
     @tailrec
     def checkReleaseBranch(): Unit = {
-      if (sgit.listBranchNamesLocal().contains("release")) {
+      if (releaseStep("list local branches")(sgit.listBranchNamesLocal()).contains("release")) {
         val changes = Term.readFromOneOfYesNo(sys,
           "You have a local branch with name 'release'. " +
             "We use this name for branch creation. Delete this branch manually. Abort release?", opts)
@@ -372,18 +385,18 @@ object Release extends LazyLogging {
 
     checkReleaseBranch()
     val releaseBrachName = "release/" + releaseWitoutSnapshot
-    sgit.createBranch(releaseBrachName)
+    releaseStep("create release branch")(sgit.createBranch(releaseBrachName))
     val releaseMod = newMod
     if (prepareNextIteration && (cVe || autoFixedChanges.nonEmpty)) {
-      nextIterationMod.writeTo(workDirFile)
+      releaseStep("write next iteration POMs and dependency trees")(nextIterationMod.writeTo(workDirFile))
     }
-    val headCommitId = sgit.commitIdHead()
+    val headCommitId = releaseStep("read project HEAD")(sgit.commitIdHead())
     val msgs = opts.skipProperties match {
       case Nil => ""
       case found => "\nReleasetool-Prop-Skip: " + found.mkString(", ")
     }
-    val releaseToolSelfGitSha1 = releaseToolGitSha1.apply()
-    val changedVersion = if (!prepareNextIteration || sgit.hasNoLocalChanges) {
+    val releaseToolSelfGitSha1 = releaseStep("read release tool Git status and HEAD")(releaseToolGitSha1.apply())
+    val changedVersion = if (!prepareNextIteration || releaseStep("check next iteration working tree")(sgit.hasNoLocalChanges)) {
       sys.out.println("skipped release commit on " + branch)
       false
     } else {
@@ -407,10 +420,10 @@ object Release extends LazyLogging {
 
     val releaseVersionChanged = releaseMod.selfVersionReplaced != release
     if (releaseVersionChanged) {
-      releaseMod.changeVersion(release)
+      releaseStep("update release version in POMs and dependency trees")(releaseMod.changeVersion(release))
     }
     if (releaseVersionChanged || autoFixedChanges.nonEmpty) {
-      releaseMod.writeTo(workDirFile)
+      releaseStep("write release POMs and dependency trees")(releaseMod.writeTo(workDirFile))
     }
 
     if (sgit.hasNoLocalChanges) {

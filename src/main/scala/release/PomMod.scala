@@ -239,12 +239,16 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
   }
 
   private[release] def changeDepTreesVersion(groupId: String, artifactId: String, version: String, newVersion: String): Unit = {
-    val edited = depTreeFileContents.toList
-      .map(entry => {
-        (entry._1, entry._2.copy(PomMod.replacedDepTreesVersion(entry, groupId, artifactId, version, newVersion)))
-      })
-    val folded = edited.foldLeft(Map.empty[File, DepTree])(_ + _)
-    depTreeFileContents = folded
+    changeDepTreesVersions(Seq(Gav3(groupId, artifactId, Some(version)) -> newVersion))
+  }
+
+  private def changeDepTreesVersions(changes: Seq[(Gav3, String)]): Unit = {
+    if (depTreeFileContents.nonEmpty && changes.nonEmpty) {
+      val update = PomMod.depTreeVersionUpdater(changes)
+      depTreeFileContents = depTreeFileContents.map { case (file, tree) =>
+        file -> tree.copy(content = update(tree.content))
+      }
+    }
   }
 
   private[release] def changeDepTreesGA(groupId: String, artifactId: String, version: String,
@@ -381,14 +385,13 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
     val (properties, literals, treeChanges) = suggestedVersionChanges(suggestions)
     properties.foreach { case (name, version) => PomMod.applyPropertyValue(raws, name, version) }
     literals.foreach { case (node, version) => node.setTextContent(version) }
-    treeChanges.foreach { case (gav, version) =>
-      gav.version.filterNot(_ == version).foreach(oldVersion =>
-        changeDepTreesVersion(gav.groupId, gav.artifactId, oldVersion, version))
-    }
+    changeDepTreesVersions(treeChanges.filter { case (gav, version) => gav.version.exists(_ != version) })
   }
 
   def changeVersion(newVersion: String): Unit = {
     val oldVersionExpression: String = PomMod.selectFirstVersionFrom(raws).get
+    logger.trace(s"Changing project version ${oldVersionExpression} -> ${newVersion}: " +
+      s"poms=${raws.size}, modules=${listSelf.size}, dependencyTrees=${depTreeFileContents.size}")
     val oldVersion = selfVersionReplaced
     val versionProperty = PomMod.singlePropertyName(oldVersionExpression)
     val inlineRevision = versionProperty.contains("revision") && !PomMod.propertyIsDefined(raws, "revision")
@@ -417,10 +420,9 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
         PomMod.applyVersionTo(d, listSelf, oldVersionExpression, newVersion)
       }
     })
-    selfDepsMod.foreach(entry => {
-      changeDepTreesVersion(entry.groupId, entry.artifactId,
-        replacedPropertyOf(listProperties, skipPropertyReplacement)(entry.version.get), newVersion)
-    })
+    changeDepTreesVersions(selfDepsMod.map(entry =>
+        Gav3(entry.groupId, entry.artifactId,
+          Some(replacedPropertyOf(listProperties, skipPropertyReplacement)(entry.version.get))) -> newVersion))
 
   }
 
@@ -465,6 +467,7 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
   }
 
   def writeTo(targetFolder: File): Unit = {
+    logger.trace(s"Writing project files: poms=${raws.size}, dependencyTrees=${depTreeFileContents.size}")
     raws.par.foreach(sub => {
       val path = file.toPath.relativize(sub.pomFile.toPath)
       PomMod.writePom(targetFolder)(targetFolder.toPath.resolve(path).toFile, sub.document)
@@ -826,17 +829,40 @@ object PomMod {
 
   private[release] def replacedDepTreesVersion(entry: (File, PomMod.DepTree), groupId: String, artifactId: String, version: String,
       newVersion: String) = {
-    val dependencyPattern = Pattern.quote(groupId) + ":" + Pattern.quote(artifactId)
-    val versionPattern = Pattern.quote(version)
-    val replacementPrefix = Matcher.quoteReplacement(groupId + ":" + artifactId + ":")
-    val replacementVersion = Matcher.quoteReplacement(newVersion)
-    entry._2.content.linesIterator
-      .map(_.replaceFirst(dependencyPattern + ":([^:]*):([^:]*):" + versionPattern,
-          replacementPrefix + "$1:$2:" + replacementVersion))
-      .map(_.replaceFirst(dependencyPattern + ":([^:]*):" + versionPattern,
-          replacementPrefix + "$1:" + replacementVersion))
-      .map(_.replaceFirst("-SNAPSHOT-SNAPSHOT", "-SNAPSHOT"))
-      .mkString("\n") + "\n"
+    depTreeVersionUpdater(Seq(Gav3(groupId, artifactId, Some(version)) -> newVersion))(entry._2.content)
+  }
+
+  private val duplicateSnapshotPattern = Pattern.compile("-SNAPSHOT-SNAPSHOT")
+
+  private[release] def depTreeVersionUpdater(changes: Seq[(Gav3, String)]): String => String = {
+    val uniqueChanges = changes.distinct
+    val compiled = uniqueChanges.map { case (gav, newVersion) =>
+      val prefix = gav.groupId + ":" + gav.artifactId + ":"
+      val dependencyPattern = Pattern.quote(gav.groupId) + ":" + Pattern.quote(gav.artifactId)
+      val versionPattern = Pattern.quote(gav.version.get)
+      val withClassifier = Pattern.compile(dependencyPattern + ":([^:]*):([^:]*):" + versionPattern)
+      val withoutClassifier = Pattern.compile(dependencyPattern + ":([^:]*):" + versionPattern)
+      val replacementPrefix = Matcher.quoteReplacement(prefix)
+      val replacementVersion = Matcher.quoteReplacement(newVersion)
+      val classifiedReplacement = replacementPrefix + "$1:$2:" + replacementVersion
+      val plainReplacement = replacementPrefix + "$1:" + replacementVersion
+      (line: String) => {
+        val updated = if (line.contains(prefix)) {
+          val classified = withClassifier.matcher(line).replaceFirst(classifiedReplacement)
+          withoutClassifier.matcher(classified).replaceFirst(plainReplacement)
+        } else line
+        if (updated.contains("-SNAPSHOT-SNAPSHOT")) {
+          duplicateSnapshotPattern.matcher(updated).replaceFirst("-SNAPSHOT")
+        } else updated
+      }
+    }
+    val byChange = uniqueChanges.zip(compiled).toMap
+    // Preserve replacement order, including repeated targets and chained version changes.
+    val replacements = changes.map(byChange.apply)
+    content => {
+      if (replacements.isEmpty) content
+      else content.linesIterator.map(line => replacements.foldLeft(line)((value, replace) => replace(value))).mkString("\n") + "\n"
+    }
   }
 
   def abbreviate(max: Int)(in: Seq[String]): Seq[String] = {
