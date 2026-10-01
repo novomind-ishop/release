@@ -292,6 +292,9 @@ class ReleaseTest extends AssertionsForJUnit {
 
     val nextPom = FileUtils.read(new File(localWorkFolder, "pom.xml"))
     Assert.assertTrue(nextPom, nextPom.contains("<version>${revision}</version>"))
+    Assert.assertTrue(nextPom, nextPom.contains("<version>0.10-SNAPSHOT</version>"))
+    Assert.assertEquals("No prepare-for-next-iteration commit expected", gitRemote.commitIdHead(), gitLocal.commitIdHead())
+    Assert.assertTrue("Working tree should be clean after release", gitLocal.hasNoLocalChanges)
     gitLocal.checkout("v0.11")
     val taggedPom = FileUtils.read(new File(localWorkFolder, "pom.xml"))
     Assert.assertTrue(taggedPom, taggedPom.contains("<version>0.11</version>"))

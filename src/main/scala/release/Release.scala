@@ -348,11 +348,8 @@ object Release extends LazyLogging {
     // TODO hier könnte man jetzt die snapshots aus "mod" in "newMod" suchen und sie auf den folgesnapshot setzen
 
     val nextSnapshot = Starter.versionForVersionSet(nextReleaseWithoutSnapshot)
-    val cVe = if (PomMod.isVariable(nextSnapshot)) {
-      newMod.selfVersion != nextSnapshot
-    } else {
-      newMod.selfVersionReplaced != nextSnapshot
-    }
+    val prepareNextIteration = !PomMod.isVariable(nextSnapshot)
+    val cVe = prepareNextIteration && newMod.selfVersionReplaced != nextSnapshot
     if (cVe) {
       newMod.changeVersion(nextSnapshot)
     }
@@ -384,7 +381,7 @@ object Release extends LazyLogging {
       case found => "\nReleasetool-Prop-Skip: " + found.mkString(", ")
     }
     val releaseToolSelfGitSha1 = releaseToolGitSha1.apply()
-    val changedVersion = if (sgit.hasNoLocalChanges) {
+    val changedVersion = if (!prepareNextIteration || sgit.hasNoLocalChanges) {
       sys.out.println("skipped release commit on " + branch)
       false
     } else {
