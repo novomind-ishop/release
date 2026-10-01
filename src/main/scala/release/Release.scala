@@ -221,6 +221,8 @@ object Release extends LazyLogging {
       System.exit(0)
     }
 
+    // Keep an independent model without the release-only dependency suggestions.
+    val nextIterationMod = ProjectMod.read(workDirFile, sys, opts, repo, showRead = false, revisionFallback = revisionFallback)
     var autoFixedChanges = Set.empty[String]
     val wipMod = offerAutoFixForReleaseSnapshots(sys, mod, sgit.lsFiles(), shellWidth, repo, opts, revisionFallback,
       onApplied = () => autoFixedChanges ++= sgit.localChanges())
@@ -349,9 +351,9 @@ object Release extends LazyLogging {
 
     val nextSnapshot = Starter.versionForVersionSet(nextReleaseWithoutSnapshot)
     val prepareNextIteration = !PomMod.isVariable(nextSnapshot)
-    val cVe = prepareNextIteration && newMod.selfVersionReplaced != nextSnapshot
+    val cVe = prepareNextIteration && nextIterationMod.selfVersionReplaced != nextSnapshot
     if (cVe) {
-      newMod.changeVersion(nextSnapshot)
+      nextIterationMod.changeVersion(nextSnapshot)
     }
 
     @tailrec
@@ -371,11 +373,11 @@ object Release extends LazyLogging {
     checkReleaseBranch()
     val releaseBrachName = "release/" + releaseWitoutSnapshot
     sgit.createBranch(releaseBrachName)
-    if (cVe) {
-      newMod.writeTo(workDirFile)
+    val releaseMod = newMod
+    if (prepareNextIteration && (cVe || autoFixedChanges.nonEmpty)) {
+      nextIterationMod.writeTo(workDirFile)
     }
     val headCommitId = sgit.commitIdHead()
-    val releaseMod = ProjectMod.read(workDirFile, sys, opts, repo, showRead = false, revisionFallback = revisionFallback)
     val msgs = opts.skipProperties match {
       case Nil => ""
       case found => "\nReleasetool-Prop-Skip: " + found.mkString(", ")
@@ -403,8 +405,11 @@ object Release extends LazyLogging {
     sgit.checkout(releaseBrachName)
     sys.out.println(". done (e)")
 
-    if (releaseMod.selfVersionReplaced != release) {
+    val releaseVersionChanged = releaseMod.selfVersionReplaced != release
+    if (releaseVersionChanged) {
       releaseMod.changeVersion(release)
+    }
+    if (releaseVersionChanged || autoFixedChanges.nonEmpty) {
       releaseMod.writeTo(workDirFile)
     }
 

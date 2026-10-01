@@ -231,6 +231,12 @@ class ReleaseTest extends AssertionsForJUnit {
 
   @Test(timeout = 20_000)
   def appliedSuggestedVersionsAreIncludedInReleaseTag(): Unit = {
+    assertSuggestedVersionsAreOnlyIncludedInReleaseTag("")
+    assertSuggestedVersionsAreOnlyIncludedInReleaseTag("0.12.0")
+    assertSuggestedVersionsAreOnlyIncludedInReleaseTag("0.12.0", "0.11-SNAPSHOT")
+  }
+
+  private def assertSuggestedVersionsAreOnlyIncludedInReleaseTag(nextVersion: String, currentVersion: String = "${revision}"): Unit = {
     val localWorkFolder = temp.newFolder()
     val remoteWorkFolder = temp.newFolder()
     val gitRemote = Sgit.init(remoteWorkFolder)
@@ -251,10 +257,11 @@ class ReleaseTest extends AssertionsForJUnit {
         |      <version>0.10-SNAPSHOT</version>
         |    </dependency>
         |  </dependencies>
-        |</project>""".stripMargin.linesIterator.toSeq
+        |</project>""".stripMargin.replace("${revision}", currentVersion).linesIterator.toSeq
     )
     gitRemote.add(pom)
     gitRemote.commitAll("initial pom")
+    val initialPom = FileUtils.read(pom)
 
     val gitLocal = Sgit.doClone(remoteWorkFolder, localWorkFolder, verify = false)
     gitLocal.configSetLocal("user.email", "you@example.com")
@@ -265,9 +272,10 @@ class ReleaseTest extends AssertionsForJUnit {
       .thenReturn(Some(Gav3("org.example", "common-utils", Some("0.10"))))
 
     TermTest.testSys(
-      Seq("y", "0.11", "", "y", ""),
+      Seq("y", "0.11", nextVersion, "y", ""),
       "Apply suggested versions to pom.xmls? [y/n]: y\n" +
-        "Enter the next version without -SNAPSHOT [${revision}]: ",
+        "Enter the next version without -SNAPSHOT [" +
+        (if (PomMod.isVariable(currentVersion)) currentVersion else "0.12.0") + "]: " + nextVersion,
       "",
       outAllFn = _.filter(line =>
         line.startsWith("Apply suggested versions to pom.xmls?") ||
@@ -291,9 +299,15 @@ class ReleaseTest extends AssertionsForJUnit {
     })
 
     val nextPom = FileUtils.read(new File(localWorkFolder, "pom.xml"))
-    Assert.assertTrue(nextPom, nextPom.contains("<version>${revision}</version>"))
+    val expectedNextVersion = if (nextVersion.isEmpty) "${revision}" else nextVersion + "-SNAPSHOT"
+    Assert.assertEquals(initialPom.replace(s"<version>${currentVersion}</version>", s"<version>${expectedNextVersion}</version>"), nextPom)
     Assert.assertTrue(nextPom, nextPom.contains("<version>0.10-SNAPSHOT</version>"))
-    Assert.assertEquals("No prepare-for-next-iteration commit expected", gitRemote.commitIdHead(), gitLocal.commitIdHead())
+    if (nextVersion.isEmpty) {
+      Assert.assertEquals("No prepare-for-next-iteration commit expected", gitRemote.commitIdHead(), gitLocal.commitIdHead())
+    } else {
+      Assert.assertNotEquals("Prepare-for-next-iteration commit expected", gitRemote.commitIdHead(), gitLocal.commitIdHead())
+      Assert.assertTrue(gitLocal.log().contains("prepare for next iteration - " + nextVersion))
+    }
     Assert.assertTrue("Working tree should be clean after release", gitLocal.hasNoLocalChanges)
     gitLocal.checkout("v0.11")
     val taggedPom = FileUtils.read(new File(localWorkFolder, "pom.xml"))
