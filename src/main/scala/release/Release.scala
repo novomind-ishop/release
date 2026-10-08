@@ -222,6 +222,26 @@ object Release extends LazyLogging {
       System.exit(0)
     }
 
+    val semverAnalysis = if (opts.suggestSemver) {
+      val modules = mod match {
+        case pom: PomMod => pom.listSelf.map(_.gav())
+        case _ => Nil
+      }
+      val tags = sgit.listAllTags()
+      val analysis = SemverSuggester.start(
+        mod.selfVersionReplaced,
+        tags,
+        modules,
+        repo,
+        releaseModules = Some(version =>
+          SemverSuggester.modulesAtTag(sgit,
+            if (tags.contains("v" + version)) "v" + version else version, opts, repo))
+      )
+      sys.out.println("I: SemVer analysis started in the background (japicmp, current SNAPSHOT from Nexus).")
+      Starter.addExitFn("stop SemVer analysis", () => analysis.cancel())
+      Some(analysis)
+    } else None
+
     // Keep an independent model without the release-only dependency suggestions.
     val nextIterationMod = ProjectMod.read(workDirFile, sys, opts, repo, showRead = false, revisionFallback = revisionFallback)
     var autoFixedChanges = Set.empty[String]
@@ -264,6 +284,12 @@ object Release extends LazyLogging {
     val knownTags: Seq[String] = sgit.listTagsWithDate().map(_.name)
     val suggestedVersions: Seq[String] = newMod.suggestReleaseVersions(sgit.listBranchNamesAll(), knownTags, opts.versionIncrement)
 
+    semverAnalysis.foreach(analysis => {
+      if (!analysis.reportIfReady(sys.out, 1000L)) {
+        sys.out.println("I: SemVer analysis is still running; continuing with the existing version suggestions.")
+      }
+    })
+
     val releaseWithoutSnapshot = if (opts.versionIncrement.isDefined) {
       suggestedVersions.head
     } else {
@@ -271,6 +297,7 @@ object Release extends LazyLogging {
     }
 
     sys.out.println(s"Selected release is ${releaseWithoutSnapshot}")
+    semverAnalysis.foreach(_.reportIfReady(sys.out))
     val release = if (newMod.isShop) {
       Version.removeTrailingSnapshots(releaseWithoutSnapshot) + "-SNAPSHOT"
     } else {
@@ -302,6 +329,7 @@ object Release extends LazyLogging {
 
     // TODO release a feature branch should not change the next version
     val nextReleaseWithoutSnapshot = readNextReleaseVersionsWithoutSnapshot
+    semverAnalysis.foreach(_.reportIfReady(sys.out))
 
     def releaseStep[T](message: String)(fn: => T): T = {
       Tracer.msgAroundWithProgress("release: " + message, logger, sys.out, () => fn,
@@ -464,6 +492,7 @@ object Release extends LazyLogging {
     sys.out.println(sgit.logGraph())
 
     val selectedBranch = sgit.findUpstreamBranch().getOrElse(branch)
+    semverAnalysis.foreach(_.reportIfReady(sys.out))
 
     def showManual(): Unit = {
       val pushTagOrBranch = if (newMod.isNoShop) {
@@ -581,6 +610,7 @@ object Release extends LazyLogging {
 
     }
 
+    semverAnalysis.foreach(_.finish(sys.out))
     Nil
   }
 

@@ -813,20 +813,20 @@ object Lint {
             out.println(warn(s"   use ${defaultCiFilename} ${fiWarn} ${fiCodeGitlabCiFilename}", opts))
             warnExit.trigger()
           } else {
-            out.println(info("      ci path: " + ciconfigpath, opts))
+            out.println(info("      ci path: " + ciconfigpath, opts, lineMax))
           }
 
-          out.println(info("      CI_COMMIT_TAG : " + ciCommitTag, opts))
-          out.println(info("      CI_COMMIT_REF_NAME : " + ciCommitRefName, opts))
-          out.println(info("      CI_COMMIT_BRANCH : " + ciCommitBranch, opts))
+          out.println(info("      CI_COMMIT_TAG : " + ciCommitTag, opts, lineMax))
+          out.println(info("      CI_COMMIT_REF_NAME : " + ciCommitRefName, opts, lineMax))
+          out.println(info("      CI_COMMIT_BRANCH : " + ciCommitBranch, opts, lineMax))
 
           if (Lint.isValidTag(tagBranchInfo)) {
-            out.println(info("      a valid tag : " + ciCommitRefName, opts))
-            out.println(info("      a valid semver tag? : " + ciCommitRefName, opts)) // TODO check later
+            out.println(info("      a valid tag : " + ciCommitRefName, opts, lineMax))
+            out.println(info("      a valid semver tag? : " + ciCommitRefName, opts, lineMax)) // TODO check later
           } else if (Lint.isValidBranch(tagBranchInfo)) {
-            out.println(info("      a valid branch : " + ciCommitRefName, opts))
+            out.println(info("      a valid branch : " + ciCommitRefName, opts, lineMax))
           } else if (Lint.isValidMergeRequest(tagBranchInfo)) {
-            out.println(info("      a valid merge request : " + ciCommitRefName, opts))
+            out.println(info("      a valid merge request : " + ciCommitRefName, opts, lineMax))
             usedLintSkips = usedLintSkips :+ fiCodeVersionMismatch
           } else {
             usedLintSkips = usedLintSkips ++

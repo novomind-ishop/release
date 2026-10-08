@@ -234,9 +234,11 @@ class ReleaseTest extends AssertionsForJUnit {
     assertSuggestedVersionsAreOnlyIncludedInReleaseTag("")
     assertSuggestedVersionsAreOnlyIncludedInReleaseTag("0.12.0")
     assertSuggestedVersionsAreOnlyIncludedInReleaseTag("0.12.0", "0.11-SNAPSHOT")
+    assertSuggestedVersionsAreOnlyIncludedInReleaseTag("0.12.0", "0.11-SNAPSHOT", suggestSemver = true)
   }
 
-  private def assertSuggestedVersionsAreOnlyIncludedInReleaseTag(nextVersion: String, currentVersion: String = "${revision}"): Unit = {
+  private def assertSuggestedVersionsAreOnlyIncludedInReleaseTag(nextVersion: String,
+      currentVersion: String = "${revision}", suggestSemver: Boolean = false): Unit = {
     val localWorkFolder = temp.newFolder()
     val remoteWorkFolder = temp.newFolder()
     val gitRemote = Sgit.init(remoteWorkFolder)
@@ -271,18 +273,22 @@ class ReleaseTest extends AssertionsForJUnit {
     Mockito.when(repo.latestGav("org.example", "common-utils", "0.10-SNAPSHOT"))
       .thenReturn(Some(Gav3("org.example", "common-utils", Some("0.10"))))
 
+    var semverOutput = Seq.empty[String]
     TermTest.testSys(
       Seq("y", "0.11", nextVersion, "y", ""),
       "Apply suggested versions to pom.xmls? [y/n]: y\n" +
         "Enter the next version without -SNAPSHOT [" +
         (if (PomMod.isVariable(currentVersion)) currentVersion else "0.12.0") + "]: " + nextVersion,
       "",
-      outAllFn = _.filter(line =>
-        line.startsWith("Apply suggested versions to pom.xmls?") ||
-          line.startsWith("Enter the next version without -SNAPSHOT") ||
-          line.startsWith("Found local changes - commit manual please."))
+      outAllFn = lines => {
+        semverOutput = lines.filter(line => line.contains("SemVer") || line.contains("japicmp"))
+        lines.filter(line =>
+          line.startsWith("Apply suggested versions to pom.xmls?") ||
+            line.startsWith("Enter the next version without -SNAPSHOT") ||
+            line.startsWith("Found local changes - commit manual please."))
+      }
     )(sys => {
-      val opts = Opts(useJlineInput = false, useGerrit = true)
+      val opts = Opts(useJlineInput = false, useGerrit = true, suggestSemver = suggestSemver)
       Release.work(
         localWorkFolder,
         sys,
@@ -298,6 +304,10 @@ class ReleaseTest extends AssertionsForJUnit {
       )
     })
 
+    if (suggestSemver) {
+      Assert.assertTrue(semverOutput.mkString("\n"), semverOutput.exists(_.contains("SemVer analysis started")))
+      Assert.assertTrue(semverOutput.mkString("\n"), semverOutput.exists(_.contains("no stable x.y.z release tag")))
+    } else Assert.assertTrue(semverOutput.toString, semverOutput.isEmpty)
     val nextPom = FileUtils.read(new File(localWorkFolder, "pom.xml"))
     val expectedNextVersion = if (nextVersion.isEmpty) "${revision}" else nextVersion + "-SNAPSHOT"
     Assert.assertEquals(initialPom.replace(s"<version>${currentVersion}</version>", s"<version>${expectedNextVersion}</version>"), nextPom)

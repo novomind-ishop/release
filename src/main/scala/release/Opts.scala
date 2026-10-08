@@ -131,6 +131,7 @@ object Opts {
       case "--no-update" :: tail => argsRead(tail, inOpt.copy(doUpdate = false))
       case "--non-interactive" :: tail => argsRead(tail, inOpt.copy(isInteractive = false))
       case "-B" :: tail => argsRead(tail, inOpt.copy(isInteractive = false))
+      case "--suggest-semver" :: tail => argsRead(tail, inOpt.copy(suggestSemver = true))
       case "--defaults" :: tail => argsRead(tail, inOpt.copy(useDefaults = true))
       case "--no-jline" :: tail => argsRead(tail, inOpt.copy(useJlineInput = false))
       case "--no-color" :: tail => argsRead(tail, inOpt.copy(colors = false))
@@ -304,6 +305,7 @@ case class Opts(
     showStartupDone: Boolean = true,
     suggestDockerTag: Boolean = false,
     suggestVersion: Boolean = false,
+    suggestSemver: Boolean = false,
     suggestRemoteBranch: Boolean = false,
     isInteractive: Boolean = true,
     showOpts: Boolean = false,

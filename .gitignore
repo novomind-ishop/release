@@ -8,3 +8,5 @@ project/target
 .idea_modules/
 .bsp/
 .attach_*
+.ci-cache/
+

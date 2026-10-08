@@ -94,6 +94,7 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
       |--gerrit              => enable Gerrit integration (off by default)
       |--no-gerrit           => disable Gerrit integration
       |--non-interactive, -B => Batch mode, suppresses startup messages
+      |--suggest-semver      => suggest a SemVer increment in the background using Nexus artifacts and japicmp
       |--skip-property value => if you get false positives with property definitions
       |--defaults            => do not read ${HOME}/.ishop-release
       |--no-check-overlap    => skip checks for too similar names e.g. "commons" and "commoms" are too similar

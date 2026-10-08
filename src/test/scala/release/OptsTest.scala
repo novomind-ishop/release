@@ -7,6 +7,15 @@ import org.scalatestplus.junit.AssertionsForJUnit
 import java.time.Period
 
 class OptsTest extends AssertionsForJUnit with LazyLogging {
+  @Test
+  def suggestSemverIsOptInAndPreservesExplicitIncrement(): Unit = {
+    Assert.assertFalse(Opts().suggestSemver)
+    assertArgs(
+      Opts(suggestSemver = true, isInteractive = false, versionIncrement = Increment.patch),
+      Opts.argsAndEnvRead(Seq("--suggest-semver", "-B", "--001"), Opts(), Map.empty)
+    )
+  }
+
   def assertArgs(expected: Opts, current: Opts): Unit = {
     Assert.assertEquals(Util.show(expected), Util.show(current))
     Assert.assertEquals(expected, current)

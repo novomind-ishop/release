@@ -370,6 +370,7 @@ object Starter extends LazyLogging {
       out.println("--gerrit              => enable Gerrit integration (off by default)")
       out.println("--no-gerrit           => disable Gerrit integration")
       out.println("--non-interactive, -B => Batch mode, suppresses startup messages")
+      out.println("--suggest-semver      => suggest a SemVer increment in the background using Nexus artifacts and japicmp")
       out.println("--skip-property value => if you get false positives with property definitions")
       out.println("--defaults            => do not read ${HOME}/.ishop-release")
       out.println("--no-check-overlap    => skip checks for too similar names e.g. \"commons\" and \"commoms\" are too similar")
