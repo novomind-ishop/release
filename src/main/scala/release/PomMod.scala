@@ -385,7 +385,8 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
     val (properties, literals, treeChanges) = suggestedVersionChanges(suggestions)
     properties.foreach { case (name, version) => PomMod.applyPropertyValue(raws, name, version) }
     literals.foreach { case (node, version) => node.setTextContent(version) }
-    changeDepTreesVersions(treeChanges.filter { case (gav, version) => gav.version.exists(_ != version) })
+    val changes = treeChanges.filter { case (gav, version) => gav.version.exists(_ != version) }
+    changeDepTreesVersions(PomMod.expandDepTreeVersionChanges(changes, depTreeFileContents.values.toSeq))
   }
 
   def changeVersion(newVersion: String): Unit = {
@@ -833,6 +834,22 @@ object PomMod {
   }
 
   private val duplicateSnapshotPattern = Pattern.compile("-SNAPSHOT-SNAPSHOT")
+
+  private[release] def expandDepTreeVersionChanges(changes: Seq[(Gav3, String)], trees: Seq[DepTree]): Seq[(Gav3, String)] = {
+    val explicitGavs = changes.map(_._1).toSet
+    val inferred = trees.flatMap(DepTree.parseGavsOnly).distinct.filterNot(explicitGavs.contains).flatMap { gav =>
+      val targets = changes.collect {
+        case (source, version)
+            if source.version == gav.version &&
+              (gav.groupId == source.groupId || gav.groupId.startsWith(source.groupId + ".")) => version
+      }.distinct
+      targets match {
+        case Seq(version) => Some(gav -> version)
+        case _ => None
+      }
+    }
+    changes ++ inferred
+  }
 
   private[release] def depTreeVersionUpdater(changes: Seq[(Gav3, String)]): String => String = {
     val uniqueChanges = changes.distinct

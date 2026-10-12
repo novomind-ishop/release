@@ -8,6 +8,34 @@ import java.util.regex.{Matcher, Pattern}
 class DepTreeVersionTest {
 
   @Test
+  def inferredChangesRequireMatchingGroupFamilyVersionAndUnambiguousTarget(): Unit = {
+    val tree = PomMod.DepTree("""com.example:library:jar:48x-SNAPSHOT
+      |+- com.example.health:health:jar:48x-SNAPSHOT:compile
+      |+- com.example:other-line:jar:47x-SNAPSHOT:compile
+      |+- com.example.extra:classifier:jar:tests:48x-SNAPSHOT:test
+      |+- com.examples:unrelated:jar:48x-SNAPSHOT:compile
+      |+- org.external:library:jar:48x-SNAPSHOT:compile
+      |""".stripMargin)
+    val source = Gav3("com.example", "library", Some("48x-SNAPSHOT"))
+    val changes = Seq(source -> "48.13.0")
+    Assert.assertEquals(
+      changes ++ Seq(
+        Gav3("com.example.health", "health", Some("48x-SNAPSHOT")) -> "48.13.0",
+        Gav3("com.example.extra", "classifier", Some("48x-SNAPSHOT")) -> "48.13.0"
+      ),
+      PomMod.expandDepTreeVersionChanges(changes, Seq(tree, tree))
+    )
+
+    val conflicting = changes :+ (Gav3("com.example", "other", Some("48x-SNAPSHOT")) -> "48.14.0")
+    Assert.assertEquals(conflicting, PomMod.expandDepTreeVersionChanges(conflicting, Seq(tree)))
+
+    val explicit = changes :+ (Gav3("com.example.health", "health", Some("48x-SNAPSHOT")) -> "48.15.0")
+    Assert.assertEquals(explicit :+ (Gav3("com.example.extra", "classifier", Some("48x-SNAPSHOT")) -> "48.13.0"),
+      PomMod.expandDepTreeVersionChanges(explicit, Seq(tree)))
+    Assert.assertEquals(Nil, PomMod.expandDepTreeVersionChanges(Nil, Seq(tree)))
+  }
+
+  @Test
   def batchUpdatesModulesWithClassifiersAndScopes(): Unit = {
     val changes = Seq(
       Gav3("com.example", "first", Some("49x-SNAPSHOT")) -> "49.1.3",

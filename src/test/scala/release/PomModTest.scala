@@ -867,6 +867,68 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def suggestedVersionsUpdateTransitiveAndBomManagedDependencyTrees(): Unit = {
+    val propertyRef = "${platform-dependencies.version}"
+    val current = """com.example.app:application:war:@reactor-version@
+      |+- com.example:library:jar:48x-SNAPSHOT:compile
+      ||  +- com.example:library-internal:jar:48x-SNAPSHOT:compile
+      |+- com.example.health:library-health:jar:48x-SNAPSHOT:compile
+      |+- org.external:library:jar:48x-SNAPSHOT:compile
+      |""".stripMargin
+    val expected = """com.example.app:application:war:@reactor-version@
+      |+- com.example:library:jar:48.13.0:compile
+      ||  +- com.example:library-internal:jar:48.13.0:compile
+      |+- com.example.health:library-health:jar:48.13.0:compile
+      |+- org.external:library:jar:48x-SNAPSHOT:compile
+      |""".stripMargin
+    val srcPoms = pomTestFile(
+      temp,
+      document(
+        <project>
+        <modelVersion>4.0.0</modelVersion>
+        <groupId>com.example.app</groupId>
+        <artifactId>application</artifactId>
+        <version>48.13.3</version>
+        <properties><platform-dependencies.version>48x-SNAPSHOT</platform-dependencies.version></properties>
+        <dependencyManagement><dependencies><dependency>
+          <groupId>com.example.core</groupId>
+          <artifactId>platform-dependencies</artifactId>
+          <version>{propertyRef}</version><type>pom</type><scope>import</scope>
+        </dependency></dependencies></dependencyManagement>
+        <dependencies>
+          <dependency>
+            <groupId>com.example</groupId><artifactId>library</artifactId>
+            <version>{propertyRef}</version>
+          </dependency>
+          <dependency>
+            <groupId>com.example.health</groupId><artifactId>library-health</artifactId>
+          </dependency>
+        </dependencies>
+        <build><plugins><plugin>
+          <groupId>org.apache.maven.plugins</groupId><artifactId>maven-dependency-plugin</artifactId>
+          <version>3.0.0</version>
+          <executions><execution><goals><goal>tree</goal></goals>
+            <configuration><outputFile>dep.tree</outputFile></configuration>
+          </execution></executions>
+        </plugin></plugins></build>
+      </project>
+      ),
+      current
+    ).create()
+    val mod = withRepoForTests(srcPoms, repo)
+
+    mod.applySuggestedVersionChanges(Seq(
+        Gav3("com.example", "library", "48x-SNAPSHOT") -> "48.13.0"))
+    mod.writeTo(srcPoms)
+
+    Assert.assertEquals(expected, FileUtils.read(new File(srcPoms, "dep.tree")))
+    val pom = FileUtils.read(new File(srcPoms, "pom.xml"))
+    Assert.assertTrue(pom.contains("<platform-dependencies.version>48.13.0</platform-dependencies.version>"))
+    Assert.assertTrue(pom.contains("<version>${platform-dependencies.version}</version>"))
+    Assert.assertFalse(pom.contains("<artifactId>library-internal</artifactId>"))
+  }
+
+  @Test
   def suggestedVersionChangesIgnoreUnmatchedVersions(): Unit = {
     val srcPoms = pomTestFile(
       temp,
