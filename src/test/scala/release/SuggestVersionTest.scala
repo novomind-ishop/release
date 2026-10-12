@@ -257,7 +257,9 @@ class SuggestVersionTest extends AssertionsForJUnit {
       "feature/any-room" -> "any-room",
       "main" -> "main",
       "qa/main" -> "qa-main",
-      "qa/49x" -> "qa-49x",
+      "qa/49x" -> "49x",
+      "qa/48.x" -> "48x",
+      "qa/50" -> "50x",
       "release/45x" -> "45x-RC",
       "support/48x" -> "support-48x",
       "test100" -> "test100"

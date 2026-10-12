@@ -114,6 +114,7 @@ object SuggestVersion {
       case part if part == "support" || part.matches("support[0-9]+x?") => "support"
     }
     val releaseCandidate = parts match {
+      case Seq("qa", linePattern(number)) => Some(s"${number}x")
       case Seq("release", linePattern(number)) => Some(s"${number}x-RC")
       case _ => None
     }
