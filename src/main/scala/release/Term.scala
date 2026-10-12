@@ -44,7 +44,7 @@ object Term {
     }
   }
 
-  def readFrom(sys: Term.Sys, text: String, defaultValue: String, opts: Opts): String = {
+  def readFrom(sys: Term.Sys, text: String, defaultValue: String, opts: Opts, acceptDefaultOnYes: Boolean = false): String = {
     val line = readLineWithPrompt(sys, text + " [%s]: ".format(defaultValue), opts)
     val result = line match {
       case null => {
@@ -53,6 +53,7 @@ object Term {
         null
       }
       case "" => defaultValue
+      case value if acceptDefaultOnYes && value.trim == "y" => defaultValue
       case any: String => Option(any.trim).getOrElse(defaultValue)
     }
 
@@ -113,10 +114,11 @@ object Term {
 
   def readChooseOneOfOrType(sys: Term.Sys, text: String, possibleValues: Seq[String], opts: Opts,
       valSelectF: Seq[String] => String = _.head,
-      mappedF: Map[String, String] => (String, String) = _.head): String = {
+      mappedF: Map[String, String] => (String, String) = _.head,
+      acceptDefaultOnYes: Boolean = false): String = {
     possibleValues match {
       case Nil => throw new IllegalArgumentException("possible value size must not be empty")
-      case values if values.size == 1 => readFrom(sys, text, possibleValues.head, opts)
+      case values if values.size == 1 => readFrom(sys, text, possibleValues.head, opts, acceptDefaultOnYes)
       case _ => {
         sys.out.println(text)
         val mapped: Map[String, String] = printOptions(sys, possibleValues)
@@ -128,6 +130,7 @@ object Term {
             null
           }
           case "" => mappedF.apply(mapped)._2
+          case value if acceptDefaultOnYes && value.trim == "y" => valSelectF.apply(possibleValues)
           case any: String if mapped.contains(any) => mapped(any)
           case other: String => other.trim
         }

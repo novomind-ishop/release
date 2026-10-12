@@ -24,6 +24,45 @@ class TermTest extends AssertionsForJUnit {
   }
 
   @Test
+  def yesAcceptsNextVersionDefault(): Unit = {
+    val defaultVersion = "${revision}"
+    testSys(Seq("y"), "Enter the next version without -SNAPSHOT [${revision}]: y", "") { sys =>
+      Assert.assertEquals(defaultVersion,
+        Term.readFrom(sys, "Enter the next version without -SNAPSHOT",
+          defaultVersion, Opts(useJlineInput = false), acceptDefaultOnYes = true))
+    }
+  }
+
+  @Test
+  def yesAcceptsDisplayedVersionChoiceDefault(): Unit = {
+    val opts = Opts(useJlineInput = false)
+    testSys(
+      Seq("y", "y"),
+      """Choose version
+      |[1] 2.0.0
+      |[2] 1.1.0
+      |[3] 1.0.1
+      |Enter option or type [1.0.1]: y
+      |Choose version [1.0.1]: y""".stripMargin,
+      ""
+    ) { sys =>
+      Assert.assertEquals("1.0.1",
+        Term.readChooseOneOfOrType(sys, "Choose version",
+          Seq("2.0.0", "1.1.0", "1.0.1"), opts, _.last, _.last, acceptDefaultOnYes = true))
+      Assert.assertEquals("1.0.1",
+        Term.readChooseOneOfOrType(sys, "Choose version",
+          Seq("1.0.1"), opts, acceptDefaultOnYes = true))
+    }
+  }
+
+  @Test
+  def yesRemainsLiteralInputUnlessEnabled(): Unit = {
+    testSys(Seq("y"), "Enter name [default]: y", "") { sys =>
+      Assert.assertEquals("y", Term.readFrom(sys, "Enter name", "default", Opts(useJlineInput = false)))
+    }
+  }
+
+  @Test
   def testReadNull(): Unit = {
     TermTest.testSys(Nil, "enter some [word]: ", "invalid readFrom(..) => exit 14", 14)(sys => {
       Term.readFrom(sys, "enter some", "word", Opts(useJlineInput = false))

@@ -147,7 +147,8 @@ object Release extends LazyLogging {
   def readReleaseVersions(sys: Term.Sys, mod: ProjectMod, suggestedVersions: Seq[String], opts: Opts, knownTags: Seq[String]): String = {
     val result = PomMod.checkNoSlashesNotEmptyNoZeros(
       Term.readChooseOneOfOrType(
-        sys, s"Enter release version for »${mod.selfVersionReplaced}«", suggestedVersions, opts, e => e.last, m => m.last))
+        sys, s"Enter release version for »${mod.selfVersionReplaced}«", suggestedVersions, opts, e => e.last, m => m.last,
+        acceptDefaultOnYes = true))
     if (PomMod.isUnknownVersionPattern(result)) {
       if (mod.isShop) {
         sys.out.println("I: We prefer:")
@@ -313,7 +314,7 @@ object Release extends LazyLogging {
     def readNextReleaseVersionsWithoutSnapshot: String = {
       val result =
         Version.removeTrailingSnapshots(PomMod.checkNoSlashesNotEmptyNoZeros(Term.readFrom(sys, "Enter the next version without -SNAPSHOT",
-              newMod.suggestNextRelease(release), opts)))
+              newMod.suggestNextRelease(release), opts, acceptDefaultOnYes = true)))
       if (PomMod.isUnknownVersionPattern(result) && !(PomMod.isVariable(result) && result == newMod.selfVersion)) {
         val retryVersionEnter =
           Term.readFromOneOfYesNo(sys, "Unknown next release version \"" + result + "\". Are you sure to continue?", opts)
