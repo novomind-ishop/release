@@ -385,7 +385,7 @@ object Release extends LazyLogging {
       }
     }
 
-    // TODO hier könnte man jetzt die snapshots aus "mod" in "newMod" suchen und sie auf den folgesnapshot setzen
+    // TODO find snapshots from "mod" in "newMod" and update them to the next snapshot version
 
     val nextSnapshot = Starter.versionForVersionSet(nextReleaseWithoutSnapshot)
     val prepareNextIteration = !PomMod.isVariable(nextSnapshot)
@@ -547,8 +547,8 @@ object Release extends LazyLogging {
                 logger.trace(s"maybe pushed ${branch} to refs/for/${selectedBranch} - ${pushOut.mkString(",")}")
               }
               if (config.openGerritInBrowser) {
-                // TODO hier gerrit öffnen da man submit klicken muss
-                // TODO wenn man genau den change öffnen könnte wär noch cooler
+                // TODO open Gerrit so the user can submit the change
+                // TODO open the specific change directly
                 // TODO try to exctract gerrit url from repo
                 Starter.openInDefaultBrowser(config.gerritBaseUrl() + "#/q/status:open")
               }
@@ -565,7 +565,7 @@ object Release extends LazyLogging {
               if (config.openJenkinsInBrowser) {
                 val jenkinsBase = config.jenkinsBaseUrl()
                 val tagUrl = Starter.tagBuildUrl(sgit, jenkinsBase, release)
-                // TODO hier erstmal nur den browser auf machen damit man build tag klicken kann
+                // TODO open the browser so the user can build the tag
                 Starter.openInDefaultBrowser(tagUrl.getOrElse(jenkinsBase + "/search/?q=-tag&max=1000"))
                 // try to notify jenkins about tag builds
                 // TODO try to wait for successful tag builds ... subscribe to logs

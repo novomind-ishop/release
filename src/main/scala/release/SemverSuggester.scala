@@ -111,13 +111,13 @@ object SemverSuggester extends LazyLogging {
   private[release] def modulesAtTag(sgit: Sgit, tag: String, opts: Opts, repo: RepoZ): Seq[Gav] = {
     val directory = Files.createTempDirectory("release-semver-poms-")
     try {
-      val paths = sgit.gitNative(Seq("ls-tree", "-r", "--name-only", tag), showErrorsOnStdErr = false).get
+      val paths = sgit.listFilesAt(tag)
         .filter(path => path == "pom.xml" || path.endsWith("/pom.xml"))
       paths.foreach(path => {
         val target = directory.resolve(path).normalize()
         require(target.startsWith(directory), "POM path outside temporary directory")
         Files.createDirectories(target.getParent)
-        Files.writeString(target, sgit.gitNative(Seq("show", s"${tag}:${path}"), showErrorsOnStdErr = false).get.mkString("\n"))
+        Files.writeString(target, sgit.fileContentAt(tag, path))
       })
       PomMod.withRepo(directory.toFile, opts, repo, failureCollector = None, revisionFallback = Some(tag.stripPrefix("v")))
         .listSelf.map(_.gav())

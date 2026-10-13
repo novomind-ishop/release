@@ -25,34 +25,33 @@ class SgitTest extends AssertionsForJUnit {
     Seq(javaBin, "-cp", classPath, "release.FetchDelayProcess") ++ args
   }
 
-  @Test
-  def fetchProcessStopsAfterTimeout(): Unit = {
-    val result = Sgit.native(
-      fetchDelayCommand(),
-      errOnStdout = false,
-      _ => false,
-      System.err,
-      s => Some(s),
-      timeout = Some(Duration(500, TimeUnit.MILLISECONDS))
-    )
+  private def withFetchProcess(args: Seq[String])(test: Sgit => Unit): Unit = {
+    Assume.assumeFalse(System.getProperty("os.name").toLowerCase.contains("win"))
+    val launcher = Files.createTempFile("release-fetch-process-", ".sh")
+    try {
+      val command = fetchDelayCommand(args*).map(arg => "'" + arg.replace("'", "'\"'\"'") + "'").mkString(" ")
+      Files.writeString(
+        launcher, "#!/bin/sh\ncase \"$*\" in *--version*) echo \"git version 2.45.0\"; exit 0;; esac\nexec " + command + "\n")
+      Assert.assertTrue(launcher.toFile.setExecutable(true))
+      test(Sgit(new File("."), doVerify = false, out = System.out, err = System.err,
+          gitBin = Some(launcher.toString), opts = Opts()))
+    } finally Files.deleteIfExists(launcher)
+  }
 
+  @Test
+  def fetchProcessStopsAfterTimeout(): Unit = withFetchProcess(Nil) { git =>
+    val result = scala.util.Try(git.fetchAll(timeout = Duration(500, TimeUnit.MILLISECONDS)))
     Assert.assertTrue(result.failed.get.isInstanceOf[TimeoutException])
     Assert.assertTrue(result.failed.get.getMessage.contains("git fetch received no data for 500 milliseconds"))
   }
 
   @Test
-  def fetchProcessContinuesWhileReceivingData(): Unit = {
-    val result = Sgit.native(
-      fetchDelayCommand("progress"),
-      errOnStdout = false,
-      _ => false,
-      System.err,
-      s => Some(s),
-      timeout = Some(Duration(500, TimeUnit.MILLISECONDS))
-    )
-
+  def fetchProcessContinuesWhileReceivingData(): Unit = withFetchProcess(Seq("progress")) { git =>
+    val activity = new AtomicInteger()
+    val result = scala.util.Try(git.fetchAll(timeout = Duration(1, TimeUnit.SECONDS),
+        onActivity = () => { activity.incrementAndGet(); () }))
     Assert.assertTrue(result.toString, result.isSuccess)
-    Assert.assertTrue(result.get.contains("data"))
+    Assert.assertTrue(activity.get() > 1)
   }
 
   @Test
@@ -382,18 +381,18 @@ class SgitTest extends AssertionsForJUnit {
     testee.err("remote: Processing changes: refs: 2, done")
     testee.err("remote: ")
     testee.err("remote: error: Line is too long. Reduce it to 72 chars please; " +
-      "\"Eine wichtichte asfasd asdf asf sd fjrei eirgj eiogjeio jgirj ierjiogj iodfgj ioeiojgierge\"")
+      "\"An important commit message that exceeds the maximum allowed length of seventy-two characters\"")
     testee.err("remote: ")
     testee.err("remote: ")
     testee.err("remote: error: Line is too long. Reduce it to 72 chars please; " +
-      "\"Eine wichtichte asfasd asdf asf sd fjrei eirgj eiogjeio jgirj ierjiogj iodfgj ioeiojgierge\"")
+      "\"An important commit message that exceeds the maximum allowed length of seventy-two characters\"")
     testee.err("To ssh://anyone@any-gerrig:29418/ishop/user/anyone/sonar-demo")
     testee.err(" ! [remote rejected] master -> refs/for/master " +
       "(Commit Message Problem: Line is too long. Reduce it to 72 chars please; " +
-      "\"Eine wichtichte asfasd asdf asf sd fjrei eirgj eiogjeio jgirj ierjiogj iodfgj ioeiojgierge\")")
+      "\"An important commit message that exceeds the maximum allowed length of seventy-two characters\")")
     testee.err(" ! [remote rejected] v29.0.6 -> v29.0.6 " +
       "(Commit Message Problem: Line is too long. Reduce it to 72 chars please; " +
-      "\"Eine wichtichte asfasd asdf asf sd fjrei eirgj eiogjeio jgirj ierjiogj iodfgj ioeiojgierge\")")
+      "\"An important commit message that exceeds the maximum allowed length of seventy-two characters\")")
     testee.err("error: failed to push some refs to 'ssh://anyone@any-gerrig:29418/ishop/user/anyone/sonar-demo'")
 
     // THEN
@@ -401,11 +400,11 @@ class SgitTest extends AssertionsForJUnit {
       List(
         """[remote rejected] master -> refs/for/master
           |(Commit Message Problem: Line is too long. Reduce it to 72 chars please;
-          |"Eine wichtichte asfasd asdf asf sd fjrei eirgj eiogjeio jgirj ierjiogj iodfgj ioeiojgierge")""".stripMargin
+          |"An important commit message that exceeds the maximum allowed length of seventy-two characters")""".stripMargin
           .replaceAll("[\r\n]+", " "),
         """[remote rejected] v29.0.6 -> v29.0.6
           |(Commit Message Problem: Line is too long. Reduce it to 72 chars please;
-          |"Eine wichtichte asfasd asdf asf sd fjrei eirgj eiogjeio jgirj ierjiogj iodfgj ioeiojgierge")""".stripMargin
+          |"An important commit message that exceeds the maximum allowed length of seventy-two characters")""".stripMargin
           .replaceAll("[\r\n]+", " "),
         """git-err: 'error: failed to push some refs to
           |'ssh://anyone@any-gerrig:29418/ishop/user/anyone/sonar-demo''""".stripMargin
@@ -448,16 +447,11 @@ class SgitTest extends AssertionsForJUnit {
   }
 
   @Test
-  def testGitNative(): Unit = {
-    TestHelper.assertException(
-      "Nonzero exit value: 1; git --no-pager iutghiprjhpeth; " +
-        "git: 'iutghiprjhpeth' is not a git command. See 'git --help'.",
-      classOf[RuntimeException],
-      () => {
-        SgitTest.workSgit().gitNative(Seq("iutghiprjhpeth")).get
-      }
-    )
-
+  def testMissingCommit(): Unit = {
+    val result = scala.util.Try(SgitTest.workSgit().commitId("refs/heads/missing"))
+    Assert.assertTrue(result.isFailure)
+    Assert.assertTrue(result.failed.get.isInstanceOf[RuntimeException])
+    Assert.assertTrue(result.failed.get.getMessage.contains("unknown revision or path"))
   }
 
   private def testFailIllegal(expectedMsg: String, fn: () => Unit): Unit = {
@@ -1190,8 +1184,7 @@ class SgitTest extends AssertionsForJUnit {
   }
 
   private def assertMsg(expected: Seq[String], sgit: Sgit): Unit = {
-    val gitRawOut = sgit.gitNative(Seq("log", "-n1", "--pretty=\"%B\"")).get
-    val nativeLines = unw(gitRawOut.mkString("\n")).linesIterator.toList
+    val nativeLines = sgit.commitMessage("HEAD").linesIterator.toList
     val body = nativeLines match {
       case lines if lines.last.startsWith("Change-Id:") => lines.dropRight(1)
       case lines => Assert.fail("invalid lines: " + lines.mkString("|"))

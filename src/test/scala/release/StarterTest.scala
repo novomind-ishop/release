@@ -109,6 +109,7 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
       |shopGASet newGroupIdAndArtifactId    => changes GroupId and ArtifactId exclusively for Shops
       |nothing-but-create-feature-branch    => creates a feature branch and changes pom.xmls
       |apidiff                              => compares two versions of this repo
+      |backport commit                      => prepare backport branches and GitLab MR push commands
       |lint                                 => check project for release problems (read-only),
       |                                        reads environment variables CI_COMMIT_REF_NAME and CI_COMMIT_TAG
       |showSelf                             => a list of groupId:artifactId of current project
@@ -116,6 +117,7 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
       |suggest-docker-tag                   => use with '--non-interactive', reads CI variables or local Git
       |suggest-version                      => use with '--non-interactive', reads CI variables or local Git
       |                                        CI_COMMIT_REF_NAME and CI_COMMIT_TAG take precedence
+      |                                        merge requests use CI_MERGE_REQUEST_TARGET_BRANCH_NAME
       |
       |Possible environment variables:
       |export RELEASE_GIT_BIN=$PATH_TO_GIT_EXECUTABLE
@@ -158,6 +160,30 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
       ("local-branch", "v1.2.3"),
       Starter.suggestionRefs(None, None, Some("local-branch"), Seq("v1.2.3")))
     Assert.assertEquals((null, null), Starter.suggestionRefs(None, None, Some("HEAD"), Nil))
+  }
+
+  @Test
+  def suggestionRefsUsesMergeRequestTargetBranch(): Unit = {
+    val (refName, tagName) = Starter.suggestionRefs(
+      Some("feature/48x/ABC-17249"),
+      None,
+      throw new AssertionError("local branch must not be read"),
+      throw new AssertionError("local tags must not be read"),
+      mergeRequestTargetBranch = Some("release/48x")
+    )
+    Assert.assertEquals(("release/48x", null), (refName, tagName))
+    Assert.assertEquals(("48x-RC-SNAPSHOT", 0), SuggestVersion.suggest(refName, tagName, None))
+    Assert.assertEquals(("1.2.3", 0), SuggestVersion.suggest(refName, tagName, None, "v1.2.3"))
+  }
+
+  @Test
+  def suggestionRefsIgnoresBlankMergeRequestTargetBranch(): Unit = {
+    Seq("", " \t").foreach { target =>
+      Assert.assertEquals(
+        ("ci-branch", "v1.2.3"),
+        Starter.suggestionRefs(Some("ci-branch"), Some("v1.2.3"), Some("local-branch"), Nil,
+          mergeRequestTargetBranch = Some(target)))
+    }
   }
 
   @Test

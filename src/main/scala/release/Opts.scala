@@ -134,17 +134,18 @@ object Opts {
       case "--suggest-semver" :: tail => argsRead(tail, inOpt.copy(suggestSemver = true))
       case "--defaults" :: tail => argsRead(tail, inOpt.copy(useDefaults = true))
       case "--no-jline" :: tail => argsRead(tail, inOpt.copy(useJlineInput = false))
-      case "--no-color" :: tail => argsRead(tail, inOpt.copy(colors = false))
+      case "--no-color" :: tail => argsRead(tail, inOpt.copy(colors = false)) // TODO no color env property
       case "--show-opts" :: tail => argsRead(tail, inOpt.copy(showOpts = true))
       case "--no-check-overlap" :: tail => argsRead(tail, inOpt.copy(checkOverlapping = false))
       case "--no-check-project-vars" :: tail => argsRead(tail, inOpt.copy(checkProjectDeps = false))
-      // TODO no color env property
-      case "--100" :: tail => argsRead(tail, inOpt.copy(versionIncrement = Increment.major))
-      case "--010" :: tail => argsRead(tail, inOpt.copy(versionIncrement = Increment.minor))
-      case "--001" :: tail => argsRead(tail, inOpt.copy(versionIncrement = Increment.patch))
+      case ("--100" | "--major") :: tail => argsRead(tail, inOpt.copy(versionIncrement = Increment.major))
+      case ("--010" | "--minor") :: tail => argsRead(tail, inOpt.copy(versionIncrement = Increment.minor))
+      case ("--001" | "--patch") :: tail => argsRead(tail, inOpt.copy(versionIncrement = Increment.patch))
       case "--demo-chars" :: _ => showDemoChars(inOpt)
       case "--skip-property" :: value :: tail => argsRead(tail, inOpt.copy(skipProperties = inOpt.skipProperties ++ Seq(value)))
       // CMDs
+      case "backport" :: tail =>
+        argsBackportRead(tail, inOpt.copy(backport = Some(BackportOpts()), showStartupDone = false, isInteractive = false))
       case "lint" :: tail => argsLintRead(tail, inOpt)
       case "showSelf" :: tail => argsRead(tail, inOpt.copy(showSelfGa = true))
       case "apidiff" :: tail => argsApiDiffRead(tail, inOpt.copy(apiDiff = inOpt.apiDiff.copy(showApiDiff = true)))
@@ -161,6 +162,25 @@ object Opts {
       case string :: Nil => argsRead(Nil, inOpt.focusInvalids().replace(inOpt.diag.invalids :+ string))
       case string :: tail => argsRead(tail, inOpt.focusInvalids().replace(inOpt.diag.invalids :+ string))
       case _ => throw new IllegalStateException("not expected")
+    }
+  }
+
+  @tailrec
+  private def argsBackportRead(params: Seq[String], inOpt: Opts): Opts = {
+    val bp = inOpt.backport.get
+    def next(value: BackportOpts): Opts = inOpt.copy(backport = Some(value))
+    params match {
+      case Nil => inOpt
+      case ("--help" | "-h") :: tail => argsBackportRead(tail, next(bp.copy(showHelp = true)))
+      case "--apply" :: tail => argsBackportRead(tail, next(bp.copy(apply = true)))
+      case "--fetch" :: tail => argsBackportRead(tail, next(bp.copy(fetch = true)))
+      case "--remote" :: value :: tail if !value.startsWith("--") => argsBackportRead(tail, next(bp.copy(remote = value)))
+      case "--target" :: value :: tail if !value.startsWith("--") => argsBackportRead(tail, next(bp.copy(targets = bp.targets :+ value)))
+      case "--branch-prefix" :: value :: tail if !value.startsWith("--") => argsBackportRead(tail, next(bp.copy(branchPrefix = value)))
+      case "--description-file" :: value :: tail if !value.startsWith("--") =>
+        argsBackportRead(tail, next(bp.copy(descriptionFile = Some(value))))
+      case value :: tail if !value.startsWith("-") && bp.commit.isEmpty => argsBackportRead(tail, next(bp.copy(commit = Some(value))))
+      case value :: tail => argsBackportRead(tail, next(bp.copy(invalids = bp.invalids :+ value)))
     }
   }
 
@@ -309,6 +329,7 @@ case class Opts(
     suggestRemoteBranch: Boolean = false,
     isInteractive: Boolean = true,
     showOpts: Boolean = false,
+    backport: Option[BackportOpts] = None,
     repoSupplier: Opts => RepoZ = Opts.newRepoZ
 ) {
   def newRepo: RepoZ = {

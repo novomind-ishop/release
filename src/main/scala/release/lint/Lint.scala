@@ -761,8 +761,12 @@ object Lint {
         var pomFailures: Seq[Exception] = Nil
         val pompom: Option[Try[ProjectMod]] = if (rootFolderFiles.exists(_.getName == "pom.xml")) {
           val (refName, tagName) = Starter.suggestionRefs(
-            envs.get("CI_COMMIT_REF_NAME"), envs.get("CI_COMMIT_TAG"),
-            sgit.currentBranchOpt, sgit.tagsAtHead)
+            envs.get("CI_COMMIT_REF_NAME"),
+            envs.get("CI_COMMIT_TAG"),
+            sgit.currentBranchOpt,
+            sgit.tagsAtHead,
+            mergeRequestTargetBranch = envs.get("CI_MERGE_REQUEST_TARGET_BRANCH_NAME")
+          )
           val revisionFallback = Some(SuggestVersion.suggest(
               refName, tagName, None, envs.getOrElse("RELEASE_SUGGEST_TAG", null),
               branchNames = sgit.listBranchNamesAll(),

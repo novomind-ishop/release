@@ -462,8 +462,8 @@ object Util {
   }
 
   private val chars: IndexedSeq[Char] = (
-    ('Α' to 'Ω') ++ // Griechisch Groß
-      ('α' to 'ω') ++ // Griechisch Klein
+    ('Α' to 'Ω') ++ // Greek uppercase
+      ('α' to 'ω') ++ // Greek lowercase
       Seq(
         '§', '¤', '¥', '¢', '±', '×', '÷', '∞', '∑', '∏',
         '∆', '∇', '∈', '∩', '∪', '≈', '≠', '≤', '≥', '⌘',

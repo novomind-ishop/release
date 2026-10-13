@@ -308,7 +308,7 @@ object PomChecker {
 
   private[release] def checkIshopMaven(_plugins: Seq[PluginDep]): Unit = {
     val plugins = PomMod.findPluginsByName(_plugins, "ishop-maven-plugin")
-    // TODO ishop maven plugin muss definiert sein
+    // TODO require the ishop Maven plugin to be defined
     plugins.foreach(ishopMaven => {
       val execs = Util.only(ishopMaven.execs, ishopMaven.pomRef.id + " - a single execution section for ishop maven plugin please required")
       if (!execs.goals.contains("check-for-changes-before")) {

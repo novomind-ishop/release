@@ -32,9 +32,11 @@ object Starter extends LazyLogging {
       ciRefName: Option[String],
       ciTag: Option[String],
       localRefName: => Option[String],
-      localTags: => Seq[String]): (String, String) = {
-    if (ciRefName.isDefined || ciTag.isDefined) {
-      (ciRefName.orNull, ciTag.orNull)
+      localTags: => Seq[String],
+      mergeRequestTargetBranch: Option[String] = None): (String, String) = {
+    val refName = mergeRequestTargetBranch.filterNot(_.isBlank).orElse(ciRefName)
+    if (refName.isDefined || ciTag.isDefined) {
+      (refName.orNull, ciTag.orNull)
     } else {
       (localRefName.filterNot(_ == "HEAD").orNull, localTags.headOption.orNull)
     }
@@ -353,7 +355,7 @@ object Starter extends LazyLogging {
       case _ => argSeq(5)
     }
 
-    // TODO --batch ## alles mit default wählen
+    // TODO --batch: use defaults for all prompts
 
     if (opts.showHelp || opts.diag.invalids != Nil) {
       if (opts.diag.invalids != Nil) {
@@ -385,6 +387,7 @@ object Starter extends LazyLogging {
       out.println("shopGASet newGroupIdAndArtifactId    => changes GroupId and ArtifactId exclusively for Shops")
       out.println("nothing-but-create-feature-branch    => creates a feature branch and changes pom.xmls")
       out.println("apidiff                              => compares two versions of this repo")
+      out.println("backport commit                      => prepare backport branches and GitLab MR push commands")
       out.println("lint                                 => check project for release problems (read-only),")
       out.println("                                        reads environment variables CI_COMMIT_REF_NAME and CI_COMMIT_TAG")
       out.println("showSelf                             => a list of groupId:artifactId of current project")
@@ -392,6 +395,7 @@ object Starter extends LazyLogging {
       out.println("suggest-docker-tag                   => use with '--non-interactive', reads CI variables or local Git")
       out.println("suggest-version                      => use with '--non-interactive', reads CI variables or local Git")
       out.println("                                        CI_COMMIT_REF_NAME and CI_COMMIT_TAG take precedence")
+      out.println("                                        merge requests use CI_MERGE_REQUEST_TARGET_BRANCH_NAME")
       out.println()
       out.println("Possible environment variables:")
       out.println("export RELEASE_GIT_BIN=$PATH_TO_GIT_EXECUTABLE")
@@ -436,6 +440,9 @@ object Starter extends LazyLogging {
     }
 
     val gitBinEnv = config.gitBinEnv()
+    if (opts.backport.isDefined) {
+      return Backport.run(workDirFile, sys, gitBinEnv, opts)
+    }
     lazy val releaseToolGit = Sgit(file = releaseToolDir, gitBin = gitBinEnv, doVerify = false, out = out, err = err, opts = opts)
 
     val updateCmd: String = {
@@ -478,7 +485,9 @@ object Starter extends LazyLogging {
         envs.get("CI_COMMIT_REF_NAME"),
         envs.get("CI_COMMIT_TAG"),
         localGit.flatMap(_.currentBranchOpt),
-        localGit.toSeq.flatMap(_.tagsAtHead))
+        localGit.toSeq.flatMap(_.tagsAtHead),
+        mergeRequestTargetBranch = if (opts.suggestVersion) envs.get("CI_MERGE_REQUEST_TARGET_BRANCH_NAME") else None
+      )
       val externalTag = envs.getOrElse("RELEASE_SUGGEST_TAG", null)
       val result: (String, ExitCode) = if (opts.suggestVersion) {
         SuggestVersion.suggest(

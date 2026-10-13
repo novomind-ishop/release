@@ -9,7 +9,7 @@ import release.Starter.PreconditionsException
 import java.io.{File, PrintStream}
 import java.net.URI
 import java.time.ZonedDateTime
-import java.util.concurrent.atomic.{AtomicLong, AtomicReference}
+import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.{Callable, Executors, TimeUnit, TimeoutException}
 import scala.annotation.tailrec
 import scala.concurrent.duration.Duration
@@ -54,6 +54,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   }
 
   private val dotGit = new File(gitRoot, ".git")
+  private lazy val gitCommand = Sgit.selectedGitCmd(err, gitBin).get
 
   def version(): String = {
     gitNative(Seq("--version"), useWorkdir = false).get.mkString("")
@@ -671,7 +672,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     diff(Seq(f))
   }
 
-  def diff(opts: Seq[String]): Seq[String] = {
+  private def diff(opts: Seq[String]): Seq[String] = {
     gitNative(Seq("diff") ++ opts).get
   }
 
@@ -699,7 +700,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   }
 
   def logShortOpt(limit: Int = -1, path: String = ""): Option[String] = {
-    logTry(limit, path, Seq("--online")) match {
+    logTry(limit, path) match {
       case Success(k) => k.headOption
       case Failure(k) => {
         None
@@ -707,7 +708,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     }
   }
 
-  def logTry(limit: Int = -1, path: String = "", args: Seq[String] = Nil): Try[Seq[String]] = {
+  def logTry(limit: Int = -1, path: String = ""): Try[Seq[String]] = {
     try {
       val pElement = if (Strings.isNullOrEmpty(path)) {
         "HEAD"
@@ -858,7 +859,144 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     gitNative(Seq("reset", "--hard", commitId)).get
   }
 
-  private[release] def gitNativeOpt(args: Seq[String]): Option[Seq[String]] = {
+  def resolveCommit(ref: String): String =
+    checkedResult(gitResult(Seq("rev-parse", "--verify", "--end-of-options", ref + "^{commit}")))
+
+  def commitParents(ref: String): Seq[String] =
+    checkedResult(gitResult(Seq("show", "-s", "--format=%P", ref))).split("\\s+").toSeq.filter(_.nonEmpty)
+
+  def commitMessage(ref: String): String =
+    checkedResult(gitResult(Seq("show", "-s", "--format=%B", ref)))
+
+  def commitSubject(ref: String): String =
+    checkedResult(gitResult(Seq("show", "-s", "--format=%s", ref)))
+
+  def containsCommit(base: String, commit: String): Boolean = {
+    val ancestor = gitResult(Seq("merge-base", "--is-ancestor", commit, base))
+    ancestor.exitCode match {
+      case 0 => true
+      case 1 => checkedResult(gitResult(Seq("cherry", base, commit, commit + "^"))).startsWith("- ")
+      case _ => checkedResult(ancestor); false
+    }
+  }
+
+  def branchExists(branch: String): Boolean = {
+    val result = gitResult(Seq("show-ref", "--verify", "--quiet", "refs/heads/" + branch))
+    if (result.exitCode == 1) false
+    else { checkedResult(result); true }
+  }
+
+  def remoteNames(): Seq[String] = checkedResult(gitResult(Seq("remote"))).linesIterator.toSeq
+
+  def fetchRemote(remote: String): Unit = {
+    checkedResult(gitResult(Seq("fetch", remote, "--prune")))
+  }
+
+  def remoteBranchNames(remote: String): Seq[String] = {
+    val prefix = s"refs/remotes/$remote/"
+    checkedResult(gitResult(Seq("for-each-ref", "--format=%(refname)", prefix))).linesIterator
+      .filter(ref => ref.startsWith(prefix) && ref != prefix + "HEAD").map(_.drop(prefix.length)).toSeq
+  }
+
+  def validateBranchName(branch: String): Unit = {
+    checkedResult(gitResult(Seq("check-ref-format", "--branch", branch)))
+  }
+
+  def listWorktrees(): Seq[Sgit.Worktree] = {
+    checkedResult(gitResult(Seq("worktree", "list", "--porcelain"))).split("\n\n").toSeq.map { record =>
+      val fields = record.linesIterator.filter(_.contains(" ")).map { line =>
+        val parts = line.split(" ", 2); parts(0) -> parts(1)
+      }.toMap
+      Sgit.Worktree(new File(fields("worktree")), fields.get("branch"))
+    }
+  }
+
+  def hasPendingCherryPick(checkout: File): Boolean = {
+    val state = java.nio.file.Path.of(checkedResult(gitResult(Seq("rev-parse", "--git-path", "CHERRY_PICK_HEAD"), Some(checkout))))
+    val statePath = if (state.isAbsolute) state else checkout.toPath.resolve(state)
+    java.nio.file.Files.exists(statePath)
+  }
+
+  def hasWorktreeChanges(checkout: File): Boolean =
+    checkedResult(gitResult(Seq("status", "--porcelain"), Some(checkout))).nonEmpty
+
+  def worktreeAddBranch(checkout: File, branch: String, base: String): Unit = {
+    checkedResult(gitResult(Seq("worktree", "add", "-b", branch, checkout.getAbsolutePath, base)))
+  }
+
+  def worktreeRemoveCheckout(checkout: File): Unit = {
+    checkedResult(gitResult(Seq("worktree", "remove", checkout.getAbsolutePath)))
+  }
+
+  def cherryPickWithSource(commit: String, checkout: File): Sgit.CommandResult =
+    gitResult(Seq("cherry-pick", "-x", commit), Some(checkout))
+
+  def diffWhitespaceWarnings(from: String, to: String, checkout: Option[File] = None): Seq[String] = {
+    val result = gitResult(Seq("diff", "--check", from, to), checkout)
+    result.exitCode match {
+      case 0 => Nil
+      case 2 => result.stdout.linesIterator.toSeq
+      case _ => checkedResult(result); Nil
+    }
+  }
+
+  def gitlabMergeRequestPushCommand(remote: String, branch: String, target: String, title: String, description: String): String = {
+    val text = description.replace("\r\n", "\n").replace("\n", "\\n")
+    commandString(Seq(
+        "push",
+        "-u",
+        remote,
+        s"refs/heads/$branch:refs/heads/$branch",
+        "-o",
+        "merge_request.create",
+        "-o",
+        s"merge_request.target=$target",
+        "-o",
+        s"merge_request.title=$title",
+        "-o",
+        s"merge_request.description=$text"
+      ))
+  }
+
+  def conflictResolutionCommands(checkout: File): Seq[String] = Seq(
+    commandString(Seq("add", "--", "<resolved files>"), Some(checkout)),
+    commandString(Seq("cherry-pick", "--continue"), Some(checkout)))
+
+  def listFilesAt(ref: String): Seq[String] =
+    gitNative(Seq("ls-tree", "-r", "--name-only", ref), showErrorsOnStdErr = false).get
+
+  def fileContentAt(ref: String, path: String): String =
+    gitNative(Seq("show", s"$ref:$path"), showErrorsOnStdErr = false).get.mkString("\n")
+
+  private def checkedResult(result: Sgit.CommandResult): String = {
+    if (result.exitCode != 0) throw new IllegalStateException(
+      Seq(result.stderr.trim, result.stdout.trim).filter(_.nonEmpty).mkString("\n") + s" (exit ${result.exitCode})")
+    result.stdout.trim
+  }
+
+  // Render commands for manual execution using the same Git executable as native calls.
+  private def commandString(args: Seq[String], directory: Option[File] = None): String = {
+    val workdir = directory.toSeq.flatMap(path => Seq("-C", path.getAbsolutePath))
+    val command = gitCommand ++ workdir ++ args
+    command.map { arg =>
+      if (arg.nonEmpty && arg.matches("[a-zA-Z0-9_@%+=:,./-]+")) arg
+      else "'" + arg.replace("'", "'\"'\"'") + "'"
+    }.mkString(" ")
+  }
+
+  // Preserve exit codes and multiline messages for commands such as cherry and worktree.
+  private def gitResult(args: Seq[String], directory: Option[File] = None): Sgit.CommandResult = {
+    import scala.sys.process.*
+    val stdout = new StringBuilder
+    val stderr = new StringBuilder
+    val cmd = gitCommand ++ Seq("-C", directory.getOrElse(gitRoot).getAbsolutePath, "--no-pager") ++ args
+    val code = Process(cmd, None, "GIT_TERMINAL_PROMPT" -> "0", "GCM_INTERACTIVE" -> "never").!(ProcessLogger(
+        line => { stdout.append(line).append('\n'); () },
+        line => { stderr.append(line).append('\n'); () }))
+    Sgit.CommandResult(code, stdout.toString, stderr.toString)
+  }
+
+  private def gitNativeOpt(args: Seq[String]): Option[Seq[String]] = {
     try {
       Some(gitNative(args, showErrorsOnStdErr = false).get)
     } catch {
@@ -866,7 +1004,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     }
   }
 
-  private[release] def gitNative(args: Seq[String], showErrorsOnStdErr: Boolean = true, useWorkdir: Boolean = true,
+  private def gitNative(args: Seq[String], showErrorsOnStdErr: Boolean = true, useWorkdir: Boolean = true,
       cmdFilter: String => Boolean = _ => false,
       errMapper: String => Option[String] = errLine => Some(errLine),
       timeout: Option[Duration] = None, onActivity: () => Unit = () => ()): Try[Seq[String]] = {
@@ -878,10 +1016,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     } else {
       Nil
     }
-    val cmd: Seq[String] = checkVersionGitSmd.updateAndGet {
-      case None => Some(selectedGitCmd(err, gitBin).get)
-      case s => s
-    }.get
+    val cmd = gitCommand
     val gitCmdCall: Seq[String] = cmd ++ workdir ++ Seq("--no-pager") ++ args
 
     val ff = Tracer.msgAround[Try[String]](gitCmdCall.mkString(" "), logger,
@@ -891,6 +1026,9 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
 }
 
 object Sgit {
+  case class Worktree(directory: File, branch: Option[String])
+
+  case class CommandResult(exitCode: Int, stdout: String, stderr: String)
 
   lazy val selfFileChecksum: String = {
     val hash = try {
@@ -992,14 +1130,10 @@ object Sgit {
   case class GitTagWithDate(name: String, date: ZonedDateTime)
 
   private var gits = Map.empty[Seq[String], Unit]
-  private val checkVersionGitSmd = new AtomicReference[Option[Seq[String]]](None)
 
   private[release] def checkVersion(sgitVersion: SgitVersion, out: PrintStream, err: PrintStream, gitBin: Option[String]): Unit =
     synchronized {
-      val cmd: Seq[String] = checkVersionGitSmd.updateAndGet {
-        case None => Some(selectedGitCmd(err, gitBin).get)
-        case s => s
-      }.get
+      val cmd = selectedGitCmd(err, gitBin).get
       val cmdLine = cmd.mkString(" ")
       val git = gits.get(cmd)
       if (git.isEmpty) {
@@ -1212,7 +1346,7 @@ object Sgit {
 
   }
 
-  private[release] def native(cmd: Seq[String], errOnStdout: Boolean,
+  private def native(cmd: Seq[String], errOnStdout: Boolean,
       cmdFilter: String => Boolean, err: PrintStream,
       errLineMapper: String => Option[String], timeout: Option[Duration] = None,
       onActivity: () => Unit = () => ()): Try[String] = {

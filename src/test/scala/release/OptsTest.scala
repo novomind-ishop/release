@@ -8,12 +8,65 @@ import java.time.Period
 
 class OptsTest extends AssertionsForJUnit with LazyLogging {
   @Test
+  def backportArguments(): Unit = {
+    val result = Opts.argsAndEnvRead(
+      Seq(
+        "backport",
+        "abc123",
+        "--apply",
+        "--fetch",
+        "--remote",
+        "upstream",
+        "--target",
+        "main",
+        "--target",
+        "release/*",
+        "--branch-prefix",
+        "bp",
+        "--description-file",
+        "mr.txt"
+      ),
+      Opts(),
+      Map.empty
+    )
+    Assert.assertEquals(
+      Some(BackportOpts(commit = Some("abc123"), apply = true, fetch = true,
+          remote = "upstream", targets = Seq("main", "release/*"), branchPrefix = "bp", descriptionFile = Some("mr.txt"))),
+      result.backport
+    )
+    Assert.assertFalse(result.isInteractive)
+    Assert.assertFalse(result.showStartupDone)
+    Assert.assertTrue(Opts.argsRead(Seq("backport", "--help"), Opts()).backport.get.showHelp)
+    Assert.assertEquals(Seq("--target"), Opts.argsRead(Seq("backport", "abc", "--target"), Opts()).backport.get.invalids)
+    Assert.assertEquals(
+      Seq("--unknown", "extra"), Opts.argsRead(Seq("backport", "abc", "--unknown", "extra"), Opts()).backport.get.invalids)
+  }
+
+  @Test
   def suggestSemverIsOptInAndPreservesExplicitIncrement(): Unit = {
     Assert.assertFalse(Opts().suggestSemver)
     assertArgs(
       Opts(suggestSemver = true, isInteractive = false, versionIncrement = Increment.patch),
       Opts.argsAndEnvRead(Seq("--suggest-semver", "-B", "--001"), Opts(), Map.empty)
     )
+  }
+
+  @Test
+  def versionIncrementAliases(): Unit = {
+    Seq(
+      ("--100", "--major", Increment.major),
+      ("--010", "--minor", Increment.minor),
+      ("--001", "--patch", Increment.patch)
+    ).foreach { case (numeric, alias, increment) =>
+      Seq(numeric, alias).foreach { option =>
+        assertArgs(
+          Opts(suggestSemver = true, isInteractive = false, versionIncrement = increment),
+          Opts.argsAndEnvRead(Seq("--suggest-semver", option, "-B"), Opts(), Map.empty)
+        )
+      }
+    }
+    Assert.assertEquals(Increment.minor, Opts.argsRead(Seq("--major", "--010"), Opts()).versionIncrement)
+    Assert.assertEquals(Increment.patch, Opts.argsRead(Seq("--100", "--patch"), Opts()).versionIncrement)
   }
 
   def assertArgs(expected: Opts, current: Opts): Unit = {
