@@ -14,6 +14,8 @@ class OptsTest extends AssertionsForJUnit with LazyLogging {
         "backport",
         "abc123",
         "--apply",
+        "--push",
+        "--auto-merge",
         "--fetch",
         "--remote",
         "upstream",
@@ -30,8 +32,17 @@ class OptsTest extends AssertionsForJUnit with LazyLogging {
       Map.empty
     )
     Assert.assertEquals(
-      Some(BackportOpts(commit = Some("abc123"), apply = true, fetch = true,
-          remote = "upstream", targets = Seq("main", "release/*"), branchPrefix = "bp", descriptionFile = Some("mr.txt"))),
+      Some(BackportOpts(
+          commit = Some("abc123"),
+          apply = true,
+          fetch = true,
+          remote = "upstream",
+          targets = Seq("main", "release/*"),
+          branchPrefix = "bp",
+          descriptionFile = Some("mr.txt"),
+          push = true,
+          autoMerge = true
+        )),
       result.backport
     )
     Assert.assertFalse(result.isInteractive)

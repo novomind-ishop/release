@@ -7,7 +7,8 @@ import scala.util.control.NonFatal
 
 case class BackportOpts(commit: Option[String] = None, apply: Boolean = false, fetch: Boolean = false,
     remote: String = "origin", targets: Seq[String] = Nil, branchPrefix: String = "feature",
-    descriptionFile: Option[String] = None, showHelp: Boolean = false, invalids: Seq[String] = Nil)
+    descriptionFile: Option[String] = None, showHelp: Boolean = false, invalids: Seq[String] = Nil,
+    push: Boolean = false, autoMerge: Boolean = false)
 
 object Backport {
   private case class Plan(target: String, base: String, branch: String, included: Boolean)
@@ -84,6 +85,8 @@ object Backport {
       sys.out.println("Usage: release backport <commit> [OPTION]")
       sys.out.println("Prepare local backport branches and print GitLab MR push commands.")
       sys.out.println("--apply                 Create missing local branches (default: preview)")
+      sys.out.println("--push                  Create missing branches and push GitLab MRs (implies --apply)")
+      sys.out.println("--auto-merge            Add merge_request.auto_merge to printed or executed pushes")
       sys.out.println("--fetch                 Fetch the selected remote with --prune first")
       sys.out.println("--remote name           Remote (default: origin)")
       sys.out.println("--target branch-or-glob Repeatable (default: main, qa/*, release/*)")
@@ -171,23 +174,29 @@ object Backport {
         throw new IllegalStateException("Target branch names produce duplicate merge request branch names.")
       sys.out.println("Remote state: local references" + (if (bp.fetch) " (fetched before planning)" else " (not fetched)"))
       var failed = false
+      val applyBranches = bp.apply || bp.push
       plans.foreach { plan =>
         if (plan.included) sys.out.println(s"INCLUDED ${plan.target}")
         else try {
           val exists = existing(plan, commit)
-          val ready = if (bp.apply && !exists) create(plan, commit) else exists
-          if (bp.apply && !ready) failed = true
+          val ready = if (applyBranches && !exists) create(plan, commit) else exists
+          if (applyBranches && !ready) failed = true
           else {
             sys.out.println(s"${if (ready) "READY" else "MISSING"} ${plan.target} -> ${plan.branch}")
             if (ready) {
-              sys.out.println(git.gitlabMergeRequestPushCommand(bp.remote, plan.branch, plan.target, subject, description))
+              sys.out.println(git.gitlabMergeRequestPushCommand(bp.remote, plan.branch, plan.target, subject, description, bp.autoMerge))
+              if (bp.push) {
+                val output = git.gitlabMergeRequestPush(bp.remote, plan.branch, plan.target, subject, description, bp.autoMerge)
+                if (output.nonEmpty) sys.out.println(output)
+                sys.out.println(s"PUSHED ${plan.target} -> ${plan.branch}")
+              }
             }
           }
         } catch {
           case NonFatal(error) => sys.err.println(s"ERROR ${plan.target}: ${error.getMessage}"); failed = true
         }
       }
-      if (!bp.apply) sys.out.println("Rerun with --apply to create missing branches.")
+      if (!applyBranches) sys.out.println("Rerun with --apply to create missing branches.")
       if (failed) 1 else 0
     } catch {
       case NonFatal(error) => sys.err.println("ERROR: " + error.getMessage); 1

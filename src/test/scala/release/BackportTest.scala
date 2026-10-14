@@ -49,6 +49,78 @@ class BackportTest {
     (code, output.toString("UTF-8"))
   }
 
+  private def pushRemote(repo: Path, reject: Boolean = false): Path = {
+    val remote = repo.resolve("server.git")
+    git(repo, "init", "--bare", remote.toString)
+    git(remote, "config", "receive.advertisePushOptions", "true")
+    val hook = remote.resolve("hooks/pre-receive")
+    Files.writeString(
+      hook,
+      "#!/bin/sh\n" +
+        "i=0\nwhile [ \"$i\" -lt \"$GIT_PUSH_OPTION_COUNT\" ]; do\n" +
+        "  eval \"option=\\$GIT_PUSH_OPTION_$i\"\n" +
+        "  printf '%s\\n' \"$option\" >> \"$GIT_DIR/push-options\"\n" +
+        "  i=$((i + 1))\ndone\n" + (if (reject) "echo 'test rejection' >&2\nexit 1\n" else "exit 0\n")
+    )
+    Assert.assertTrue(hook.toFile.setExecutable(true))
+    git(repo, "remote", "set-url", "origin", remote.toString)
+    remote
+  }
+
+  @Test def pushCreatesBranchesAndSendsMergeRequestOptions(): Unit = withRepo { repo =>
+    val remote = pushRemote(repo)
+    val commit = git(repo, "rev-parse", "HEAD")
+    git(repo, "update-ref", "refs/remotes/origin/main", commit)
+    Files.writeString(repo.resolve("mr.txt"), "Customer's $HOME `id`\nSecond line")
+    val before = git(repo, "status", "--porcelain")
+    Seq(false, true).foreach { autoMerge =>
+      val prefix = if (autoMerge) "auto" else "manual"
+      val result = run(repo,
+        BackportOpts(commit = Some(commit), push = true, autoMerge = autoMerge,
+          branchPrefix = prefix, descriptionFile = Some("mr.txt")))
+      Assert.assertEquals(result._2, 0, result._1)
+      Assert.assertTrue(result._2.contains("INCLUDED main"))
+      Assert.assertEquals(2, result._2.linesIterator.count(_.startsWith("PUSHED ")))
+      Seq("qa/1x", "release/1x").foreach { target =>
+        val branch = s"$prefix/ABC-123-${commit.take(10)}-${target.replace('/', '-')}"
+        Assert.assertEquals(git(repo, "rev-parse", branch), git(remote, "rev-parse", "refs/heads/" + branch))
+        Assert.assertEquals("origin", git(repo, "config", s"branch.$branch.remote"))
+      }
+      val options = Files.readAllLines(remote.resolve("push-options")).asScala.toSeq
+      Assert.assertEquals(2, options.count(_ == "merge_request.create"))
+      Assert.assertTrue(options.contains("merge_request.target=qa/1x"))
+      Assert.assertTrue(options.contains("merge_request.target=release/1x"))
+      Assert.assertTrue(options.contains("merge_request.title=Fix customer's bug"))
+      Assert.assertTrue(options.contains("merge_request.description=Customer's $HOME `id`\\nSecond line"))
+      Assert.assertEquals(if (autoMerge) 2 else 0, options.count(_ == "merge_request.auto_merge"))
+      Files.delete(remote.resolve("push-options"))
+    }
+    Assert.assertEquals("source", git(repo, "branch", "--show-current"))
+    Assert.assertEquals(before, git(repo, "status", "--porcelain"))
+  }
+
+  @Test def autoMergeOnlyModifiesSuggestedPushCommands(): Unit = withRepo { repo =>
+    val remote = pushRemote(repo)
+    val result = run(repo, BackportOpts(commit = Some("HEAD"), apply = true, autoMerge = true))
+    Assert.assertEquals(result._2, 0, result._1)
+    Assert.assertEquals(3,
+      result._2.linesIterator.count(line =>
+        line.startsWith("git push ") &&
+          line.endsWith("-o merge_request.auto_merge")))
+    Assert.assertFalse(Files.exists(remote.resolve("push-options")))
+  }
+
+  @Test def pushFailuresAreReportedAndOtherTargetsAreAttempted(): Unit = withRepo { repo =>
+    val remote = pushRemote(repo, reject = true)
+    val result = run(repo, BackportOpts(commit = Some("HEAD"), push = true))
+    Assert.assertEquals(result._2, 1, result._1)
+    Assert.assertEquals(3, result._2.linesIterator.count(_.startsWith("ERROR ")))
+    Assert.assertTrue(result._2.contains("test rejection"))
+    Assert.assertFalse(result._2.contains("PUSHED "))
+    Assert.assertEquals(3, Files.readAllLines(remote.resolve("push-options")).asScala.count(_ == "merge_request.create"))
+    Assert.assertEquals("", git(remote, "for-each-ref", "refs/heads/"))
+  }
+
   @Test def previewApplyAndRepeatPreserveCheckout(): Unit = withRepo { repo =>
     Files.writeString(repo.resolve("untracked.txt"), "local work")
     val before = git(repo, "status", "--porcelain")
@@ -125,16 +197,20 @@ class BackportTest {
   }
 
   @Test def conflictCanBeResolvedAndResumed(): Unit = withRepo { repo =>
+    val remote = pushRemote(repo)
     val commit = git(repo, "rev-parse", "HEAD")
     git(repo, "checkout", "-b", "conflicting", "HEAD^")
     Files.writeString(repo.resolve("file.txt"), "different\n")
     git(repo, "commit", "-am", "Conflicting change")
     git(repo, "update-ref", "refs/remotes/origin/main", "HEAD")
-    val bp = BackportOpts(commit = Some(commit), apply = true, targets = Seq("main", "release/*"))
+    val bp = BackportOpts(commit = Some(commit), push = true, targets = Seq("main", "release/*"))
     val failed = run(repo, bp)
     Assert.assertEquals(1, failed._1)
     Assert.assertTrue(failed._2.contains("Worktree retained"))
     Assert.assertTrue(failed._2.contains("READY release/1x"))
+    Assert.assertTrue(failed._2.contains("PUSHED release/1x"))
+    Assert.assertFalse(failed._2.contains("PUSHED main"))
+    Assert.assertFalse(git(remote, "for-each-ref", "--format=%(refname)").contains(s"feature/ABC-123-${commit.take(10)}-main"))
     val pending = run(repo, bp)
     Assert.assertTrue(pending._2.contains("Worktree has unresolved conflicts or uncommitted changes"))
     val checkout = git(repo, "worktree", "list", "--porcelain").linesIterator
@@ -145,6 +221,7 @@ class BackportTest {
     val resumed = run(repo, bp)
     Assert.assertEquals(resumed._2, 0, resumed._1)
     Assert.assertTrue(resumed._2.contains("READY main"))
+    Assert.assertTrue(resumed._2.contains("PUSHED main"))
   }
 
   @Test def validatesTargetsCommitsAndBranchCollisions(): Unit = withRepo { repo =>

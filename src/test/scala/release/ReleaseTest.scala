@@ -82,7 +82,8 @@ class ReleaseTest extends AssertionsForJUnit {
     val result = Release.suggestPushCmd(changedVersion = true, sgit,
       Opts(), "main", "new-main",
       () => "peter")
-    Assert.assertEquals("git push origin main:peter-new+main-patch-b269253c;", result)
+    Assert.assertEquals(
+      "git push origin main:peter-new+main-patch-b269253c -o merge_request.create -o merge_request.target=new-main;", result)
   }
 
   @Test

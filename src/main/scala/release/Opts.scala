@@ -173,6 +173,8 @@ object Opts {
       case Nil => inOpt
       case ("--help" | "-h") :: tail => argsBackportRead(tail, next(bp.copy(showHelp = true)))
       case "--apply" :: tail => argsBackportRead(tail, next(bp.copy(apply = true)))
+      case "--push" :: tail => argsBackportRead(tail, next(bp.copy(push = true)))
+      case "--auto-merge" :: tail => argsBackportRead(tail, next(bp.copy(autoMerge = true)))
       case "--fetch" :: tail => argsBackportRead(tail, next(bp.copy(fetch = true)))
       case "--remote" :: value :: tail if !value.startsWith("--") => argsBackportRead(tail, next(bp.copy(remote = value)))
       case "--target" :: value :: tail if !value.startsWith("--") => argsBackportRead(tail, next(bp.copy(targets = bp.targets :+ value)))

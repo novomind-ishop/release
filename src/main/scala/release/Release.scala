@@ -133,13 +133,40 @@ object Release extends LazyLogging {
       if (opts.useGerrit) {
         s"git push origin ${branch}:refs/for/${selectedBranch};"
       } else {
-        val username = Option(uName.apply()).filterNot(_.isBlank).getOrElse("nouser")
-        val id = Starter.signShort(sgit)
         val remoteBranch = suggestRemoteBranchname(Some(selectedBranch), sgit, uName)
-        s"git push origin ${branch}:${remoteBranch};"
+        s"git push origin ${branch}:${remoteBranch} -o merge_request.create -o merge_request.target=${selectedBranch};"
       }
     } else {
       ""
+    }
+  }
+
+  private[release] def publishToGitlab(sys: Term.Sys, sgit: Sgit, opts: Opts, branch: String, selectedBranch: String,
+      changedVersion: Boolean, release: String, isShop: Boolean)(showManual: => Unit): Unit = {
+    if (Term.readFromOneOfYesNo(sys, "Push to GitLab and publish release?", opts) == "y") {
+      try {
+        if (sgit.isNotDetached && changedVersion) {
+          val remoteBranch = suggestRemoteBranchname(Some(selectedBranch), sgit)
+          val output = sgit.gitlabMergeRequestPush("origin", remoteBranch, selectedBranch,
+            sgit.commitSubject(branch), sgit.commitMessageBody(branch).mkString("\n"), sourceBranch = Some(branch))
+          if (output.nonEmpty) sys.err.println(output)
+        }
+        val pushOut = if (isShop) {
+          val releaseBranch = "release/" + Version.removeTrailingSnapshots(release)
+          sgit.pushHeads(srcBranchName = releaseBranch, targetBranchName = releaseBranch)
+        } else {
+          sgit.pushTag(release)
+        }
+        pushOut.foreach(sys.err.println)
+        sys.out.println("done.")
+      } catch {
+        case e: RuntimeException =>
+          sys.err.println("E: Push failed - try manual - " + e.getMessage)
+          logger.trace("push failed", e)
+          showManual
+      }
+    } else {
+      showManual
     }
   }
 
@@ -602,13 +629,7 @@ object Release extends LazyLogging {
         showManual()
       }
     } else {
-      if (newMod.isShop) {
-        sys.err.println("W: No gerrit (shop) -> push is not implemented")
-      } else {
-        sys.err.println("W: No gerrit -> push is not implemented")
-      }
-      showManual()
-
+      publishToGitlab(sys, sgit, opts, branch, selectedBranch, changedVersion, release, newMod.isShop)(showManual())
     }
 
     semverAnalysis.foreach(_.finish(sys.out))

@@ -940,22 +940,33 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
     }
   }
 
-  def gitlabMergeRequestPushCommand(remote: String, branch: String, target: String, title: String, description: String): String = {
+  def gitlabMergeRequestPushCommand(remote: String, branch: String, target: String, title: String, description: String,
+      autoMerge: Boolean = false, sourceBranch: Option[String] = None): String =
+    commandString(gitlabMergeRequestPushArgs(remote, branch, target, title, description, autoMerge, sourceBranch))
+
+  def gitlabMergeRequestPush(remote: String, branch: String, target: String, title: String, description: String,
+      autoMerge: Boolean = false, sourceBranch: Option[String] = None): String = {
+    val result = gitResult(gitlabMergeRequestPushArgs(remote, branch, target, title, description, autoMerge, sourceBranch))
+    checkedResult(result)
+    Seq(result.stdout.trim, result.stderr.trim).filter(_.nonEmpty).mkString("\n")
+  }
+
+  private def gitlabMergeRequestPushArgs(remote: String, branch: String, target: String, title: String, description: String,
+      autoMerge: Boolean, sourceBranch: Option[String]): Seq[String] = {
     val text = description.replace("\r\n", "\n").replace("\n", "\\n")
-    commandString(Seq(
-        "push",
-        "-u",
-        remote,
-        s"refs/heads/$branch:refs/heads/$branch",
-        "-o",
-        "merge_request.create",
-        "-o",
-        s"merge_request.target=$target",
-        "-o",
-        s"merge_request.title=$title",
-        "-o",
-        s"merge_request.description=$text"
-      ))
+    // A separate review branch must not replace the source branch's existing upstream.
+    Seq("push") ++ (if (sourceBranch.isEmpty) Seq("-u") else Nil) ++ Seq(
+      remote,
+      s"refs/heads/${sourceBranch.getOrElse(branch)}:refs/heads/$branch",
+      "-o",
+      "merge_request.create",
+      "-o",
+      s"merge_request.target=$target",
+      "-o",
+      s"merge_request.title=$title",
+      "-o",
+      s"merge_request.description=$text"
+    ) ++ (if (autoMerge) Seq("-o", "merge_request.auto_merge") else Nil)
   }
 
   def conflictResolutionCommands(checkout: File): Seq[String] = Seq(
