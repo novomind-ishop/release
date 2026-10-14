@@ -2,7 +2,7 @@ package release.docker
 
 import com.google.common.base.Strings
 import release.Starter.ExitCode
-import release.{Util, Version}
+import release.{SuggestVersion, Util, Version}
 
 import java.text.Normalizer
 import scala.util.{Failure, Success, Try}
@@ -48,7 +48,8 @@ object SuggestDockerTag {
 
   }
 
-  def suggest(commitRef: String, tagName: String, projectVersion: Option[String], externalTag: String = ""): (String, ExitCode) = {
+  def suggest(commitRef: String, tagName: String, projectVersion: Option[String], externalTag: String = "",
+      branchNames: => Seq[String] = Nil): (String, ExitCode) = {
     if (!Strings.nullToEmpty(externalTag).isBlank) {
       if (masterPattern.matches(externalTag)) {
         (externalTag, 0)
@@ -63,7 +64,29 @@ object SuggestDockerTag {
         throw new IllegalArgumentException(msg)
       }
     } else {
-      suggestInner(commitRef, commitRef, tagName, projectVersion)
+      releaseLineTag(commitRef, tagName, projectVersion, branchNames)
+        .map((_, 0))
+        .getOrElse(suggestInner(commitRef, commitRef, tagName, projectVersion))
+    }
+  }
+
+  private def releaseLineTag(commitRef: String, tagName: String, projectVersion: Option[String],
+      branchNames: => Seq[String]): Option[String] = {
+    val ref = Strings.nullToEmpty(commitRef).trim.stripPrefix("refs/heads/")
+    val isMain = ref == "main" || ref == "qa/main"
+    if (!Strings.nullToEmpty(tagName).isBlank || !(isMain || ref.matches("(?:qa|release)/[0-9]+x"))) {
+      None
+    } else {
+      val version = SuggestVersion.suggest(ref, null, projectVersion, branchNames = if (isMain) branchNames else Nil)._1
+      val lineVersion = "([0-9]+)x(?:-RC)?(?:-SNAPSHOT)?".r
+      val ordinalVersion = "([0-9]+)\\.[0-9]+\\.[0-9]+(?:-RC)?(?:-SNAPSHOT)?".r
+      val major = version match {
+        case lineVersion(number) => Some(number)
+        case ordinalVersion(number) => Some(number)
+        case _ => None
+      }
+      major.map(number => s"${number}x" + (if (ref == "main" || ref.startsWith("release/")) "-RC" else ""))
+        .filter(masterPattern.matches)
     }
   }
 

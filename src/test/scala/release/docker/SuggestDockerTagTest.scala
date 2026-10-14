@@ -10,6 +10,63 @@ import scala.util.Success
 class SuggestDockerTagTest extends AssertionsForJUnit {
 
   @Test
+  def releaseLinesProduceReadableTags(): Unit = {
+    Seq("qa/49x" -> "49x", "release/49x" -> "49x-RC").foreach { case (branch, expected) =>
+      Seq(branch, "refs/heads/" + branch).foreach { ref =>
+        Assert.assertEquals((expected, 0), SuggestDockerTag.suggest(ref, null, Some("99.0.0-SNAPSHOT")))
+      }
+    }
+  }
+
+  @Test
+  def mainBranchesUseNextReleaseLine(): Unit = {
+    val branches = Seq("release/9x", "refs/heads/release/49x", "release/48x", "release/99x-fix")
+    Seq("qa/main" -> "50x", "main" -> "50x-RC").foreach { case (branch, expected) =>
+      Seq(branch, "refs/heads/" + branch).foreach { ref =>
+        Assert.assertEquals((expected, 0), SuggestDockerTag.suggest(ref, null, None, branchNames = branches))
+      }
+    }
+  }
+
+  @Test
+  def qaMainProjectVersionTakesPriorityOverReleaseBranches(): Unit = {
+    Seq("50.0.0-SNAPSHOT", "50x-SNAPSHOT").foreach { version =>
+      Assert.assertEquals(("50x", 0),
+        SuggestDockerTag.suggest("qa/main", null, Some(version),
+          branchNames = Seq("release/45x")))
+    }
+  }
+
+  @Test
+  def mainUsesReleaseBranchesBeforeProjectVersion(): Unit = {
+    Assert.assertEquals(("50x-RC", 0),
+      SuggestDockerTag.suggest("main", null, Some("99.0.0-SNAPSHOT"),
+        branchNames = Seq("release/49x")))
+  }
+
+  @Test
+  def mainWithoutVersionSourceKeepsFallback(): Unit = {
+    Assert.assertEquals(("latest", 0), SuggestDockerTag.suggest("main", null, None))
+    Assert.assertEquals(("latest", 0), SuggestDockerTag.suggest("main", null, Some("50.0.0-SNAPSHOT")))
+    Assert.assertEquals(("qa-main_" + release.Util.hashMurmur3_32_fixed("qa/main") + "_TEMP", 0),
+      SuggestDockerTag.suggest("qa/main", null, None))
+  }
+
+  @Test
+  def explicitTagsTakePriorityOverReleaseLineTags(): Unit = {
+    Assert.assertEquals(("custom", 0),
+      SuggestDockerTag.suggest("main", null, None, "custom",
+        branchNames = throw new AssertionError("branches should not be evaluated")))
+    Assert.assertEquals(("49x", 0), SuggestDockerTag.suggest("qa/49x", "", None))
+    Assert.assertEquals(("latest", 0),
+      SuggestDockerTag.suggest("main", "main", None,
+        branchNames = throw new AssertionError("branches should not be evaluated")))
+    Assert.assertEquals(("50.0.0", 0),
+      SuggestDockerTag.suggest("v50.0.0", "v50.0.0", None,
+        branchNames = Seq("release/49x")))
+  }
+
+  @Test
   def testSuggest_null(): Unit = {
     val tuple = SuggestDockerTag.suggest(null, null, None)
     Assert.assertEquals("latest", tuple._1)

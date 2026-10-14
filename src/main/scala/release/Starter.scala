@@ -499,7 +499,8 @@ object Starter extends LazyLogging {
           tagNames = localGit.toSeq.flatMap(_.listTagsWithDate()).map(_.name)
         )
       } else if (opts.suggestDockerTag) {
-        SuggestDockerTag.suggest(refName, ciTag, selfV, externalTag)
+        SuggestDockerTag.suggest(refName, ciTag, selfV, externalTag,
+          branchNames = localGit.toSeq.flatMap(_.listBranchNamesAll()))
       } else {
         throw new IllegalStateException("should not be possible")
       }
