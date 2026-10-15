@@ -2,7 +2,7 @@ name := "release"
 
 version := "1.0-SNAPSHOT"
 
-scalaVersion := "3.8.4"
+scalaVersion := "3.10.0"
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "--release:21",
   "-feature", "-language:implicitConversions", "-Werror",
@@ -10,13 +10,13 @@ scalacOptions ++= Seq("-unchecked", "-deprecation", "--release:21",
 
 logLevel := Level.Warn
 
-libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.6.3"
+libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.6.5"
 
 libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.9.6"
 
 libraryDependencies += "javax.xml.bind" % "jaxb-api" % "2.3.1"
 
-libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "2.4.0"
+libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "2.5.0"
 
 libraryDependencies += "org.scala-lang.modules" %% "scala-parallel-collections" % "1.2.0"
 
@@ -42,7 +42,7 @@ libraryDependencies += "org.jline" % "jline-terminal" % "4.3.1"
 
 libraryDependencies += "org.jline" % "jline-reader" % "4.3.1"
 
-libraryDependencies += "com.github.siom79.japicmp" % "japicmp" % "0.26.1"
+libraryDependencies += "com.github.siom79.japicmp" % "japicmp" % "0.26.3"
 
 libraryDependencies += "com.typesafe" % "config" % "1.4.9"
 
@@ -59,6 +59,8 @@ libraryDependencies += "com.novocode" % "junit-interface" % "0.11" % "test"
 libraryDependencies += "org.yaml" % "snakeyaml" % "2.7"
 
 assembly / assemblyMergeStrategy := {
+  // Keep Native Image metadata, including reflection registrations for logback.xml.
+  case PathList("META-INF", "native-image", _*) => MergeStrategy.deduplicate
   case PathList("META-INF", "services", _*) => MergeStrategy.first
   case PathList("META-INF", _*) => MergeStrategy.discard
   case PathList("module-info.class") => MergeStrategy.discard
@@ -90,6 +92,16 @@ val java9Options = Seq(
 
 Test / javaOptions ++= java9Options
 run / javaOptions ++= java9Options
+
+val nativeTestClasspath = taskKey[Unit]("Write the Scala test classpath for the native tracing JVM")
+
+nativeTestClasspath := Def.uncached {
+  val converter = fileConverter.value
+  val classpath = (Test / fullClasspath).value
+    .map(entry => converter.toPath(entry.data).toString)
+    .mkString(java.io.File.pathSeparator)
+  IO.write(baseDirectory.value / ".temp" / "native-build" / "test-classpath.txt", classpath)
+}
 
 
 // https://github.com/sbt/sbt-dependency-graph

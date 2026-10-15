@@ -697,13 +697,18 @@ object Starter extends LazyLogging {
   }
 
   def openInDefaultBrowser(url: String): Unit = {
-    try {
-      if (Desktop.isDesktopSupported) {
-        Desktop.getDesktop.browse(new URI(url))
+    // BrowserSupport is initialized at image build time, making this a constant.
+    if (BrowserSupport.inNativeImage) {
+      System.out.println(s"I: Opening a browser is not supported in the native executable. Open manually: $url")
+    } else {
+      try {
+        if (Desktop.isDesktopSupported) {
+          Desktop.getDesktop.browse(new URI(url))
+        }
+      } catch {
+        case uoe: UnsupportedOperationException => System.err.println(uoe.getClass.getName + " " + uoe.getMessage)
+        case e: Exception => e.printStackTrace()
       }
-    } catch {
-      case uoe: UnsupportedOperationException => System.err.println(uoe.getClass.getName + " " + uoe.getMessage)
-      case e: Exception => e.printStackTrace()
     }
   }
 
@@ -760,4 +765,10 @@ object Starter extends LazyLogging {
     System.exit(init(args.toIndexedSeq, Term.Sys.default))
   }
 
+}
+
+/** Initialized at build time by native-build.sh; otherwise initialized on the JVM. */
+private[release] object BrowserSupport {
+  // Stable GraalVM ImageInfo API property; avoids an SDK dependency in the assembly.
+  val inNativeImage: Boolean = System.getProperty("org.graalvm.nativeimage.imagecode") != null
 }

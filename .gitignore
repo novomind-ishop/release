@@ -9,4 +9,5 @@ project/target
 .bsp/
 .attach_*
 .ci-cache/
+.temp/
 
