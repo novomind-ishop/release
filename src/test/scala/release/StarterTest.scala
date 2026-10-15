@@ -204,8 +204,8 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
     Assert.assertTrue(s"found too long lines:\n${result.mkString("\n")}", result.isEmpty)
   }
 
-  def testRepo(originDir: File, workDir: File): File = {
-    val gitOrigin = Sgit.init(originDir, verify = false)
+  def testRepo(originDir: File, workDir: File, initBranchName: String = "master"): File = {
+    val gitOrigin = Sgit.init(originDir, verify = false, initBranchName = initBranchName)
     gitOrigin.configSetLocal("user.email", "you@example.com")
     gitOrigin.configSetLocal("user.name", "Your Name")
     val test = SgitTest.testFile(originDir, "test")
@@ -251,6 +251,100 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
     // THEN
     Assert.assertEquals("Enter branch name where to start from [master]:", result.out)
     Assert.assertEquals("", result.err)
+  }
+
+  @Test
+  def fetchGitAndAskForBranchWithOnlyRemoteBranch(): Unit = {
+    val workDir = testRepo(SgitTest.ensureAbsent("branch-ref-origin"), SgitTest.ensureAbsent("branch-ref-work"), "release/5x")
+    val git = Sgit(file = workDir, doVerify = false, out = System.out, err = System.err, gitBin = None, opts = Opts())
+    git.checkout(git.commitIdHead())
+    git.deleteBranch("release/5x")
+    Assert.assertTrue(git.listBranchesLocal().isEmpty)
+
+    val result = TermTest.withOutErr[(Sgit, String)]()(sys =>
+      Starter.fetchGitAndAskForBranch(sys, noVerify = false, None, workDir,
+        Opts(useJlineInput = false), skipFetch = true, skipAskForBranchFetch = true,
+        envs = Map("CI_COMMIT_BRANCH" -> "release/5x")))
+
+    Assert.assertEquals("origin/release/5x", result.value._2)
+    Assert.assertFalse(result.out, result.out.contains("invalid branchname"))
+    Assert.assertFalse(result.out, result.out.contains("more than one branch found"))
+  }
+
+  @Test
+  def suggestCurrentBranchPrefersGitLabBranch(): Unit = {
+    val git = mock(classOf[Sgit])
+    when(git.commitIdHead()).thenReturn("a" * 40)
+    when(git.listBranchesLocal()).thenReturn(Nil)
+    when(git.listBranchRemoteRaw()).thenReturn(Seq(
+        Sgit.GitShaBranch("a" * 40, "origin/release/5x", () => None),
+        Sgit.GitShaBranch("a" * 40, "origin/main", () => None)))
+    val output = new ByteArrayOutputStream()
+
+    Assert.assertEquals("origin/release/5x",
+      Starter.suggestCurrentBranch(git, new PrintStream(output),
+        Map("CI_COMMIT_BRANCH" -> "release/5x")))
+    Assert.assertEquals("", output.toString)
+  }
+
+  @Test
+  def suggestCurrentBranchDoesNotUseTagNameAsBranch(): Unit = {
+    val git = mock(classOf[Sgit])
+    when(git.commitIdHead()).thenReturn("a" * 40)
+    when(git.listBranchesLocal()).thenReturn(Nil)
+    when(git.listBranchRemoteRaw()).thenReturn(Seq(
+        Sgit.GitShaBranch("a" * 40, "origin/release/5x", () => None),
+        Sgit.GitShaBranch("a" * 40, "origin/main", () => None)))
+    val output = new ByteArrayOutputStream()
+
+    Assert.assertEquals("origin/main",
+      Starter.suggestCurrentBranch(git, new PrintStream(output),
+        Map("CI_COMMIT_REF_NAME" -> "release/5x", "CI_COMMIT_TAG" -> "release/5x")))
+  }
+
+  @Test
+  def suggestCurrentBranchUsesRemoteAtDetachedHead(): Unit = {
+    val git = mock(classOf[Sgit])
+    when(git.commitIdHead()).thenReturn("a" * 40)
+    when(git.listBranchesLocal()).thenReturn(Nil)
+    when(git.listBranchRemoteRaw()).thenReturn(Seq(
+        Sgit.GitShaBranch("a" * 40, "origin/release/5x", () => None),
+        Sgit.GitShaBranch("b" * 40, "origin/main", () => None)))
+    val output = new ByteArrayOutputStream()
+
+    Assert.assertEquals("origin/release/5x", Starter.suggestCurrentBranch(git, new PrintStream(output)))
+    Assert.assertEquals("", output.toString)
+  }
+
+  @Test
+  def suggestCurrentBranchUsesCommitWithoutMatchingBranches(): Unit = {
+    val git = mock(classOf[Sgit])
+    when(git.commitIdHead()).thenReturn("a" * 40)
+    when(git.listBranchesLocal()).thenReturn(Seq(
+        Sgit.GitShaBranch("b" * 40, "refs/heads/main", () => None)))
+    when(git.listBranchRemoteRaw()).thenReturn(Nil)
+    val output = new ByteArrayOutputStream()
+
+    Assert.assertEquals("a" * 40, Starter.suggestCurrentBranch(git, new PrintStream(output)))
+    Assert.assertTrue(output.toString, output.toString.contains("no branch found at HEAD"))
+    Assert.assertFalse(output.toString, output.toString.contains("more than one"))
+  }
+
+  @Test
+  def suggestCurrentBranchChoosesAnExistingLocalBranch(): Unit = {
+    Seq(Seq("feature/test", "release/5x"), Seq("main", "master"), Seq("release/5x")).foreach { names =>
+      val git = mock(classOf[Sgit])
+      when(git.commitIdHead()).thenReturn("a" * 40)
+      when(git.listBranchesLocal()).thenReturn(names.map(name =>
+          Sgit.GitShaBranch("a" * 40, "refs/heads/" + name, () => None)))
+      val output = new ByteArrayOutputStream()
+      val selected = Starter.suggestCurrentBranch(git, new PrintStream(output))
+
+      Assert.assertTrue(selected, names.contains(selected))
+      if (names.contains("main")) Assert.assertEquals("main", selected)
+      Assert.assertEquals(names.size > 1, output.toString.contains("more than one branch found"))
+      verify(git, never()).listBranchRemoteRaw()
+    }
   }
 
   @Test

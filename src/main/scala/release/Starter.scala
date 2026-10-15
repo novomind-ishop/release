@@ -120,9 +120,39 @@ object Starter extends LazyLogging {
     }
   }
 
+  private[release] def suggestCurrentBranch(git: Sgit, out: PrintStream,
+      envs: Map[String, String] = Map.empty): String = {
+    val head = git.commitIdHead()
+    val local = git.listBranchesLocal().filter(_.commitId == head)
+      .map(_.branchName.stripPrefix("refs/heads/")).filterNot(_ == "HEAD").distinct.sorted
+    lazy val remote = {
+      git.listBranchRemoteRaw().filter(_.commitId == head).map(_.branchName).distinct.sorted
+    }
+    val ciBranch = envs.get("CI_COMMIT_BRANCH").map(_.trim).filter(_.nonEmpty)
+      .filter(_ => !envs.get("CI_COMMIT_TAG").exists(_.trim.nonEmpty))
+      .flatMap { branch =>
+        if (local.contains(branch)) Some(branch) else remote.find(_ == "origin/" + branch)
+      }
+
+    ciBranch.getOrElse {
+      val found = if (local.nonEmpty) local else remote
+      if (found.isEmpty) {
+        out.println(s"W: no branch found at HEAD; using commit $head")
+        head
+      } else {
+        val selected = Seq("main", "master", "origin/main", "origin/master").find(found.contains).getOrElse(found.head)
+        if (found.size > 1) {
+          out.println("W: more than one branch found: " + found.mkString(", ") + s"; using \"$selected\"")
+        }
+        selected
+      }
+    }
+  }
+
   def fetchGitAndAskForBranch(sys: Term.Sys, noVerify: Boolean,
       gitBinEnv: Option[String], workDirFile: File, opts: Opts,
-      skipFetch: Boolean, skipAskForBranchFetch: Boolean): (Sgit, String) = {
+      skipFetch: Boolean, skipAskForBranchFetch: Boolean,
+      envs: Map[String, String] = Envs.systemEnvs()): (Sgit, String) = {
     val global = ExecutionContext.global
     val lastFetchActivityNanos = new AtomicLong(System.nanoTime())
 
@@ -147,22 +177,7 @@ object Starter extends LazyLogging {
       }
 
       def suggestCurrentBranch(file: File): String = {
-        val git = workGit(file)
-        val latestCommit = git.commitIdHead()
-        val selectedBraches = git.listBranchesLocal().filter(_.commitId == latestCommit)
-        val found = selectedBraches.map(_.branchName.replaceFirst("refs/heads/", "")).filterNot(_ == "HEAD")
-        if (found.size != 1) {
-          val selected: String = found match {
-            case k if k.contains("main") => "main"
-            case k if k.contains("master") => "master"
-            case _ => "main"
-          }
-          sys.out.println("W: more than one branch found: " + found.mkString(", ") + s"; using \"${selected}\"")
-          selected
-        } else {
-          found.head
-        }
-
+        Starter.suggestCurrentBranch(workGit(file), sys.out, envs)
       }
 
       val branch = if (skipAskForBranchFetch) {
