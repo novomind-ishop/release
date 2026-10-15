@@ -28,6 +28,18 @@ object Starter extends LazyLogging {
 
   case class FutureError(msg: String, e: Exception)
 
+  private[release] def releaseToolHeadStatus(releaseToolDir: File, readGitStatus: => String): String = {
+    val packagedHead = new File(releaseToolDir, "git.HEAD")
+    if (!new File(releaseToolDir, ".git").exists() && packagedHead.isFile) {
+      val head = FileUtils.read(packagedHead).trim
+      require(head.matches("[0-9a-fA-F]{40}|[0-9a-fA-F]{64}"),
+        s"Invalid release tool Git HEAD in ${packagedHead.getAbsolutePath}")
+      head
+    } else {
+      readGitStatus
+    }
+  }
+
   private[release] def suggestionRefs(
       ciRefName: Option[String],
       ciTag: Option[String],
@@ -459,6 +471,7 @@ object Starter extends LazyLogging {
       return Backport.run(workDirFile, sys, gitBinEnv, opts)
     }
     lazy val releaseToolGit = Sgit(file = releaseToolDir, gitBin = gitBinEnv, doVerify = false, out = out, err = err, opts = opts)
+    lazy val releaseToolGitHeadStatus = releaseToolHeadStatus(releaseToolDir, releaseToolGit.headStatusValue())
 
     val updateCmd: String = {
       val updatePath = if (termOs.isCygwin && !termOs.isMinGw) {
@@ -627,11 +640,11 @@ object Starter extends LazyLogging {
         mod.writeTo(workDirFile)
         out.println("I: GroupId and ArtifactId successfully changed. You have local changes")
       } else if (createFeatureBranch) {
-        FeatureBranch.work(workDirFile, sys, git, startBranch, askForRebase, releaseToolGit.headStatusValue(), config, opts)
+        FeatureBranch.work(workDirFile, sys, git, startBranch, askForRebase, releaseToolGitHeadStatus, config, opts)
       } else {
         lazy val repo = opts.newRepo
         Release.work(workDirFile, sys, askForRebase, startBranch,
-          git, termOs, shellWidth, () => releaseToolGit.headStatusValue(), config, repo, opts)
+          git, termOs, shellWidth, () => releaseToolGitHeadStatus, config, repo, opts)
       }
 
       return 0
