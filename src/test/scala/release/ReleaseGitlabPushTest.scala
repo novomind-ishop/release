@@ -1,6 +1,10 @@
 package release
 
+import com.sun.net.httpserver.HttpServer
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
+import java.net.{InetSocketAddress, URLDecoder}
+import java.nio.charset.StandardCharsets.UTF_8
+import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 import java.nio.file.{Files, Path}
 import org.junit.{Assert, Rule, Test}
 import org.junit.rules.TemporaryFolder
@@ -44,13 +48,14 @@ class ReleaseGitlabPushTest {
     test(repo, remote)
   }
 
-  private def publish(repo: Path, isShop: Boolean = false, changedVersion: Boolean = true, answer: String = "y"): String = {
+  private def publish(repo: Path, isShop: Boolean = false, changedVersion: Boolean = true, answer: String = "y",
+      envs: Map[String, String] = Map.empty): String = {
     val output = new ByteArrayOutputStream()
     val sys = new Term.Sys(new ByteArrayInputStream((answer + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8)), output, output)
     val opts = Opts(useJlineInput = false)
     val sgit = Sgit(repo.toFile, doVerify = false, out = sys.out, err = sys.err, gitBin = Some("git"), opts = opts)
     Release.publishToGitlab(sys, sgit, opts, "main", "main", changedVersion,
-      if (isShop) "1.2.3-SNAPSHOT" else "1.2.3", isShop)(sys.out.println("MANUAL"))
+      if (isShop) "1.2.3-SNAPSHOT" else "1.2.3", isShop, envs)(sys.out.println("MANUAL"))
     output.toString("UTF-8")
   }
 
@@ -104,5 +109,127 @@ class ReleaseGitlabPushTest {
     Assert.assertTrue(result, result.contains("MANUAL"))
     Assert.assertFalse(result, result.contains("done."))
     Assert.assertEquals("", git(remote, "for-each-ref", "refs/tags/"))
+  }
+
+  private case class PipelineRequest(method: String, path: String, contentType: String, fields: Map[String, String])
+
+  private def withPipelineApi(status: Int = 201)(test: (Map[String, String], LinkedBlockingQueue[PipelineRequest]) => Unit): Unit = {
+    val requests = new LinkedBlockingQueue[PipelineRequest]()
+    val server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0)
+    server.createContext(
+      "/",
+      exchange => {
+        val body = new String(exchange.getRequestBody.readAllBytes(), UTF_8)
+        val fields = body.split("&").map { pair =>
+          val parts = pair.split("=", 2)
+          URLDecoder.decode(parts(0), UTF_8) -> URLDecoder.decode(parts(1), UTF_8)
+        }.toMap
+        requests.add(PipelineRequest(exchange.getRequestMethod, exchange.getRequestURI.getRawPath,
+            exchange.getRequestHeaders.getFirst("Content-Type"), fields))
+        val response = "{\"message\":\"test-job-token\"}".getBytes(UTF_8)
+        exchange.sendResponseHeaders(status, response.length)
+        exchange.getResponseBody.write(response)
+        exchange.close()
+      }
+    )
+    server.start()
+    val envs = Map("CI_JOB_TOKEN" -> "test-job-token",
+      "CI_API_V4_URL" -> s"http://127.0.0.1:${server.getAddress.getPort}/api/v4/",
+      "CI_PROJECT_ID" -> "42")
+    try test(envs, requests)
+    finally server.stop(0)
+  }
+
+  private def trigger(tag: String, envs: Map[String, String]): String = {
+    val output = new ByteArrayOutputStream()
+    val sys = new Term.Sys(new ByteArrayInputStream(Array.emptyByteArray), output, output)
+    GitlabPipeline.triggerTag(sys, tag, envs)
+    output.toString("UTF-8")
+  }
+
+  @Test def successfulTagPushTriggersPipelineForActualTag(): Unit = withPipelineApi() { (envs, requests) =>
+    withRepo { (repo, remote) =>
+      val result = publish(repo, envs = envs)
+      Assert.assertTrue(result, result.contains("done."))
+      Assert.assertTrue(result, result.contains("GitLab pipeline triggered for tag v1.2.3"))
+      Assert.assertEquals(git(repo, "rev-parse", "v1.2.3"), git(remote, "rev-parse", "refs/tags/v1.2.3"))
+      val request = requests.poll(1, TimeUnit.SECONDS)
+      Assert.assertNotNull(request)
+      Assert.assertEquals("POST", request.method)
+      Assert.assertEquals("/api/v4/projects/42/trigger/pipeline", request.path)
+      Assert.assertTrue(request.contentType, request.contentType.startsWith("application/x-www-form-urlencoded"))
+      Assert.assertEquals(Map("token" -> "test-job-token", "ref" -> "v1.2.3"), request.fields)
+      Assert.assertTrue(requests.isEmpty)
+      Assert.assertFalse(result, result.contains("test-job-token"))
+    }
+  }
+
+  @Test def formEncodingPreservesSpecialCharacters(): Unit = withPipelineApi() { (envs, requests) =>
+    val result = trigger("v1.2.3+build/test", envs.updated("CI_JOB_TOKEN", "token+&=secret"))
+    Assert.assertTrue(result, result.contains("pipeline triggered"))
+    Assert.assertEquals(Map("token" -> "token+&=secret", "ref" -> "v1.2.3+build/test"),
+      requests.poll(1, TimeUnit.SECONDS).fields)
+    Assert.assertFalse(result, result.contains("token+&=secret"))
+  }
+
+  @Test def missingOrBlankVariablesSkipPipelineRequest(): Unit = withPipelineApi() { (envs, requests) =>
+    envs.keys.foreach { key =>
+      Assert.assertEquals("", trigger("v1.2.3", envs - key))
+      Assert.assertEquals("", trigger("v1.2.3", envs.updated(key, "   ")))
+    }
+    Assert.assertTrue(requests.isEmpty)
+  }
+
+  @Test def declinedPushDoesNotTriggerPipeline(): Unit = withPipelineApi() { (envs, requests) =>
+    withRepo { (repo, _) =>
+      val result = publish(repo, answer = "n", envs = envs)
+      Assert.assertTrue(result, result.contains("MANUAL"))
+      Assert.assertTrue(requests.isEmpty)
+    }
+  }
+
+  @Test def failedPushDoesNotTriggerPipeline(): Unit = withPipelineApi() { (envs, requests) =>
+    withRepo { (repo, remote) =>
+      Files.writeString(remote.resolve("hooks/pre-receive"), "#!/bin/sh\necho 'test rejection' >&2\nexit 1\n")
+      val result = publish(repo, envs = envs)
+      Assert.assertTrue(result, result.contains("E: Push failed"))
+      Assert.assertTrue(requests.isEmpty)
+    }
+  }
+
+  @Test def shopBranchPushDoesNotTriggerTagPipeline(): Unit = withPipelineApi() { (envs, requests) =>
+    withRepo { (repo, _) =>
+      val result = publish(repo, isShop = true, changedVersion = false, envs = envs)
+      Assert.assertTrue(result, result.contains("done."))
+      Assert.assertTrue(requests.isEmpty)
+    }
+  }
+
+  @Test def rejectedPipelineRequestKeepsPublishedReleaseAndWarns(): Unit = withPipelineApi(403) { (envs, requests) =>
+    withRepo { (repo, remote) =>
+      val result = publish(repo, envs = envs)
+      Assert.assertTrue(result, result.contains("HTTP 403"))
+      Assert.assertTrue(result, result.contains("start it manually"))
+      Assert.assertTrue(result, result.contains("done."))
+      Assert.assertFalse(result, result.contains("MANUAL"))
+      Assert.assertFalse(result, result.contains("test-job-token"))
+      Assert.assertEquals(git(repo, "rev-parse", "v1.2.3"), git(remote, "rev-parse", "refs/tags/v1.2.3"))
+      Assert.assertEquals(1, requests.size())
+    }
+  }
+
+  @Test def serverFailureIsNotRetried(): Unit = withPipelineApi(503) { (envs, requests) =>
+    val result = trigger("v1.2.3", envs)
+    Assert.assertTrue(result, result.contains("HTTP 503"))
+    Assert.assertEquals(1, requests.size())
+    Assert.assertFalse(result, result.contains("test-job-token"))
+  }
+
+  @Test def invalidApiUrlWarnsWithoutLeakingCredentials(): Unit = {
+    val result = trigger("v1.2.3",
+      Map("CI_JOB_TOKEN" -> "secret-token",
+        "CI_API_V4_URL" -> "invalid URL secret-token", "CI_PROJECT_ID" -> "42"))
+    Assert.assertTrue(result, result.contains("triggering its GitLab pipeline failed"))
+    Assert.assertFalse(result, result.contains("secret-token"))
   }
 }

@@ -142,7 +142,8 @@ object Release extends LazyLogging {
   }
 
   private[release] def publishToGitlab(sys: Term.Sys, sgit: Sgit, opts: Opts, branch: String, selectedBranch: String,
-      changedVersion: Boolean, release: String, isShop: Boolean)(showManual: => Unit): Unit = {
+      changedVersion: Boolean, release: String, isShop: Boolean,
+      envs: Map[String, String] = Envs.systemEnvs())(showManual: => Unit): Unit = {
     if (Term.readFromOneOfYesNo(sys, "Push to GitLab and publish release?", opts) == "y") {
       try {
         if (sgit.isNotDetached && changedVersion) {
@@ -158,6 +159,7 @@ object Release extends LazyLogging {
           sgit.pushTag(release)
         }
         pushOut.foreach(sys.err.println)
+        if (!isShop) GitlabPipeline.triggerTag(sys, "v" + release, envs)
         sys.out.println("done.")
       } catch {
         case e: RuntimeException =>
