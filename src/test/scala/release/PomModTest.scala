@@ -806,6 +806,73 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def suggestedVersionsUpdateExternalParents(): Unit = {
+    Seq("48x-SNAPSHOT", "${parent.version}").foreach { parentVersion =>
+      val scenario = new TemporaryFolder(temp.newFolder())
+      scenario.create()
+      val project = pomTestFile(
+        scenario,
+        document(
+          <project>
+          <modelVersion>4.0.0</modelVersion>
+          <parent>
+            <groupId>org.example.platform</groupId>
+            <artifactId>platform-parent</artifactId>
+            <version>{parentVersion}</version>
+            <relativePath/>
+          </parent>
+          <groupId>org.example</groupId>
+          <artifactId>project</artifactId>
+          <version>1.0.0-SNAPSHOT</version>
+          <packaging>pom</packaging>
+          {
+            if (PomMod.isVariable(parentVersion)) {
+              <properties><parent.version>48x-SNAPSHOT</parent.version></properties>
+            } else scala.xml.NodeSeq.Empty
+          }
+          <modules><module>child</module></modules>
+        </project>
+        )
+      ).sub(
+        "child",
+        document(
+          <project>
+          <modelVersion>4.0.0</modelVersion>
+          <parent>
+            <groupId>org.example</groupId>
+            <artifactId>project</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+          </parent>
+          <artifactId>child</artifactId>
+        </project>
+        )
+      ).create()
+      val mod = withRepoForTests(project, repo)
+      val parent = Gav3("org.example.platform", "platform-parent", "48x-SNAPSHOT")
+      val suggestions = Seq(parent -> "48.13.0")
+
+      Assert.assertTrue(mod.listSnapshotDependenciesDistinct.exists(_.gav().simpleGav() == parent))
+      Assert.assertFalse(mod.hasSuggestedVersionChanges(Seq(parent.copy(version = Some("47x-SNAPSHOT")) -> "47.1.0")))
+      Assert.assertTrue(mod.hasSuggestedVersionChanges(suggestions))
+      mod.applySuggestedVersionChanges(suggestions)
+      mod.writeTo(project)
+
+      val updated = withRepoForTests(project, repo)
+      Assert.assertFalse(updated.hasSuggestedVersionChanges(suggestions))
+      Assert.assertTrue(updated.listSnapshotDependenciesDistinct.isEmpty)
+      val pom = Xpath.documentOfFile(new File(project, "pom.xml"))
+      Assert.assertEquals(if (PomMod.isVariable(parentVersion)) parentVersion else "48.13.0",
+        Xpath.onlyString(pom, "/project/parent/version").get)
+      Assert.assertEquals("1.0.0-SNAPSHOT", Xpath.onlyString(pom, "/project/version").get)
+      if (PomMod.isVariable(parentVersion)) {
+        Assert.assertEquals("48.13.0", Xpath.onlyString(pom, "/project/properties/parent.version").get)
+      }
+      val child = Xpath.documentOfFile(new File(project, "child/pom.xml"))
+      Assert.assertEquals("1.0.0-SNAPSHOT", Xpath.onlyString(child, "/project/parent/version").get)
+    }
+  }
+
+  @Test
   def applySuggestedVersionChangesUpdatesPomAndDependencyTree(): Unit = {
     val propertyRef = "${library.version}"
     val srcPoms = pomTestFile(

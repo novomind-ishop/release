@@ -714,6 +714,41 @@ class ReleaseTest extends AssertionsForJUnit {
   }
 
   @Test
+  def suggestedSnapshotParentVersionsCanBeApplied(): Unit = {
+    val project = PomModTest.pomTestFile(
+      temp,
+      PomModTest.document(
+        <project>
+        <modelVersion>4.0.0</modelVersion>
+        <parent>
+          <groupId>org.example.platform</groupId>
+          <artifactId>platform-parent</artifactId>
+          <version>48x-SNAPSHOT</version>
+          <relativePath/>
+        </parent>
+        <groupId>org.example</groupId>
+        <artifactId>project</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+      </project>
+      )
+    ).create()
+    val mockRepo = Mockito.mock(classOf[Repo])
+    Mockito.when(mockRepo.latestGav("org.example.platform", "platform-parent", "48x-SNAPSHOT"))
+      .thenReturn(Some(Gav3("org.example.platform", "platform-parent", Some("48.13.0"))))
+
+    TermTest.testSys(Seq("y"), "Apply suggested versions to pom.xmls? [y/n]: y", "",
+      outAllFn = _.filter(_.startsWith("Apply suggested versions to pom.xmls?")))(sys => {
+      val opts = Opts(useJlineInput = false)
+      val mod = PomModTest.withRepoForTests(project, mockRepo, opts = opts)
+      val updated = Release.offerAutoFixForReleaseSnapshots(sys, mod, Nil, 72, mockRepo, opts)
+      Assert.assertTrue(updated.listSnapshotDependenciesDistinct.isEmpty)
+      val pom = Xpath.documentOfFile(new File(project, "pom.xml"))
+      Assert.assertEquals("48.13.0", Xpath.onlyString(pom, "/project/parent/version").get)
+      Assert.assertEquals("1.0.0-SNAPSHOT", updated.selfVersion)
+    })
+  }
+
+  @Test
   def suggestedSnapshotVersionsCanBeApplied(): Unit = {
     val propertyRef = "${platform-dependencies.version}"
     val project = PomModTest.pomTestFile(

@@ -346,7 +346,7 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
     val matches = suggestions.distinct.flatMap { case (gav, newVersion) =>
       gav.version.toSeq.filterNot(_ == newVersion).flatMap { oldVersion =>
         raws.flatMap(raw =>
-          PomMod.filterBy(raw.document, gav.groupId, gav.artifactId, None)
+          PomMod.filterBy(raw.document, gav.groupId, gav.artifactId, None, includeParents = true)
             .flatMap(dep => Xpath.toSeqNodes(dep.getChildNodes).find(_.getNodeName == "version"))
             .map(node => (node, oldVersion, newVersion, gav)))
       }
@@ -1298,8 +1298,10 @@ object PomMod {
     gavElements.find(_.getNodeName == key)
   }
 
-  private def filterBy(doc: Document, sGroupId: String, sArtifactId: String, sVersionId: Option[String]): Seq[Node] = {
-    (Xpath.toSeq(doc, "//plugins/plugin") ++ Xpath.toSeq(doc, xPathToDependecies)).filter(node => {
+  private def filterBy(doc: Document, sGroupId: String, sArtifactId: String, sVersionId: Option[String],
+      includeParents: Boolean = false): Seq[Node] = {
+    val parents = if (includeParents) Xpath.toSeq(doc, "/project/parent") else Nil
+    (Xpath.toSeq(doc, "//plugins/plugin") ++ Xpath.toSeq(doc, xPathToDependecies) ++ parents).filter(node => {
 
       val gavElements = Xpath.toSeqNodes(node.getChildNodes)
 
