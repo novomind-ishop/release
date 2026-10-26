@@ -48,6 +48,8 @@ class LintSbtTest extends AssertionsForJUnit {
       """
         |[INFO] --------------------------------[ lint ]--------------------------------
         |[INFO] --- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_WARN_TO_ERROR ---
+        |[INFO]     RELEASE_LINT_SKIP: comma-separated full lint codes, including any hash
+        |[INFO]       Append ~<branch> to a code to skip it only on that exact branch.
         |[INFO]     -Xms: 123m -Xmx: 321m
         |[INFO]     used memory: ∞m
         |[INFO]     no skips

@@ -28,7 +28,7 @@ RUN jlink \
 
 FROM ubuntu:22.04
 
-ARG GIT_VERSION="1:2.55.0-0ppa1~ubuntu22.04.2"
+ARG GIT_VERSION="1:2.56.0-0ppa1~ubuntu22.04.2"
 
 LABEL maintainer="ishop-dev-infra@novomind.com" \
       novomind.deko.color="ec601a" \
@@ -68,7 +68,7 @@ RUN printf '%s\n' \
     && find "$JAVA_HOME/lib" -name '*.so' -exec dirname '{}' ';' \
       | sort -u > /etc/ld.so.conf.d/docker-openjdk.conf \
     && ldconfig \
-    && test "$(git --version)" = "git version 2.55.0" \
+    && test "$(git --version)" = "git version 2.56.0" \
     && curl --version \
     && java --version \
     && git config --global core.autocrlf input \

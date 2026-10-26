@@ -521,6 +521,30 @@ object Lint {
   val fiWarnMuted = "\uD83E\uDD10"
   val fiError = "❌"
 
+  private[lint] def activeSkips(skips: Seq[String], envs: Map[String, String],
+      currentBranch: => Option[String]): Seq[String] = {
+    def env(name: String): Option[String] = envs.get(name).filter(s => s != null && s.nonEmpty)
+
+    lazy val branch = if (env("CI_COMMIT_TAG").isDefined) {
+      None
+    } else if (env("CI_PIPELINE_SOURCE").contains("merge_request_event") || env("CI_MERGE_REQUEST_IID").isDefined) {
+      env("CI_MERGE_REQUEST_SOURCE_BRANCH_NAME")
+    } else {
+      env("CI_MERGE_REQUEST_SOURCE_BRANCH_NAME")
+        .orElse(env("CI_COMMIT_BRANCH"))
+        .orElse(env("CI_COMMIT_REF_NAME"))
+        .orElse(currentBranch.filterNot(_ == "HEAD"))
+    }
+
+    skips.flatMap { skip =>
+      skip.split("~", 2) match {
+        case Array(code) => Some(code)
+        case Array(code, onlyBranch) if code.nonEmpty && onlyBranch.nonEmpty && branch.contains(onlyBranch) => Some(code)
+        case _ => None
+      }
+    }.distinct
+  }
+
   def run(out: PrintStream, err: PrintStream, sysOpts: Opts,
       systemEnvs: Map[String, String],
       file: File = new File(".").getAbsoluteFile,
@@ -563,6 +587,8 @@ object Lint {
         return 1
       } else {
         out.println(info("--- skip-conf / self / env: RELEASE_LINT_SKIP, RELEASE_LINT_WARN_TO_ERROR ---", workOpts))
+        out.println(info("    RELEASE_LINT_SKIP: comma-separated full lint codes, including any hash", workOpts))
+        out.println(info("      Append ~<branch> to a code to skip it only on that exact branch.", workOpts))
         val mem = ManagementFactory.getMemoryMXBean.getHeapMemoryUsage
         val runtime = Runtime.getRuntime
         out.println(info(s"    -Xms: ${Util.byteToMb(mem.getInit)}m -Xmx: ${Util.byteToMb(mem.getMax)}m", workOpts))
@@ -591,7 +617,8 @@ object Lint {
           systemEnvs
         }
 
-        val opts = workOpts // TODO merge early
+        val opts = workOpts.copy(lintOpts = workOpts.lintOpts.copy(
+          skips = activeSkips(workOpts.lintOpts.skips, envs, sgit.currentBranchOpt)))
         out.println(info("--- version / git ---", opts))
         out.println(info(s"    ${fiFine} git  version: " + sgit.version(), opts))
         out.println(info(s"    ${fiFine} self version: " + Sgit.selfFileChecksum, opts))
@@ -1067,7 +1094,7 @@ object Lint {
             }
             out.println(info("--- version skew ---", opts))
             out.println(info(s"    is shop: ${mod.isShop}", opts))
-            usedLintSkips = usedLintSkips ++ VersionSkew.skewResultOf(mod, None, warnExit, errorExit, Some(out), workOpts,
+            usedLintSkips = usedLintSkips ++ VersionSkew.skewResultOf(mod, None, warnExit, errorExit, Some(out), opts,
               skewStyle = envs.get("RELEASE_SKEW_STYLE")).usedLintSkips
 
             out.println(info("--- suggest dependency updates / configurable @ maven ---", opts))

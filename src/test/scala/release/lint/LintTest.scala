@@ -24,6 +24,70 @@ class LintTest extends AssertionsForJUnit {
   def tag(tagName: String, branchName: Option[String] = None) = Some(BranchTagMerge(tagName = Some(tagName), branchName = branchName))
 
   @Test
+  def testBranchSkips(): Unit = {
+    val skips = Seq("RL1001", "RL1013-2801b627~qa/main-test", "RL1002~main", "RL1001~qa/main-test")
+    Assert.assertEquals(Seq("RL1001", "RL1013-2801b627"),
+      Lint.activeSkips(skips, Map.empty, Some("qa/main-test")))
+    Assert.assertEquals(Seq("RL1001", "RL1002"), Lint.activeSkips(skips, Map.empty, Some("main")))
+    Seq("qa/main", "qa/main-test-more", "QA/main-test", "HEAD").foreach { branch =>
+      Assert.assertEquals(Seq("RL1001"), Lint.activeSkips(skips, Map.empty, Some(branch)))
+    }
+    Assert.assertEquals(Seq("RL1001"), Lint.activeSkips(skips, Map.empty, None))
+    Assert.assertEquals(Seq("RL1001"),
+      Lint.activeSkips(Seq("RL1001", "RL1002~", "~main", "RL1002~main~other"), Map.empty, Some("main")))
+  }
+
+  @Test
+  def testBranchSkipsCi(): Unit = {
+    val skips = Seq("RL1001", "RL1013-2801b627~qa/main-test", "RL1002~main")
+    val branchEnv = Map("CI_COMMIT_BRANCH" -> "qa/main-test", "CI_COMMIT_REF_NAME" -> "main")
+    Assert.assertEquals(Seq("RL1001", "RL1013-2801b627"),
+      Lint.activeSkips(skips, branchEnv, Some("main")))
+    Assert.assertEquals(Seq("RL1001", "RL1013-2801b627"),
+      Lint.activeSkips(skips, Map("CI_COMMIT_REF_NAME" -> "qa/main-test"), Some("HEAD")))
+    Assert.assertEquals(Seq("RL1001"),
+      Lint.activeSkips(skips, branchEnv + ("CI_COMMIT_TAG" -> "v1.0"), Some("qa/main-test")))
+    val mergeEnv = Map(
+      "CI_PIPELINE_SOURCE" -> "merge_request_event",
+      "CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" -> "qa/main-test",
+      "CI_MERGE_REQUEST_TARGET_BRANCH_NAME" -> "main",
+      "CI_COMMIT_REF_NAME" -> "refs/merge-requests/1/merge"
+    )
+    Assert.assertEquals(Seq("RL1001", "RL1013-2801b627"),
+      Lint.activeSkips(skips, mergeEnv, Some("HEAD")))
+    Assert.assertEquals(Seq("RL1001"),
+      Lint.activeSkips(skips, mergeEnv - "CI_MERGE_REQUEST_SOURCE_BRANCH_NAME", Some("main")))
+  }
+
+  @Test
+  def testBranchSkipsInLintRun(): Unit = {
+    val folder = temp.newFolder("branch-skips")
+    val git = Sgit.init(folder, SgitTest.hasCommitMsg)
+    git.configSetLocal("user.email", "tstock@novomind.com")
+    git.configSetLocal("user.name", "Thomas Stock")
+    val dockerfile = new java.io.File(folder, "Dockerfile")
+    val from = "FROM example.org/base:1"
+    FileUtils.write(dockerfile, Seq(from))
+    git.add(dockerfile)
+    git.commitAll("add Dockerfile")
+    val code = Lint.fiCodeDockerHost(from)
+    val opts = Opts.envRead(Seq("RELEASE_LINT_SKIP" -> s"$code~qa/main-test"),
+      Opts(colors = false, lintOpts = LintOpts(showTimer = false)))
+
+    Seq("qa/main-test", "main").foreach { branch =>
+      val output = new java.io.ByteArrayOutputStream()
+      val stream = new java.io.PrintStream(output)
+      Lint.run(stream, stream, opts,
+        Map("CI_COMMIT_BRANCH" -> branch, "CI_COMMIT_REF_NAME" -> branch,
+          "RELEASE_LINT_DOCKER_FROM_HOSTS" -> "docker.io"), folder)
+      val text = output.toString("UTF-8")
+      Assert.assertTrue(text, text.contains(s"$from $code"))
+      Assert.assertEquals(text, branch == "qa/main-test", text.contains(s"${Lint.fiWarnMuted} $from $code"))
+      Assert.assertFalse(text, text.contains("found unused skips"))
+    }
+  }
+
+  @Test
   def testIndentMailboxes_0(): Unit = {
     val result = Lint.indentMailboxes(Nil)
     Assert.assertEquals(Nil, result)
