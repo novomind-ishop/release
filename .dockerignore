@@ -3,7 +3,7 @@
 !Dockerfile
 !.dockerignore
 !release
-!release.jar
 !target/
 target/*
 !target/git.HEAD
+!target/release.jar

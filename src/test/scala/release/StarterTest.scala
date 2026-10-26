@@ -91,6 +91,7 @@ class StarterTest extends AssertionsForJUnit with LazyLogging {
       |
       |Possible options:
       |--help, -h            => shows this and exits
+      |--build-commit        => prints the Git commit embedded in this JAR and exits
       |--gerrit              => enable Gerrit integration (off by default)
       |--no-gerrit           => disable Gerrit integration
       |--non-interactive, -B => Batch mode, suppresses startup messages

@@ -77,6 +77,18 @@ assembly / mainClass := Some("release.Starter")
 
 assembly / assemblyJarName := "../../../../release.jar"
 
+val writeGitHead = taskKey[String]("Write the current checkout commit for the Docker image")
+
+writeGitHead := Def.uncached {
+  val head = scala.sys.process.Process(Seq("git", "rev-parse", "--verify", "HEAD"), baseDirectory.value).!!.trim
+  IO.write(baseDirectory.value / "target" / "git.HEAD", head + "\n")
+  head
+}
+
+assembly := assembly.dependsOn(writeGitHead).value
+
+assembly / packageOptions += Package.ManifestAttributes("Git-Commit" -> writeGitHead.value)
+
 publish / skip := true
 
 val java9Options = Seq(

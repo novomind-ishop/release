@@ -75,8 +75,17 @@ RUN printf '%s\n' \
     && git config --global --add safe.directory "*"
 
 COPY --chmod=755 release /root/release
-COPY release.jar /root/release.jar
+COPY target/release.jar /root/release.jar
 COPY target/git.HEAD /root/git.HEAD
+RUN set -eu; \
+    embedded_commit="$(java -jar /root/release.jar --build-commit)" \
+      || { echo "ERROR: cannot read Git commit from release.jar; rebuild with sbt assembly" >&2; exit 1; }; \
+    expected_commit="$(cat /root/git.HEAD)"; \
+    if [ "$embedded_commit" != "$expected_commit" ]; then \
+      printf 'ERROR: Git commit mismatch: target/git.HEAD=<%s>, release.jar=<%s>; rebuild with sbt assembly\n' \
+        "$expected_commit" "$embedded_commit" >&2; \
+      exit 1; \
+    fi
 RUN /root/release --help && /root/release --check-git
 
 ENTRYPOINT ["/__cacert_entrypoint.sh"]

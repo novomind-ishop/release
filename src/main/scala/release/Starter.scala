@@ -18,10 +18,11 @@ import java.io.{File, PrintStream}
 import java.net.URI
 import java.util.concurrent.{TimeUnit, TimeoutException}
 import java.util.concurrent.atomic.AtomicLong
+import java.util.jar.JarFile
 import scala.annotation.tailrec
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
-import scala.util.Try
+import scala.util.{Try, Using}
 import scala.util.matching.Regex
 
 object Starter extends LazyLogging {
@@ -348,10 +349,26 @@ object Starter extends LazyLogging {
 
   type ExitCode = Int
 
+  private[release] def buildCommit(file: File): Option[String] = {
+    Using(new JarFile(file)) { jar =>
+      Option(jar.getManifest)
+        .flatMap(manifest => Option(manifest.getMainAttributes.getValue("Git-Commit")))
+        .filter(_.matches("[0-9a-f]{40}|[0-9a-f]{64}"))
+    }.toOption.flatten
+  }
+
   def init(argSeq: Seq[String], sys: Term.Sys): ExitCode = {
 
     val err = sys.err
     val out = sys.out
+    if (argSeq == Seq("--build-commit") || argSeq.drop(7) == Seq("--build-commit")) {
+      val commit = Try(new File(Starter.getClass.getProtectionDomain.getCodeSource.getLocation.toURI))
+        .toOption.flatMap(buildCommit)
+      commit match {
+        case Some(head) => out.println(head); return 0
+        case None => err.println("E: Missing or invalid Git-Commit in this JAR; rebuild with sbt assembly"); return 1
+      }
+    }
     if (argSeq.size <= 4) {
       err.println("usage: $0 \"$(dirname $0)\" \"$(pwd)\" \"${os}\" \"${TERM}\" \"${terminal_cols}\" \"${HOME}\" ${argLine}")
       return 1
@@ -396,6 +413,7 @@ object Starter extends LazyLogging {
       out.println()
       out.println("Possible options:")
       out.println("--help, -h            => shows this and exits")
+      out.println("--build-commit        => prints the Git commit embedded in this JAR and exits")
       out.println("--gerrit              => enable Gerrit integration (off by default)")
       out.println("--no-gerrit           => disable Gerrit integration")
       out.println("--non-interactive, -B => Batch mode, suppresses startup messages")
