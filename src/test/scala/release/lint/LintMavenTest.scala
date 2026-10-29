@@ -41,6 +41,50 @@ class LintMavenTest extends AssertionsForJUnit {
   def replaceVarLiterals(in: String): String = LintMavenTest.replaceVarLiterals(in)
 
   @Test
+  def testMavenConfigSnapshotsStaySoftInTags(): Unit = {
+    val file = temp.newFolder("release-lint-maven-config")
+    val git = Sgit.init(file, SgitTest.hasCommitMsg)
+    git.configSetLocal("user.email", "you@example.com")
+    git.configSetLocal("user.name", "Your Name")
+    val config = new File(file, ".mvn/maven.config")
+    config.getParentFile.mkdir()
+    FileUtils.write(config, "-Drevision=1.0-SNAPSHOT\n")
+    git.add(config)
+    git.commitAll("add Maven config")
+    val opts = Opts.envRead(Seq("RELEASE_LINT_WARN_TO_ERROR" -> "true"),
+      Opts(colors = false, lintOpts = LintOpts(showTimer = false)))
+
+    Seq(false, true).foreach { withOtherSnapshot =>
+      if (withOtherSnapshot) {
+        val notes = new File(file, "notes.md")
+        FileUtils.write(notes, "Release 1.0-SNAPSHOT\n")
+        git.add(notes)
+        git.commitAll("add release notes")
+      }
+      val tagName = if (withOtherSnapshot) "1.0.1" else "1.0.0"
+      git.doTag(tagName)
+      git.checkout("v" + tagName)
+      val output = new ByteArrayOutputStream()
+      val stream = new PrintStream(output)
+      Lint.run(
+        stream,
+        stream,
+        opts,
+        Map("CI_COMMIT_TAG" -> ("v" + tagName), "CI_COMMIT_REF_NAME" -> ("v" + tagName)),
+        file,
+        mockMod = Some(Failure(new RuntimeException("stop after snapshot check")))
+      )
+      val text = output.toString("UTF-8")
+      Assert.assertTrue(text, text.contains("[warning]   found snapshot in: .mvn/maven.config line: 1"))
+      Assert.assertEquals(text, !withOtherSnapshot, text.contains("[warning]   found snapshots:"))
+      Assert.assertEquals(text, withOtherSnapshot, text.contains("[ERROR]   found snapshots:"))
+      if (withOtherSnapshot) {
+        Assert.assertTrue(text, text.contains("[WARNING]   found snapshot in: notes.md line: 1"))
+      }
+    }
+  }
+
+  @Test
   def lintResolvesRevisionFromSuggestedVersion(): Unit = {
     val file = temp.newFolder("release-lint-revision")
     val git = Sgit.init(file, SgitTest.hasCommitMsg)

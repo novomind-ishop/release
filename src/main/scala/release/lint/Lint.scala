@@ -897,6 +897,7 @@ object Lint {
               .map(t => (t._1, t._2, file.toPath.relativize(t._3.normalize())))
             val code1 = fiCodeSnapshotText(relFiles)
             var allCodes = Seq.empty[String]
+            var hasHardSnapshots = false
             if (!opts.lintOpts.skips.contains(code1)) {
               relFiles
                 .filterNot(f => {
@@ -913,7 +914,8 @@ object Lint {
                   val snapMsg = "  found snapshot in: " + f._3 + s" line: ${f._1}" +
                     s" ${fiWarn} ${fiCodeSnapshotText((f._1, f._2, f._3.getFileName))}\n" +
                     "              " + f._2
-                  if (isGitOrCiTag) {
+                  if (isGitOrCiTag && f._3 != file.toPath.getFileSystem.getPath(".mvn", "maven.config")) {
+                    hasHardSnapshots = true
                     out.println(warn(snapMsg, opts, limit = lineMax))
                     warnExit.trigger()
                   } else {
@@ -921,7 +923,7 @@ object Lint {
                   }
                 })
               val snapshotSumMsg = s"  found snapshots: ${fiWarn} $code1 -- ${allCodes.sorted.mkString(", ")}"
-              if (isGitOrCiTag) {
+              if (hasHardSnapshots) {
                 if (sysOpts.lintOpts.warningsToErrorsTag) {
                   out.println(error(snapshotSumMsg, opts, limit = lineMax))
                   errorExit.trigger()
