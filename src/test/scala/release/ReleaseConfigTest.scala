@@ -40,6 +40,31 @@ class ReleaseConfigTest extends AssertionsForJUnit {
   }
 
   @Test
+  def testPartialConfigUsesDefaults(): Unit = {
+    val result = new ReleaseConfig(ReleaseConfig.parseConfig(
+        """ishop-release.branch.prefix=ishop-branch
+        |ishop-release.release.prefix=ishop-release""".stripMargin))
+
+    Assert.assertEquals("ishop-branch", result.branchPrefix())
+    Assert.assertEquals("ishop-release", result.releasPrefix())
+    Assert.assertEquals(Repo.centralUrl, result.mirrorNexusUrl())
+    Assert.assertEquals(Repo.centralUrl, result.workNexusUrl(Map.empty))
+  }
+
+  @Test
+  def testConfiguredNexusOverridesDefaults(): Unit = {
+    val result = new ReleaseConfig(Map(
+        "ishop-release.nexus.mirror.url" -> "https://mirror.example.org/",
+        "ishop-release.nexus.work.url" -> "https://work.example.org/"))
+
+    Assert.assertEquals("https://mirror.example.org/", result.mirrorNexusUrl())
+    Assert.assertEquals("https://work.example.org/", result.workNexusUrl(Map.empty))
+    Assert.assertEquals("https://env.example.org/",
+      result.workNexusUrl(
+        Map("RELEASE_NEXUS_WORK_URL" -> "https://env.example.org/")))
+  }
+
+  @Test
   def testParseSettings2(): Unit = {
     val content =
       """

@@ -15,7 +15,9 @@ import java.net.URI
 import java.util.regex.{Matcher, Pattern}
 import scala.io.Source
 
-sealed class ReleaseConfig(map: Map[String, String]) {
+sealed class ReleaseConfig(overrides: Map[String, String]) {
+
+  private val map = ReleaseConfig.defaults ++ overrides
 
   def workNexusUrl(envs: Map[String, String]): String = {
     ReleaseConfig.releaseNexusEnv(envs)
