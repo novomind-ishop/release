@@ -6,7 +6,7 @@ import release.Sgit.{GitRemote, GitTagWithDate, MissingGitDirException}
 import release.SgitTest.hasCommitMsg
 import release.Starter.PreconditionsException
 
-import java.io.File
+import java.io.{ByteArrayOutputStream, File, PrintStream}
 import java.nio.file.{Files, StandardCopyOption}
 import java.time.ZonedDateTime
 import java.util.concurrent.{TimeUnit, TimeoutException}
@@ -14,6 +14,51 @@ import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.duration.Duration
 
 class SgitTest extends AssertionsForJUnit {
+
+  private def withPushResult(exitCode: Int)(test: (Sgit, ByteArrayOutputStream) => Unit): Unit = {
+    val errors = new ByteArrayOutputStream()
+    val err = new PrintStream(errors)
+    try {
+      val git = new Sgit(new File("."), doVerify = false, out = System.out, err = err,
+        checkExisting = false, gitBin = None, opts = Opts()) {
+        override private[release] def gitResult(args: Seq[String], directory: Option[File]): Sgit.CommandResult = {
+          Assert.assertEquals(Seq("push", "-q", "-u", "origin", "v1.10.28"), args)
+          Assert.assertEquals(None, directory)
+          Sgit.CommandResult(
+            exitCode,
+            "push output\n",
+            Seq(
+              "remote: TAG SUCCESS refs/tags/v1.10.28        ",
+              "remote:        ",
+              "remote:   https://example.org/release\t  "
+            ).mkString("\n") + "\n"
+          )
+        }
+      }
+      test(git, errors)
+    } finally {
+      err.close()
+    }
+  }
+
+  @Test
+  def returnsRemoteMessagesWithoutErrorWrappingOrTrailingWhitespace(): Unit = withPushResult(0) { (git, errors) =>
+    Assert.assertEquals(Seq(
+        "push output",
+        "remote: TAG SUCCESS refs/tags/v1.10.28",
+        "remote:",
+        "remote:   https://example.org/release"
+      ), git.pushTag("1.10.28"))
+    Assert.assertEquals("Output should be returned for the caller to print once", "", errors.toString)
+  }
+
+  @Test
+  def rejectsFailedPushEvenWhenRemoteReportsSuccess(): Unit = withPushResult(1) { (git, _) =>
+    val failure = Assert.assertThrows(classOf[IllegalStateException], () => { git.pushTag("1.10.28"); () })
+    Assert.assertTrue(failure.getMessage, failure.getMessage.contains("remote: TAG SUCCESS refs/tags/v1.10.28"))
+    Assert.assertTrue(failure.getMessage, failure.getMessage.contains("push output"))
+    Assert.assertTrue(failure.getMessage, failure.getMessage.endsWith("(exit 1)"))
+  }
 
   private def fetchDelayCommand(args: String*): Seq[String] = {
     val javaName = if (System.getProperty("os.name").toLowerCase.contains("win")) "java.exe" else "java"

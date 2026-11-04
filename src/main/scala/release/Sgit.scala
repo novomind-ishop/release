@@ -816,7 +816,10 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   }
 
   def pushTag(tagName: String): Seq[String] = {
-    pushInnerRaw(checkedTagName(tagName))
+    val args = Seq("push", "-q", "-u", "origin", checkedTagName(tagName))
+    val result = gitResult(args)
+    checkedResult(result)
+    Seq(result.stdout, result.stderr).flatMap(_.linesIterator).map(_.stripTrailing())
   }
 
   def pushHeads(srcBranchName: String, targetBranchName: String): Seq[String] = {
@@ -996,7 +999,7 @@ case class Sgit(file: File, doVerify: Boolean, out: PrintStream, err: PrintStrea
   }
 
   // Preserve exit codes and multiline messages for commands such as cherry and worktree.
-  private def gitResult(args: Seq[String], directory: Option[File] = None): Sgit.CommandResult = {
+  private[release] def gitResult(args: Seq[String], directory: Option[File] = None): Sgit.CommandResult = {
     import scala.sys.process.*
     val stdout = new StringBuilder
     val stderr = new StringBuilder
