@@ -53,10 +53,12 @@ for VERSION in "${VERSIONS[@]}"; do
   # Show affected commits
   echo ""
   echo "⚠️ Commits that will be removed:"
-  git log origin/$SOURCE_BRANCH..origin/$TARGET_BRANCH \
-      | { grep -oP "(?<=Task: ).*" || true; } \
-      | sort -u \
-      | paste -sd ','
+
+  log-branch-changes "$SOURCE_BRANCH" "$TARGET_BRANCH"
+  # git log --cherry-pick --right-only --no-merges origin/$SOURCE_BRANCH..origin/$TARGET_BRANCH \
+  #    | { grep -oP "(?<=Task: ).*" || true; } \
+  #    | sort -u \
+  #    | paste -sd ','
 
   echo ""
   read -p "Reset qa/$VERSION? This will backup then force-push. (y/n): " confirm

@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# This is the source branch
+base="origin/$1"
+
+# This is the target branch
+head="origin/$2"
+
+# Temporary index loaded with release's tree (doesn't touch your working dir)
+tmp_index=$(mktemp)
+GIT_INDEX_FILE=$tmp_index git read-tree "$base"
+
+git rev-list --reverse --cherry-pick --right-only --no-merges "$base...$head" |
+while read -r c; do
+  # 1. Cherry-picked with -x? (release commit references this sha)
+  if [ -n "$(git log "$base" --fixed-strings --grep="cherry picked from commit $c" --format=%h -1)" ]; then
+    continue
+  fi
+
+  # 2. Content already in release? (reverse-applying the diff succeeds)
+  if git show --binary --format= "$c" |
+     GIT_INDEX_FILE=$tmp_index git apply --cached --reverse --check 2>/dev/null; then
+    continue
+  fi
+
+  # Print the full message so "Task:" lines in the body are included
+  git log -1 --format=%B "$c"
+done |
+{ grep -oP "(?<=Task: ).*" || true; } | sort -u | paste -sd ','
+
+rm -f "$tmp_index"
