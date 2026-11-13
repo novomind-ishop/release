@@ -996,6 +996,165 @@ class PomModTest extends AssertionsForJUnit {
   }
 
   @Test
+  def suggestedVersionsDoNotChangeOwnModulesInDependencyTrees(): Unit = {
+    val propertyRef = "${platform-dependencies.version}"
+    val current = """com.example.app:application:war:48x-SNAPSHOT
+      |+- com.example.app:application:jar:sources:48x-SNAPSHOT:compile
+      |+- com.example:library:jar:48x-SNAPSHOT:compile
+      ||  +- com.example:library-internal:jar:48x-SNAPSHOT:compile
+      |+- com.example.health:library-health:jar:48x-SNAPSHOT:compile
+      |""".stripMargin
+    val expected = """com.example.app:application:war:48.13.4
+      |+- com.example.app:application:jar:sources:48.13.4:compile
+      |+- com.example:library:jar:48.13.0:compile
+      ||  +- com.example:library-internal:jar:48.13.0:compile
+      |+- com.example.health:library-health:jar:48.13.0:compile
+      |""".stripMargin
+    val srcPoms = pomTestFile(
+      temp,
+      document(
+        <project>
+        <modelVersion>4.0.0</modelVersion>
+        <groupId>com.example.app</groupId>
+        <artifactId>application</artifactId>
+        <version>48x-SNAPSHOT</version>
+        <packaging>war</packaging>
+        <properties><platform-dependencies.version>48x-SNAPSHOT</platform-dependencies.version></properties>
+        <dependencies>
+          <dependency>
+            <groupId>com.example</groupId><artifactId>library</artifactId>
+            <version>{propertyRef}</version>
+          </dependency>
+        </dependencies>
+        <build><plugins><plugin>
+          <groupId>org.apache.maven.plugins</groupId><artifactId>maven-dependency-plugin</artifactId>
+          <version>3.0.0</version>
+          <executions><execution><goals><goal>tree</goal></goals>
+            <configuration><outputFile>dep.tree</outputFile></configuration>
+          </execution></executions>
+        </plugin></plugins></build>
+      </project>
+      ),
+      current
+    ).create()
+    val mod = withRepoForTests(srcPoms, repo)
+
+    mod.applySuggestedVersionChanges(Seq(
+        Gav3("com.example", "library", "48x-SNAPSHOT") -> "48.13.0"))
+    mod.changeVersion("48.13.4")
+    mod.writeTo(srcPoms)
+
+    Assert.assertEquals(expected, FileUtils.read(new File(srcPoms, "dep.tree")))
+    val pom = Xpath.documentOfFile(new File(srcPoms, "pom.xml"))
+    Assert.assertEquals("48.13.4", Xpath.onlyString(pom, "/project/version").get)
+    Assert.assertEquals("48.13.0", Xpath.onlyString(pom, "/project/properties/platform-dependencies.version").get)
+  }
+
+  @Test
+  def suggestedVersionsDoNotChangeOwnModulesInMultiModuleDependencyTrees(): Unit = {
+    val revisionRef = "${revision}"
+    def plugin = <build><plugins><plugin>
+          <groupId>org.apache.maven.plugins</groupId><artifactId>maven-dependency-plugin</artifactId>
+          <version>3.0.0</version>
+          <executions><execution><goals><goal>tree</goal></goals>
+            <configuration><outputFile>dep.tree</outputFile></configuration>
+          </execution></executions>
+        </plugin></plugins></build>
+    val rootTree = """com.example.app:application:pom:48x-SNAPSHOT
+      |+- com.example:library:jar:48x-SNAPSHOT:compile
+      |""".stripMargin
+    val webTree = """com.example.app:application-web:jar:48x-SNAPSHOT
+      |+- com.example.app:application-api:zip:48x-SNAPSHOT:provided
+      |+- com.example:library:jar:48x-SNAPSHOT:compile
+      ||  +- com.example.health:library-health:jar:48x-SNAPSHOT:compile
+      |""".stripMargin
+    val srcPoms = pomTestFile(
+      temp,
+      document(
+        <project>
+        <modelVersion>4.0.0</modelVersion>
+        <groupId>com.example.app</groupId>
+        <artifactId>application</artifactId>
+        <version>{revisionRef}</version>
+        <packaging>pom</packaging>
+        <modules><module>api</module><module>web</module></modules>
+        <properties><revision>48x-SNAPSHOT</revision></properties>
+        <dependencies>
+          <dependency>
+            <groupId>com.example</groupId><artifactId>library</artifactId>
+            <version>{revisionRef}</version>
+          </dependency>
+        </dependencies>
+        {plugin}
+      </project>
+      ),
+      rootTree
+    ).sub(
+      "api",
+      document(
+        <project>
+        <modelVersion>4.0.0</modelVersion>
+        <parent>
+          <groupId>com.example.app</groupId><artifactId>application</artifactId>
+          <version>{revisionRef}</version>
+        </parent>
+        <artifactId>application-api</artifactId>
+      </project>
+      )
+    ).sub(
+      "web",
+      document(
+        <project>
+        <modelVersion>4.0.0</modelVersion>
+        <parent>
+          <groupId>com.example.app</groupId><artifactId>application</artifactId>
+          <version>{revisionRef}</version>
+        </parent>
+        <artifactId>application-web</artifactId>
+        <dependencies>
+          <dependency>
+            <groupId>com.example.app</groupId><artifactId>application-api</artifactId>
+            <version>48x-SNAPSHOT</version><type>zip</type><scope>provided</scope>
+          </dependency>
+          <dependency>
+            <groupId>com.example</groupId><artifactId>library</artifactId>
+            <version>48x-SNAPSHOT</version>
+          </dependency>
+        </dependencies>
+      </project>
+      ),
+      webTree
+    ).create()
+    val suggestions = Seq(
+      Gav3("com.example", "library", "48x-SNAPSHOT") -> "48.13.0",
+      // own module referenced with a scope/type that is not filtered as a self dependency
+      Gav3("com.example.app", "application-api", "48x-SNAPSHOT") -> "48.13.3")
+    val mod = withRepoForTests(srcPoms, repo)
+    mod.applySuggestedVersionChanges(suggestions)
+    mod.writeTo(srcPoms)
+
+    // the release re-reads the project after applying suggestions
+    val reread = withRepoForTests(srcPoms, repo)
+    Assert.assertEquals("48x-SNAPSHOT", reread.selfVersionReplaced)
+    reread.changeVersion("48.13.4")
+    reread.writeTo(srcPoms)
+
+    Assert.assertEquals(
+      """com.example.app:application:pom:48.13.4
+        |+- com.example:library:jar:48.13.0:compile
+        |""".stripMargin, FileUtils.read(new File(srcPoms, "dep.tree")))
+    Assert.assertEquals(
+      """com.example.app:application-web:jar:48.13.4
+        |+- com.example.app:application-api:zip:48.13.4:provided
+        |+- com.example:library:jar:48.13.0:compile
+        ||  +- com.example.health:library-health:jar:48.13.0:compile
+        |""".stripMargin, FileUtils.read(new File(srcPoms, "web/dep.tree")))
+    val web = FileUtils.read(new File(srcPoms, "web/pom.xml"))
+    Assert.assertTrue(web, web.contains("<version>48.13.0</version>"))
+    Assert.assertFalse(web, web.contains("48.13.3"))
+  }
+
+  @Test
   def suggestedVersionChangesIgnoreUnmatchedVersions(): Unit = {
     val srcPoms = pomTestFile(
       temp,

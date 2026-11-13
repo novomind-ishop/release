@@ -342,12 +342,17 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
     println("HINT: create trees manually")
   }
 
+  private lazy val selfGas: Set[(String, String)] = selfDepsMod.map(dep => (dep.groupId, dep.artifactId)).toSet
+
   private def suggestedVersionChanges(suggestions: Seq[(Gav3, String)]): (Map[String, String], Map[Node, String], Seq[(Gav3, String)]) = {
-    val matches = suggestions.distinct.flatMap { case (gav, newVersion) =>
+    // The modules of this project and its version property are changed by changeVersion only;
+    // a suggested dependency version must never move them.
+    val matches = suggestions.distinct.filterNot(s => selfGas.contains((s._1.groupId, s._1.artifactId))).flatMap { case (gav, newVersion) =>
       gav.version.toSeq.filterNot(_ == newVersion).flatMap { oldVersion =>
         raws.flatMap(raw =>
           PomMod.filterBy(raw.document, gav.groupId, gav.artifactId, None, includeParents = true)
             .flatMap(dep => Xpath.toSeqNodes(dep.getChildNodes).find(_.getNodeName == "version"))
+            .filterNot(node => PomMod.singlePropertyName(node.getTextContent).exists(projectVersionPropertyNames.contains))
             .map(node => (node, oldVersion, newVersion, gav)))
       }
     }
@@ -386,7 +391,7 @@ case class PomMod(file: File, repoZ: RepoZ, opts: Opts,
     properties.foreach { case (name, version) => PomMod.applyPropertyValue(raws, name, version) }
     literals.foreach { case (node, version) => node.setTextContent(version) }
     val changes = treeChanges.filter { case (gav, version) => gav.version.exists(_ != version) }
-    changeDepTreesVersions(PomMod.expandDepTreeVersionChanges(changes, depTreeFileContents.values.toSeq))
+    changeDepTreesVersions(PomMod.expandDepTreeVersionChanges(changes, depTreeFileContents.values.toSeq, selfGas))
   }
 
   def changeVersion(newVersion: String): Unit = {
@@ -835,19 +840,21 @@ object PomMod {
 
   private val duplicateSnapshotPattern = Pattern.compile("-SNAPSHOT-SNAPSHOT")
 
-  private[release] def expandDepTreeVersionChanges(changes: Seq[(Gav3, String)], trees: Seq[DepTree]): Seq[(Gav3, String)] = {
+  private[release] def expandDepTreeVersionChanges(changes: Seq[(Gav3, String)], trees: Seq[DepTree],
+      selfGas: Set[(String, String)] = Set.empty): Seq[(Gav3, String)] = {
     val explicitGavs = changes.map(_._1).toSet
-    val inferred = trees.flatMap(DepTree.parseGavsOnly).distinct.filterNot(explicitGavs.contains).flatMap { gav =>
-      val targets = changes.collect {
-        case (source, version)
-            if source.version == gav.version &&
-              (gav.groupId == source.groupId || gav.groupId.startsWith(source.groupId + ".")) => version
-      }.distinct
-      targets match {
-        case Seq(version) => Some(gav -> version)
-        case _ => None
+    val inferred = trees.flatMap(DepTree.parseGavsOnly).distinct.filterNot(explicitGavs.contains)
+      .filterNot(gav => selfGas.contains((gav.groupId, gav.artifactId))).flatMap { gav =>
+        val targets = changes.collect {
+          case (source, version)
+              if source.version == gav.version &&
+                (gav.groupId == source.groupId || gav.groupId.startsWith(source.groupId + ".")) => version
+        }.distinct
+        targets match {
+          case Seq(version) => Some(gav -> version)
+          case _ => None
+        }
       }
-    }
     changes ++ inferred
   }
 

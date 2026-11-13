@@ -33,6 +33,9 @@ class DepTreeVersionTest {
     Assert.assertEquals(explicit :+ (Gav3("com.example.extra", "classifier", Some("48x-SNAPSHOT")) -> "48.13.0"),
       PomMod.expandDepTreeVersionChanges(explicit, Seq(tree)))
     Assert.assertEquals(Nil, PomMod.expandDepTreeVersionChanges(Nil, Seq(tree)))
+    Assert.assertEquals(
+      changes :+ (Gav3("com.example.extra", "classifier", Some("48x-SNAPSHOT")) -> "48.13.0"),
+      PomMod.expandDepTreeVersionChanges(changes, Seq(tree), Set(("com.example.health", "health"))))
   }
 
   @Test
