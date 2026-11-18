@@ -1,5 +1,5 @@
-# Keep the existing Java version and complete JRE module set.
-FROM eclipse-temurin:25.0.3_9-jre-jammy AS runtime-reference
+# Use the matching JRE to capture the complete runtime module set.
+FROM eclipse-temurin:25.0.5_8-jre-jammy AS runtime-reference
 
 RUN java --list-modules | sed 's/@.*//' > /tmp/jre-modules
 # GnuPG is only needed to verify the Git repository key during the build.
@@ -12,7 +12,7 @@ RUN apt-get update \
       | grep -q "fpr:::::::::F911AB184317630C59970973E363C90F8F1B6217:" \
     && rm -rf /var/lib/apt/lists/*
 
-FROM eclipse-temurin:25.0.3_9-jdk-jammy AS runtime-build
+FROM eclipse-temurin:25.0.5_8-jdk-jammy AS runtime-build
 COPY --from=runtime-reference /tmp/jre-modules /tmp/jre-modules
 # Preserve all JRE modules, including providers loaded dynamically. Compress the
 # runtime and omit debug data, headers, manuals and the default CDS archive.
@@ -34,7 +34,7 @@ LABEL maintainer="ishop-dev-infra@novomind.com" \
 
 ENV JAVA_HOME=/opt/java/openjdk
 ENV PATH=$JAVA_HOME/bin:$PATH \
-    JAVA_VERSION=jdk-25.0.3+9 \
+    JAVA_VERSION=jdk-25.0.5+8 \
     LANG=en_US.UTF-8 \
     LANGUAGE=en_US:en \
     LC_ALL=en_US.UTF-8 \
